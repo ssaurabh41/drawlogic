@@ -1,0 +1,66 @@
+{
+  "block": {
+    "name": "Block",
+    "category": "blocks",
+    "size": [140, 90],
+    "pins": [
+      {"name": "in1", "x": 0, "y": 25, "dir": "in"},
+      {"name": "in2", "x": 0, "y": 65, "dir": "in"},
+      {"name": "out1", "x": 140, "y": 25, "dir": "out"},
+      {"name": "out2", "x": 140, "y": 65, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "rect", "x": 0, "y": 0, "w": 140, "h": 90, "role": "body"}
+    ]
+  },
+
+  "port_in": {
+    "name": "Input port",
+    "category": "ports",
+    "size": [70, 20],
+    "pins": [
+      {"name": "p", "x": 70, "y": 10, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "path", "d": "M0 0 H58 L70 10 L58 20 H0 Z", "role": "body"}
+    ]
+  },
+
+  "port_out": {
+    "name": "Output port",
+    "category": "ports",
+    "size": [70, 20],
+    "pins": [
+      {"name": "p", "x": 0, "y": 10, "dir": "in"}
+    ],
+    "draw": [
+      {"op": "path", "d": "M70 0 H12 L0 10 L12 20 H70 Z", "role": "body"}
+    ]
+  },
+
+  "port_inout": {
+    "name": "Bidirectional port",
+    "category": "ports",
+    "size": [80, 20],
+    "pins": [
+      {"name": "p", "x": 0, "y": 10, "dir": "inout"}
+    ],
+    "draw": [
+      {"op": "path", "d": "M12 0 H68 L80 10 L68 20 H12 L0 10 Z", "role": "body"}
+    ]
+  },
+
+  "custom": {
+    "name": "Custom cell (placeholder)",
+    "category": "blocks",
+    "size": [100, 70],
+    "pins": [
+      {"name": "in", "x": 0, "y": 35, "dir": "in"},
+      {"name": "out", "x": 100, "y": 35, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "rect", "x": 0, "y": 0, "w": 100, "h": 70, "role": "ghost"},
+      {"op": "path", "d": "M22 50 L40 28 L54 42 L64 32 L78 50", "role": "ghost"}
+    ]
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "dff": {
+    "name": "D flip-flop",
+    "category": "sequential",
+    "size": [70, 60],
+    "pins": [
+      {"name": "d", "x": 0, "y": 15, "dir": "in"},
+      {"name": "ck", "x": 0, "y": 45, "dir": "in"},
+      {"name": "q", "x": 70, "y": 15, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "line", "x1": 0, "y1": 15, "x2": 10, "y2": 15, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 45, "x2": 10, "y2": 45, "role": "pin"},
+      {"op": "rect", "x": 10, "y": 0, "w": 50, "h": 60, "role": "body"},
+      {"op": "path", "d": "M10 39 L18 45 L10 51", "role": "decor"},
+      {"op": "line", "x1": 60, "y1": 15, "x2": 70, "y2": 15, "role": "pin"},
+      {"op": "text", "x": 14, "y": 19, "text": "D", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 21, "y": 49, "text": "CK", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 56, "y": 19, "text": "Q", "anchor": "end", "role": "pin_label"}
+    ]
+  },
+
+  "dffr": {
+    "name": "D flip-flop with reset",
+    "category": "sequential",
+    "size": [70, 70],
+    "pins": [
+      {"name": "d", "x": 0, "y": 15, "dir": "in"},
+      {"name": "ck", "x": 0, "y": 45, "dir": "in"},
+      {"name": "rn", "x": 35, "y": 70, "dir": "in"},
+      {"name": "q", "x": 70, "y": 15, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "line", "x1": 0, "y1": 15, "x2": 10, "y2": 15, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 45, "x2": 10, "y2": 45, "role": "pin"},
+      {"op": "rect", "x": 10, "y": 0, "w": 50, "h": 60, "role": "body"},
+      {"op": "path", "d": "M10 39 L18 45 L10 51", "role": "decor"},
+      {"op": "line", "x1": 60, "y1": 15, "x2": 70, "y2": 15, "role": "pin"},
+      {"op": "line", "x1": 35, "y1": 60, "x2": 35, "y2": 70, "role": "pin"},
+      {"op": "text", "x": 14, "y": 19, "text": "D", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 21, "y": 49, "text": "CK", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 56, "y": 19, "text": "Q", "anchor": "end", "role": "pin_label"},
+      {"op": "text", "x": 50, "y": 56, "text": "RN", "anchor": "middle", "role": "pin_label"}
+    ]
+  },
+
+  "dlatch": {
+    "name": "D latch",
+    "category": "sequential",
+    "size": [70, 60],
+    "pins": [
+      {"name": "d", "x": 0, "y": 15, "dir": "in"},
+      {"name": "g", "x": 0, "y": 45, "dir": "in"},
+      {"name": "q", "x": 70, "y": 15, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "line", "x1": 0, "y1": 15, "x2": 10, "y2": 15, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 45, "x2": 10, "y2": 45, "role": "pin"},
+      {"op": "rect", "x": 10, "y": 0, "w": 50, "h": 60, "role": "body"},
+      {"op": "line", "x1": 60, "y1": 15, "x2": 70, "y2": 15, "role": "pin"},
+      {"op": "text", "x": 14, "y": 19, "text": "D", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 14, "y": 49, "text": "G", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 56, "y": 19, "text": "Q", "anchor": "end", "role": "pin_label"}
+    ]
+  },
+
+  "icg": {
+    "name": "Integrated clock gate",
+    "category": "sequential",
+    "size": [80, 60],
+    "pins": [
+      {"name": "ck", "x": 0, "y": 15, "dir": "in"},
+      {"name": "e", "x": 0, "y": 45, "dir": "in"},
+      {"name": "gck", "x": 80, "y": 15, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "line", "x1": 0, "y1": 15, "x2": 10, "y2": 15, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 45, "x2": 10, "y2": 45, "role": "pin"},
+      {"op": "rect", "x": 10, "y": 0, "w": 60, "h": 60, "role": "body"},
+      {"op": "path", "d": "M10 9 L18 15 L10 21", "role": "decor"},
+      {"op": "path", "d": "M42 24 L36 34 H44 L38 44", "role": "decor"},
+      {"op": "line", "x1": 70, "y1": 15, "x2": 80, "y2": 15, "role": "pin"},
+      {"op": "text", "x": 21, "y": 19, "text": "CK", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 14, "y": 49, "text": "E", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 66, "y": 19, "text": "GCK", "anchor": "end", "role": "pin_label"}
+    ]
+  }
+}

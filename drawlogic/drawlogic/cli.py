@@ -1,0 +1,278 @@
+"""Command line entry points: export, symbols, info, validate."""
+
+import argparse
+import os
+import sys
+
+from . import render_svg
+from .doc import Document, DocumentError
+from .symbols import SymbolError, load_registry
+
+PROG = "drawlogic"
+VERSION = "0.1.0"
+
+
+def _quiet(args):
+  return getattr(args, "quiet", False)
+
+
+def _registry(args):
+  extra = []
+  for directory in (getattr(args, "symbols_dir", None) or []):
+    extra.append(directory)
+  return load_registry(extra)
+
+
+def _load(path):
+  try:
+    return Document.load(path)
+  except (IOError, OSError) as exc:
+    raise SystemExit("%s: cannot read %s: %s" % (PROG, path, exc))
+  except DocumentError as exc:
+    raise SystemExit("%s: %s: %s" % (PROG, path, exc))
+
+
+def _output_path(source, args, count):
+  if args.output and count == 1:
+    return args.output
+  base = os.path.splitext(os.path.basename(source))[0] + ".svg"
+  if args.outdir:
+    return os.path.join(args.outdir, base)
+  return os.path.join(os.path.dirname(source), base)
+
+
+def cmd_export(args):
+  registry = _registry(args)
+  background = None
+  if args.bg:
+    background = "none" if args.bg == "transparent" else args.bg
+
+  if args.output and args.outdir:
+    raise SystemExit("%s: use either --output or --outdir, not both" % PROG)
+  if args.output == "-" and len(args.files) > 1:
+    raise SystemExit("%s: cannot write several drawings to stdout" % PROG)
+  if args.outdir and not os.path.isdir(args.outdir):
+    os.makedirs(args.outdir)
+
+  for source in args.files:
+    doc = _load(source)
+    svg = render_svg.render(
+      doc, registry=registry, zoom=args.zoom, width=args.width,
+      margin=args.margin, background=background,
+      show_grid=args.grid, crop=args.crop, title=not args.no_title)
+
+    if args.output == "-":
+      sys.stdout.write(svg)
+      continue
+
+    target = _output_path(source, args, len(args.files))
+    with open(target, "w") as handle:
+      handle.write(svg)
+    if not _quiet(args):
+      sys.stderr.write("wrote %s\n" % target)
+  return 0
+
+
+def cmd_info(args):
+  registry = _registry(args)
+  doc = _load(args.file)
+  box = doc.content_bbox(registry)
+
+  print("title    %s" % doc.title)
+  print("canvas   %g x %g" % (doc.canvas["width"], doc.canvas["height"]))
+  grid = doc.canvas.get("grid") or {}
+  print("grid     %s, step %g" % (grid.get("style"), grid.get("size", 0)))
+  print("font     %s, scale %g" % ((doc.canvas.get("font") or {}).get("family"),
+                                   doc.font_scale))
+  print("cells    %d" % len(doc.cells))
+  print("nets     %d" % len(doc.nets))
+  print("shapes   %d" % len(doc.shapes))
+  print("groups   %d" % len(doc.groups))
+  if box:
+    print("content  x %g y %g w %g h %g" % box)
+  else:
+    print("content  empty")
+
+  counts = {}
+  for cell in doc.cells:
+    counts[cell.get("type")] = counts.get(cell.get("type"), 0) + 1
+  if counts:
+    print("")
+    print("by type")
+    for type_id in sorted(counts):
+      print("  %-12s %d" % (type_id, counts[type_id]))
+  return 0
+
+
+def cmd_validate(args):
+  registry = _registry(args)
+  doc = _load(args.file)
+  issues = doc.validate(registry)
+
+  errors = [i for i in issues if i.level == "error"]
+  warnings = [i for i in issues if i.level == "warning"]
+
+  for issue in errors:
+    print("error   %s: %s" % (issue.where, issue.message))
+  if not _quiet(args):
+    for issue in warnings:
+      print("warning %s: %s" % (issue.where, issue.message))
+
+  if errors:
+    print("")
+    print("%d error(s), %d warning(s)" % (len(errors), len(warnings)))
+    return 1
+  if not _quiet(args):
+    print("")
+    print("no errors, %d warning(s)" % len(warnings))
+  return 0
+
+
+def cmd_symbols(args):
+  registry = _registry(args)
+
+  if args.action == "list":
+    groups = registry.categories()
+    for category in sorted(groups):
+      if args.category and category != args.category:
+        continue
+      print(category)
+      for type_id in groups[category]:
+        symbol = registry.require(type_id)
+        pins = ", ".join("%s(%s)" % (p["name"], p["dir"]) for p in symbol.pins)
+        print("  %-12s %-28s %gx%g  %s"
+              % (type_id, symbol.name, symbol.width, symbol.height, pins))
+    return 0
+
+  try:
+    symbol = registry.require(args.name)
+  except SymbolError as exc:
+    raise SystemExit("%s: %s" % (PROG, exc))
+
+  if args.action == "show":
+    print("id       %s" % symbol.id)
+    print("name     %s" % symbol.name)
+    print("category %s" % symbol.category)
+    print("size     %g x %g" % (symbol.width, symbol.height))
+    print("source   %s" % registry.source_of(symbol.id))
+    print("pins")
+    for pin in symbol.pins:
+      width = "" if pin["width"] == 1 else "  [%d bits]" % pin["width"]
+      print("  %-6s %-6s at %g,%g%s"
+            % (pin["name"], pin["dir"], pin["x"], pin["y"], width))
+    return 0
+
+  svg = render_svg.render_symbol(symbol, zoom=args.zoom)
+  if args.output in (None, "-"):
+    sys.stdout.write(svg)
+  else:
+    with open(args.output, "w") as handle:
+      handle.write(svg)
+    if not _quiet(args):
+      sys.stderr.write("wrote %s\n" % args.output)
+  return 0
+
+
+def build_parser():
+  # Options shared by every subcommand. SUPPRESS keeps an unset flag from
+  # overwriting one given before the subcommand, so `drawlogic -q export ...`
+  # and `drawlogic export ... -q` both do what you would expect.
+  common = argparse.ArgumentParser(add_help=False)
+  common.add_argument("--symbols-dir", action="append", metavar="DIR",
+                      default=argparse.SUPPRESS,
+                      help="extra directory of symbol definitions "
+                           "(may be given more than once)")
+  common.add_argument("-q", "--quiet", action="store_true",
+                      default=argparse.SUPPRESS,
+                      help="only report problems")
+
+  parser = argparse.ArgumentParser(
+    prog=PROG, parents=[common],
+    description="Draw and export logic circuit schematics.")
+  parser.add_argument("--version", action="version",
+                      version="%s %s" % (PROG, VERSION))
+
+  subs = parser.add_subparsers(dest="command")
+
+  export = subs.add_parser("export", parents=[common],
+                           help="render drawings to SVG")
+  export.add_argument("files", nargs="+", metavar="FILE")
+  export.add_argument("-o", "--output", metavar="PATH",
+                      help="output file, or - for stdout")
+  export.add_argument("--outdir", metavar="DIR",
+                      help="write alongside originals into this directory")
+  export.add_argument("--zoom", type=float, default=1.0,
+                      help="scale the output size; geometry is unchanged "
+                           "(default 1.0)")
+  export.add_argument("--width", type=float, metavar="PX",
+                      help="absolute output width; overrides --zoom")
+  export.add_argument("--margin", type=float, metavar="UNITS",
+                      help="padding around the drawing")
+  export.add_argument("--bg", metavar="COLOR",
+                      help="background colour, or 'transparent'")
+  export.add_argument("--grid", action="store_true",
+                      help="include the canvas grid in the output")
+  export.add_argument("--crop", action="store_true",
+                      help="trim to the drawing instead of the full canvas")
+  export.add_argument("--no-title", action="store_true",
+                      help="leave the title off the sheet")
+  export.set_defaults(func=cmd_export)
+
+  info = subs.add_parser("info", parents=[common], help="summarise a drawing")
+  info.add_argument("file", metavar="FILE")
+  info.set_defaults(func=cmd_info)
+
+  validate = subs.add_parser("validate", parents=[common],
+                             help="check a drawing for problems")
+  validate.add_argument("file", metavar="FILE")
+  validate.set_defaults(func=cmd_validate)
+
+  symbols = subs.add_parser("symbols", parents=[common],
+                            help="inspect the symbol library")
+  actions = symbols.add_subparsers(dest="action")
+
+  listing = actions.add_parser("list", parents=[common],
+                               help="list every known cell type")
+  listing.add_argument("--category", help="restrict to one category")
+  listing.set_defaults(action="list")
+
+  show = actions.add_parser("show", parents=[common],
+                            help="print one symbol's definition")
+  show.add_argument("name", metavar="TYPE")
+  show.set_defaults(action="show")
+
+  preview = actions.add_parser("preview", parents=[common],
+                               help="render one symbol to SVG")
+  preview.add_argument("name", metavar="TYPE")
+  preview.add_argument("-o", "--output", metavar="PATH",
+                       help="output file, or - for stdout")
+  preview.add_argument("--zoom", type=float, default=4.0)
+  preview.set_defaults(action="preview")
+
+  symbols.set_defaults(func=cmd_symbols)
+  return parser
+
+
+def main(argv=None):
+  parser = build_parser()
+  args = parser.parse_args(argv)
+
+  if not getattr(args, "command", None):
+    parser.print_help()
+    return 0
+  if args.command == "symbols" and not getattr(args, "action", None):
+    raise SystemExit("%s: symbols needs one of: list, show, preview" % PROG)
+
+  try:
+    return args.func(args)
+  except SymbolError as exc:
+    raise SystemExit("%s: %s" % (PROG, exc))
+  except BrokenPipeError:
+    # Something downstream closed the pipe, as `| head` does. Point stdout at
+    # devnull so the interpreter does not complain again while shutting down.
+    os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+    return 0
+
+
+if __name__ == "__main__":
+  sys.exit(main())

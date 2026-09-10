@@ -1,0 +1,51 @@
+{
+  "mux2": {
+    "name": "2:1 multiplexer",
+    "category": "mux",
+    "size": [50, 60],
+    "pins": [
+      {"name": "d0", "x": 0, "y": 15, "dir": "in"},
+      {"name": "d1", "x": 0, "y": 45, "dir": "in"},
+      {"name": "s", "x": 25, "y": 60, "dir": "in"},
+      {"name": "y", "x": 50, "y": 30, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "line", "x1": 0, "y1": 15, "x2": 10, "y2": 15, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 45, "x2": 10, "y2": 45, "role": "pin"},
+      {"op": "polygon", "points": [[10, 5], [40, 20], [40, 40], [10, 55]], "role": "body"},
+      {"op": "line", "x1": 40, "y1": 30, "x2": 50, "y2": 30, "role": "pin"},
+      {"op": "line", "x1": 25, "y1": 47.5, "x2": 25, "y2": 60, "role": "pin"},
+      {"op": "text", "x": 14, "y": 19, "text": "0", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 14, "y": 49, "text": "1", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 27, "y": 37, "text": "S", "anchor": "middle", "role": "pin_label"}
+    ]
+  },
+
+  "mux4": {
+    "name": "4:1 multiplexer",
+    "category": "mux",
+    "size": [60, 80],
+    "pins": [
+      {"name": "d0", "x": 0, "y": 10, "dir": "in"},
+      {"name": "d1", "x": 0, "y": 30, "dir": "in"},
+      {"name": "d2", "x": 0, "y": 50, "dir": "in"},
+      {"name": "d3", "x": 0, "y": 70, "dir": "in"},
+      {"name": "s", "x": 30, "y": 80, "dir": "in", "width": 2},
+      {"name": "y", "x": 60, "y": 40, "dir": "out"}
+    ],
+    "draw": [
+      {"op": "line", "x1": 0, "y1": 10, "x2": 10, "y2": 10, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 30, "x2": 10, "y2": 30, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 50, "x2": 10, "y2": 50, "role": "pin"},
+      {"op": "line", "x1": 0, "y1": 70, "x2": 10, "y2": 70, "role": "pin"},
+      {"op": "polygon", "points": [[10, 2], [50, 22], [50, 58], [10, 78]], "role": "body"},
+      {"op": "line", "x1": 50, "y1": 40, "x2": 60, "y2": 40, "role": "pin"},
+      {"op": "line", "x1": 30, "y1": 68, "x2": 30, "y2": 80, "role": "pin"},
+      {"op": "text", "x": 14, "y": 14, "text": "0", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 14, "y": 34, "text": "1", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 14, "y": 54, "text": "2", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 14, "y": 74, "text": "3", "anchor": "start", "role": "pin_label"},
+      {"op": "text", "x": 30, "y": 64, "text": "S", "anchor": "middle", "role": "pin_label"}
+    ]
+  }
+}

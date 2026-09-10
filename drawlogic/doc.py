@@ -100,11 +100,14 @@ class Document(object):
   # ---- loading and saving ----
 
   @classmethod
-  def loads(cls, text, path=None):
-    try:
-      data = json.loads(text)
-    except ValueError as exc:
-      raise DocumentError("not valid JSON: %s" % exc)
+  def from_data(cls, data, path=None):
+    """Build from an already-parsed structure, checking it is really ours.
+
+    The plain constructor trusts its input, which is right for code that just
+    built a document. Anything arriving from outside -- a file, or the editor
+    over HTTP -- comes through here instead, so a malformed document is
+    refused rather than written back out as an unopenable file.
+    """
     if not isinstance(data, dict):
       raise DocumentError("a document must be a JSON object")
 
@@ -117,6 +120,14 @@ class Document(object):
         "document version %r is not supported by this build (expected %d)"
         % (version, VERSION))
     return cls(data, path=path)
+
+  @classmethod
+  def loads(cls, text, path=None):
+    try:
+      data = json.loads(text)
+    except ValueError as exc:
+      raise DocumentError("not valid JSON: %s" % exc)
+    return cls.from_data(data, path=path)
 
   @classmethod
   def load(cls, path):

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drawlogic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<div class="menubar">
+  <div class="brand">draw<span>logic</span></div>
+
+  <label class="field">
+    <span>File</span>
+    <select id="file-select" title="Drawings found under the served folder"></select>
+  </label>
+
+  <button id="btn-save" class="action" title="Save (Ctrl+S)">Save</button>
+  <button id="btn-export" class="action" title="Export SVG (Ctrl+E)">Export SVG</button>
+
+  <div class="spacer"></div>
+  <div class="filechip">
+    <span id="file-path">no file</span>
+    <span id="dirty" class="dirty" hidden title="unsaved changes">&#9679;</span>
+  </div>
+</div>
+
+<div class="toolbar">
+  <label class="field">
+    <span>Grid</span>
+    <select id="grid-select">
+      <option value="dots">Dots</option>
+      <option value="dots-wide">Dots &mdash; wide</option>
+      <option value="lines">Lines</option>
+      <option value="lines-heavy">Lines &mdash; major/minor</option>
+      <option value="blank">Blank</option>
+    </select>
+  </label>
+
+  <label class="field slider">
+    <span>Zoom</span>
+    <input id="zoom-slider" type="range" min="10" max="400" step="1" value="100">
+    <output id="zoom-value">100%</output>
+  </label>
+  <button id="btn-fit" class="action" title="Fit to window (Ctrl+0)">Fit</button>
+
+  <label class="field slider">
+    <span>Text</span>
+    <input id="font-slider" type="range" min="50" max="250" step="5" value="100">
+    <output id="font-value">100%</output>
+  </label>
+
+  <label class="field slider">
+    <span>Symbols</span>
+    <input id="symbol-slider" type="range" min="50" max="250" step="5" value="100">
+    <output id="symbol-value">100%</output>
+  </label>
+</div>
+
+<div class="panes">
+  <aside class="palette">
+    <div class="pane-head">Symbols</div>
+    <div id="palette-body"></div>
+    <p class="palette-note">
+      Reference only for now. Placing and wiring arrives in the next phase.
+    </p>
+  </aside>
+
+  <main class="stage">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+  </main>
+</div>
+
+<div class="status">
+  <span id="status-counts">&mdash;</span>
+  <span id="status-cursor">x &mdash; y &mdash;</span>
+  <span id="status-grid">grid &mdash;</span>
+  <span class="push" id="status-message">Shift-drag or hold Space to pan &middot; scroll to zoom</span>
+</div>
+
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -7,8 +7,10 @@ Gates, flip-flops, muxes, clock gates, transistors, blocks and ports, wired
 PowerPoint cannot do. Drawings are plain JSON, so they diff and review like
 code.
 
-Status: **Phase 1**. The document format, symbol library, renderer and
-command line all work. The browser editor is not built yet.
+Status: **Phase 2**. The document format, symbol library, renderer and command
+line all work, and the browser editor opens, draws and exports a drawing with
+live zoom, text-size and symbol-size controls. Placing and wiring cells by
+hand is the next phase.
 
 ## Requirements
 
@@ -31,6 +33,34 @@ alias drawlogic='python3 -m drawlogic'
 ```
 
 If pip is available, `pip install -e .` gives you the same short command.
+
+## The browser editor
+
+```bash
+drawlogic serve                          # serves . on http://127.0.0.1:8080
+drawlogic serve examples/dff_slice.dlg   # open one drawing straight away
+drawlogic serve --dir ~/schematics --port 9000
+drawlogic serve --no-browser
+```
+
+The server binds to loopback and serves exactly one folder, so nothing outside
+the directory you point it at is reachable. **If the machine is remote**,
+tunnel rather than opening it up with `--host`:
+
+```bash
+ssh -L 8080:localhost:8080 you@workstation
+```
+
+In the editor: scroll to zoom, shift-drag or hold Space to pan, `Ctrl+0` to
+fit. The **Zoom**, **Text** and **Symbols** sliders control view scale,
+`canvas.font.scale` and `canvas.symbolScale` respectively; the last two change
+the document, so they mark it unsaved.
+
+`Ctrl+S` saves, `Ctrl+E` exports. Saving is manual and nothing else writes to
+disk -- the one automatic behaviour is the browser refusing to close a tab
+with unsaved changes. Export is rendered by Python, the same code path the CLI
+uses, so a file exported from the browser is byte-for-byte what
+`drawlogic export` would produce.
 
 ## Exporting
 
@@ -180,7 +210,15 @@ drawlogic/
   routing.py      orthogonal wire routing, corridors, junction dots
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
-  cli.py          export, symbols, info, validate
+  cli.py          serve, export, symbols, info, validate
+  server.py       stdlib HTTP server for the editor
+  web/            the browser editor
+    js/geometry.js  affine transforms, ported from geometry.py
+    js/routing.js   wire routing, ported from routing.py
+    js/symbols.js   symbol placement and pin resolution
+    js/render.js    document to live SVG DOM
+    js/viewport.js  pan and zoom
+    js/main.js      bootstrap and controls
 tests/            unittest, no dependencies
 examples/         a worked schematic
 ```
@@ -212,7 +250,14 @@ Plex still lays out sensibly.
 
 ## Not built yet
 
-The browser editor (Phase 2 onwards): `drawlogic serve`, drag and drop,
-selection and resize handles, the properties panel, undo/redo, copy/paste and
-ctrl-drag duplicate, group and ungroup, zoom and font-scale sliders,
-autoshapes and text boxes, and embedded custom cell images.
+Editing, from Phase 3 on: placing cells from the palette, selection and resize
+handles, the properties panel, drawing wires, undo/redo, copy/paste and
+ctrl-drag duplicate, group and ungroup, alignment tools, autoshapes and text
+boxes, and embedded custom cell images.
+
+Two duplicated modules are worth knowing about. `web/js/geometry.js` and
+`web/js/routing.js` are ports of their Python counterparts, because the canvas
+has to route a wire while you drag a gate and cannot wait on the server. They
+are covered by tests on the Python side and kept honest by the fact that both
+read the same symbol data and the same theme, which the server sends rather
+than the browser restating.

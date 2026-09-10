@@ -73,6 +73,34 @@ def cmd_export(args):
   return 0
 
 
+def cmd_serve(args):
+  from . import server
+
+  root = args.dir
+  initial = None
+  if args.file:
+    if not os.path.isfile(args.file):
+      raise SystemExit("%s: no such drawing: %s" % (PROG, args.file))
+    if root is None:
+      root = os.path.dirname(os.path.abspath(args.file)) or "."
+    initial = os.path.relpath(os.path.abspath(args.file), os.path.abspath(root))
+    if initial.startswith(".."):
+      raise SystemExit("%s: %s is outside --dir" % (PROG, args.file))
+  if root is None:
+    root = "."
+
+  try:
+    return server.serve(
+      root=root, host=args.host, port=args.port,
+      registry=_registry(args), open_browser=not args.no_browser,
+      initial=initial, quiet=_quiet(args))
+  except ValueError as exc:
+    raise SystemExit("%s: %s" % (PROG, exc))
+  except OSError as exc:
+    raise SystemExit("%s: cannot serve on %s:%d: %s"
+                     % (PROG, args.host, args.port, exc))
+
+
 def cmd_info(args):
   registry = _registry(args)
   doc = _load(args.file)
@@ -217,6 +245,19 @@ def build_parser():
   export.add_argument("--no-title", action="store_true",
                       help="leave the title off the sheet")
   export.set_defaults(func=cmd_export)
+
+  serve = subs.add_parser("serve", parents=[common],
+                          help="run the browser editor")
+  serve.add_argument("file", nargs="?", metavar="FILE",
+                     help="drawing to open on startup")
+  serve.add_argument("--dir", metavar="DIR",
+                     help="folder to serve (default: the file's folder, or .)")
+  serve.add_argument("--port", type=int, default=8080)
+  serve.add_argument("--host", default="127.0.0.1",
+                     help="interface to bind (default loopback only)")
+  serve.add_argument("--no-browser", action="store_true",
+                     help="do not open a browser window")
+  serve.set_defaults(func=cmd_serve)
 
   info = subs.add_parser("info", parents=[common], help="summarise a drawing")
   info.add_argument("file", metavar="FILE")

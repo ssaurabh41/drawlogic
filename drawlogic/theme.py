@@ -32,7 +32,6 @@ WIDTHS = {
   "stroke": 1.6,
   "pin": 1.4,
   "net": 1.6,
-  "bus": 3.0,
   "decor": 1.2,
   "ghost": 1.2,
 }

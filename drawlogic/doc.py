@@ -17,7 +17,7 @@ FORMAT = "drawlogic"
 VERSION = 1
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
-CANVAS_KEYS = ["width", "height", "background", "grid", "font"]
+CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label", "style", "ref"]
@@ -34,6 +34,7 @@ DEFAULT_CANVAS = {
   "background": theme.PAPER,
   "grid": {"style": "dots", "size": 10, "color": theme.COLORS["grid"]},
   "font": {"family": "IBM Plex Sans", "scale": 1.0},
+  "symbolScale": 1.0,
 }
 
 
@@ -182,6 +183,15 @@ class Document(object):
     return self.data.setdefault("groups", [])
 
   @property
+  def symbol_scale(self):
+    """One multiplier for every cell's size, leaving each cell centred."""
+    try:
+      scale = float(self.canvas.get("symbolScale", 1.0))
+    except (TypeError, ValueError):
+      return 1.0
+    return scale if scale > 0 else 1.0
+
+  @property
   def font_scale(self):
     font = self.canvas.get("font") or {}
     try:
@@ -208,7 +218,7 @@ class Document(object):
     data.setdefault("title", "untitled")
 
     canvas = data.setdefault("canvas", {})
-    for key in ("width", "height", "background"):
+    for key in ("width", "height", "background", "symbolScale"):
       canvas.setdefault(key, DEFAULT_CANVAS[key])
     grid = canvas.setdefault("grid", {})
     for key, value in DEFAULT_CANVAS["grid"].items():
@@ -249,12 +259,13 @@ class Document(object):
     """Bounding box of everything drawn, or None for an empty document."""
     registry = registry or default_registry()
     box = None
+    scale = self.symbol_scale
 
     for cell in self.cells:
       symbol = registry.get(cell.get("type"))
       if symbol is None:
         continue
-      matrix = symbol.matrix_for(cell)
+      matrix = symbol.matrix_for(cell, scale)
       points = [matrix.apply(px, py) for px, py in
                 corners(0, 0, symbol.width, symbol.height)]
       xs = [p[0] for p in points]

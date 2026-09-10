@@ -76,20 +76,32 @@ class Symbol(object):
   def pin_names(self):
     return [p["name"] for p in self.pins]
 
-  def matrix_for(self, cell):
-    """Transform placing this symbol per a cell's position, size and rotation."""
-    return cell_matrix(
-      cell.get("x", 0), cell.get("y", 0),
-      cell.get("w", self.width), cell.get("h", self.height),
-      self.width, self.height,
-      cell.get("rotate", 0), bool(cell.get("mirror", False)))
+  def matrix_for(self, cell, scale=1.0):
+    """Transform placing this symbol per a cell's position, size and rotation.
 
-  def pin_position(self, cell, pin_name):
+    `scale` is the document-wide symbol scale. It grows a cell about its own
+    centre, so turning every gate up does not drag the layout sideways.
+    """
+    x = cell.get("x", 0)
+    y = cell.get("y", 0)
+    w = cell.get("w", self.width)
+    h = cell.get("h", self.height)
+    if scale != 1.0:
+      cx = x + w / 2.0
+      cy = y + h / 2.0
+      w *= scale
+      h *= scale
+      x = cx - w / 2.0
+      y = cy - h / 2.0
+    return cell_matrix(x, y, w, h, self.width, self.height,
+                       cell.get("rotate", 0), bool(cell.get("mirror", False)))
+
+  def pin_position(self, cell, pin_name, scale=1.0):
     """Where a pin lands in sheet coordinates, or None if there is no such pin."""
     pin = self.pin(pin_name)
     if pin is None:
       return None
-    return self.matrix_for(cell).apply(pin["x"], pin["y"])
+    return self.matrix_for(cell, scale).apply(pin["x"], pin["y"])
 
   def __repr__(self):
     return "<Symbol %s %gx%g %d pins>" % (

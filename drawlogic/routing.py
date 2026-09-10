@@ -35,7 +35,7 @@ def endpoint_position(doc, endpoint, registry=None):
     symbol = registry.get(cell.get("type"))
     if symbol is None:
       return None
-    return symbol.pin_position(cell, endpoint.get("pin"))
+    return symbol.pin_position(cell, endpoint.get("pin"), doc.symbol_scale)
   if "x" in endpoint and "y" in endpoint:
     return (float(endpoint["x"]), float(endpoint["y"]))
   return None
@@ -70,7 +70,7 @@ def endpoint_direction(doc, endpoint, registry=None):
   else:
     local = (1.0, 0.0)
 
-  matrix = symbol.matrix_for(cell)
+  matrix = symbol.matrix_for(cell, doc.symbol_scale)
   origin = matrix.apply(0, 0)
   tip = matrix.apply(local[0], local[1])
   dx = tip[0] - origin[0]
@@ -126,7 +126,7 @@ def obstacle_boxes(doc, registry=None, exclude=()):
     symbol = registry.get(cell.get("type"))
     if symbol is None:
       continue
-    matrix = symbol.matrix_for(cell)
+    matrix = symbol.matrix_for(cell, doc.symbol_scale)
     points = [matrix.apply(px, py)
               for px, py in corners(0, 0, symbol.width, symbol.height)]
     xs = [p[0] for p in points]
@@ -152,21 +152,24 @@ def _horizontal_clear(y, x0, x1, boxes):
   return True
 
 
-def _pick_corridor(preferred, span_lo, span_hi, from_value, to_value,
-                   boxes, clear):
-  """Choose a corridor near `preferred` that does not cut through a cell.
+def _pick_corridor(preferred, span_lo, span_hi, path_is_clear):
+  """Choose a corridor near `preferred` whose whole path misses every cell.
+
+  `path_is_clear` checks all three legs, not just the corridor itself -- a
+  corridor that dodges a gate is no use if the leg leading into it still
+  ploughs straight through one.
 
   Falls back to the preferred position when nothing is clear, so a crowded
   drawing still produces a wire rather than nothing at all.
   """
-  if clear(preferred, from_value, to_value, boxes):
+  if path_is_clear(preferred):
     return preferred
   for step in range(1, CORRIDOR_TRIES + 1):
     for candidate in (preferred + step * CORRIDOR_STEP,
                       preferred - step * CORRIDOR_STEP):
       if candidate <= span_lo or candidate >= span_hi:
         continue
-      if clear(candidate, from_value, to_value, boxes):
+      if path_is_clear(candidate):
         return candidate
   return preferred
 
@@ -182,10 +185,14 @@ def _direct_route(start, end, start_dir, end_dir, boxes=()):
   if start_horizontal and end_horizontal:
     forward = (end[0] - start[0]) * (start_dir[0] if start_dir else 1.0)
     if forward > 2 * STUB:
+      def clear_at(mid):
+        return (_vertical_clear(mid, start[1], end[1], boxes)
+                and _horizontal_clear(start[1], start[0], mid, boxes)
+                and _horizontal_clear(end[1], mid, end[0], boxes))
       mid = _pick_corridor(
         (start[0] + end[0]) / 2.0,
         min(start[0], end[0]) + STUB, max(start[0], end[0]) - STUB,
-        start[1], end[1], boxes, _vertical_clear)
+        clear_at)
       return [start, (mid, start[1]), (mid, end[1]), end]
     # The target sits behind the driving pin, so break out, cross over on a
     # mid-line, and come back in rather than drawing through the cell.
@@ -198,10 +205,14 @@ def _direct_route(start, end, start_dir, end_dir, boxes=()):
   if not start_horizontal and not end_horizontal:
     forward = (end[1] - start[1]) * (start_dir[1] if start_dir else 1.0)
     if forward > 2 * STUB:
+      def clear_at(mid):
+        return (_horizontal_clear(mid, start[0], end[0], boxes)
+                and _vertical_clear(start[0], start[1], mid, boxes)
+                and _vertical_clear(end[0], mid, end[1], boxes))
       mid = _pick_corridor(
         (start[1] + end[1]) / 2.0,
         min(start[1], end[1]) + STUB, max(start[1], end[1]) - STUB,
-        start[0], end[0], boxes, _horizontal_clear)
+        clear_at)
       return [start, (start[0], mid), (end[0], mid), end]
     out_y = start[1] + (start_dir[1] if start_dir else 1.0) * STUB
     in_y = end[1] - (end_dir[1] if end_dir else -1.0) * STUB
@@ -327,7 +338,5 @@ def junctions(routes):
 
 
 def stroke_width(net):
-  """Buses are drawn heavier so width is readable without reading the label."""
-  if net.get("width", 1) > 1:
-    return theme.WIDTHS["bus"]
+  """Wire weight. Buses look the same as single bits; the name carries width."""
   return theme.WIDTHS["net"]

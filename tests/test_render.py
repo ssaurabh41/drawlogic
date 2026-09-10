@@ -84,11 +84,20 @@ class TestRender(unittest.TestCase):
     self.assertNotEqual(small, large)
     self.assertIn('font-size="22"', large)
 
-  def test_bus_is_drawn_heavier(self):
+  def test_bus_is_drawn_like_any_other_wire(self):
     svg = render_svg.render(self.doc)
     bus = re.search(r'data-id="n8"[^>]*stroke-width="([\d.]+)"', svg)
     single = re.search(r'data-id="n1"[^>]*stroke-width="([\d.]+)"', svg)
-    self.assertGreater(float(bus.group(1)), float(single.group(1)))
+    self.assertEqual(float(bus.group(1)), float(single.group(1)))
+
+  def test_symbol_scale_grows_cells_about_their_own_centre(self):
+    before = self.doc.content_bbox()
+    self.doc.canvas["symbolScale"] = 2.0
+    after = self.doc.content_bbox()
+    # Cells get bigger, so the drawing spreads, but stays centred where it was.
+    self.assertGreater(after[2], before[2])
+    self.assertAlmostEqual(before[0] + before[2] / 2.0,
+                           after[0] + after[2] / 2.0, delta=12)
 
 
 class TestEscaping(unittest.TestCase):

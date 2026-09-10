@@ -133,17 +133,17 @@ def _grid_defs(grid):
   return ""
 
 
-def _cell_bbox(symbol, cell):
-  matrix = symbol.matrix_for(cell)
+def _cell_bbox(symbol, cell, scale=1.0):
+  matrix = symbol.matrix_for(cell, scale)
   points = [matrix.apply(px, py) for px, py in corners(0, 0, symbol.width, symbol.height)]
   xs = [p[0] for p in points]
   ys = [p[1] for p in points]
   return (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
 
 
-def _render_cell(symbol, cell, font_scale, out):
+def _render_cell(symbol, cell, font_scale, out, scale=1.0):
   """Draw one placed cell: its shapes transformed, its text kept upright."""
-  matrix = symbol.matrix_for(cell)
+  matrix = symbol.matrix_for(cell, scale)
   scale = matrix.scale_factor()
   style = cell.get("style") or {}
 
@@ -180,7 +180,7 @@ def _render_cell(symbol, cell, font_scale, out):
 
   label = cell.get("label")
   if label:
-    box = _cell_bbox(symbol, cell)
+    box = _cell_bbox(symbol, cell, scale)
     out.append("<text %s>%s</text>" % (
       _attrs([
         ("x", fmt(box[0] + box[2] / 2.0)),
@@ -349,7 +349,7 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
     symbol = registry.get(cell.get("type"))
     if symbol is None:
       continue
-    _render_cell(symbol, cell, font_scale, out)
+    _render_cell(symbol, cell, font_scale, out, doc.symbol_scale)
   out.append("</g>")
 
   if title and doc.title:

@@ -100,6 +100,27 @@ Adding a gate, a flop or a custom cell means adding one entry to a file in
 your own directory to add cells without touching the built-in set; an entry
 there with the same id overrides the built-in one.
 
+### Setting default sizes
+
+There are two levels, depending on whether you want to change one cell type
+or all of them.
+
+**Per type**, `size` in the symbol JSON is that cell's default. A 2-input
+gate is 60x40, a flop 70x60, a port 44x16. To change a default without
+editing the built-ins, copy the entry into your own `--symbols-dir` and give
+it a different `size`.
+
+**Per drawing**, `canvas.symbolScale` multiplies every cell at once:
+
+```json
+"canvas": { "symbolScale": 1.5 }
+```
+
+Each cell grows about its own centre, so turning the whole drawing up does
+not drag the layout sideways, and wires stay attached because they are
+re-resolved from the moved pins. Individual cells keep their own `w` and `h`
+for one-off resizing.
+
 Draw ops are `path`, `line`, `rect`, `circle`, `polygon` and `text`. A `role`
 of `body`, `pin`, `bubble`, `decor`, `ghost` or `pin_label` decides how it is
 painted, so restyling the whole library is a change to `theme.py`.
@@ -117,7 +138,8 @@ One JSON file per drawing, pretty-printed with a stable key order so
   "canvas": {
     "width": 900, "height": 560, "background": "#ffffff",
     "grid": {"style": "dots", "size": 10, "color": "#b9c7cc"},
-    "font": {"family": "IBM Plex Sans", "scale": 1.0}
+    "font": {"family": "IBM Plex Sans", "scale": 1.0},
+    "symbolScale": 1.0
   },
   "cells": [
     {"id": "u1", "type": "and2", "x": 220, "y": 120, "w": 60, "h": 40,
@@ -139,8 +161,9 @@ from the pins every time anything is drawn, which is what keeps wires
 attached when a gate moves and lets `validate` catch a pin that only *looks*
 connected.
 
-Bus width lives in the name: `d[7:0]` is eight bits, drawn heavier than a
-single wire, and `validate` complains if the declared width disagrees.
+Bus width lives in the name: `d[7:0]` is eight bits, and `validate` complains
+if the declared width disagrees. Buses are drawn with the same line weight as
+a single bit -- the name carries the width, not the stroke.
 
 Grid styles are `blank`, `dots`, `dots-wide`, `lines` and `lines-heavy`. The
 grid is a drawing aid and stays out of exported SVG unless you pass `--grid`.

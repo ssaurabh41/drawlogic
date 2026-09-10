@@ -65,6 +65,25 @@ class TestRouting(unittest.TestCase):
     # The wire must leave the driving pin heading east before turning back.
     self.assertGreater(points[1][0], start[0])
 
+  def test_no_segment_crosses_an_unrelated_cell(self):
+    # Every leg has to clear other cells, not just the corridor. A corridor
+    # that dodges a gate is useless if the leg into it still cuts through one.
+    doc = Document.load(EXAMPLE)
+    for net, points in routing.route_all(doc):
+      exclude = set()
+      for side in ("from", "to"):
+        endpoint = net.get(side) or {}
+        if "cell" in endpoint:
+          exclude.add(endpoint["cell"])
+      boxes = routing.obstacle_boxes(doc, exclude=exclude)
+      for index in range(len(points) - 1):
+        (ax, ay), (bx, by) = points[index], points[index + 1]
+        if abs(ax - bx) < 1e-6:
+          clear = routing._vertical_clear(ax, ay, by, boxes)
+        else:
+          clear = routing._horizontal_clear(ay, ax, bx, boxes)
+        self.assertTrue(clear, "net %s cuts through a cell" % net.get("id"))
+
   def test_unresolvable_net_routes_to_nothing(self):
     doc = _doc_with_pair()
     doc.nets[0]["to"] = {"cell": "ghost", "pin": "a"}
@@ -112,10 +131,10 @@ class TestJunctions(unittest.TestCase):
 
 class TestBusWidth(unittest.TestCase):
 
-  def test_bus_is_drawn_heavier_than_a_single_wire(self):
-    thin = routing.stroke_width({"width": 1})
-    fat = routing.stroke_width({"width": 8})
-    self.assertGreater(fat, thin)
+  def test_bus_is_drawn_like_any_other_wire(self):
+    # Width is carried by the name, not by line weight.
+    self.assertEqual(routing.stroke_width({"width": 8}),
+                     routing.stroke_width({"width": 1}))
 
 
 if __name__ == "__main__":

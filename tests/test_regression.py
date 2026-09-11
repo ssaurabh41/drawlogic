@@ -276,6 +276,57 @@ class TestEmbeddedImages(unittest.TestCase):
     self.assertEqual(reloaded.cell("c1")["image"], self.PIXEL)
 
 
+class TestCrossingHops(unittest.TestCase):
+  """A crossing and a connection must not look the same."""
+
+  def setUp(self):
+    self.doc = Document.load(os.path.join(ROOT, "examples", "cdc_fifo.dlg"))
+
+  def _crossed(self):
+    doc = Document.load(os.path.join(ROOT, "examples", "cdc_fifo.dlg"))
+    return routing.hop_points(routing.route_all(doc))
+
+  def test_the_example_actually_has_crossings(self):
+    # Otherwise everything below would pass without testing anything.
+    self.assertTrue(self._crossed(), "cdc_fifo should contain wire crossings")
+
+  def test_crossings_become_arcs_in_the_output(self):
+    svg = render_svg.render(self.doc)
+    total = sum(len(v) for v in self._crossed().values())
+    self.assertEqual(svg.count(" 0 0 1 "), svg.count(" 0 0 1 "))
+    self.assertEqual(len(re.findall(r"A[\d.]+ [\d.]+ 0 0 [01] ", svg)), total)
+
+  def test_hops_can_be_switched_off(self):
+    self.assertNotIn("A5 5", render_svg.render(self.doc, hops=False))
+    self.doc.canvas["hops"] = False
+    self.assertNotIn("A5 5", render_svg.render(self.doc))
+
+  def test_a_junction_never_gets_a_hop(self):
+    # Where wires genuinely meet there is a shared vertex, so the point is a
+    # junction dot and must not also be bridged.
+    routes = routing.route_all(self.doc)
+    junctions = {(round(p[0], 3), round(p[1], 3))
+                 for p in routing.junctions(routes)}
+    for points in routing.hop_points(routes).values():
+      for point in points:
+        self.assertNotIn((round(point[0], 3), round(point[1], 3)), junctions)
+
+  def test_a_hop_sits_on_a_real_crossing(self):
+    routes = routing.route_all(self.doc)
+    verticals = []
+    for _, points in routes:
+      for index in range(len(points) - 1):
+        a, b = points[index], points[index + 1]
+        if abs(a[0] - b[0]) < 1e-6:
+          verticals.append((a[0], min(a[1], b[1]), max(a[1], b[1])))
+
+    for points in routing.hop_points(routes).values():
+      for x, y in points:
+        self.assertTrue(
+          any(abs(vx - x) < 1e-6 and lo < y < hi for vx, lo, hi in verticals),
+          "hop at %g,%g does not sit on a vertical wire" % (x, y))
+
+
 class TestExportOptions(unittest.TestCase):
   """Option handling checked on the complex example, not a toy one."""
 

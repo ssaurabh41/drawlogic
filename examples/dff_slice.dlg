@@ -16,7 +16,8 @@
       "scale": 1.0
     },
     "symbolScale": 1.0,
-    "arrows": true
+    "arrows": true,
+    "hops": true
   },
   "cells": [
     {

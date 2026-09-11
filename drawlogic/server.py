@@ -176,6 +176,7 @@ class Handler(BaseHTTPRequestHandler):
         "fontMono": theme.FONT_MONO,
         "junctionRadius": theme.JUNCTION_RADIUS,
         "arrowSize": theme.ARROW_SIZE,
+        "hopRadius": theme.HOP_RADIUS,
         "gridStyles": list(theme.GRID_STYLES),
       })
 

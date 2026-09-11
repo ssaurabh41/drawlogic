@@ -3,8 +3,8 @@
   "version": 1,
   "title": "cdc_fifo",
   "canvas": {
-    "width": 1700,
-    "height": 1020,
+    "width": 1800,
+    "height": 980,
     "background": "#ffffff",
     "grid": {
       "style": "dots",
@@ -16,14 +16,27 @@
       "scale": 1.0
     },
     "symbolScale": 1.0,
-    "arrows": true
+    "arrows": true,
+    "hops": true
   },
   "cells": [
     {
+      "id": "mem",
+      "type": "ram_dp",
+      "x": 790,
+      "y": 120,
+      "w": 220.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "fifo_mem  8 x 256",
+      "style": {}
+    },
+    {
       "id": "p_wdata",
       "type": "port_in",
-      "x": 60,
-      "y": 131,
+      "x": 140,
+      "y": 145,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -34,8 +47,8 @@
     {
       "id": "p_winc",
       "type": "port_in",
-      "x": 60,
-      "y": 359,
+      "x": 140,
+      "y": 399,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -44,22 +57,10 @@
       "style": {}
     },
     {
-      "id": "p_wclk",
-      "type": "port_in",
-      "x": 60,
-      "y": 875,
-      "w": 20.0,
-      "h": 10.0,
-      "rotate": 0,
-      "mirror": false,
-      "label": "wclk",
-      "style": {}
-    },
-    {
       "id": "p_wrstn",
       "type": "port_in",
-      "x": 60,
-      "y": 425,
+      "x": 140,
+      "y": 435,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -68,10 +69,22 @@
       "style": {}
     },
     {
+      "id": "p_wclk",
+      "type": "port_in",
+      "x": 140,
+      "y": 685,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wclk",
+      "style": {}
+    },
+    {
       "id": "p_wfull",
       "type": "port_out",
-      "x": 60,
-      "y": 770,
+      "x": 140,
+      "y": 820,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -82,124 +95,64 @@
     {
       "id": "wptr",
       "type": "block6",
-      "x": 230,
-      "y": 340,
+      "x": 330,
+      "y": 380,
       "w": 160,
       "h": 120,
       "rotate": 0,
       "mirror": false,
       "label": "wptr_gray",
       "style": {
-        "fill": "#eaf3f7"
+        "fill": "#e8f2f6"
       }
     },
     {
       "id": "wfull",
       "type": "block",
-      "x": 230,
-      "y": 745,
+      "x": 350,
+      "y": 800,
       "w": 140,
       "h": 90,
       "rotate": 0,
       "mirror": true,
       "label": "full_cmp",
       "style": {
-        "fill": "#eaf3f7"
+        "fill": "#e8f2f6"
       }
     },
     {
       "id": "sr1",
       "type": "reg",
-      "x": 470,
-      "y": 620,
+      "x": 430,
+      "y": 600,
       "w": 70.0,
       "h": 60.0,
       "rotate": 0,
       "mirror": false,
       "label": "r2w_1",
-      "style": {}
+      "style": {
+        "fill": "#e8f2f6"
+      }
     },
     {
       "id": "sr2",
       "type": "reg",
-      "x": 620,
-      "y": 620,
+      "x": 540,
+      "y": 600,
       "w": 70.0,
       "h": 60.0,
       "rotate": 0,
       "mirror": false,
       "label": "r2w_2",
-      "style": {}
-    },
-    {
-      "id": "sw1",
-      "type": "reg",
-      "x": 960,
-      "y": 620,
-      "w": 70.0,
-      "h": 60.0,
-      "rotate": 0,
-      "mirror": false,
-      "label": "w2r_1",
-      "style": {}
-    },
-    {
-      "id": "sw2",
-      "type": "reg",
-      "x": 1110,
-      "y": 620,
-      "w": 70.0,
-      "h": 60.0,
-      "rotate": 0,
-      "mirror": false,
-      "label": "w2r_2",
-      "style": {}
-    },
-    {
-      "id": "mem",
-      "type": "block8",
-      "x": 700,
-      "y": 110,
-      "w": 180,
-      "h": 160,
-      "rotate": 0,
-      "mirror": false,
-      "label": "fifo_mem 8x256",
-      "style": {}
-    },
-    {
-      "id": "rptr",
-      "type": "block6",
-      "x": 1210,
-      "y": 340,
-      "w": 160,
-      "h": 120,
-      "rotate": 0,
-      "mirror": true,
-      "label": "rptr_gray",
       "style": {
-        "fill": "#f5eee6"
-      }
-    },
-    {
-      "id": "rempty",
-      "type": "block",
-      "x": 980,
-      "y": 745,
-      "w": 140,
-      "h": 90,
-      "rotate": 0,
-      "mirror": false,
-      "label": "empty_cmp",
-      "style": {
-        "fill": "#f5eee6"
+        "fill": "#e8f2f6"
       }
     },
     {
       "id": "p_rdata",
       "type": "port_out",
-      "x": 1560,
-      "y": 131,
+      "x": 1640,
+      "y": 145,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -210,8 +163,8 @@
     {
       "id": "p_rinc",
       "type": "port_in",
-      "x": 1560,
-      "y": 359,
+      "x": 1640,
+      "y": 399,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -220,22 +173,10 @@
       "style": {}
     },
     {
-      "id": "p_rclk",
-      "type": "port_in",
-      "x": 1560,
-      "y": 875,
-      "w": 20.0,
-      "h": 10.0,
-      "rotate": 0,
-      "mirror": true,
-      "label": "rclk",
-      "style": {}
-    },
-    {
       "id": "p_rrstn",
       "type": "port_in",
-      "x": 1560,
-      "y": 425,
+      "x": 1640,
+      "y": 435,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -244,16 +185,84 @@
       "style": {}
     },
     {
+      "id": "p_rclk",
+      "type": "port_in",
+      "x": 1640,
+      "y": 685,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": true,
+      "label": "rclk",
+      "style": {}
+    },
+    {
       "id": "p_rempty",
       "type": "port_out",
-      "x": 1560,
-      "y": 770,
+      "x": 1640,
+      "y": 820,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
       "mirror": false,
       "label": "rempty",
       "style": {}
+    },
+    {
+      "id": "rptr",
+      "type": "block6",
+      "x": 1310,
+      "y": 380,
+      "w": 160,
+      "h": 120,
+      "rotate": 0,
+      "mirror": true,
+      "label": "rptr_gray",
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "rempty",
+      "type": "block",
+      "x": 1310,
+      "y": 800,
+      "w": 140,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "empty_cmp",
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "sw1",
+      "type": "reg",
+      "x": 1190,
+      "y": 600,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "w2r_1",
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "sw2",
+      "type": "reg",
+      "x": 1300,
+      "y": 600,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "w2r_2",
+      "style": {
+        "fill": "#f7efe6"
+      }
     }
   ],
   "nets": [
@@ -267,7 +276,7 @@
       },
       "to": {
         "cell": "mem",
-        "pin": "in1"
+        "pin": "wdata"
       },
       "waypoints": [],
       "style": {}
@@ -289,21 +298,6 @@
     },
     {
       "id": "n3",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_wclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "wptr",
-        "pin": "in3"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n4",
       "name": "wrst_n",
       "width": 1,
       "from": {
@@ -318,7 +312,7 @@
       "style": {}
     },
     {
-      "id": "n5",
+      "id": "n4",
       "name": "waddr[7:0]",
       "width": 8,
       "from": {
@@ -327,13 +321,13 @@
       },
       "to": {
         "cell": "mem",
-        "pin": "in2"
+        "pin": "waddr"
       },
       "waypoints": [],
       "style": {}
     },
     {
-      "id": "n6",
+      "id": "n5",
       "name": "wen",
       "width": 1,
       "from": {
@@ -342,103 +336,28 @@
       },
       "to": {
         "cell": "mem",
-        "pin": "in3"
+        "pin": "wen"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": "rdata[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "mem",
+        "pin": "rdata"
+      },
+      "to": {
+        "cell": "p_rdata",
+        "pin": "p"
       },
       "waypoints": [],
       "style": {}
     },
     {
       "id": "n7",
-      "name": "wptr_g[8:0]",
-      "width": 9,
-      "from": {
-        "cell": "wptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "sw1",
-        "pin": "d"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n8",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "wptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "wfull",
-        "pin": "in2"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n9",
-      "name": "rclk",
-      "width": 1,
-      "from": {
-        "cell": "p_rclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sw1",
-        "pin": "ck"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n10",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_rclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sw2",
-        "pin": "ck"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n11",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "sw1",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "sw2",
-        "pin": "d"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n12",
-      "name": "wptr_g_sync[8:0]",
-      "width": 9,
-      "from": {
-        "cell": "sw2",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "rempty",
-        "pin": "in1"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n13",
       "name": "rinc",
       "width": 1,
       "from": {
@@ -453,22 +372,7 @@
       "style": {}
     },
     {
-      "id": "n14",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_rclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "rptr",
-        "pin": "in3"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n15",
+      "id": "n8",
       "name": "rrst_n",
       "width": 1,
       "from": {
@@ -483,7 +387,7 @@
       "style": {}
     },
     {
-      "id": "n16",
+      "id": "n9",
       "name": "raddr[7:0]",
       "width": 8,
       "from": {
@@ -492,18 +396,93 @@
       },
       "to": {
         "cell": "mem",
-        "pin": "in4"
+        "pin": "raddr"
       },
       "waypoints": [],
       "style": {}
     },
     {
-      "id": "n17",
+      "id": "n10",
+      "name": "ren",
+      "width": 1,
+      "from": {
+        "cell": "rptr",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "ren"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n11",
+      "name": "wptr_g[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "wptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "sw1",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "wptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "wfull",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n13",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "sw1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "sw2",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n14",
+      "name": "wptr_g_sync[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "sw2",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "rempty",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n15",
       "name": "rptr_g[8:0]",
       "width": 9,
       "from": {
         "cell": "rptr",
-        "pin": "out2"
+        "pin": "out3"
       },
       "to": {
         "cell": "sr1",
@@ -513,7 +492,7 @@
       "style": {}
     },
     {
-      "id": "n18",
+      "id": "n16",
       "name": null,
       "width": 1,
       "from": {
@@ -528,37 +507,7 @@
       "style": {}
     },
     {
-      "id": "n19",
-      "name": "wclk",
-      "width": 1,
-      "from": {
-        "cell": "p_wclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sr1",
-        "pin": "ck"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n20",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_wclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sr2",
-        "pin": "ck"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n21",
+      "id": "n17",
       "name": null,
       "width": 1,
       "from": {
@@ -573,7 +522,7 @@
       "style": {}
     },
     {
-      "id": "n22",
+      "id": "n18",
       "name": "rptr_g_sync[8:0]",
       "width": 9,
       "from": {
@@ -588,7 +537,7 @@
       "style": {}
     },
     {
-      "id": "n23",
+      "id": "n19",
       "name": "wfull",
       "width": 1,
       "from": {
@@ -603,7 +552,7 @@
       "style": {}
     },
     {
-      "id": "n24",
+      "id": "n20",
       "name": "rempty",
       "width": 1,
       "from": {
@@ -618,16 +567,91 @@
       "style": {}
     },
     {
-      "id": "n25",
-      "name": "rdata[7:0]",
-      "width": 8,
+      "id": "n21",
+      "name": "wclk",
+      "width": 1,
       "from": {
-        "cell": "mem",
-        "pin": "out1"
+        "cell": "p_wclk",
+        "pin": "p"
       },
       "to": {
-        "cell": "p_rdata",
+        "cell": "wptr",
+        "pin": "in3"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n22",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
         "pin": "p"
+      },
+      "to": {
+        "cell": "sr1",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n23",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sr2",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n24",
+      "name": "rclk",
+      "width": 1,
+      "from": {
+        "cell": "p_rclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "rptr",
+        "pin": "in3"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n25",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_rclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sw1",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n26",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_rclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sw2",
+        "pin": "ck"
       },
       "waypoints": [],
       "style": {}
@@ -637,25 +661,26 @@
     {
       "id": "s1",
       "kind": "text",
-      "x": 230,
-      "y": 80,
-      "text": "WRITE CLOCK DOMAIN  (wclk)",
+      "x": 330,
+      "y": 78,
+      "text": "WRITE CLOCK DOMAIN",
       "rotate": 0,
       "style": {
-        "fontSize": 15,
+        "fontSize": 17,
         "fill": "#0d7490"
       }
     },
     {
       "id": "s2",
       "kind": "text",
-      "x": 1150,
-      "y": 80,
-      "text": "READ CLOCK DOMAIN  (rclk)",
+      "x": 1470,
+      "y": 78,
+      "text": "READ CLOCK DOMAIN",
       "rotate": 0,
       "style": {
-        "fontSize": 15,
-        "fill": "#b45309"
+        "fontSize": 17,
+        "fill": "#b45309",
+        "anchor": "end"
       }
     },
     {
@@ -663,30 +688,56 @@
       "kind": "line",
       "points": [
         [
-          830,
-          110
+          900,
+          300
         ],
         [
-          830,
-          960
+          900,
+          900
         ]
       ],
       "rotate": 0,
       "style": {
-        "stroke": "#9aa8ae",
+        "stroke": "#aab6bb",
         "strokeWidth": 1.4
       }
     },
     {
       "id": "s4",
       "kind": "text",
-      "x": 640,
-      "y": 985,
-      "text": "two-flop synchronisers cross the boundary",
+      "x": 900,
+      "y": 945,
+      "text": "two-flop synchronisers carry each gray pointer across the boundary",
+      "rotate": 0,
+      "style": {
+        "fontSize": 13,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    },
+    {
+      "id": "s5",
+      "kind": "text",
+      "x": 200,
+      "y": 668,
+      "text": "clock rail",
       "rotate": 0,
       "style": {
         "fontSize": 12,
-        "fill": "#5b6b74"
+        "fill": "#84969c"
+      }
+    },
+    {
+      "id": "s6",
+      "kind": "text",
+      "x": 1600,
+      "y": 668,
+      "text": "clock rail",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#84969c",
+        "anchor": "end"
       }
     }
   ],

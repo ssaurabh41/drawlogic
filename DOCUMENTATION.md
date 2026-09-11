@@ -94,6 +94,7 @@ drawlogic export *.dlg --outdir svg/
 | `--crop` | trim to the drawing instead of the full sheet |
 | `--no-title` | leave the title off the sheet |
 | `--no-arrows` | leave direction arrows off the wires |
+| `--no-hops` | draw crossing wires flat instead of bridging them |
 
 **How `--zoom` works.** The drawing's true geometry lives in the SVG
 `viewBox` and never changes; `--zoom` scales only the `width` and `height`
@@ -259,6 +260,7 @@ A schematic is reviewable the same way code is.
 | `font.family`, `font.scale` | text face and a multiplier on every label |
 | `symbolScale` | one multiplier on the size of every cell |
 | `arrows` | draw direction arrows on wires |
+| `hops` | bridge a wire over any wire it merely crosses |
 
 The grid is a drawing aid and stays out of exported SVG unless `--grid` is
 passed.
@@ -395,11 +397,16 @@ bit and rejects a bus.
 A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
 is one bit, so wiring a bus to it is an error the checker will catch.
 
-### Junction dots
+### Junction dots and crossing hops
 
-A dot is drawn where three or more wire branches meet. Wires that merely cross
-without a shared vertex stay undotted, because a crossing and a connection
-must never look the same.
+A dot is drawn where three or more wire branches meet. Where one wire merely
+crosses another, the horizontal one is drawn with a small semicircular bridge
+over the vertical, so a crossing and a connection can never be mistaken for
+each other.
+
+Hops are on by default. Turn them off for a drawing with
+`"canvas": { "hops": false }`, or for one export with `--no-hops`. Only the
+horizontal wire hops, so a crossing pair never both bulge at the same spot.
 
 ### Routing
 

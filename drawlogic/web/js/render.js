@@ -249,15 +249,48 @@ function labelSpot(points) {
   return [[midX + 5, midY], "start"];
 }
 
+// The `d` for a wire, bridging over any wire it merely crosses.
+function netPath(points, hops, radius) {
+  const parts = [`M${geometry.fmt(points[0][0])} ${geometry.fmt(points[0][1])}`];
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const [ax, ay] = points[i];
+    const [bx, by] = points[i + 1];
+
+    if (hops && hops.length && Math.abs(ay - by) < 1e-6) {
+      const direction = bx > ax ? 1 : -1;
+      const low = Math.min(ax, bx);
+      const high = Math.max(ax, bx);
+      const here = hops
+        .filter(([hx, hy]) => Math.abs(hy - ay) < 1e-6
+                              && hx > low + radius && hx < high - radius)
+        .map(([hx]) => hx)
+        .sort((p, q) => (direction > 0 ? p - q : q - p));
+
+      for (const hx of here) {
+        parts.push(`L${geometry.fmt(hx - radius * direction)} ${geometry.fmt(ay)}`);
+        // With y pointing down, sweep 1 bulges upward when travelling right.
+        const sweep = direction > 0 ? 1 : 0;
+        parts.push(`A${geometry.fmt(radius)} ${geometry.fmt(radius)} 0 0 ${sweep} `
+                   + `${geometry.fmt(hx + radius * direction)} ${geometry.fmt(ay)}`);
+      }
+    }
+    parts.push(`L${geometry.fmt(bx)} ${geometry.fmt(by)}`);
+  }
+  return parts.join(" ");
+}
+
 function renderNets(doc, fontScale, into) {
   const routes = routing.routeAll(doc);
+  const hops = (doc.canvas || {}).hops === false
+    ? new Map() : routing.hopPoints(routes);
 
   for (const { net, points } of routes) {
     if (points.length < 2) continue;
     const style = net.style || {};
     into.appendChild(el("path", {
       class: "dl-net", "data-id": net.id,
-      d: `M${points.map((p) => `${geometry.fmt(p[0])} ${geometry.fmt(p[1])}`).join(" L")}`,
+      d: netPath(points, hops.get(net.id), theme.hopRadius || 5),
       fill: "none",
       stroke: style.stroke || theme.colors.net,
       "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.net, 3),

@@ -74,7 +74,7 @@ def cmd_export(args):
       doc, registry=registry, zoom=args.zoom, width=args.width,
       margin=args.margin, background=background,
       show_grid=args.grid, crop=args.crop, title=not args.no_title,
-      arrows=not args.no_arrows)
+      arrows=not args.no_arrows, hops=not args.no_hops)
 
     if args.output == "-":
       sys.stdout.write(svg)
@@ -303,6 +303,8 @@ def build_parser():
                       help="leave the title off the sheet")
   export.add_argument("--no-arrows", action="store_true",
                       help="leave direction arrows off the wires")
+  export.add_argument("--no-hops", action="store_true",
+                      help="draw crossing wires flat instead of bridging them")
   export.set_defaults(func=cmd_export)
 
   serve = subs.add_parser("serve", parents=[common],

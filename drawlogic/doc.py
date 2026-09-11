@@ -38,7 +38,7 @@ VERSION = 1
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
 CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
-               "arrows"]
+               "arrows", "hops"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
@@ -58,6 +58,7 @@ DEFAULT_CANVAS = {
   "font": {"family": "IBM Plex Sans", "scale": 1.0},
   "symbolScale": 1.0,
   "arrows": True,
+  "hops": True,
 }
 
 
@@ -312,7 +313,7 @@ class Document(object):
     data.setdefault("title", "untitled")
 
     canvas = data.setdefault("canvas", {})
-    for key in ("width", "height", "background", "symbolScale", "arrows"):
+    for key in ("width", "height", "background", "symbolScale", "arrows", "hops"):
       canvas.setdefault(key, DEFAULT_CANVAS[key])
     grid = canvas.setdefault("grid", {})
     for key, value in DEFAULT_CANVAS["grid"].items():

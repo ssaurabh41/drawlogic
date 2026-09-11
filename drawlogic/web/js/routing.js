@@ -243,6 +243,44 @@ function touches(point, [a, b]) {
 
 // Counting rays rather than segments is what tells a tee (three) apart from an
 // ordinary corner (two), so crossings stay undotted.
+// Where one wire crosses another without joining it, keyed by net id. A
+// crossing and a connection must not look the same: junction dots mark the
+// connections, these mark the crossings. By convention the horizontal wire
+// hops, so a crossing pair never both bulge at the same spot.
+export function hopPoints(routes) {
+  const segments = [];
+  const vertices = new Set();
+  for (const { net, points } of routes) {
+    for (const p of points) vertices.add(`${p[0].toFixed(3)},${p[1].toFixed(3)}`);
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (Math.abs(a[1] - b[1]) < EPSILON) segments.push([net.id, a, b, "h"]);
+      else if (Math.abs(a[0] - b[0]) < EPSILON) segments.push([net.id, a, b, "v"]);
+    }
+  }
+
+  const found = new Map();
+  for (const [id, a, b, orientation] of segments) {
+    if (orientation !== "h") continue;
+    const y = a[1];
+    const low = Math.min(a[0], b[0]);
+    const high = Math.max(a[0], b[0]);
+    for (const [otherId, c, d, otherOrientation] of segments) {
+      if (otherOrientation !== "v" || otherId === id) continue;
+      const x = c[0];
+      const vLow = Math.min(c[1], d[1]);
+      const vHigh = Math.max(c[1], d[1]);
+      if (!(low + EPSILON < x && x < high - EPSILON)) continue;
+      if (!(vLow + EPSILON < y && y < vHigh - EPSILON)) continue;
+      if (vertices.has(`${x.toFixed(3)},${y.toFixed(3)}`)) continue;
+      if (!found.has(id)) found.set(id, []);
+      found.get(id).push([x, y]);
+    }
+  }
+  return found;
+}
+
 export function junctions(routes) {
   const segments = [];
   for (const { points } of routes) {

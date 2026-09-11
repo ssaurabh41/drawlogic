@@ -13,13 +13,13 @@
 <path class="dl-net" data-id="n6" d="M450 125 L505 125 L505 280 L560 280" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n7" d="M610 280 L700 280" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n8" d="M80 440 L190 440 L190 425 L300 425" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<text x="115" y="106" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">a_in</text>
-<text x="115" y="166" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">b_in</text>
-<text x="305" y="136" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">en</text>
-<text x="185" y="346" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">clk</text>
-<text x="575" y="121" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">q_int</text>
-<text x="655" y="276" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">qb</text>
-<text x="135" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="9.5" fill="#0d7490">d[7:0]</text>
+<text x="115" y="106" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a_in</text>
+<text x="115" y="166" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">b_in</text>
+<text x="305" y="136" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">en</text>
+<text x="185" y="346" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">clk</text>
+<text x="575" y="121" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">q_int</text>
+<text x="655" y="276" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">qb</text>
+<text x="135" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">d[7:0]</text>
 <polygon points="208.8,130 201.8,133.15 201.8,126.85" fill="#16202b" />
 <polygon points="208.8,150 201.8,153.15 201.8,146.85" fill="#16202b" />
 <polygon points="368.8,125 361.8,128.15 361.8,121.85" fill="#16202b" />
@@ -28,32 +28,32 @@
 <polygon points="548.8,280 541.8,283.15 541.8,276.85" fill="#16202b" />
 <polygon points="688.8,280 681.8,283.15 681.8,276.85" fill="#16202b" />
 <polygon points="288.8,425 281.8,428.15 281.8,421.85" fill="#16202b" />
-<circle cx="505" cy="125" r="3" fill="#16202b" />
+<circle cx="505" cy="125" r="3.2" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="pa" data-type="port_in" transform="matrix(1,0,0,1,60,105)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="70" y="100" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">a</text>
+<text x="70" y="100" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">a</text>
 <g class="dl-cell" data-id="pb" data-type="port_in" transform="matrix(1,0,0,1,60,165)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="70" y="160" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">b</text>
+<text x="70" y="160" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">b</text>
 <g class="dl-cell" data-id="pclk" data-type="port_in" transform="matrix(1,0,0,1,60,345)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="70" y="340" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">clk</text>
+<text x="70" y="340" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">clk</text>
 <g class="dl-cell" data-id="pd" data-type="port_in" transform="matrix(1,0,0,1,60,435)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="70" y="430" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">d</text>
+<text x="70" y="430" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">d</text>
 <g class="dl-cell" data-id="u1" data-type="and2" transform="matrix(1,0,0,1,220,120)">
   <line x1="0" y1="10" x2="10" y2="10" stroke="#16202b" stroke-width="1.4" />
   <line x1="0" y1="30" x2="10" y2="30" stroke="#16202b" stroke-width="1.4" />
   <path d="M10 0 H30 A20 20 0 0 1 30 40 H10 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
   <line x1="50" y1="20" x2="60" y2="20" stroke="#16202b" stroke-width="1.4" />
 </g>
-<text x="250" y="115" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">U1</text>
+<text x="250" y="115" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">U1</text>
 <g class="dl-cell" data-id="ff1" data-type="dff" transform="matrix(1,0,0,1,380,110)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.4" />
   <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.4" />
@@ -61,29 +61,29 @@
   <path d="M10 39 L18 45 L10 51" fill="none" stroke="#16202b" stroke-width="1.2" />
   <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.4" />
 </g>
-<text x="394" y="129" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="9" fill="#5b6b74">D</text>
-<text x="401" y="159" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="9" fill="#5b6b74">CK</text>
-<text x="436" y="129" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="9" fill="#5b6b74">Q</text>
-<text x="415" y="105" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">FF1</text>
+<text x="394" y="129" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
+<text x="401" y="159" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
+<text x="436" y="129" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
+<text x="415" y="105" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">FF1</text>
 <g class="dl-cell" data-id="u2" data-type="inv" transform="matrix(1,0,0,1,560,260)">
   <line x1="0" y1="20" x2="10" y2="20" stroke="#16202b" stroke-width="1.4" />
   <path d="M10 4 L10 36 L36 20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
   <circle cx="40" cy="20" r="4" fill="#ffffff" stroke="#16202b" stroke-width="1.4" />
   <line x1="44" y1="20" x2="50" y2="20" stroke="#16202b" stroke-width="1.4" />
 </g>
-<text x="585" y="255" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">U2</text>
+<text x="585" y="255" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">U2</text>
 <g class="dl-cell" data-id="b1" data-type="block" transform="matrix(1,0,0,1,300,400)">
   <rect x="0" y="0" width="140" height="90" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="370" y="395" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">B1</text>
+<text x="370" y="395" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">B1</text>
 <g class="dl-cell" data-id="pq" data-type="port_out" transform="matrix(1,0,0,1,700,120)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="710" y="115" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">q</text>
+<text x="710" y="115" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">q</text>
 <g class="dl-cell" data-id="pqb" data-type="port_out" transform="matrix(1,0,0,1,700,275)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="710" y="270" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" font-weight="600" fill="#16202b">qb</text>
+<text x="710" y="270" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">qb</text>
 </g>
-<text x="14" y="546" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#16202b">dff_slice</text>
+<text x="14" y="546" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">dff_slice</text>
 </svg>

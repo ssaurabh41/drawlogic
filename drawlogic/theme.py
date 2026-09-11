@@ -50,15 +50,19 @@ WIDTHS = {
 
 # Base point sizes, before canvas.font.scale is applied.
 FONT_SIZES = {
-  "label": 11.0,
-  "pin_label": 9.0,
-  "net_label": 9.5,
-  "title": 13.0,
-  "shape_text": 12.0,
+  "label": 13.5,
+  "pin_label": 11.0,
+  "net_label": 11.5,
+  "title": 16.0,
+  "shape_text": 14.0,
 }
 
-JUNCTION_RADIUS = 3.0
+JUNCTION_RADIUS = 3.2
 ARROW_SIZE = 7.0
+
+# Radius of the little bridge drawn where one wire crosses another
+# without connecting to it.
+HOP_RADIUS = 5.0
 GHOST_DASH = "4 3"
 
 # How a symbol draw-op role is painted. "fill" and "stroke" name where the

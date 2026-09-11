@@ -349,6 +349,53 @@ def junctions(routes):
   return found
 
 
+def hop_points(routes):
+  """Where one wire crosses another without joining it, keyed by net id.
+
+  A crossing and a connection must not look the same. Junction dots mark the
+  connections; these points mark the crossings, which the renderer draws as a
+  little bridge so the eye can follow each wire through.
+
+  By convention the horizontal wire hops over the vertical one, so only one
+  of the two gets a bridge and the pair never both bulge at the same spot.
+  """
+  segments = []
+  vertices = set()
+  for net, points in routes:
+    net_id = net.get("id")
+    for point in points:
+      vertices.add(_key(point))
+    for index in range(len(points) - 1):
+      a = points[index]
+      b = points[index + 1]
+      if abs(a[1] - b[1]) < EPSILON:
+        segments.append((net_id, a, b, "h"))
+      elif abs(a[0] - b[0]) < EPSILON:
+        segments.append((net_id, a, b, "v"))
+
+  found = {}
+  for net_id, a, b, orientation in segments:
+    if orientation != "h":
+      continue
+    y = a[1]
+    low, high = sorted((a[0], b[0]))
+    for other_id, c, d, other_orientation in segments:
+      if other_orientation != "v" or other_id == net_id:
+        continue
+      x = c[0]
+      v_low, v_high = sorted((c[1], d[1]))
+      # Strictly interior to both, so a wire ending on another is a junction.
+      if not (low + EPSILON < x < high - EPSILON):
+        continue
+      if not (v_low + EPSILON < y < v_high - EPSILON):
+        continue
+      if _key((x, y)) in vertices:
+        continue
+      found.setdefault(net_id, []).append((x, y))
+
+  return found
+
+
 def stroke_width(net):
   """Wire weight. Buses look the same as single bits; the name carries width."""
   return theme.WIDTHS["net"]

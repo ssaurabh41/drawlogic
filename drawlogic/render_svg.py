@@ -261,6 +261,41 @@ def _arrow_at(points, size):
   return tip, (dx / total, dy / total)
 
 
+def _net_path(points, hops, radius):
+  """The `d` for a wire, bridging over any wire it merely crosses.
+
+  A hop is a half-circle bulging away from the reading direction, so the eye
+  follows the wire through the crossing instead of stopping at it.
+  """
+  parts = ["M%s %s" % (fmt(points[0][0]), fmt(points[0][1]))]
+
+  for index in range(len(points) - 1):
+    ax, ay = points[index]
+    bx, by = points[index + 1]
+
+    on_this = []
+    if hops and abs(ay - by) < 1e-6:
+      direction = 1.0 if bx > ax else -1.0
+      low, high = sorted((ax, bx))
+      for hx, hy in hops:
+        # Leave room for the whole arc, or it would overrun the corner.
+        if abs(hy - ay) < 1e-6 and low + radius < hx < high - radius:
+          on_this.append(hx)
+      on_this.sort(reverse=direction < 0)
+
+      for hx in on_this:
+        parts.append("L%s %s" % (fmt(hx - radius * direction), fmt(ay)))
+        # With y pointing down, sweep 1 bulges upward when travelling right.
+        sweep = 1 if direction > 0 else 0
+        parts.append("A%s %s 0 0 %d %s %s"
+                     % (fmt(radius), fmt(radius), sweep,
+                        fmt(hx + radius * direction), fmt(ay)))
+
+    parts.append("L%s %s" % (fmt(bx), fmt(by)))
+
+  return " ".join(parts)
+
+
 def _label_spot(points):
   """Where a net's name goes: the middle of its longest run.
 
@@ -301,14 +336,15 @@ def _render_arrow(tip, direction, size, color, out):
     ("fill", color)]))
 
 
-def _render_nets(doc, registry, font_scale, out, arrows=True):
+def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   routes = routing.route_all(doc, registry)
+  hop_map = routing.hop_points(routes) if hops else {}
 
   for net, points in routes:
     if len(points) < 2:
       continue
     style = net.get("style") or {}
-    d = "M" + " L".join("%s %s" % (fmt(p[0]), fmt(p[1])) for p in points)
+    d = _net_path(points, hop_map.get(net.get("id")), theme.HOP_RADIUS)
     out.append("<path %s />" % _attrs([
       ("class", "dl-net"),
       ("data-id", net.get("id")),
@@ -392,7 +428,7 @@ def _render_shape(shape, font_scale, out):
 
 def render(doc, registry=None, zoom=1.0, width=None, margin=None,
            background=None, show_grid=False, crop=False, title=True,
-           arrows=None):
+           arrows=None, hops=None):
   """Render a document to an SVG string.
 
   Geometry lives in the viewBox and never changes; `zoom` and `width` only
@@ -463,8 +499,9 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
   out.append("</g>")
 
   show_arrows = canvas.get("arrows", True) if arrows is None else arrows
+  show_hops = canvas.get("hops", True) if hops is None else hops
   out.append('<g class="dl-nets">')
-  _render_nets(doc, registry, font_scale, out, show_arrows)
+  _render_nets(doc, registry, font_scale, out, show_arrows, show_hops)
   out.append("</g>")
 
   out.append('<g class="dl-cells">')

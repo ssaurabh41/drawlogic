@@ -2149,5 +2149,113 @@
         "role": "pin_label"
       }
     ]
+  },
+  "ram_dp": {
+    "name": "Dual-port RAM",
+    "category": "blocks",
+    "size": [
+      220,
+      160
+    ],
+    "pins": [
+      {
+        "name": "wdata",
+        "x": 0,
+        "y": 30,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "waddr",
+        "x": 0,
+        "y": 70,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "wen",
+        "x": 0,
+        "y": 110,
+        "dir": "in"
+      },
+      {
+        "name": "rdata",
+        "x": 220,
+        "y": 30,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "raddr",
+        "x": 220,
+        "y": 70,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "ren",
+        "x": 220,
+        "y": 110,
+        "dir": "in"
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 0,
+        "w": 220,
+        "h": 160,
+        "role": "body"
+      },
+      {
+        "op": "text",
+        "x": 8,
+        "y": 34,
+        "text": "WDATA",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 8,
+        "y": 74,
+        "text": "WADDR",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 8,
+        "y": 114,
+        "text": "WE",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 212,
+        "y": 34,
+        "text": "RDATA",
+        "anchor": "end",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 212,
+        "y": 74,
+        "text": "RADDR",
+        "anchor": "end",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 212,
+        "y": 114,
+        "text": "RE",
+        "anchor": "end",
+        "role": "pin_label"
+      }
+    ]
   }
 }

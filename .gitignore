@@ -7,6 +7,9 @@ dist/
 .venv/
 venv/
 
-# Exported output
+# Exported output. The golden files are the regression suite's reference and
+# must be committed -- without them it regenerates on a fresh clone and passes
+# without checking anything.
 *.svg
 !examples/*.svg
+!tests/golden/*.svg

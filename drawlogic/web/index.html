@@ -22,6 +22,10 @@
   <button id="btn-save" class="action" title="Save (Ctrl+S)">Save</button>
   <button id="btn-export" class="action" title="Export SVG (Ctrl+E)">Export SVG</button>
 
+  <span class="divider"></span>
+  <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
+  <button id="btn-redo" class="action" title="Redo (Ctrl+Shift+Z)">Redo</button>
+
   <div class="spacer"></div>
   <div class="filechip">
     <span id="file-path">no file</span>
@@ -30,6 +34,19 @@
 </div>
 
 <div class="toolbar">
+  <div class="tgroup">
+    <button class="tool" data-tool="select" aria-pressed="true" title="Select (V)">Select</button>
+    <button class="tool" data-tool="wire" aria-pressed="false" title="Wire (W)">Wire</button>
+  </div>
+
+  <div class="tgroup">
+    <button class="tool" data-command="rotate-cw" title="Rotate 90 CW (Ctrl+R)">Rotate</button>
+    <button class="tool" data-command="flip-h" title="Flip horizontal (Ctrl+H)">Flip</button>
+    <button class="tool" data-command="group" title="Group (Ctrl+G)">Group</button>
+    <button class="tool" data-command="ungroup" title="Ungroup (Ctrl+Shift+G)">Ungroup</button>
+    <button class="tool" data-command="delete" title="Delete (Del)">Delete</button>
+  </div>
+
   <label class="field">
     <span>Grid</span>
     <select id="grid-select">
@@ -66,19 +83,24 @@
     <div class="pane-head">Symbols</div>
     <div id="palette-body"></div>
     <p class="palette-note">
-      Reference only for now. Placing and wiring arrives in the next phase.
+      Click a symbol, then click the canvas. Shift-click the canvas to keep
+      placing the same one.
     </p>
   </aside>
 
   <main class="stage">
     <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
   </main>
+
+  <aside class="inspector">
+    <div class="pane-head">Properties</div>
+    <div id="properties-body"></div>
+  </aside>
 </div>
 
 <div class="status">
   <span id="status-counts">&mdash;</span>
   <span id="status-cursor">x &mdash; y &mdash;</span>
-  <span id="status-grid">grid &mdash;</span>
   <span class="push" id="status-message">Shift-drag or hold Space to pan &middot; scroll to zoom</span>
 </div>
 

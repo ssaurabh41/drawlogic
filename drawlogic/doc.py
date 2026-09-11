@@ -386,7 +386,9 @@ class Document(object):
 
       net_width = net.get("width", 1)
       for pin_width in endpoint_widths:
-        if pin_width != 1 and pin_width != net_width:
+        # Width 0 means the pin takes a bus of any width, which is what a
+        # generic block port or a bus ripper declares.
+        if pin_width != 0 and pin_width != net_width:
           issues.append(Issue("error", where,
                               "connects a %d-bit pin to a %d-bit net"
                               % (pin_width, net_width)))

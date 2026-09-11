@@ -7,10 +7,10 @@ Gates, flip-flops, muxes, clock gates, transistors, blocks and ports, wired
 PowerPoint cannot do. Drawings are plain JSON, so they diff and review like
 code.
 
-Status: **Phase 2**. The document format, symbol library, renderer and command
-line all work, and the browser editor opens, draws and exports a drawing with
-live zoom, text-size and symbol-size controls. Placing and wiring cells by
-hand is the next phase.
+Status: **Phase 4**. The document format, symbol library, renderer and command
+line all work, and the browser editor places, selects, moves, resizes, styles,
+groups and wires cells, with undo/redo and clipboard. Autoshapes, text boxes
+and custom cell images are what remain.
 
 ## Requirements
 
@@ -51,8 +51,35 @@ tunnel rather than opening it up with `--host`:
 ssh -L 8080:localhost:8080 you@workstation
 ```
 
-In the editor: scroll to zoom, shift-drag or hold Space to pan, `Ctrl+0` to
-fit. The **Zoom**, **Text** and **Symbols** sliders control view scale,
+### Drawing
+
+Click a symbol in the palette, then click the canvas to place it; shift-click
+to keep placing the same one. Press `W` for the wire tool, then click one pin
+and the next to connect them. Wires are stored as pin references, so once a
+wire exists it stays attached no matter what you move.
+
+| | |
+|---|---|
+| `V` / `W` | select tool / wire tool |
+| click, shift-click, drag a box | select one, add to selection, marquee |
+| drag | move, snapped to the grid |
+| `Ctrl`+drag | duplicate as you drag |
+| handles, `Alt`+handle | resize with the ratio locked / free |
+| arrows, `Shift`+arrows | nudge one grid step / ten |
+| `Ctrl+Z` / `Ctrl+Shift+Z` | undo / redo |
+| `Ctrl+C` `Ctrl+X` `Ctrl+V` `Ctrl+D` | copy, cut, paste, duplicate |
+| `Ctrl+G` / `Ctrl+Shift+G` | group / ungroup |
+| `Ctrl+R` / `Ctrl+H` | rotate 90 degrees / flip |
+| `Delete`, `Esc` | delete, cancel and deselect |
+| `Ctrl+A` | select all |
+
+Selecting one member of a group selects all of it, so a group drags and
+resizes as a single object.
+
+### View
+
+Scroll to zoom, shift-drag or hold Space to pan, `Ctrl+0` to fit. The
+**Zoom**, **Text** and **Symbols** sliders control view scale,
 `canvas.font.scale` and `canvas.symbolScale` respectively; the last two change
 the document, so they mark it unsaved.
 
@@ -192,8 +219,13 @@ attached when a gate moves and lets `validate` catch a pin that only *looks*
 connected.
 
 Bus width lives in the name: `d[7:0]` is eight bits, and `validate` complains
-if the declared width disagrees. Buses are drawn with the same line weight as
-a single bit -- the name carries the width, not the stroke.
+if the declared width disagrees or if a bus lands on a single-bit pin. Buses
+are drawn with the same line weight as a single bit -- the name carries the
+width, not the stroke.
+
+A pin may declare `"width": 0`, meaning it accepts a bus of any width. Ports,
+generic block ports and the bus ripper use this; an ordinary gate pin is one
+bit and rejects a bus.
 
 Grid styles are `blank`, `dots`, `dots-wide`, `lines` and `lines-heavy`. The
 grid is a drawing aid and stays out of exported SVG unless you pass `--grid`.
@@ -213,12 +245,17 @@ drawlogic/
   cli.py          serve, export, symbols, info, validate
   server.py       stdlib HTTP server for the editor
   web/            the browser editor
-    js/geometry.js  affine transforms, ported from geometry.py
-    js/routing.js   wire routing, ported from routing.py
-    js/symbols.js   symbol placement and pin resolution
-    js/render.js    document to live SVG DOM
-    js/viewport.js  pan and zoom
-    js/main.js      bootstrap and controls
+    js/geometry.js   affine transforms, ported from geometry.py
+    js/routing.js    wire routing, ported from routing.py
+    js/symbols.js    symbol placement and pin resolution
+    js/render.js     document to live SVG DOM
+    js/viewport.js   pan and zoom
+    js/store.js      the document, plus undo/redo
+    js/actions.js    every change a document can undergo
+    js/selection.js  what is selected, and its handles
+    js/properties.js the properties panel
+    js/tools/        one file per tool: select, wire, place
+    js/main.js       bootstrap and controls
 tests/            unittest, no dependencies
 examples/         a worked schematic
 ```
@@ -250,10 +287,9 @@ Plex still lays out sensibly.
 
 ## Not built yet
 
-Editing, from Phase 3 on: placing cells from the palette, selection and resize
-handles, the properties panel, drawing wires, undo/redo, copy/paste and
-ctrl-drag duplicate, group and ungroup, alignment tools, autoshapes and text
-boxes, and embedded custom cell images.
+Phase 5 and 6: autoshapes (line, box, polygon), text boxes, alignment and
+distribution, z-order, draggable wire waypoints, and embedded custom cell
+images.
 
 Two duplicated modules are worth knowing about. `web/js/geometry.js` and
 `web/js/routing.js` are ports of their Python counterparts, because the canvas
@@ -261,3 +297,9 @@ has to route a wire while you drag a gate and cannot wait on the server. They
 are covered by tests on the Python side and kept honest by the fact that both
 read the same symbol data and the same theme, which the server sends rather
 than the browser restating.
+
+The JavaScript has no automated tests in the repo, because the project has no
+JavaScript toolchain and adding one would cost the zero-dependency property
+that makes this installable on a locked-down machine. It is exercised by hand
+through a headless browser instead. If that trade stops being worth it, a
+Playwright suite kept outside the install path would be the way to fix it.

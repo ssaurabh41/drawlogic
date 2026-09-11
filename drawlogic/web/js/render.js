@@ -124,10 +124,15 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   const factor = matrix.scaleFactor();
   const style = cell.style || {};
 
-  const group = el("g", {
+  // One outer group per cell, holding both the transformed artwork and its
+  // upright text, so a click anywhere on a cell -- label included -- finds it.
+  const outer = el("g", {
     class: "dl-cell", "data-id": cell.id, "data-type": cell.type,
-    transform: matrix.toSvg(),
   });
+  into.appendChild(outer);
+  into = outer;
+
+  const group = el("g", { transform: matrix.toSvg() });
   for (const op of symbol.draw) {
     if (op.op === "text") continue;
     const node = opElement(op, rolePaint(op.role || "body", style, factor, fontScale));
@@ -240,8 +245,31 @@ function renderShape(shape, fontScale, into) {
   }
 }
 
+// Everything the document owns lives in one content layer that is rebuilt
+// wholesale on each change. The selection overlay sits in its own layer above
+// it, so redrawing the drawing never disturbs handles mid-drag.
+export function contentLayer(svg) {
+  let layer = svg.querySelector(".dl-content");
+  if (!layer) {
+    layer = el("g", { class: "dl-content" });
+    svg.appendChild(layer);
+  }
+  return layer;
+}
+
+export function overlayLayer(svg) {
+  let layer = svg.querySelector(".dl-overlay");
+  if (!layer) {
+    layer = el("g", { class: "dl-overlay" });
+  }
+  // Always last, so handles draw on top of whatever was just rendered.
+  svg.appendChild(layer);
+  return layer;
+}
+
 export function render(svg, doc) {
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  const content = contentLayer(svg);
+  while (content.firstChild) content.removeChild(content.firstChild);
 
   const canvas = doc.canvas || {};
   const fontScale = Number((canvas.font || {}).scale) || 1;
@@ -251,16 +279,16 @@ export function render(svg, doc) {
   const pattern = gridPattern(canvas.grid || {});
   if (Array.isArray(pattern)) pattern.forEach((p) => defs.appendChild(p));
   else if (pattern) defs.appendChild(pattern);
-  svg.appendChild(defs);
+  content.appendChild(defs);
 
   // The sheet is a fixed size, so draw it as a page sitting on the workspace.
-  svg.appendChild(el("rect", {
+  content.appendChild(el("rect", {
     class: "dl-sheet", x: 0, y: 0,
     width: canvas.width, height: canvas.height,
     fill: canvas.background || theme.colors.background,
   }));
   if (pattern) {
-    svg.appendChild(el("rect", {
+    content.appendChild(el("rect", {
       x: 0, y: 0, width: canvas.width, height: canvas.height,
       fill: "url(#dl-grid)",
     }));
@@ -268,18 +296,18 @@ export function render(svg, doc) {
 
   const shapes = el("g", { class: "dl-shapes" });
   for (const shape of doc.shapes || []) renderShape(shape, fontScale, shapes);
-  svg.appendChild(shapes);
+  content.appendChild(shapes);
 
   const nets = el("g", { class: "dl-nets" });
   renderNets(doc, fontScale, nets);
-  svg.appendChild(nets);
+  content.appendChild(nets);
 
   const cells = el("g", { class: "dl-cells" });
   for (const cell of doc.cells || []) {
     const symbol = symbols.get(cell.type);
     if (symbol) renderCell(symbol, cell, fontScale, scale, cells);
   }
-  svg.appendChild(cells);
+  content.appendChild(cells);
 
   if (doc.title) {
     const text = el("text", {
@@ -290,8 +318,10 @@ export function render(svg, doc) {
       fill: theme.colors.title,
     });
     text.textContent = doc.title;
-    svg.appendChild(text);
+    content.appendChild(text);
   }
+
+  overlayLayer(svg);
 }
 
 // A standalone preview of one symbol, used by the palette.

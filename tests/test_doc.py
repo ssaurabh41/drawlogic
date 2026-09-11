@@ -95,6 +95,28 @@ class TestValidate(unittest.TestCase):
                      "to": {"cell": "u2", "pin": "a"}})
     self.assertTrue(any("implies width" in i.message for i in self._errors(doc)))
 
+  def test_a_bus_on_a_single_bit_pin_is_an_error(self):
+    doc = new_document()
+    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
+    doc.cells.append({"id": "u2", "type": "inv", "x": 200, "y": 0})
+    doc.nets.append({"id": "n1", "name": "d[7:0]",
+                     "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "u2", "pin": "a"}})
+    doc.normalize()
+    self.assertTrue(any("8-bit net" in i.message for i in self._errors(doc)))
+
+  def test_a_bus_on_a_width_zero_pin_is_allowed(self):
+    # Width 0 declares a pin that takes a bus of any width, which is what a
+    # generic block port and a bus ripper use.
+    doc = new_document()
+    doc.cells.append({"id": "pd", "type": "port_in", "x": 0, "y": 0})
+    doc.cells.append({"id": "b1", "type": "block", "x": 200, "y": 0})
+    doc.nets.append({"id": "n1", "name": "d[7:0]",
+                     "from": {"cell": "pd", "pin": "p"},
+                     "to": {"cell": "b1", "pin": "in1"}})
+    doc.normalize()
+    self.assertEqual(self._errors(doc), [])
+
   def test_unconnected_pin_is_only_a_warning(self):
     doc = new_document()
     doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})

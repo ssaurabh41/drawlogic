@@ -119,8 +119,8 @@ drawlogic/
   cli.py          serve, export, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
   web/            the browser editor (9 modules, no build step)
-tests/            unittest, no dependencies
-examples/         a worked schematic
+tests/            unittest plus a golden-file regression suite
+examples/         worked schematics, including a CDC FIFO
 ```
 
 Every module opens with a usage section showing how to call it.

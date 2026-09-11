@@ -25,7 +25,7 @@ width/height attributes, so output stays vector-perfect at any size.
 
 from . import routing
 from . import theme
-from .geometry import corners, fmt, union_bbox
+from .geometry import corners, fmt
 from .symbols import default_registry
 
 DEFAULT_MARGIN = 24.0
@@ -158,10 +158,12 @@ def _cell_bbox(symbol, cell, scale=1.0):
   return (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
 
 
-def _render_cell(symbol, cell, font_scale, out, scale=1.0):
+def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
   """Draw one placed cell: its shapes transformed, its text kept upright."""
-  matrix = symbol.matrix_for(cell, scale)
-  scale = matrix.scale_factor()
+  matrix = symbol.matrix_for(cell, symbol_scale)
+  # Distinct from symbol_scale: this is how much the matrix magnifies, and it
+  # is what stroke widths are divided by so line weight stays constant.
+  stroke_factor = matrix.scale_factor()
   style = cell.get("style") or {}
 
   shape_ops = [op for op in symbol.draw if op["op"] != "text"]
@@ -172,8 +174,23 @@ def _render_cell(symbol, cell, font_scale, out, scale=1.0):
     ("data-id", cell.get("id")),
     ("data-type", cell.get("type")),
     ("transform", matrix.to_svg())]))
+
+  image = cell.get("image")
+  if image:
+    # Older renderers still want xlink:href, so emit both spellings; the
+    # root element declares the xlink namespace when any image is present.
+    out.append("  <image %s />" % _attrs([
+      ("href", image), ("xlink:href", image),
+      ("x", "0"), ("y", "0"),
+      ("width", fmt(symbol.width)), ("height", fmt(symbol.height)),
+      ("preserveAspectRatio", "xMidYMid meet")]))
+
   for op in shape_ops:
-    element = _op_element(op, _role_paint(op.get("role", "body"), style, scale, font_scale))
+    # A picture replaces the placeholder outline rather than sitting under it.
+    if image and op.get("role") == "ghost":
+      continue
+    element = _op_element(
+      op, _role_paint(op.get("role", "body"), style, stroke_factor, font_scale))
     if element:
       out.append("  " + element)
   out.append("</g>")
@@ -197,7 +214,7 @@ def _render_cell(symbol, cell, font_scale, out, scale=1.0):
 
   label = cell.get("label")
   if label:
-    box = _cell_bbox(symbol, cell, scale)
+    box = _cell_bbox(symbol, cell, symbol_scale)
     out.append("<text %s>%s</text>" % (
       _attrs([
         ("x", fmt(box[0] + box[2] / 2.0)),
@@ -244,6 +261,29 @@ def _arrow_at(points, size):
   return tip, (dx / total, dy / total)
 
 
+def _label_spot(points):
+  """Where a net's name goes: the middle of its longest run.
+
+  Using the first segment instead would stack the names of every net leaving
+  the same pin on top of each other, which is exactly what a fanned-out clock
+  looks like.
+  """
+  best = None
+  for index in range(len(points) - 1):
+    ax, ay = points[index]
+    bx, by = points[index + 1]
+    length = abs(bx - ax) + abs(by - ay)
+    if best is None or length > best[0]:
+      best = (length, (ax, ay), (bx, by))
+
+  _, (ax, ay), (bx, by) = best
+  mid_x = (ax + bx) / 2.0
+  mid_y = (ay + by) / 2.0
+  if abs(bx - ax) >= abs(by - ay):
+    return (mid_x, mid_y - 4), "middle"
+  return (mid_x + 5, mid_y), "start"
+
+
 def _render_arrow(tip, direction, size, color, out):
   ux, uy = direction
   # Perpendicular, for the two trailing corners.
@@ -283,13 +323,12 @@ def _render_nets(doc, registry, font_scale, out, arrows=True):
     name = net.get("name")
     if not name or len(points) < 2:
       continue
-    ax, ay = points[0]
-    bx, by = points[1]
+    (x, y), anchor = _label_spot(points)
     out.append("<text %s>%s</text>" % (
       _attrs([
-        ("x", fmt((ax + bx) / 2.0)),
-        ("y", fmt((ay + by) / 2.0 - 4)),
-        ("text-anchor", "middle"),
+        ("x", fmt(x)),
+        ("y", fmt(y)),
+        ("text-anchor", anchor),
         ("font-family", theme.FONT_MONO),
         ("font-size", fmt(theme.FONT_SIZES["net_label"] * font_scale, 2)),
         ("fill", theme.COLORS["net_label"])]),
@@ -389,10 +428,13 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
 
   paper = background if background is not None else canvas.get("background", theme.PAPER)
 
+  has_image = any(cell.get("image") for cell in doc.cells)
+
   out = []
   out.append('<?xml version="1.0" encoding="UTF-8"?>')
   out.append("<svg %s>" % _attrs([
     ("xmlns", "http://www.w3.org/2000/svg"),
+    ("xmlns:xlink", "http://www.w3.org/1999/xlink" if has_image else None),
     ("width", fmt(out_width, 2)),
     ("height", fmt(out_height, 2)),
     ("viewBox", "%s %s %s %s" % (fmt(view[0]), fmt(view[1]),

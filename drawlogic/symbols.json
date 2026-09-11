@@ -1918,5 +1918,236 @@
         "role": "ghost"
       }
     ]
+  },
+  "block6": {
+    "name": "Block, 3 in 3 out",
+    "category": "blocks",
+    "size": [
+      160,
+      120
+    ],
+    "pins": [
+      {
+        "name": "in1",
+        "x": 0,
+        "y": 24,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "in2",
+        "x": 0,
+        "y": 60,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "in3",
+        "x": 0,
+        "y": 96,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "out1",
+        "x": 160,
+        "y": 24,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "out2",
+        "x": 160,
+        "y": 60,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "out3",
+        "x": 160,
+        "y": 96,
+        "dir": "out",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 120,
+        "role": "body"
+      }
+    ]
+  },
+  "block8": {
+    "name": "Block, 4 in 4 out",
+    "category": "blocks",
+    "size": [
+      180,
+      160
+    ],
+    "pins": [
+      {
+        "name": "in1",
+        "x": 0,
+        "y": 26,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "in2",
+        "x": 0,
+        "y": 58,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "in3",
+        "x": 0,
+        "y": 102,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "in4",
+        "x": 0,
+        "y": 134,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "out1",
+        "x": 180,
+        "y": 26,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "out2",
+        "x": 180,
+        "y": 58,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "out3",
+        "x": 180,
+        "y": 102,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "out4",
+        "x": 180,
+        "y": 134,
+        "dir": "out",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 0,
+        "w": 180,
+        "h": 160,
+        "role": "body"
+      }
+    ]
+  },
+  "reg": {
+    "name": "N-bit register",
+    "category": "sequential",
+    "size": [
+      70,
+      60
+    ],
+    "pins": [
+      {
+        "name": "d",
+        "x": 0,
+        "y": 15,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "ck",
+        "x": 0,
+        "y": 45,
+        "dir": "in"
+      },
+      {
+        "name": "q",
+        "x": 70,
+        "y": 15,
+        "dir": "out",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 45,
+        "x2": 10,
+        "y2": 45,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 50,
+        "h": 60,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M10 39 L18 45 L10 51",
+        "role": "decor"
+      },
+      {
+        "op": "line",
+        "x1": 60,
+        "y1": 15,
+        "x2": 70,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "D",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 21,
+        "y": 49,
+        "text": "CK",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 56,
+        "y": 19,
+        "text": "Q",
+        "anchor": "end",
+        "role": "pin_label"
+      }
+    ]
   }
 }

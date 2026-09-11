@@ -27,7 +27,6 @@ This module also owns bus naming: net_name_width("d[7:0]") is 8.
 """
 
 import json
-import os
 import re
 
 from . import theme
@@ -42,7 +41,8 @@ CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
                "arrows"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
-CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label", "style", "ref"]
+CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
+             "style", "image", "ref"]
 NET_KEYS = ["id", "name", "width", "from", "to", "waypoints", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 SHAPE_KEYS = ["id", "kind", "x", "y", "w", "h", "points", "text", "rotate", "style"]

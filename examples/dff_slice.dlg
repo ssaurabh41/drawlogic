@@ -14,29 +14,253 @@
     "font": {
       "family": "IBM Plex Sans",
       "scale": 1.0
-    }
+    },
+    "symbolScale": 1.0,
+    "arrows": true
   },
   "cells": [
-    {"id": "pa", "type": "port_in", "x": 60, "y": 105, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "a", "style": {}},
-    {"id": "pb", "type": "port_in", "x": 60, "y": 165, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "b", "style": {}},
-    {"id": "pclk", "type": "port_in", "x": 60, "y": 345, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "clk", "style": {}},
-    {"id": "pd", "type": "port_in", "x": 60, "y": 435, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "d", "style": {}},
-    {"id": "u1", "type": "and2", "x": 220, "y": 120, "w": 60, "h": 40, "rotate": 0, "mirror": false, "label": "U1", "style": {}},
-    {"id": "ff1", "type": "dff", "x": 380, "y": 110, "w": 70, "h": 60, "rotate": 0, "mirror": false, "label": "FF1", "style": {}},
-    {"id": "u2", "type": "inv", "x": 560, "y": 260, "w": 50, "h": 40, "rotate": 0, "mirror": false, "label": "U2", "style": {}},
-    {"id": "b1", "type": "block", "x": 300, "y": 400, "w": 140, "h": 90, "rotate": 0, "mirror": false, "label": "B1", "style": {}},
-    {"id": "pq", "type": "port_out", "x": 700, "y": 120, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "q", "style": {}},
-    {"id": "pqb", "type": "port_out", "x": 700, "y": 275, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "qb", "style": {}}
+    {
+      "id": "pa",
+      "type": "port_in",
+      "x": 60,
+      "y": 105,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "a",
+      "style": {}
+    },
+    {
+      "id": "pb",
+      "type": "port_in",
+      "x": 60,
+      "y": 165,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "b",
+      "style": {}
+    },
+    {
+      "id": "pclk",
+      "type": "port_in",
+      "x": 60,
+      "y": 345,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "clk",
+      "style": {}
+    },
+    {
+      "id": "pd",
+      "type": "port_in",
+      "x": 60,
+      "y": 435,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "d",
+      "style": {}
+    },
+    {
+      "id": "u1",
+      "type": "and2",
+      "x": 220,
+      "y": 120,
+      "w": 60,
+      "h": 40,
+      "rotate": 0,
+      "mirror": false,
+      "label": "U1",
+      "style": {}
+    },
+    {
+      "id": "ff1",
+      "type": "dff",
+      "x": 380,
+      "y": 110,
+      "w": 70,
+      "h": 60,
+      "rotate": 0,
+      "mirror": false,
+      "label": "FF1",
+      "style": {}
+    },
+    {
+      "id": "u2",
+      "type": "inv",
+      "x": 560,
+      "y": 260,
+      "w": 50,
+      "h": 40,
+      "rotate": 0,
+      "mirror": false,
+      "label": "U2",
+      "style": {}
+    },
+    {
+      "id": "b1",
+      "type": "block",
+      "x": 300,
+      "y": 400,
+      "w": 140,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "B1",
+      "style": {}
+    },
+    {
+      "id": "pq",
+      "type": "port_out",
+      "x": 700,
+      "y": 120,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "q",
+      "style": {}
+    },
+    {
+      "id": "pqb",
+      "type": "port_out",
+      "x": 700,
+      "y": 275,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "qb",
+      "style": {}
+    }
   ],
   "nets": [
-    {"id": "n1", "name": "a_in", "width": 1, "from": {"cell": "pa", "pin": "p"}, "to": {"cell": "u1", "pin": "a"}, "waypoints": [], "style": {}},
-    {"id": "n2", "name": "b_in", "width": 1, "from": {"cell": "pb", "pin": "p"}, "to": {"cell": "u1", "pin": "b"}, "waypoints": [], "style": {}},
-    {"id": "n3", "name": "en", "width": 1, "from": {"cell": "u1", "pin": "y"}, "to": {"cell": "ff1", "pin": "d"}, "waypoints": [], "style": {}},
-    {"id": "n4", "name": "clk", "width": 1, "from": {"cell": "pclk", "pin": "p"}, "to": {"cell": "ff1", "pin": "ck"}, "waypoints": [], "style": {}},
-    {"id": "n5", "name": "q_int", "width": 1, "from": {"cell": "ff1", "pin": "q"}, "to": {"cell": "pq", "pin": "p"}, "waypoints": [], "style": {}},
-    {"id": "n6", "name": null, "width": 1, "from": {"cell": "ff1", "pin": "q"}, "to": {"cell": "u2", "pin": "a"}, "waypoints": [], "style": {}},
-    {"id": "n7", "name": "qb", "width": 1, "from": {"cell": "u2", "pin": "y"}, "to": {"cell": "pqb", "pin": "p"}, "waypoints": [], "style": {}},
-    {"id": "n8", "name": "d[7:0]", "width": 8, "from": {"cell": "pd", "pin": "p"}, "to": {"cell": "b1", "pin": "in1"}, "waypoints": [], "style": {}}
+    {
+      "id": "n1",
+      "name": "a_in",
+      "width": 1,
+      "from": {
+        "cell": "pa",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u1",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": "b_in",
+      "width": 1,
+      "from": {
+        "cell": "pb",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u1",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": "en",
+      "width": 1,
+      "from": {
+        "cell": "u1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "ff1",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": "clk",
+      "width": 1,
+      "from": {
+        "cell": "pclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "ff1",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": "q_int",
+      "width": 1,
+      "from": {
+        "cell": "ff1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "pq",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "ff1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "u2",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "name": "qb",
+      "width": 1,
+      "from": {
+        "cell": "u2",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "pqb",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": "d[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "pd",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "b1",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    }
   ],
   "shapes": [],
   "groups": []

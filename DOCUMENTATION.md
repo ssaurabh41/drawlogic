@@ -275,7 +275,7 @@ passed.
 | `mirror` | flipped left-to-right |
 | `label` | instance name, drawn above the cell |
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
-| `image` | data URI for a `custom` cell's picture |
+| `image` | data URI for a `custom` cell's picture; exported too |
 | `ref` | reserved for hierarchy; ignored today |
 
 ### nets
@@ -392,6 +392,9 @@ bit and rejects a bus.
 
 `ripper` and `bus_tap` symbols are provided for pulling a bit off a bus.
 
+A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
+is one bit, so wiring a bus to it is an error the checker will catch.
+
 ### Junction dots
 
 A dot is drawn where three or more wire branches meet. Wires that merely cross
@@ -443,8 +446,8 @@ drawlogic/
     js/panels.js     palette and properties inspector
     js/viewport.js   pan and zoom
     js/main.js       bootstrap and controls
-tests/            unittest, no dependencies
-examples/         a worked schematic
+tests/            unittest plus a golden-file regression suite
+examples/         worked schematics, including a CDC FIFO
 ```
 
 ### One renderer for every exported file
@@ -514,8 +517,49 @@ it from `/api/theme` rather than restating it.
 ## Tests
 
 ```bash
-python3 -m unittest discover
+python3 -m unittest discover          # everything
+python3 -m unittest tests.test_regression
 ```
+
+The suite is in three parts:
+
+| File | Covers |
+|---|---|
+| `tests/test_model.py` | document format, symbol library, bus naming |
+| `tests/test_draw.py` | routing and SVG rendering |
+| `tests/test_server.py` | HTTP endpoints, path-traversal refusal |
+| `tests/test_regression.py` | golden files and whole-library invariants |
+
+### The regression suite
+
+`test_regression.py` is the safety net for changes that unit tests miss.
+
+**Golden files.** Every drawing in `examples/` is rendered with fixed options
+and compared byte for byte against `tests/golden/<name>.svg`. Any unintended
+change to the renderer, the router or a symbol shows up as a diff naming the
+first line that moved. After a deliberate change:
+
+```bash
+DRAWLOGIC_REGOLD=1 python3 -m unittest tests.test_regression
+git diff tests/golden/
+```
+
+Read that diff before committing it. A golden updated without being read is
+worse than no golden at all.
+
+**Invariants**, checked against every example and every symbol rather than one
+hand-picked case:
+
+- no validation errors, and every net resolves to a path
+- every wire segment is axis-aligned
+- wires stay clear of cells they are not connected to
+- documents round-trip unchanged, and files on disk are already canonical
+- every symbol places, renders and previews
+- every pin resolves inside its symbol's own box
+- rotating a cell a full turn returns it exactly where it started
+- an embedded picture reaches the exported SVG, not just the canvas
+
+Adding a drawing to `examples/` automatically adds it to all of the above.
 
 The Python side is covered by unit tests. The JavaScript has no automated
 tests in the repo, because the project has no JavaScript toolchain and adding

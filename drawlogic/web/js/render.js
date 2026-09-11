@@ -231,6 +231,24 @@ function arrowElement(tip, direction, size, color) {
   });
 }
 
+
+// Where a net's name goes: the middle of its longest run. Using the first
+// segment would stack the names of every net leaving the same pin.
+function labelSpot(points) {
+  let best = null;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const [ax, ay] = points[i];
+    const [bx, by] = points[i + 1];
+    const length = Math.abs(bx - ax) + Math.abs(by - ay);
+    if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
+  }
+  const [, [ax, ay], [bx, by]] = best;
+  const midX = (ax + bx) / 2;
+  const midY = (ay + by) / 2;
+  if (Math.abs(bx - ax) >= Math.abs(by - ay)) return [[midX, midY - 4], "middle"];
+  return [[midX + 5, midY], "start"];
+}
+
 function renderNets(doc, fontScale, into) {
   const routes = routing.routeAll(doc);
 
@@ -249,10 +267,11 @@ function renderNets(doc, fontScale, into) {
 
   for (const { net, points } of routes) {
     if (!net.name || points.length < 2) continue;
+    const [[lx, ly], anchor] = labelSpot(points);
     const text = el("text", {
-      x: geometry.fmt((points[0][0] + points[1][0]) / 2),
-      y: geometry.fmt((points[0][1] + points[1][1]) / 2 - 4),
-      "text-anchor": "middle",
+      x: geometry.fmt(lx),
+      y: geometry.fmt(ly),
+      "text-anchor": anchor,
       "font-family": theme.fontMono,
       "font-size": geometry.fmt(theme.fontSizes.net_label * fontScale, 2),
       fill: theme.colors.net_label,

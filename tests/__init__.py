@@ -12,4 +12,5 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
   sys.path.insert(0, _ROOT)
 
+ROOT = _ROOT
 EXAMPLE = os.path.join(_ROOT, "examples", "dff_slice.dlg")

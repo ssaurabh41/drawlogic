@@ -1,0 +1,694 @@
+{
+  "format": "drawlogic",
+  "version": 1,
+  "title": "cdc_fifo",
+  "canvas": {
+    "width": 1700,
+    "height": 1020,
+    "background": "#ffffff",
+    "grid": {
+      "style": "dots",
+      "size": 10,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true
+  },
+  "cells": [
+    {
+      "id": "p_wdata",
+      "type": "port_in",
+      "x": 60,
+      "y": 131,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wdata[7:0]",
+      "style": {}
+    },
+    {
+      "id": "p_winc",
+      "type": "port_in",
+      "x": 60,
+      "y": 359,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "winc",
+      "style": {}
+    },
+    {
+      "id": "p_wclk",
+      "type": "port_in",
+      "x": 60,
+      "y": 875,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wclk",
+      "style": {}
+    },
+    {
+      "id": "p_wrstn",
+      "type": "port_in",
+      "x": 60,
+      "y": 425,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wrst_n",
+      "style": {}
+    },
+    {
+      "id": "p_wfull",
+      "type": "port_out",
+      "x": 60,
+      "y": 770,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wfull",
+      "style": {}
+    },
+    {
+      "id": "wptr",
+      "type": "block6",
+      "x": 230,
+      "y": 340,
+      "w": 160,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wptr_gray",
+      "style": {
+        "fill": "#eaf3f7"
+      }
+    },
+    {
+      "id": "wfull",
+      "type": "block",
+      "x": 230,
+      "y": 745,
+      "w": 140,
+      "h": 90,
+      "rotate": 0,
+      "mirror": true,
+      "label": "full_cmp",
+      "style": {
+        "fill": "#eaf3f7"
+      }
+    },
+    {
+      "id": "sr1",
+      "type": "reg",
+      "x": 470,
+      "y": 620,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "r2w_1",
+      "style": {}
+    },
+    {
+      "id": "sr2",
+      "type": "reg",
+      "x": 620,
+      "y": 620,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "r2w_2",
+      "style": {}
+    },
+    {
+      "id": "sw1",
+      "type": "reg",
+      "x": 960,
+      "y": 620,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "w2r_1",
+      "style": {}
+    },
+    {
+      "id": "sw2",
+      "type": "reg",
+      "x": 1110,
+      "y": 620,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "w2r_2",
+      "style": {}
+    },
+    {
+      "id": "mem",
+      "type": "block8",
+      "x": 700,
+      "y": 110,
+      "w": 180,
+      "h": 160,
+      "rotate": 0,
+      "mirror": false,
+      "label": "fifo_mem 8x256",
+      "style": {}
+    },
+    {
+      "id": "rptr",
+      "type": "block6",
+      "x": 1210,
+      "y": 340,
+      "w": 160,
+      "h": 120,
+      "rotate": 0,
+      "mirror": true,
+      "label": "rptr_gray",
+      "style": {
+        "fill": "#f5eee6"
+      }
+    },
+    {
+      "id": "rempty",
+      "type": "block",
+      "x": 980,
+      "y": 745,
+      "w": 140,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "empty_cmp",
+      "style": {
+        "fill": "#f5eee6"
+      }
+    },
+    {
+      "id": "p_rdata",
+      "type": "port_out",
+      "x": 1560,
+      "y": 131,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rdata[7:0]",
+      "style": {}
+    },
+    {
+      "id": "p_rinc",
+      "type": "port_in",
+      "x": 1560,
+      "y": 359,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": true,
+      "label": "rinc",
+      "style": {}
+    },
+    {
+      "id": "p_rclk",
+      "type": "port_in",
+      "x": 1560,
+      "y": 875,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": true,
+      "label": "rclk",
+      "style": {}
+    },
+    {
+      "id": "p_rrstn",
+      "type": "port_in",
+      "x": 1560,
+      "y": 425,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": true,
+      "label": "rrst_n",
+      "style": {}
+    },
+    {
+      "id": "p_rempty",
+      "type": "port_out",
+      "x": 1560,
+      "y": 770,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rempty",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "name": "wdata[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "p_wdata",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": "winc",
+      "width": 1,
+      "from": {
+        "cell": "p_winc",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "wptr",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "wptr",
+        "pin": "in3"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": "wrst_n",
+      "width": 1,
+      "from": {
+        "cell": "p_wrstn",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "wptr",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": "waddr[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "wptr",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": "wen",
+      "width": 1,
+      "from": {
+        "cell": "wptr",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "in3"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "name": "wptr_g[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "wptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "sw1",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "wptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "wfull",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "name": "rclk",
+      "width": 1,
+      "from": {
+        "cell": "p_rclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sw1",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n10",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_rclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sw2",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n11",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "sw1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "sw2",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "name": "wptr_g_sync[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "sw2",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "rempty",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n13",
+      "name": "rinc",
+      "width": 1,
+      "from": {
+        "cell": "p_rinc",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "rptr",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n14",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_rclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "rptr",
+        "pin": "in3"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n15",
+      "name": "rrst_n",
+      "width": 1,
+      "from": {
+        "cell": "p_rrstn",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "rptr",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n16",
+      "name": "raddr[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "rptr",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "in4"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n17",
+      "name": "rptr_g[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "rptr",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "sr1",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n18",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "rptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "rempty",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n19",
+      "name": "wclk",
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sr1",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n20",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sr2",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n21",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "sr1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "sr2",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n22",
+      "name": "rptr_g_sync[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "sr2",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "wfull",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n23",
+      "name": "wfull",
+      "width": 1,
+      "from": {
+        "cell": "wfull",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_wfull",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n24",
+      "name": "rempty",
+      "width": 1,
+      "from": {
+        "cell": "rempty",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_rempty",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n25",
+      "name": "rdata[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "mem",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_rdata",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    }
+  ],
+  "shapes": [
+    {
+      "id": "s1",
+      "kind": "text",
+      "x": 230,
+      "y": 80,
+      "text": "WRITE CLOCK DOMAIN  (wclk)",
+      "rotate": 0,
+      "style": {
+        "fontSize": 15,
+        "fill": "#0d7490"
+      }
+    },
+    {
+      "id": "s2",
+      "kind": "text",
+      "x": 1150,
+      "y": 80,
+      "text": "READ CLOCK DOMAIN  (rclk)",
+      "rotate": 0,
+      "style": {
+        "fontSize": 15,
+        "fill": "#b45309"
+      }
+    },
+    {
+      "id": "s3",
+      "kind": "line",
+      "points": [
+        [
+          830,
+          110
+        ],
+        [
+          830,
+          960
+        ]
+      ],
+      "rotate": 0,
+      "style": {
+        "stroke": "#9aa8ae",
+        "strokeWidth": 1.4
+      }
+    },
+    {
+      "id": "s4",
+      "kind": "text",
+      "x": 640,
+      "y": 985,
+      "text": "two-flop synchronisers cross the boundary",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74"
+      }
+    }
+  ],
+  "groups": []
+}

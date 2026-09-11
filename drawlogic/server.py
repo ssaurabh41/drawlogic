@@ -28,7 +28,6 @@ escape it.
 
 import json
 import os
-import posixpath
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

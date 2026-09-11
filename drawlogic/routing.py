@@ -12,9 +12,11 @@ Usage:
     routes = routing.route_all(doc)            # [(net, points), ...]
     dots = routing.junctions(routes)           # where three branches meet
 
-Routes avoid other cells: the corridor is chosen so that all three legs of
-the path clear every cell the wire is not connected to. A net's `waypoints`
-force the route through given points.
+Every wire leaves and enters on the side its pin faces -- a short stub is
+taken first, and only then may the route turn -- so a joint at a pin reads as
+one continuous line. Routes also avoid other cells: no leg is drawn without
+checking it clears every cell the wire is not connected to. A net's
+`waypoints` force the route through given points.
 """
 
 from . import theme
@@ -29,6 +31,14 @@ EPSILON = 1e-6
 CLEARANCE = 8.0
 CORRIDOR_STEP = 10.0
 CORRIDOR_TRIES = 16
+
+# How far apart two wires that have nothing to do with each other must sit
+# before they read as two wires rather than one.
+WIRE_GAP = 16.0
+
+# Corridor searches that may run anywhere on the sheet.
+NEG_SPAN = float("-inf")
+POS_SPAN = float("inf")
 
 
 def _key(point):
@@ -115,6 +125,11 @@ def _clean(points):
   return merged
 
 
+def _stub_end(point, direction):
+  """The point a wire reaches after leaving a pin along the side it faces."""
+  return (point[0] + direction[0] * STUB, point[1] + direction[1] * STUB)
+
+
 def _elbow(a, b, horizontal_first):
   """One corner joining two points with axis-aligned segments."""
   if abs(a[0] - b[0]) < EPSILON or abs(a[1] - b[1]) < EPSILON:
@@ -164,81 +179,292 @@ def _horizontal_clear(y, x0, x1, boxes):
   return True
 
 
-def _pick_corridor(preferred, span_lo, span_hi, path_is_clear):
+class Sheet:
+  """What a route needs to know about the rest of the drawing.
+
+  Holds the cell footprints to dodge and the runs other wires have already
+  taken, so a later wire can pick a corridor of its own instead of being drawn
+  on top of an earlier one.
+
+  Nets that share an endpoint are exempt from that: a fan-out from one pin is
+  meant to lie on top of itself and show as a rail with junction dots.
+  """
+
+  def __init__(self, boxes=()):
+    self.boxes = boxes
+    self._runs = []
+    self._keys = frozenset()
+
+  def reserve(self, keys, points):
+    """Remember the runs of a wire that has been routed."""
+    for index in range(len(points) - 1):
+      a = points[index]
+      b = points[index + 1]
+      if abs(a[1] - b[1]) < EPSILON:
+        self._runs.append((keys, True, a[1], min(a[0], b[0]), max(a[0], b[0])))
+      elif abs(a[0] - b[0]) < EPSILON:
+        self._runs.append((keys, False, a[0], min(a[1], b[1]), max(a[1], b[1])))
+
+  def for_net(self, boxes, keys):
+    """A view of this sheet for one net: its own obstacles, shared history.
+
+    The net's own endpoints are exempt from the reserved runs, so its fan-out
+    does not block itself.
+    """
+    view = Sheet(boxes)
+    view._runs = self._runs
+    view._keys = keys
+    return view
+
+  def free(self, horizontal, fixed, v0, v1):
+    """True if this line neither shadows nor crosses an unrelated wire.
+
+    Shadowing is the worse of the two -- two wires drawn nearly on top of each
+    other cannot be told apart at all -- but crossings are worth avoiding as
+    well, since the corridor one step the other way usually has none. Both are
+    preferences: `_pick_corridor` falls back to a merely cell-free corridor
+    when every candidate is taken.
+    """
+    lo, hi = min(v0, v1), max(v0, v1)
+    for keys, run_h, run_fixed, run_lo, run_hi in self._runs:
+      if keys & self._keys:
+        continue
+      if run_h == horizontal:
+        if abs(run_fixed - fixed) >= WIRE_GAP:
+          continue
+        if hi - EPSILON <= run_lo or lo + EPSILON >= run_hi:
+          continue
+        return False
+      if run_lo + EPSILON < fixed < run_hi - EPSILON and lo < run_fixed < hi:
+        return False
+    return True
+
+
+def _endpoint_keys(net):
+  """The pins a net touches, used to spot wires that share a source."""
+  keys = set()
+  for side in ("from", "to"):
+    endpoint = net.get(side) or {}
+    if isinstance(endpoint, dict) and "cell" in endpoint:
+      keys.add((endpoint["cell"], endpoint.get("pin")))
+  return frozenset(keys)
+
+
+def _leg_clear(p, q, boxes):
+  """True if one axis-aligned segment misses every obstacle box."""
+  if abs(p[0] - q[0]) < EPSILON:
+    return _vertical_clear(p[0], p[1], q[1], boxes)
+  if abs(p[1] - q[1]) < EPSILON:
+    return _horizontal_clear(p[1], p[0], q[0], boxes)
+  return True
+
+
+def _pick_corridor(preferred, span_lo, span_hi, path_is_clear, is_free=None):
   """Choose a corridor near `preferred` whose whole path misses every cell.
 
   `path_is_clear` checks all three legs, not just the corridor itself -- a
   corridor that dodges a gate is no use if the leg leading into it still
   ploughs straight through one.
 
+  `is_free` marks corridors no unrelated wire has already taken. A corridor
+  that is merely clear of cells is accepted only when no free one can be
+  found, so two wires are not drawn one on top of the other.
+
   Falls back to the preferred position when nothing is clear, so a crowded
   drawing still produces a wire rather than nothing at all.
   """
-  if path_is_clear(preferred):
-    return preferred
-  for step in range(1, CORRIDOR_TRIES + 1):
-    for candidate in (preferred + step * CORRIDOR_STEP,
-                      preferred - step * CORRIDOR_STEP):
-      if candidate <= span_lo or candidate >= span_hi:
-        continue
-      if path_is_clear(candidate):
+  for test in _tests(path_is_clear, is_free):
+    if test(preferred):
+      return preferred
+    for step in range(1, CORRIDOR_TRIES + 1):
+      for candidate in (preferred + step * CORRIDOR_STEP,
+                        preferred - step * CORRIDOR_STEP):
+        if candidate <= span_lo or candidate >= span_hi:
+          continue
+        if test(candidate):
+          return candidate
+  return preferred
+
+
+def _pick_outward(preferred, direction, path_is_clear, is_free=None):
+  """Choose a corridor at `preferred` or further along `direction`.
+
+  Used when both pins face the same way and the wire has to come round to the
+  far side of both before it can turn in, so only one search direction makes
+  sense.
+  """
+  for test in _tests(path_is_clear, is_free):
+    for step in range(CORRIDOR_TRIES + 1):
+      candidate = preferred + step * CORRIDOR_STEP * direction
+      if test(candidate):
         return candidate
   return preferred
 
 
-def _direct_route(start, end, start_dir, end_dir, boxes=()):
-  """Route between two pins with no waypoints to honour."""
-  if abs(start[0] - end[0]) < EPSILON or abs(start[1] - end[1]) < EPSILON:
-    return [start, end]
-
-  start_horizontal = start_dir is None or abs(start_dir[0]) > abs(start_dir[1])
-  end_horizontal = end_dir is None or abs(end_dir[0]) > abs(end_dir[1])
-
-  if start_horizontal and end_horizontal:
-    forward = (end[0] - start[0]) * (start_dir[0] if start_dir else 1.0)
-    if forward > 2 * STUB:
-      def clear_at(mid):
-        return (_vertical_clear(mid, start[1], end[1], boxes)
-                and _horizontal_clear(start[1], start[0], mid, boxes)
-                and _horizontal_clear(end[1], mid, end[0], boxes))
-      mid = _pick_corridor(
-        (start[0] + end[0]) / 2.0,
-        min(start[0], end[0]) + STUB, max(start[0], end[0]) - STUB,
-        clear_at)
-      return [start, (mid, start[1]), (mid, end[1]), end]
-    # The target sits behind the driving pin, so break out, cross over on a
-    # mid-line, and come back in rather than drawing through the cell.
-    out_x = start[0] + (start_dir[0] if start_dir else 1.0) * STUB
-    in_x = end[0] - (end_dir[0] if end_dir else -1.0) * STUB
-    mid_y = (start[1] + end[1]) / 2.0
-    return [start, (out_x, start[1]), (out_x, mid_y),
-            (in_x, mid_y), (in_x, end[1]), end]
-
-  if not start_horizontal and not end_horizontal:
-    forward = (end[1] - start[1]) * (start_dir[1] if start_dir else 1.0)
-    if forward > 2 * STUB:
-      def clear_at(mid):
-        return (_horizontal_clear(mid, start[0], end[0], boxes)
-                and _vertical_clear(start[0], start[1], mid, boxes)
-                and _vertical_clear(end[0], mid, end[1], boxes))
-      mid = _pick_corridor(
-        (start[1] + end[1]) / 2.0,
-        min(start[1], end[1]) + STUB, max(start[1], end[1]) - STUB,
-        clear_at)
-      return [start, (start[0], mid), (end[0], mid), end]
-    out_y = start[1] + (start_dir[1] if start_dir else 1.0) * STUB
-    in_y = end[1] - (end_dir[1] if end_dir else -1.0) * STUB
-    mid_x = (start[0] + end[0]) / 2.0
-    return [start, (start[0], out_y), (mid_x, out_y),
-            (mid_x, in_y), (end[0], in_y), end]
-
-  if start_horizontal:
-    return [start, (end[0], start[1]), end]
-  return [start, (start[0], end[1]), end]
+def _tests(path_is_clear, is_free):
+  """Corridor tests to try in turn: the fussy one first, then the bare one."""
+  if is_free is None:
+    return [path_is_clear]
+  return [lambda value: path_is_clear(value) and is_free(value), path_is_clear]
 
 
-def route(doc, net, registry=None):
-  """Points making up one wire, or an empty list if it cannot be resolved."""
+def _free_direction(point, other):
+  """Which way a free endpoint faces: towards the other end of the net."""
+  dx = other[0] - point[0]
+  dy = other[1] - point[1]
+  if abs(dx) >= abs(dy):
+    return (1.0 if dx >= 0 else -1.0, 0.0)
+  return (0.0, 1.0 if dy >= 0 else -1.0)
+
+
+def _sidestep(a, b, sheet, vertical):
+  """Detour around whatever blocks the straight line between two points.
+
+  `vertical` says the blocked run was vertical, so the detour shifts sideways
+  in x; otherwise it shifts in y.
+  """
+  boxes = sheet.boxes
+  if vertical:
+    def clear_at(x):
+      return (_vertical_clear(x, a[1], b[1], boxes)
+              and _horizontal_clear(a[1], a[0], x, boxes)
+              and _horizontal_clear(b[1], x, b[0], boxes))
+    x = _pick_corridor(a[0], NEG_SPAN, POS_SPAN, clear_at,
+                       lambda x: sheet.free(False, x, a[1], b[1]))
+    return [a, (x, a[1]), (x, b[1]), b]
+
+  def clear_at(y):
+    return (_horizontal_clear(y, a[0], b[0], boxes)
+            and _vertical_clear(a[0], a[1], y, boxes)
+            and _vertical_clear(b[0], y, b[1], boxes))
+  y = _pick_corridor(a[1], NEG_SPAN, POS_SPAN, clear_at,
+                     lambda y: sheet.free(True, y, a[0], b[0]))
+  return [a, (a[0], y), (b[0], y), b]
+
+
+def _route_hh(a, b, a_dir, b_dir, sheet):
+  """Both ends face sideways: cross over on a shared column."""
+  boxes = sheet.boxes
+
+  def clear_at(x):
+    return (_vertical_clear(x, a[1], b[1], boxes)
+            and _horizontal_clear(a[1], a[0], x, boxes)
+            and _horizontal_clear(b[1], x, b[0], boxes))
+
+  def free_at(x):
+    return sheet.free(False, x, a[1], b[1])
+
+  facing = ((b[0] - a[0]) * a_dir[0] > EPSILON
+            and (a[0] - b[0]) * b_dir[0] > EPSILON)
+  if facing:
+    lo, hi = sorted((a[0], b[0]))
+    x = _pick_corridor((a[0] + b[0]) / 2.0, lo, hi, clear_at, free_at)
+    return [a, (x, a[1]), (x, b[1]), b]
+
+  if a_dir[0] * b_dir[0] > 0:
+    direction = a_dir[0]
+    base = max(a[0], b[0]) if direction > 0 else min(a[0], b[0])
+    x = _pick_outward(base, direction, clear_at, free_at)
+    return [a, (x, a[1]), (x, b[1]), b]
+
+  # Back to back, so no column between them can be used: go out of each pin
+  # and across on a shared row instead.
+  def row_clear(y):
+    return (_horizontal_clear(y, a[0], b[0], boxes)
+            and _vertical_clear(a[0], a[1], y, boxes)
+            and _vertical_clear(b[0], y, b[1], boxes))
+  y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, row_clear,
+                     lambda y: sheet.free(True, y, a[0], b[0]))
+  return [a, (a[0], y), (b[0], y), b]
+
+
+def _route_vv(a, b, a_dir, b_dir, sheet):
+  """Both ends face up or down: cross over on a shared row."""
+  boxes = sheet.boxes
+
+  def clear_at(y):
+    return (_horizontal_clear(y, a[0], b[0], boxes)
+            and _vertical_clear(a[0], a[1], y, boxes)
+            and _vertical_clear(b[0], y, b[1], boxes))
+
+  def free_at(y):
+    return sheet.free(True, y, a[0], b[0])
+
+  facing = ((b[1] - a[1]) * a_dir[1] > EPSILON
+            and (a[1] - b[1]) * b_dir[1] > EPSILON)
+  if facing:
+    lo, hi = sorted((a[1], b[1]))
+    y = _pick_corridor((a[1] + b[1]) / 2.0, lo, hi, clear_at, free_at)
+    return [a, (a[0], y), (b[0], y), b]
+
+  if a_dir[1] * b_dir[1] > 0:
+    direction = a_dir[1]
+    base = max(a[1], b[1]) if direction > 0 else min(a[1], b[1])
+    y = _pick_outward(base, direction, clear_at, free_at)
+    return [a, (a[0], y), (b[0], y), b]
+
+  def column_clear(x):
+    return (_vertical_clear(x, a[1], b[1], boxes)
+            and _horizontal_clear(a[1], a[0], x, boxes)
+            and _horizontal_clear(b[1], x, b[0], boxes))
+  x = _pick_corridor((a[0] + b[0]) / 2.0, NEG_SPAN, POS_SPAN, column_clear,
+                     lambda x: sheet.free(False, x, a[1], b[1]))
+  return [a, (x, a[1]), (x, b[1]), b]
+
+
+def _route_corner(a, b, sheet, a_horizontal):
+  """One end faces sideways and the other up or down: a single corner."""
+  boxes = sheet.boxes
+  along_a = (b[0], a[1]) if a_horizontal else (a[0], b[1])
+  along_b = (a[0], b[1]) if a_horizontal else (b[0], a[1])
+  for corner in (along_a, along_b):
+    if _leg_clear(a, corner, boxes) and _leg_clear(corner, b, boxes):
+      return [a, corner, b]
+  return [a, along_a, b]
+
+
+def _middle_route(a, b, a_dir, b_dir, sheet):
+  """Orthogonal path between two stub ends, dodging every cell on the way."""
+  if abs(a[0] - b[0]) < EPSILON:
+    if _vertical_clear(a[0], a[1], b[1], sheet.boxes):
+      return [a, b]
+    return _sidestep(a, b, sheet, True)
+  if abs(a[1] - b[1]) < EPSILON:
+    if _horizontal_clear(a[1], a[0], b[0], sheet.boxes):
+      return [a, b]
+    return _sidestep(a, b, sheet, False)
+
+  a_horizontal = abs(a_dir[0]) > abs(a_dir[1])
+  b_horizontal = abs(b_dir[0]) > abs(b_dir[1])
+  if a_horizontal and b_horizontal:
+    return _route_hh(a, b, a_dir, b_dir, sheet)
+  if not a_horizontal and not b_horizontal:
+    return _route_vv(a, b, a_dir, b_dir, sheet)
+  return _route_corner(a, b, sheet, a_horizontal)
+
+
+def _direct_route(start, end, start_dir, end_dir, sheet):
+  """Route between two pins with no waypoints to honour.
+
+  The wire leaves each pin along the side that pin faces and only then is
+  allowed to turn. That short stub is what makes the joint at, say, a
+  flip-flop clock pin read as a continuation of the wire instead of a line
+  that arrived from the wrong side, and it keeps the first and last leg clear
+  of the cells the net belongs to.
+  """
+  a_dir = start_dir or _free_direction(start, end)
+  b_dir = end_dir or _free_direction(end, start)
+  a = _stub_end(start, a_dir) if start_dir else start
+  b = _stub_end(end, b_dir) if end_dir else end
+  return [start] + _middle_route(a, b, a_dir, b_dir, sheet) + [end]
+
+
+def route(doc, net, registry=None, sheet=None):
+  """Points making up one wire, or an empty list if it cannot be resolved.
+
+  Pass the `sheet` from `route_all` to let a wire see the ones routed before
+  it; on its own a wire only dodges cells.
+  """
   registry = registry or default_registry()
   start = endpoint_position(doc, net.get("from"), registry)
   end = endpoint_position(doc, net.get("to"), registry)
@@ -256,7 +482,9 @@ def route(doc, net, registry=None):
       if "cell" in endpoint:
         exclude.add(endpoint["cell"])
     boxes = obstacle_boxes(doc, registry, exclude)
-    return _clean(_direct_route(start, end, start_dir, end_dir, boxes))
+    sheet = sheet or Sheet()
+    view = sheet.for_net(boxes, _endpoint_keys(net))
+    return _clean(_direct_route(start, end, start_dir, end_dir, view))
 
   points = [start] + waypoints + [end]
   chain = [points[0]]
@@ -276,11 +504,19 @@ def route(doc, net, registry=None):
 
 
 def route_all(doc, registry=None):
-  """Every net's path, keyed by net id, in document order."""
+  """Every net's path, in document order.
+
+  Wires are routed one after another and each remembers where it ran, so a
+  later wire picks a corridor of its own rather than landing on an earlier
+  one. Order therefore matters: the first net stated gets the straightest run.
+  """
   registry = registry or default_registry()
+  sheet = Sheet()
   routes = []
   for net in doc.nets:
-    routes.append((net, route(doc, net, registry)))
+    points = route(doc, net, registry, sheet)
+    sheet.reserve(_endpoint_keys(net), points)
+    routes.append((net, points))
   return routes
 
 
@@ -391,7 +627,11 @@ def hop_points(routes):
         continue
       if _key((x, y)) in vertices:
         continue
-      found.setdefault(net_id, []).append((x, y))
+      # Two wires of the same rail can cross this one at the same spot; one
+      # bridge is enough, and drawing it twice only thickens the arc.
+      spots = found.setdefault(net_id, [])
+      if all(_key(spot) != _key((x, y)) for spot in spots):
+        spots.append((x, y))
 
   return found
 

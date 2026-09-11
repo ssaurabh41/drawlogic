@@ -233,14 +233,20 @@ function arrowElement(tip, direction, size, color) {
 
 
 // Where a net's name goes: the middle of its longest run. Using the first
-// segment would stack the names of every net leaving the same pin.
+// segment would stack the names of every net leaving the same pin. Horizontal
+// runs are preferred outright, because a name set beside a vertical wire
+// sprawls across whatever is next to it.
 function labelSpot(points) {
   let best = null;
   for (let i = 0; i < points.length - 1; i += 1) {
     const [ax, ay] = points[i];
     const [bx, by] = points[i + 1];
-    const length = Math.abs(bx - ax) + Math.abs(by - ay);
-    if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
+    const horizontal = Math.abs(bx - ax) >= Math.abs(by - ay);
+    const rank = [horizontal ? 1 : 0, Math.abs(bx - ax) + Math.abs(by - ay)];
+    if (!best || rank[0] > best[0][0]
+        || (rank[0] === best[0][0] && rank[1] > best[0][1])) {
+      best = [rank, points[i], points[i + 1]];
+    }
   }
   const [, [ax, ay], [bx, by]] = best;
   const midX = (ax + bx) / 2;
@@ -341,6 +347,7 @@ function renderShape(shape, fontScale, parent) {
     stroke: style.stroke || theme.colors.stroke,
     "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.stroke, 3),
   };
+  if (style.dash) paint["stroke-dasharray"] = style.dash;
 
   if (shape.kind === "rect") {
     into.appendChild(el("rect", {

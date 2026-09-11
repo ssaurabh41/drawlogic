@@ -4,7 +4,7 @@
   "title": "cdc_fifo",
   "canvas": {
     "width": 1800,
-    "height": 980,
+    "height": 1000,
     "background": "#ffffff",
     "grid": {
       "style": "dots",
@@ -24,7 +24,7 @@
       "id": "mem",
       "type": "ram_dp",
       "x": 790,
-      "y": 120,
+      "y": 150,
       "w": 220.0,
       "h": 160.0,
       "rotate": 0,
@@ -35,8 +35,8 @@
     {
       "id": "p_wdata",
       "type": "port_in",
-      "x": 140,
-      "y": 145,
+      "x": 120,
+      "y": 175,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -47,8 +47,8 @@
     {
       "id": "p_winc",
       "type": "port_in",
-      "x": 140,
-      "y": 399,
+      "x": 120,
+      "y": 415,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -59,8 +59,8 @@
     {
       "id": "p_wrstn",
       "type": "port_in",
-      "x": 140,
-      "y": 435,
+      "x": 120,
+      "y": 460,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -71,8 +71,8 @@
     {
       "id": "p_wclk",
       "type": "port_in",
-      "x": 140,
-      "y": 685,
+      "x": 120,
+      "y": 505,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -83,12 +83,12 @@
     {
       "id": "p_wfull",
       "type": "port_out",
-      "x": 140,
-      "y": 820,
+      "x": 120,
+      "y": 720,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
-      "mirror": false,
+      "mirror": true,
       "label": "wfull",
       "style": {}
     },
@@ -96,9 +96,9 @@
       "id": "wptr",
       "type": "block6",
       "x": 330,
-      "y": 380,
-      "w": 160,
-      "h": 120,
+      "y": 390,
+      "w": 200,
+      "h": 150,
       "rotate": 0,
       "mirror": false,
       "label": "wptr_gray",
@@ -109,9 +109,9 @@
     {
       "id": "wfull",
       "type": "block",
-      "x": 350,
-      "y": 800,
-      "w": 140,
+      "x": 330,
+      "y": 700,
+      "w": 180,
       "h": 90,
       "rotate": 0,
       "mirror": true,
@@ -123,12 +123,12 @@
     {
       "id": "sr1",
       "type": "reg",
-      "x": 430,
-      "y": 600,
+      "x": 760,
+      "y": 750,
       "w": 70.0,
       "h": 60.0,
       "rotate": 0,
-      "mirror": false,
+      "mirror": true,
       "label": "r2w_1",
       "style": {
         "fill": "#e8f2f6"
@@ -137,12 +137,12 @@
     {
       "id": "sr2",
       "type": "reg",
-      "x": 540,
-      "y": 600,
+      "x": 640,
+      "y": 750,
       "w": 70.0,
       "h": 60.0,
       "rotate": 0,
-      "mirror": false,
+      "mirror": true,
       "label": "r2w_2",
       "style": {
         "fill": "#e8f2f6"
@@ -151,8 +151,8 @@
     {
       "id": "p_rdata",
       "type": "port_out",
-      "x": 1640,
-      "y": 145,
+      "x": 1660,
+      "y": 175,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -163,8 +163,8 @@
     {
       "id": "p_rinc",
       "type": "port_in",
-      "x": 1640,
-      "y": 399,
+      "x": 1660,
+      "y": 415,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -175,8 +175,8 @@
     {
       "id": "p_rrstn",
       "type": "port_in",
-      "x": 1640,
-      "y": 435,
+      "x": 1660,
+      "y": 460,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -187,8 +187,8 @@
     {
       "id": "p_rclk",
       "type": "port_in",
-      "x": 1640,
-      "y": 685,
+      "x": 1660,
+      "y": 505,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -199,8 +199,8 @@
     {
       "id": "p_rempty",
       "type": "port_out",
-      "x": 1640,
-      "y": 820,
+      "x": 1660,
+      "y": 720,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -211,10 +211,10 @@
     {
       "id": "rptr",
       "type": "block6",
-      "x": 1310,
-      "y": 380,
-      "w": 160,
-      "h": 120,
+      "x": 1270,
+      "y": 390,
+      "w": 200,
+      "h": 150,
       "rotate": 0,
       "mirror": true,
       "label": "rptr_gray",
@@ -225,9 +225,9 @@
     {
       "id": "rempty",
       "type": "block",
-      "x": 1310,
-      "y": 800,
-      "w": 140,
+      "x": 1290,
+      "y": 700,
+      "w": 180,
       "h": 90,
       "rotate": 0,
       "mirror": false,
@@ -239,8 +239,8 @@
     {
       "id": "sw1",
       "type": "reg",
-      "x": 1190,
-      "y": 600,
+      "x": 970,
+      "y": 750,
       "w": 70.0,
       "h": 60.0,
       "rotate": 0,
@@ -253,8 +253,8 @@
     {
       "id": "sw2",
       "type": "reg",
-      "x": 1300,
-      "y": 600,
+      "x": 1090,
+      "y": 750,
       "w": 70.0,
       "h": 60.0,
       "rotate": 0,
@@ -313,261 +313,6 @@
     },
     {
       "id": "n4",
-      "name": "waddr[7:0]",
-      "width": 8,
-      "from": {
-        "cell": "wptr",
-        "pin": "out1"
-      },
-      "to": {
-        "cell": "mem",
-        "pin": "waddr"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n5",
-      "name": "wen",
-      "width": 1,
-      "from": {
-        "cell": "wptr",
-        "pin": "out2"
-      },
-      "to": {
-        "cell": "mem",
-        "pin": "wen"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n6",
-      "name": "rdata[7:0]",
-      "width": 8,
-      "from": {
-        "cell": "mem",
-        "pin": "rdata"
-      },
-      "to": {
-        "cell": "p_rdata",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n7",
-      "name": "rinc",
-      "width": 1,
-      "from": {
-        "cell": "p_rinc",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "rptr",
-        "pin": "in1"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n8",
-      "name": "rrst_n",
-      "width": 1,
-      "from": {
-        "cell": "p_rrstn",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "rptr",
-        "pin": "in2"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n9",
-      "name": "raddr[7:0]",
-      "width": 8,
-      "from": {
-        "cell": "rptr",
-        "pin": "out1"
-      },
-      "to": {
-        "cell": "mem",
-        "pin": "raddr"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n10",
-      "name": "ren",
-      "width": 1,
-      "from": {
-        "cell": "rptr",
-        "pin": "out2"
-      },
-      "to": {
-        "cell": "mem",
-        "pin": "ren"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n11",
-      "name": "wptr_g[8:0]",
-      "width": 9,
-      "from": {
-        "cell": "wptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "sw1",
-        "pin": "d"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n12",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "wptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "wfull",
-        "pin": "in2"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n13",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "sw1",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "sw2",
-        "pin": "d"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n14",
-      "name": "wptr_g_sync[8:0]",
-      "width": 9,
-      "from": {
-        "cell": "sw2",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "rempty",
-        "pin": "in1"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n15",
-      "name": "rptr_g[8:0]",
-      "width": 9,
-      "from": {
-        "cell": "rptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "sr1",
-        "pin": "d"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n16",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "rptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "rempty",
-        "pin": "in2"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n17",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "sr1",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "sr2",
-        "pin": "d"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n18",
-      "name": "rptr_g_sync[8:0]",
-      "width": 9,
-      "from": {
-        "cell": "sr2",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "wfull",
-        "pin": "in1"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n19",
-      "name": "wfull",
-      "width": 1,
-      "from": {
-        "cell": "wfull",
-        "pin": "out1"
-      },
-      "to": {
-        "cell": "p_wfull",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n20",
-      "name": "rempty",
-      "width": 1,
-      "from": {
-        "cell": "rempty",
-        "pin": "out1"
-      },
-      "to": {
-        "cell": "p_rempty",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n21",
       "name": "wclk",
       "width": 1,
       "from": {
@@ -582,37 +327,82 @@
       "style": {}
     },
     {
-      "id": "n22",
-      "name": null,
-      "width": 1,
+      "id": "n5",
+      "name": "waddr[7:0]",
+      "width": 8,
       "from": {
-        "cell": "p_wclk",
-        "pin": "p"
+        "cell": "wptr",
+        "pin": "out1"
       },
       "to": {
-        "cell": "sr1",
-        "pin": "ck"
+        "cell": "mem",
+        "pin": "waddr"
       },
       "waypoints": [],
       "style": {}
     },
     {
-      "id": "n23",
-      "name": null,
+      "id": "n6",
+      "name": "wclken",
       "width": 1,
       "from": {
-        "cell": "p_wclk",
-        "pin": "p"
+        "cell": "wptr",
+        "pin": "out2"
       },
       "to": {
-        "cell": "sr2",
-        "pin": "ck"
+        "cell": "mem",
+        "pin": "wen"
       },
       "waypoints": [],
       "style": {}
     },
     {
-      "id": "n24",
+      "id": "n7",
+      "name": "rdata[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "mem",
+        "pin": "rdata"
+      },
+      "to": {
+        "cell": "p_rdata",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": "rinc",
+      "width": 1,
+      "from": {
+        "cell": "p_rinc",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "rptr",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "name": "rrst_n",
+      "width": 1,
+      "from": {
+        "cell": "p_rrstn",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "rptr",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n10",
       "name": "rclk",
       "width": 1,
       "from": {
@@ -627,6 +417,284 @@
       "style": {}
     },
     {
+      "id": "n11",
+      "name": "raddr[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "rptr",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "raddr"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "name": "rclken",
+      "width": 1,
+      "from": {
+        "cell": "rptr",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "mem",
+        "pin": "ren"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n13",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "wptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "wfull",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n14",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "rptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "rempty",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n15",
+      "name": "wptr_g[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "wptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "sw1",
+        "pin": "d"
+      },
+      "waypoints": [
+        [
+          600,
+          510
+        ],
+        [
+          600,
+          600
+        ],
+        [
+          940,
+          600
+        ],
+        [
+          940,
+          765
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n16",
+      "name": "rptr_g[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "rptr",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "sr1",
+        "pin": "d"
+      },
+      "waypoints": [
+        [
+          1200,
+          510
+        ],
+        [
+          1200,
+          560
+        ],
+        [
+          860,
+          560
+        ],
+        [
+          860,
+          765
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n17",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "sw1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "sw2",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n18",
+      "name": "wptr_g_sync[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "sw2",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "rempty",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n19",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "sr1",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "sr2",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n20",
+      "name": "rptr_g_sync[8:0]",
+      "width": 9,
+      "from": {
+        "cell": "sr2",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "wfull",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n21",
+      "name": "wfull",
+      "width": 1,
+      "from": {
+        "cell": "wfull",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_wfull",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n22",
+      "name": "rempty",
+      "width": 1,
+      "from": {
+        "cell": "rempty",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_rempty",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n23",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sr1",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          210,
+          510
+        ],
+        [
+          210,
+          880
+        ],
+        [
+          880,
+          880
+        ],
+        [
+          880,
+          795
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n24",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_wclk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "sr2",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          210,
+          510
+        ],
+        [
+          210,
+          880
+        ],
+        [
+          735,
+          880
+        ],
+        [
+          735,
+          795
+        ]
+      ],
+      "style": {}
+    },
+    {
       "id": "n25",
       "name": null,
       "width": 1,
@@ -638,7 +706,24 @@
         "cell": "sw1",
         "pin": "ck"
       },
-      "waypoints": [],
+      "waypoints": [
+        [
+          1590,
+          510
+        ],
+        [
+          1590,
+          880
+        ],
+        [
+          920,
+          880
+        ],
+        [
+          920,
+          795
+        ]
+      ],
       "style": {}
     },
     {
@@ -653,61 +738,75 @@
         "cell": "sw2",
         "pin": "ck"
       },
-      "waypoints": [],
+      "waypoints": [
+        [
+          1590,
+          510
+        ],
+        [
+          1590,
+          880
+        ],
+        [
+          1065,
+          880
+        ],
+        [
+          1065,
+          795
+        ]
+      ],
       "style": {}
     }
   ],
   "shapes": [
     {
       "id": "s1",
-      "kind": "text",
-      "x": 330,
-      "y": 78,
-      "text": "WRITE CLOCK DOMAIN",
+      "kind": "rect",
+      "x": 620,
+      "y": 726,
+      "w": 230,
+      "h": 104,
       "rotate": 0,
       "style": {
-        "fontSize": 17,
-        "fill": "#0d7490"
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
       }
     },
     {
       "id": "s2",
-      "kind": "text",
-      "x": 1470,
-      "y": 78,
-      "text": "READ CLOCK DOMAIN",
+      "kind": "rect",
+      "x": 950,
+      "y": 726,
+      "w": 230,
+      "h": 104,
       "rotate": 0,
       "style": {
-        "fontSize": 17,
-        "fill": "#b45309",
-        "anchor": "end"
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
       }
     },
     {
       "id": "s3",
-      "kind": "line",
-      "points": [
-        [
-          900,
-          300
-        ],
-        [
-          900,
-          900
-        ]
-      ],
+      "kind": "text",
+      "x": 735,
+      "y": 718,
+      "text": "sync_r2w",
       "rotate": 0,
       "style": {
-        "stroke": "#aab6bb",
-        "strokeWidth": 1.4
+        "fontSize": 13,
+        "fill": "#5b6b74",
+        "anchor": "middle"
       }
     },
     {
       "id": "s4",
       "kind": "text",
-      "x": 900,
-      "y": 945,
-      "text": "two-flop synchronisers carry each gray pointer across the boundary",
+      "x": 1065,
+      "y": 718,
+      "text": "sync_w2r",
       "rotate": 0,
       "style": {
         "fontSize": 13,
@@ -718,9 +817,67 @@
     {
       "id": "s5",
       "kind": "text",
+      "x": 120,
+      "y": 100,
+      "text": "WRITE CLOCK DOMAIN",
+      "rotate": 0,
+      "style": {
+        "fontSize": 18,
+        "fill": "#0d7490"
+      }
+    },
+    {
+      "id": "s6",
+      "kind": "text",
+      "x": 1680,
+      "y": 100,
+      "text": "READ CLOCK DOMAIN",
+      "rotate": 0,
+      "style": {
+        "fontSize": 18,
+        "fill": "#b45309",
+        "anchor": "end"
+      }
+    },
+    {
+      "id": "s7",
+      "kind": "line",
+      "points": [
+        [
+          900,
+          350
+        ],
+        [
+          900,
+          930
+        ]
+      ],
+      "rotate": 0,
+      "style": {
+        "stroke": "#aab6bb",
+        "strokeWidth": 1.2,
+        "dash": "6 6"
+      }
+    },
+    {
+      "id": "s8",
+      "kind": "text",
+      "x": 900,
+      "y": 965,
+      "text": "each gray-code pointer crosses the boundary through a two-flop synchroniser clocked by the receiving domain",
+      "rotate": 0,
+      "style": {
+        "fontSize": 13,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    },
+    {
+      "id": "s9",
+      "kind": "text",
       "x": 200,
-      "y": 668,
-      "text": "clock rail",
+      "y": 868,
+      "text": "wclk rail",
       "rotate": 0,
       "style": {
         "fontSize": 12,
@@ -728,11 +885,11 @@
       }
     },
     {
-      "id": "s6",
+      "id": "s10",
       "kind": "text",
       "x": 1600,
-      "y": 668,
-      "text": "clock rail",
+      "y": 868,
+      "text": "rclk rail",
       "rotate": 0,
       "style": {
         "fontSize": 12,

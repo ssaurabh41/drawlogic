@@ -119,7 +119,7 @@ drawlogic/
   cli.py          serve, export, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
   web/            the browser editor (9 modules, no build step)
-tests/            unittest plus a golden-file regression suite
+tests/            unittest, a golden-file regression suite, a JS parity check
 examples/         worked schematics, including a CDC FIFO
 ```
 
@@ -131,10 +131,13 @@ Every module opens with a usage section showing how to call it.
 python3 -m unittest discover
 ```
 
-The Python side is unit tested. The JavaScript is exercised by hand through a
-headless browser, because adding a JS toolchain would cost the
-zero-dependency property that makes this installable on a locked-down
-machine -- see the [manual](DOCUMENTATION.md#tests) for the reasoning.
+The Python side is unit tested, with a golden-file regression suite on top.
+The browser router is checked against the Python one net for net, by a test
+that skips itself when `node` is not installed. The rest of the JavaScript is
+exercised by hand through a headless browser, because adding a JS toolchain
+would cost the zero-dependency property that makes this installable on a
+locked-down machine -- see the [manual](DOCUMENTATION.md#tests) for the
+reasoning.
 
 ## Not built yet
 

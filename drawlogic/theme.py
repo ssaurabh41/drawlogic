@@ -40,10 +40,15 @@ COLORS = {
   "ghost": "#84969c",
 }
 
+# A symbol's pin stub and the wire that lands on it must be the same weight,
+# or the joint reads as two different lines meeting rather than one line
+# carrying on.
+WIRE = 1.6
+
 WIDTHS = {
   "stroke": 1.6,
-  "pin": 1.4,
-  "net": 1.6,
+  "pin": WIRE,
+  "net": WIRE,
   "decor": 1.2,
   "ghost": 1.2,
 }

@@ -301,15 +301,18 @@ def _label_spot(points):
 
   Using the first segment instead would stack the names of every net leaving
   the same pin on top of each other, which is exactly what a fanned-out clock
-  looks like.
+  looks like. Horizontal runs win ties and are preferred outright, because a
+  name set beside a vertical wire sprawls across whatever is next to it.
   """
   best = None
   for index in range(len(points) - 1):
     ax, ay = points[index]
     bx, by = points[index + 1]
+    horizontal = abs(bx - ax) >= abs(by - ay)
     length = abs(bx - ax) + abs(by - ay)
-    if best is None or length > best[0]:
-      best = (length, (ax, ay), (bx, by))
+    rank = (1 if horizontal else 0, length)
+    if best is None or rank > best[0]:
+      best = (rank, (ax, ay), (bx, by))
 
   _, (ax, ay), (bx, by) = best
   mid_x = (ax + bx) / 2.0
@@ -396,6 +399,8 @@ def _render_shape(shape, font_scale, out):
     ("stroke", style.get("stroke", theme.COLORS["stroke"])),
     ("stroke-width", fmt(style.get("strokeWidth", theme.WIDTHS["stroke"]), 3)),
   ]
+  if style.get("dash"):
+    paint.append(("stroke-dasharray", style["dash"]))
 
   if kind == "rect":
     out.append("<rect %s />" % _attrs([

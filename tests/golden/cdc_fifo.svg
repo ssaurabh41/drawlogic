@@ -1,211 +1,208 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="980" viewBox="0 0 1800 980" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>cdc_fifo</title>
-<rect x="0" y="0" width="1800" height="980" fill="#ffffff" />
+<rect x="0" y="0" width="1800" height="1000" fill="#ffffff" />
 <g class="dl-shapes">
-<text x="330" y="78" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="17" fill="#0d7490">WRITE CLOCK DOMAIN</text>
-<text x="1470" y="78" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="17" fill="#b45309">READ CLOCK DOMAIN</text>
-<polyline points="900,300 900,900" fill="none" stroke="#aab6bb" stroke-width="1.4" />
-<text x="900" y="945" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" fill="#5b6b74">two-flop synchronisers carry each gray pointer across the boundary</text>
-<text x="200" y="668" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="12" fill="#84969c">clock rail</text>
-<text x="1600" y="668" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="12" fill="#84969c">clock rail</text>
+<rect x="620" y="726" width="230" height="104" fill="#eef4f6" stroke="#c3d0d5" stroke-width="1" />
+<rect x="950" y="726" width="230" height="104" fill="#eef4f6" stroke="#c3d0d5" stroke-width="1" />
+<text x="735" y="718" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" fill="#5b6b74">sync_r2w</text>
+<text x="1065" y="718" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" fill="#5b6b74">sync_w2r</text>
+<text x="120" y="100" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="18" fill="#0d7490">WRITE CLOCK DOMAIN</text>
+<text x="1680" y="100" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="18" fill="#b45309">READ CLOCK DOMAIN</text>
+<polyline points="900,350 900,930" fill="none" stroke="#aab6bb" stroke-width="1.2" stroke-dasharray="6 6" />
+<text x="900" y="965" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" fill="#5b6b74">each gray-code pointer crosses the boundary through a two-flop synchroniser clocked by the receiving domain</text>
+<text x="200" y="868" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="12" fill="#84969c">wclk rail</text>
+<text x="1600" y="868" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="12" fill="#84969c">rclk rail</text>
 </g>
 <g class="dl-nets">
-<path class="dl-net" data-id="n1" d="M160 150 L790 150" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n2" d="M160 404 L330 404" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n3" d="M160 440 L330 440" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n4" d="M490 404 L640 404 L640 190 L790 190" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n5" d="M490 440 L640 440 L640 230 L790 230" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n6" d="M1010 150 L1640 150" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n7" d="M1640 404 L1470 404" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n8" d="M1640 440 L1470 440" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n9" d="M1310 404 L1160 404 L1160 190 L1010 190" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n10" d="M1310 440 L1160 440 L1160 230 L1010 230" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n11" d="M490 476 L840 476 L840 615 L1190 615" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n12" d="M490 476 L490 865" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n13" d="M1260 615 L1300 615" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n14" d="M1370 615 L1382 615 L1382 720 L1322 720 L1322 825 L1310 825" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n15" d="M1310 476 L870 476 L870 615 L495 615 A5 5 0 0 0 485 615 L430 615" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n16" d="M1310 476 L1310 865" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n17" d="M500 615 L540 615" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n18" d="M610 615 L622 615 L622 720 L495 720 A5 5 0 0 0 485 720 L478 720 L478 825 L490 825" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n19" d="M350 825 L140 825" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n20" d="M1450 825 L1640 825" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n21" d="M160 690 L245 690 L245 476 L330 476" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n22" d="M160 690 L295 690 L295 645 L430 645" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n23" d="M160 690 L485 690 A5 5 0 0 1 495 690 L510 690 L510 645 L540 645" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n24" d="M1640 690 L1555 690 L1555 476 L1470 476" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n25" d="M1640 690 L1387 690 A5 5 0 0 0 1377 690 L1315 690 A5 5 0 0 0 1305 690 L1285 690 L1285 645 L1190 645" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n26" d="M1640 690 L1470 690 L1470 645 L1387 645 A5 5 0 0 0 1377 645 L1315 645 A5 5 0 0 0 1305 645 L1300 645" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<text x="475" y="146" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wdata[7:0]</text>
-<text x="245" y="400" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">winc</text>
-<text x="245" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wrst_n</text>
-<text x="645" y="297" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">waddr[7:0]</text>
-<text x="645" y="335" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wen</text>
-<text x="1325" y="146" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
-<text x="1555" y="400" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rinc</text>
-<text x="1555" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rrst_n</text>
-<text x="1165" y="297" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">raddr[7:0]</text>
-<text x="1165" y="335" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">ren</text>
-<text x="665" y="472" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wptr_g[8:0]</text>
-<text x="1387" y="667.5" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wptr_g_sync[8:0]</text>
-<text x="1090" y="472" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g[8:0]</text>
-<text x="550" y="716" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g_sync[8:0]</text>
-<text x="245" y="821" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
-<text x="1545" y="821" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
-<text x="250" y="583" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wclk</text>
-<text x="1560" y="583" text-anchor="start" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rclk</text>
-<polygon points="778.8,150 771.8,153.15 771.8,146.85" fill="#16202b" />
-<polygon points="318.8,404 311.8,407.15 311.8,400.85" fill="#16202b" />
-<polygon points="318.8,440 311.8,443.15 311.8,436.85" fill="#16202b" />
-<polygon points="778.8,190 771.8,193.15 771.8,186.85" fill="#16202b" />
-<polygon points="778.8,230 771.8,233.15 771.8,226.85" fill="#16202b" />
-<polygon points="1628.8,150 1621.8,153.15 1621.8,146.85" fill="#16202b" />
-<polygon points="1481.2,404 1488.2,400.85 1488.2,407.15" fill="#16202b" />
-<polygon points="1481.2,440 1488.2,436.85 1488.2,443.15" fill="#16202b" />
-<polygon points="1021.2,190 1028.2,186.85 1028.2,193.15" fill="#16202b" />
-<polygon points="1021.2,230 1028.2,226.85 1028.2,233.15" fill="#16202b" />
-<polygon points="1178.8,615 1171.8,618.15 1171.8,611.85" fill="#16202b" />
-<polygon points="490,853.8 486.85,846.8 493.15,846.8" fill="#16202b" />
-<polygon points="1288.8,615 1281.8,618.15 1281.8,611.85" fill="#16202b" />
-<polygon points="1382,667.5 1378.85,660.5 1385.15,660.5" fill="#16202b" />
-<polygon points="441.2,615 448.2,611.85 448.2,618.15" fill="#16202b" />
-<polygon points="1310,853.8 1306.85,846.8 1313.15,846.8" fill="#16202b" />
-<polygon points="528.8,615 521.8,618.15 521.8,611.85" fill="#16202b" />
-<polygon points="550,720 557,716.85 557,723.15" fill="#16202b" />
-<polygon points="151.2,825 158.2,821.85 158.2,828.15" fill="#16202b" />
-<polygon points="1628.8,825 1621.8,828.15 1621.8,821.85" fill="#16202b" />
-<polygon points="318.8,476 311.8,479.15 311.8,472.85" fill="#16202b" />
-<polygon points="418.8,645 411.8,648.15 411.8,641.85" fill="#16202b" />
-<polygon points="528.8,645 521.8,648.15 521.8,641.85" fill="#16202b" />
-<polygon points="1481.2,476 1488.2,472.85 1488.2,479.15" fill="#16202b" />
-<polygon points="1201.2,645 1208.2,641.85 1208.2,648.15" fill="#16202b" />
-<polygon points="1311.2,645 1318.2,641.85 1318.2,648.15" fill="#16202b" />
-<circle cx="245" cy="690" r="3.2" fill="#16202b" />
-<circle cx="295" cy="690" r="3.2" fill="#16202b" />
-<circle cx="490" cy="825" r="3.2" fill="#16202b" />
-<circle cx="622" cy="615" r="3.2" fill="#16202b" />
-<circle cx="640" cy="230" r="3.2" fill="#16202b" />
-<circle cx="640" cy="404" r="3.2" fill="#16202b" />
-<circle cx="840" cy="615" r="3.2" fill="#16202b" />
-<circle cx="870" cy="615" r="3.2" fill="#16202b" />
-<circle cx="1160" cy="230" r="3.2" fill="#16202b" />
-<circle cx="1160" cy="404" r="3.2" fill="#16202b" />
-<circle cx="1310" cy="825" r="3.2" fill="#16202b" />
-<circle cx="1470" cy="690" r="3.2" fill="#16202b" />
-<circle cx="1555" cy="690" r="3.2" fill="#16202b" />
+<path class="dl-net" data-id="n1" d="M140 180 L790 180" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n2" d="M140 420 L330 420" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n3" d="M140 465 L330 465" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n4" d="M140 510 L330 510" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n5" d="M530 420 L660 420 L660 220 L790 220" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n6" d="M530 465 L680 465 L680 260 L790 260" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n7" d="M1010 180 L1660 180" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n8" d="M1660 420 L1470 420" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n9" d="M1660 465 L1470 465" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n10" d="M1660 510 L1470 510" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n11" d="M1270 420 L1140 420 L1140 220 L1010 220" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n12" d="M1270 465 L1120 465 L1120 260 L1010 260" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n13" d="M530 510 L542 510 L542 725 L510 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n14" d="M1270 510 L1258 510 L1258 725 L1290 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n15" d="M530 510 L600 510 L600 600 L855 600 A5 5 0 0 1 865 600 L940 600 L940 765 L970 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n16" d="M1270 510 L1200 510 L1200 560 L860 560 L860 765 L830 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n17" d="M1040 765 L1090 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n18" d="M1160 765 L1290 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n19" d="M760 765 L710 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n20" d="M640 765 L510 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n21" d="M330 725 L215 725 A5 5 0 0 0 205 725 L140 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n22" d="M1470 725 L1585 725 A5 5 0 0 1 1595 725 L1660 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n23" d="M140 510 L210 510 L210 880 L880 880 L880 795 L830 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n24" d="M140 510 L210 510 L210 880 L735 880 L735 795 L710 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n25" d="M1660 510 L1590 510 L1590 880 L920 880 L920 795 L970 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n26" d="M1660 510 L1590 510 L1590 880 L1065 880 L1065 795 L1090 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<text x="465" y="176" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wdata[7:0]</text>
+<text x="235" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">winc</text>
+<text x="235" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wrst_n</text>
+<text x="235" y="506" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wclk</text>
+<text x="595" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">waddr[7:0]</text>
+<text x="605" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wclken</text>
+<text x="1335" y="176" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
+<text x="1565" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rinc</text>
+<text x="1565" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rrst_n</text>
+<text x="1565" y="506" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rclk</text>
+<text x="1205" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">raddr[7:0]</text>
+<text x="1195" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rclken</text>
+<text x="770" y="596" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wptr_g[8:0]</text>
+<text x="1030" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g[8:0]</text>
+<text x="1225" y="761" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wptr_g_sync[8:0]</text>
+<text x="575" y="761" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g_sync[8:0]</text>
+<text x="235" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
+<text x="1565" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
+<polygon points="778.8,180 771.8,183.15 771.8,176.85" fill="#16202b" />
+<polygon points="318.8,420 311.8,423.15 311.8,416.85" fill="#16202b" />
+<polygon points="318.8,465 311.8,468.15 311.8,461.85" fill="#16202b" />
+<polygon points="318.8,510 311.8,513.15 311.8,506.85" fill="#16202b" />
+<polygon points="778.8,220 771.8,223.15 771.8,216.85" fill="#16202b" />
+<polygon points="778.8,260 771.8,263.15 771.8,256.85" fill="#16202b" />
+<polygon points="1648.8,180 1641.8,183.15 1641.8,176.85" fill="#16202b" />
+<polygon points="1481.2,420 1488.2,416.85 1488.2,423.15" fill="#16202b" />
+<polygon points="1481.2,465 1488.2,461.85 1488.2,468.15" fill="#16202b" />
+<polygon points="1481.2,510 1488.2,506.85 1488.2,513.15" fill="#16202b" />
+<polygon points="1021.2,220 1028.2,216.85 1028.2,223.15" fill="#16202b" />
+<polygon points="1021.2,260 1028.2,256.85 1028.2,263.15" fill="#16202b" />
+<polygon points="521.2,725 528.2,721.85 528.2,728.15" fill="#16202b" />
+<polygon points="1278.8,725 1271.8,728.15 1271.8,721.85" fill="#16202b" />
+<polygon points="958.8,765 951.8,768.15 951.8,761.85" fill="#16202b" />
+<polygon points="841.2,765 848.2,761.85 848.2,768.15" fill="#16202b" />
+<polygon points="1078.8,765 1071.8,768.15 1071.8,761.85" fill="#16202b" />
+<polygon points="1278.8,765 1271.8,768.15 1271.8,761.85" fill="#16202b" />
+<polygon points="721.2,765 728.2,761.85 728.2,768.15" fill="#16202b" />
+<polygon points="521.2,765 528.2,761.85 528.2,768.15" fill="#16202b" />
+<polygon points="151.2,725 158.2,721.85 158.2,728.15" fill="#16202b" />
+<polygon points="1648.8,725 1641.8,728.15 1641.8,721.85" fill="#16202b" />
+<polygon points="841.2,795 848.2,791.85 848.2,798.15" fill="#16202b" />
+<polygon points="721.2,795 728.2,791.85 728.2,798.15" fill="#16202b" />
+<polygon points="958.8,795 951.8,798.15 951.8,791.85" fill="#16202b" />
+<polygon points="1078.8,795 1071.8,798.15 1071.8,791.85" fill="#16202b" />
+<circle cx="210" cy="510" r="3.2" fill="#16202b" />
+<circle cx="542" cy="510" r="3.2" fill="#16202b" />
+<circle cx="735" cy="880" r="3.2" fill="#16202b" />
+<circle cx="1065" cy="880" r="3.2" fill="#16202b" />
+<circle cx="1258" cy="510" r="3.2" fill="#16202b" />
+<circle cx="1590" cy="510" r="3.2" fill="#16202b" />
 </g>
 <g class="dl-cells">
-<g class="dl-cell" data-id="mem" data-type="ram_dp" transform="matrix(1,0,0,1,790,120)">
+<g class="dl-cell" data-id="mem" data-type="ram_dp" transform="matrix(1,0,0,1,790,150)">
   <rect x="0" y="0" width="220" height="160" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="798" y="154" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">WDATA</text>
-<text x="798" y="194" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">WADDR</text>
-<text x="798" y="234" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">WE</text>
-<text x="1002" y="154" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">RDATA</text>
-<text x="1002" y="194" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">RADDR</text>
-<text x="1002" y="234" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">RE</text>
-<text x="900" y="115" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">fifo_mem  8 x 256</text>
-<g class="dl-cell" data-id="p_wdata" data-type="port_in" transform="matrix(1,0,0,1,140,145)">
+<text x="798" y="184" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">WDATA</text>
+<text x="798" y="224" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">WADDR</text>
+<text x="798" y="264" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">WE</text>
+<text x="1002" y="184" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">RDATA</text>
+<text x="1002" y="224" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">RADDR</text>
+<text x="1002" y="264" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">RE</text>
+<text x="900" y="145" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">fifo_mem  8 x 256</text>
+<g class="dl-cell" data-id="p_wdata" data-type="port_in" transform="matrix(1,0,0,1,120,175)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="150" y="140" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wdata[7:0]</text>
-<g class="dl-cell" data-id="p_winc" data-type="port_in" transform="matrix(1,0,0,1,140,399)">
+<text x="130" y="170" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wdata[7:0]</text>
+<g class="dl-cell" data-id="p_winc" data-type="port_in" transform="matrix(1,0,0,1,120,415)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="150" y="394" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">winc</text>
-<g class="dl-cell" data-id="p_wrstn" data-type="port_in" transform="matrix(1,0,0,1,140,435)">
+<text x="130" y="410" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">winc</text>
+<g class="dl-cell" data-id="p_wrstn" data-type="port_in" transform="matrix(1,0,0,1,120,460)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="150" y="430" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wrst_n</text>
-<g class="dl-cell" data-id="p_wclk" data-type="port_in" transform="matrix(1,0,0,1,140,685)">
+<text x="130" y="455" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wrst_n</text>
+<g class="dl-cell" data-id="p_wclk" data-type="port_in" transform="matrix(1,0,0,1,120,505)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="150" y="680" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wclk</text>
-<g class="dl-cell" data-id="p_wfull" data-type="port_out" transform="matrix(1,0,0,1,140,820)">
+<text x="130" y="500" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wclk</text>
+<g class="dl-cell" data-id="p_wfull" data-type="port_out" transform="matrix(-1,0,0,1,140,720)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="150" y="815" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wfull</text>
-<g class="dl-cell" data-id="wptr" data-type="block6" transform="matrix(1,0,0,1,330,380)">
-  <rect x="0" y="0" width="160" height="120" fill="#e8f2f6" stroke="#16202b" stroke-width="1.6" />
+<text x="130" y="715" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wfull</text>
+<g class="dl-cell" data-id="wptr" data-type="block6" transform="matrix(1.25,0,0,1.25,330,390)">
+  <rect x="0" y="0" width="160" height="120" fill="#e8f2f6" stroke="#16202b" stroke-width="1.28" />
 </g>
-<text x="410" y="375" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wptr_gray</text>
-<g class="dl-cell" data-id="wfull" data-type="block" transform="matrix(-1,0,0,1,490,800)">
-  <rect x="0" y="0" width="140" height="90" fill="#e8f2f6" stroke="#16202b" stroke-width="1.6" />
+<text x="430" y="385" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wptr_gray</text>
+<g class="dl-cell" data-id="wfull" data-type="block" transform="matrix(-1.2857,0,0,1,510,700)">
+  <rect x="0" y="0" width="140" height="90" fill="#e8f2f6" stroke="#16202b" stroke-width="1.4" />
 </g>
-<text x="420" y="795" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">full_cmp</text>
-<g class="dl-cell" data-id="sr1" data-type="reg" transform="matrix(1,0,0,1,430,600)">
-  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.4" />
-  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.4" />
+<text x="420" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">full_cmp</text>
+<g class="dl-cell" data-id="sr1" data-type="reg" transform="matrix(-1,0,0,1,830,750)">
+  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
+  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#e8f2f6" stroke="#16202b" stroke-width="1.6" />
   <path d="M10 39 L18 45 L10 51" fill="none" stroke="#16202b" stroke-width="1.2" />
-  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.4" />
+  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="444" y="619" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
-<text x="451" y="649" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
-<text x="486" y="619" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
-<text x="465" y="595" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">r2w_1</text>
-<g class="dl-cell" data-id="sr2" data-type="reg" transform="matrix(1,0,0,1,540,600)">
-  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.4" />
-  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.4" />
+<text x="816" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
+<text x="809" y="799" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
+<text x="774" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
+<text x="795" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">r2w_1</text>
+<g class="dl-cell" data-id="sr2" data-type="reg" transform="matrix(-1,0,0,1,710,750)">
+  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
+  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#e8f2f6" stroke="#16202b" stroke-width="1.6" />
   <path d="M10 39 L18 45 L10 51" fill="none" stroke="#16202b" stroke-width="1.2" />
-  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.4" />
+  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="554" y="619" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
-<text x="561" y="649" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
-<text x="596" y="619" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
-<text x="575" y="595" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">r2w_2</text>
-<g class="dl-cell" data-id="p_rdata" data-type="port_out" transform="matrix(1,0,0,1,1640,145)">
+<text x="696" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
+<text x="689" y="799" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
+<text x="654" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
+<text x="675" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">r2w_2</text>
+<g class="dl-cell" data-id="p_rdata" data-type="port_out" transform="matrix(1,0,0,1,1660,175)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1650" y="140" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rdata[7:0]</text>
-<g class="dl-cell" data-id="p_rinc" data-type="port_in" transform="matrix(-1,0,0,1,1660,399)">
+<text x="1670" y="170" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rdata[7:0]</text>
+<g class="dl-cell" data-id="p_rinc" data-type="port_in" transform="matrix(-1,0,0,1,1680,415)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1650" y="394" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rinc</text>
-<g class="dl-cell" data-id="p_rrstn" data-type="port_in" transform="matrix(-1,0,0,1,1660,435)">
+<text x="1670" y="410" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rinc</text>
+<g class="dl-cell" data-id="p_rrstn" data-type="port_in" transform="matrix(-1,0,0,1,1680,460)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1650" y="430" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rrst_n</text>
-<g class="dl-cell" data-id="p_rclk" data-type="port_in" transform="matrix(-1,0,0,1,1660,685)">
+<text x="1670" y="455" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rrst_n</text>
+<g class="dl-cell" data-id="p_rclk" data-type="port_in" transform="matrix(-1,0,0,1,1680,505)">
   <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1650" y="680" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rclk</text>
-<g class="dl-cell" data-id="p_rempty" data-type="port_out" transform="matrix(1,0,0,1,1640,820)">
+<text x="1670" y="500" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rclk</text>
+<g class="dl-cell" data-id="p_rempty" data-type="port_out" transform="matrix(1,0,0,1,1660,720)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1650" y="815" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rempty</text>
-<g class="dl-cell" data-id="rptr" data-type="block6" transform="matrix(-1,0,0,1,1470,380)">
-  <rect x="0" y="0" width="160" height="120" fill="#f7efe6" stroke="#16202b" stroke-width="1.6" />
+<text x="1670" y="715" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rempty</text>
+<g class="dl-cell" data-id="rptr" data-type="block6" transform="matrix(-1.25,0,0,1.25,1470,390)">
+  <rect x="0" y="0" width="160" height="120" fill="#f7efe6" stroke="#16202b" stroke-width="1.28" />
 </g>
-<text x="1390" y="375" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rptr_gray</text>
-<g class="dl-cell" data-id="rempty" data-type="block" transform="matrix(1,0,0,1,1310,800)">
-  <rect x="0" y="0" width="140" height="90" fill="#f7efe6" stroke="#16202b" stroke-width="1.6" />
+<text x="1370" y="385" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rptr_gray</text>
+<g class="dl-cell" data-id="rempty" data-type="block" transform="matrix(1.2857,0,0,1,1290,700)">
+  <rect x="0" y="0" width="140" height="90" fill="#f7efe6" stroke="#16202b" stroke-width="1.4" />
 </g>
-<text x="1380" y="795" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">empty_cmp</text>
-<g class="dl-cell" data-id="sw1" data-type="reg" transform="matrix(1,0,0,1,1190,600)">
-  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.4" />
-  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.4" />
+<text x="1380" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">empty_cmp</text>
+<g class="dl-cell" data-id="sw1" data-type="reg" transform="matrix(1,0,0,1,970,750)">
+  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
+  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#f7efe6" stroke="#16202b" stroke-width="1.6" />
   <path d="M10 39 L18 45 L10 51" fill="none" stroke="#16202b" stroke-width="1.2" />
-  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.4" />
+  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1204" y="619" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
-<text x="1211" y="649" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
-<text x="1246" y="619" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
-<text x="1225" y="595" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">w2r_1</text>
-<g class="dl-cell" data-id="sw2" data-type="reg" transform="matrix(1,0,0,1,1300,600)">
-  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.4" />
-  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.4" />
+<text x="984" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
+<text x="991" y="799" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
+<text x="1026" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
+<text x="1005" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">w2r_1</text>
+<g class="dl-cell" data-id="sw2" data-type="reg" transform="matrix(1,0,0,1,1090,750)">
+  <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
+  <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#f7efe6" stroke="#16202b" stroke-width="1.6" />
   <path d="M10 39 L18 45 L10 51" fill="none" stroke="#16202b" stroke-width="1.2" />
-  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.4" />
+  <line x1="60" y1="15" x2="70" y2="15" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1314" y="619" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
-<text x="1321" y="649" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
-<text x="1356" y="619" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
-<text x="1335" y="595" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">w2r_2</text>
+<text x="1104" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">D</text>
+<text x="1111" y="799" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
+<text x="1146" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
+<text x="1125" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">w2r_2</text>
 </g>
-<text x="14" y="966" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">cdc_fifo</text>
+<text x="14" y="986" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">cdc_fifo</text>
 </svg>

@@ -410,9 +410,30 @@ horizontal wire hops, so a crossing pair never both bulge at the same spot.
 
 ### Routing
 
-Wires are orthogonal. The router picks a corridor that clears other cells,
-checking all three legs of the path rather than just the corridor itself. Drag
-a wire to add a waypoint the route must pass through.
+Wires are orthogonal, and the router follows three rules.
+
+**Leave and enter on the pin's own side.** Every wire takes a short stub
+straight out of the pin before it is allowed to turn, so a clock pin on the
+west face of a flip-flop is always approached from the west. Pin stubs are
+drawn at the same weight as wires, so the joint reads as one continuous line
+rather than two lines meeting.
+
+**Clear every cell.** No leg of a route is drawn without checking it misses
+every cell the net is not connected to -- including a run that happens to be
+dead straight, which is where a wire is most likely to be quietly laid across
+a block. When the straight line is blocked the router sidesteps around it.
+
+**Stay off other wires.** Nets are routed in document order and each one
+remembers where it ran, so a later wire prefers a corridor that neither
+shadows nor crosses an earlier one. Wires that share a pin are exempt: a
+fanned-out clock is *meant* to lie on top of itself and show up as one rail
+with junction dots. Both are preferences -- in a crowded drawing the router
+falls back to any corridor that clears the cells.
+
+Order therefore matters: the first net stated gets the straightest run. Drag a
+wire to add a waypoint the route must pass through, which is the way to draw
+something the router cannot guess, such as a clock rail that has to run below
+the whole sheet.
 
 ---
 
@@ -466,9 +487,10 @@ screenshotting the canvas. The GUI and the CLI cannot disagree about output.
 
 `web/js/geometry.js` and `web/js/routing.js` are ports of their Python
 counterparts, because the canvas must reroute a wire while you drag a gate and
-cannot wait on a server round trip. Three things keep them honest: both sides
+cannot wait on a server round trip. Four things keep them honest: both sides
 read the same `symbols.json`, the theme is served from `theme.py` rather than
-restated in JS, and every export goes through Python.
+restated in JS, every export goes through Python, and `tests/test_js_parity.py`
+routes every example through both and fails if a single point differs.
 
 ### Undo
 
@@ -528,7 +550,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-The suite is in three parts:
+The suite is in four parts:
 
 | File | Covers |
 |---|---|
@@ -536,6 +558,7 @@ The suite is in three parts:
 | `tests/test_draw.py` | routing and SVG rendering |
 | `tests/test_server.py` | HTTP endpoints, path-traversal refusal |
 | `tests/test_regression.py` | golden files and whole-library invariants |
+| `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 
 ### The regression suite
 
@@ -568,9 +591,23 @@ hand-picked case:
 
 Adding a drawing to `examples/` automatically adds it to all of the above.
 
-The Python side is covered by unit tests. The JavaScript has no automated
-tests in the repo, because the project has no JavaScript toolchain and adding
-one would cost the zero-dependency property that makes this installable on a
+### The parity suite
+
+`test_js_parity.py` guards the one place where the same algorithm is written
+twice: `routing.js` against `routing.py`. It routes every example through both
+and compares every point, junction dot and crossing bridge.
+
+It shells out to `node`, which is **not** a dependency of drawlogic, so it
+skips itself when node is not installed and the rest of the suite still runs.
+Where node is available it is cheap and worth running:
+
+```bash
+python3 -m unittest tests.test_js_parity
+```
+
+The rest of the JavaScript -- tools, selection, panels, the canvas itself --
+has no automated tests, because covering it needs a browser toolchain and that
+would cost the zero-dependency property that makes this installable on a
 locked-down machine. It is exercised by hand through a headless browser
 instead. If that trade stops being worth it, a Playwright suite kept outside
 the install path would be the way to fix it.

@@ -11,6 +11,9 @@ const EPSILON = 1e-6;
 const CLEARANCE = 8;
 const CORRIDOR_STEP = 10;
 const CORRIDOR_TRIES = 16;
+// How far apart two wires that have nothing to do with each other must sit
+// before they read as two wires rather than one.
+const WIRE_GAP = 16;
 
 function cellOf(doc, id) {
   return doc.cells.find((cell) => cell.id === id) || null;
@@ -96,18 +99,114 @@ function horizontalClear(y, x0, x1, boxes) {
     by0 <= y && y <= by1 && !(hi < bx0 || lo > bx1));
 }
 
+// What a route needs to know about the rest of the drawing: the cell
+// footprints to dodge, and the runs other wires have already taken, so a later
+// wire picks a corridor of its own instead of landing on an earlier one.
+// Nets that share an endpoint are exempt -- a fan-out from one pin is meant to
+// lie on top of itself and show as a rail with junction dots.
+export class Sheet {
+  constructor(boxes = []) {
+    this.boxes = boxes;
+    this.runs = [];
+    this.keys = new Set();
+  }
+
+  reserve(keys, points) {
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (Math.abs(a[1] - b[1]) < EPSILON) {
+        this.runs.push([keys, true, a[1], Math.min(a[0], b[0]), Math.max(a[0], b[0])]);
+      } else if (Math.abs(a[0] - b[0]) < EPSILON) {
+        this.runs.push([keys, false, a[0], Math.min(a[1], b[1]), Math.max(a[1], b[1])]);
+      }
+    }
+  }
+
+  forNet(boxes, keys) {
+    const view = new Sheet(boxes);
+    view.runs = this.runs;
+    view.keys = keys;
+    return view;
+  }
+
+  // Shadowing another wire is the worse fault -- two wires drawn nearly on
+  // top of each other cannot be told apart at all -- but crossings are worth
+  // avoiding too, since the corridor one step the other way usually has none.
+  // Both are preferences: pickCorridor falls back when every candidate is taken.
+  free(horizontal, fixed, v0, v1) {
+    const lo = Math.min(v0, v1);
+    const hi = Math.max(v0, v1);
+    return !this.runs.some(([keys, runH, runFixed, runLo, runHi]) => {
+      for (const key of keys) if (this.keys.has(key)) return false;
+      if (runH === horizontal) {
+        if (Math.abs(runFixed - fixed) >= WIRE_GAP) return false;
+        return !(hi - EPSILON <= runLo || lo + EPSILON >= runHi);
+      }
+      return runLo + EPSILON < fixed && fixed < runHi - EPSILON
+        && lo < runFixed && runFixed < hi;
+    });
+  }
+}
+
+function endpointKeys(net) {
+  const keys = new Set();
+  for (const endpoint of [net.from, net.to]) {
+    if (endpoint && endpoint.cell) keys.add(`${endpoint.cell}.${endpoint.pin}`);
+  }
+  return keys;
+}
+
+// Corridor tests to try in turn: the fussy one first, then the bare one.
+function corridorTests(pathIsClear, isFree) {
+  if (!isFree) return [pathIsClear];
+  return [(v) => pathIsClear(v) && isFree(v), pathIsClear];
+}
+
 // Checks all three legs, not just the corridor: a corridor that dodges a gate
 // is no use if the leg leading into it still ploughs through one.
-function pickCorridor(preferred, spanLo, spanHi, pathIsClear) {
-  if (pathIsClear(preferred)) return preferred;
-  for (let step = 1; step <= CORRIDOR_TRIES; step += 1) {
-    for (const candidate of [preferred + step * CORRIDOR_STEP,
-                             preferred - step * CORRIDOR_STEP]) {
-      if (candidate <= spanLo || candidate >= spanHi) continue;
-      if (pathIsClear(candidate)) return candidate;
+function pickCorridor(preferred, spanLo, spanHi, pathIsClear, isFree) {
+  for (const test of corridorTests(pathIsClear, isFree)) {
+    if (test(preferred)) return preferred;
+    for (let step = 1; step <= CORRIDOR_TRIES; step += 1) {
+      for (const candidate of [preferred + step * CORRIDOR_STEP,
+                               preferred - step * CORRIDOR_STEP]) {
+        if (candidate <= spanLo || candidate >= spanHi) continue;
+        if (test(candidate)) return candidate;
+      }
     }
   }
   return preferred;
+}
+
+// Both pins face the same way, so the wire has to come round to the far side
+// of both before it can turn in: only one search direction makes sense.
+function pickOutward(preferred, direction, pathIsClear, isFree) {
+  for (const test of corridorTests(pathIsClear, isFree)) {
+    for (let step = 0; step <= CORRIDOR_TRIES; step += 1) {
+      const candidate = preferred + step * CORRIDOR_STEP * direction;
+      if (test(candidate)) return candidate;
+    }
+  }
+  return preferred;
+}
+
+function legClear(p, q, boxes) {
+  if (Math.abs(p[0] - q[0]) < EPSILON) return verticalClear(p[0], p[1], q[1], boxes);
+  if (Math.abs(p[1] - q[1]) < EPSILON) return horizontalClear(p[1], p[0], q[0], boxes);
+  return true;
+}
+
+// A free endpoint has no side of its own, so it faces the other end of the net.
+function freeDirection(point, other) {
+  const dx = other[0] - point[0];
+  const dy = other[1] - point[1];
+  if (Math.abs(dx) >= Math.abs(dy)) return [dx >= 0 ? 1 : -1, 0];
+  return [0, dy >= 0 ? 1 : -1];
+}
+
+function stubEnd(point, direction) {
+  return [point[0] + direction[0] * STUB, point[1] + direction[1] * STUB];
 }
 
 function clean(points) {
@@ -136,53 +235,122 @@ function clean(points) {
   return merged;
 }
 
-function directRoute(start, end, startDir, endDir, boxes) {
-  if (Math.abs(start[0] - end[0]) < EPSILON
-      || Math.abs(start[1] - end[1]) < EPSILON) {
-    return [start, end];
+// Detour around whatever blocks the straight line between two points.
+function sidestep(a, b, sheet, vertical) {
+  const { boxes } = sheet;
+  if (vertical) {
+    const x = pickCorridor(a[0], -Infinity, Infinity,
+      (m) => verticalClear(m, a[1], b[1], boxes)
+        && horizontalClear(a[1], a[0], m, boxes)
+        && horizontalClear(b[1], m, b[0], boxes),
+      (m) => sheet.free(false, m, a[1], b[1]));
+    return [a, [x, a[1]], [x, b[1]], b];
   }
+  const y = pickCorridor(a[1], -Infinity, Infinity,
+    (m) => horizontalClear(m, a[0], b[0], boxes)
+      && verticalClear(a[0], a[1], m, boxes)
+      && verticalClear(b[0], m, b[1], boxes),
+    (m) => sheet.free(true, m, a[0], b[0]));
+  return [a, [a[0], y], [b[0], y], b];
+}
 
-  const startHorizontal = !startDir || Math.abs(startDir[0]) > Math.abs(startDir[1]);
-  const endHorizontal = !endDir || Math.abs(endDir[0]) > Math.abs(endDir[1]);
+// Both ends face sideways: cross over on a shared column.
+function routeHH(a, b, aDir, bDir, sheet) {
+  const { boxes } = sheet;
+  const clearAt = (m) => verticalClear(m, a[1], b[1], boxes)
+    && horizontalClear(a[1], a[0], m, boxes)
+    && horizontalClear(b[1], m, b[0], boxes);
+  const freeAt = (m) => sheet.free(false, m, a[1], b[1]);
 
-  if (startHorizontal && endHorizontal) {
-    const forward = (end[0] - start[0]) * (startDir ? startDir[0] : 1);
-    if (forward > 2 * STUB) {
-      const mid = pickCorridor(
-        (start[0] + end[0]) / 2,
-        Math.min(start[0], end[0]) + STUB, Math.max(start[0], end[0]) - STUB,
-        (m) => verticalClear(m, start[1], end[1], boxes)
-          && horizontalClear(start[1], start[0], m, boxes)
-          && horizontalClear(end[1], m, end[0], boxes));
-      return [start, [mid, start[1]], [mid, end[1]], end];
-    }
-    // Target sits behind the driving pin: break out, cross on a mid-line and
-    // come back in rather than drawing through the cell.
-    const outX = start[0] + (startDir ? startDir[0] : 1) * STUB;
-    const inX = end[0] - (endDir ? endDir[0] : -1) * STUB;
-    const midY = (start[1] + end[1]) / 2;
-    return [start, [outX, start[1]], [outX, midY], [inX, midY], [inX, end[1]], end];
+  const facing = (b[0] - a[0]) * aDir[0] > EPSILON && (a[0] - b[0]) * bDir[0] > EPSILON;
+  if (facing) {
+    const lo = Math.min(a[0], b[0]);
+    const hi = Math.max(a[0], b[0]);
+    const x = pickCorridor((a[0] + b[0]) / 2, lo, hi, clearAt, freeAt);
+    return [a, [x, a[1]], [x, b[1]], b];
   }
-
-  if (!startHorizontal && !endHorizontal) {
-    const forward = (end[1] - start[1]) * (startDir ? startDir[1] : 1);
-    if (forward > 2 * STUB) {
-      const mid = pickCorridor(
-        (start[1] + end[1]) / 2,
-        Math.min(start[1], end[1]) + STUB, Math.max(start[1], end[1]) - STUB,
-        (m) => horizontalClear(m, start[0], end[0], boxes)
-          && verticalClear(start[0], start[1], m, boxes)
-          && verticalClear(end[0], m, end[1], boxes));
-      return [start, [start[0], mid], [end[0], mid], end];
-    }
-    const outY = start[1] + (startDir ? startDir[1] : 1) * STUB;
-    const inY = end[1] - (endDir ? endDir[1] : -1) * STUB;
-    const midX = (start[0] + end[0]) / 2;
-    return [start, [start[0], outY], [midX, outY], [midX, inY], [end[0], inY], end];
+  if (aDir[0] * bDir[0] > 0) {
+    const direction = aDir[0];
+    const base = direction > 0 ? Math.max(a[0], b[0]) : Math.min(a[0], b[0]);
+    const x = pickOutward(base, direction, clearAt, freeAt);
+    return [a, [x, a[1]], [x, b[1]], b];
   }
+  // Back to back, so no column between them can be used: go out of each pin
+  // and across on a shared row instead.
+  const y = pickCorridor((a[1] + b[1]) / 2, -Infinity, Infinity,
+    (m) => horizontalClear(m, a[0], b[0], boxes)
+      && verticalClear(a[0], a[1], m, boxes)
+      && verticalClear(b[0], m, b[1], boxes),
+    (m) => sheet.free(true, m, a[0], b[0]));
+  return [a, [a[0], y], [b[0], y], b];
+}
 
-  if (startHorizontal) return [start, [end[0], start[1]], end];
-  return [start, [start[0], end[1]], end];
+// Both ends face up or down: cross over on a shared row.
+function routeVV(a, b, aDir, bDir, sheet) {
+  const { boxes } = sheet;
+  const clearAt = (m) => horizontalClear(m, a[0], b[0], boxes)
+    && verticalClear(a[0], a[1], m, boxes)
+    && verticalClear(b[0], m, b[1], boxes);
+  const freeAt = (m) => sheet.free(true, m, a[0], b[0]);
+
+  const facing = (b[1] - a[1]) * aDir[1] > EPSILON && (a[1] - b[1]) * bDir[1] > EPSILON;
+  if (facing) {
+    const lo = Math.min(a[1], b[1]);
+    const hi = Math.max(a[1], b[1]);
+    const y = pickCorridor((a[1] + b[1]) / 2, lo, hi, clearAt, freeAt);
+    return [a, [a[0], y], [b[0], y], b];
+  }
+  if (aDir[1] * bDir[1] > 0) {
+    const direction = aDir[1];
+    const base = direction > 0 ? Math.max(a[1], b[1]) : Math.min(a[1], b[1]);
+    const y = pickOutward(base, direction, clearAt, freeAt);
+    return [a, [a[0], y], [b[0], y], b];
+  }
+  const x = pickCorridor((a[0] + b[0]) / 2, -Infinity, Infinity,
+    (m) => verticalClear(m, a[1], b[1], boxes)
+      && horizontalClear(a[1], a[0], m, boxes)
+      && horizontalClear(b[1], m, b[0], boxes),
+    (m) => sheet.free(false, m, a[1], b[1]));
+  return [a, [x, a[1]], [x, b[1]], b];
+}
+
+// One end faces sideways and the other up or down: a single corner.
+function routeCorner(a, b, boxes, aHorizontal) {
+  const alongA = aHorizontal ? [b[0], a[1]] : [a[0], b[1]];
+  const alongB = aHorizontal ? [a[0], b[1]] : [b[0], a[1]];
+  for (const corner of [alongA, alongB]) {
+    if (legClear(a, corner, boxes) && legClear(corner, b, boxes)) return [a, corner, b];
+  }
+  return [a, alongA, b];
+}
+
+// Orthogonal path between two stub ends, dodging every cell on the way.
+function middleRoute(a, b, aDir, bDir, sheet) {
+  if (Math.abs(a[0] - b[0]) < EPSILON) {
+    if (verticalClear(a[0], a[1], b[1], sheet.boxes)) return [a, b];
+    return sidestep(a, b, sheet, true);
+  }
+  if (Math.abs(a[1] - b[1]) < EPSILON) {
+    if (horizontalClear(a[1], a[0], b[0], sheet.boxes)) return [a, b];
+    return sidestep(a, b, sheet, false);
+  }
+  const aHorizontal = Math.abs(aDir[0]) > Math.abs(aDir[1]);
+  const bHorizontal = Math.abs(bDir[0]) > Math.abs(bDir[1]);
+  if (aHorizontal && bHorizontal) return routeHH(a, b, aDir, bDir, sheet);
+  if (!aHorizontal && !bHorizontal) return routeVV(a, b, aDir, bDir, sheet);
+  return routeCorner(a, b, sheet.boxes, aHorizontal);
+}
+
+// The wire leaves each pin along the side that pin faces and only then is
+// allowed to turn. That short stub is what makes the joint at, say, a
+// flip-flop clock pin read as a continuation of the wire instead of a line
+// that arrived from the wrong side.
+function directRoute(start, end, startDir, endDir, sheet) {
+  const aDir = startDir || freeDirection(start, end);
+  const bDir = endDir || freeDirection(end, start);
+  const a = startDir ? stubEnd(start, aDir) : start;
+  const b = endDir ? stubEnd(end, bDir) : end;
+  return [start, ...middleRoute(a, b, aDir, bDir, sheet), end];
 }
 
 function elbow(a, b, horizontalFirst) {
@@ -190,7 +358,9 @@ function elbow(a, b, horizontalFirst) {
   return horizontalFirst ? [[b[0], a[1]]] : [[a[0], b[1]]];
 }
 
-export function route(doc, net) {
+// Pass the `sheet` from routeAll to let a wire see the ones routed before it;
+// on its own a wire only dodges cells.
+export function route(doc, net, sheet = null) {
   const start = endpointPosition(doc, net.from);
   const end = endpointPosition(doc, net.to);
   if (!start || !end) return [];
@@ -203,10 +373,12 @@ export function route(doc, net) {
       const endpoint = net[side];
       if (endpoint && endpoint.cell !== undefined) exclude.add(endpoint.cell);
     }
+    const view = (sheet || new Sheet()).forNet(obstacleBoxes(doc, exclude),
+                                               endpointKeys(net));
     return clean(directRoute(start, end,
                              endpointDirection(doc, net.from),
                              endpointDirection(doc, net.to),
-                             obstacleBoxes(doc, exclude)));
+                             view));
   }
 
   const points = [start, ...waypoints, end];
@@ -222,8 +394,16 @@ export function route(doc, net) {
   return clean(chain);
 }
 
+// Wires are routed one after another and each remembers where it ran, so a
+// later wire picks a corridor of its own rather than landing on an earlier
+// one. Order therefore matters: the first net stated gets the straightest run.
 export function routeAll(doc) {
-  return doc.nets.map((net) => ({ net, points: route(doc, net) }));
+  const sheet = new Sheet();
+  return (doc.nets || []).map((net) => {
+    const points = route(doc, net, sheet);
+    sheet.reserve(endpointKeys(net), points);
+    return { net, points };
+  });
 }
 
 function touches(point, [a, b]) {
@@ -275,7 +455,12 @@ export function hopPoints(routes) {
       if (!(vLow + EPSILON < y && y < vHigh - EPSILON)) continue;
       if (vertices.has(`${x.toFixed(3)},${y.toFixed(3)}`)) continue;
       if (!found.has(id)) found.set(id, []);
-      found.get(id).push([x, y]);
+      // Two wires of the same rail can cross this one at the same spot; one
+      // bridge is enough, and drawing it twice only thickens the arc.
+      const spots = found.get(id);
+      if (spots.some((s) => Math.abs(s[0] - x) < EPSILON
+                         && Math.abs(s[1] - y) < EPSILON)) continue;
+      spots.push([x, y]);
     }
   }
   return found;

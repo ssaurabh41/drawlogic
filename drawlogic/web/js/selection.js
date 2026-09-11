@@ -1,12 +1,18 @@
 // What is selected, and the handles drawn on top of it.
+//
+// Usage:
+//
+//   const selection = new Selection(store);
+//   selection.set(["u1", "u2"]);
+//   drawHandles(svg, selection, viewport.zoom, { marquee, pins, wirePreview });
+//
+// Cells and shapes are both selectable, so this works in item ids rather than
+// cell ids. Selecting one member of a group selects the whole group.
 
-import * as actions from "./actions.js";
-import { boundsOf } from "./geometry.js";
+import * as model from "./model.js";
 import { overlayLayer } from "./render.js";
-import * as symbols from "./symbols.js";
 
 const NS = "http://www.w3.org/2000/svg";
-const HANDLE_KEYS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 function el(name, attrs = {}) {
   const node = document.createElementNS(NS, name);
@@ -43,19 +49,18 @@ export class Selection {
 
   set(ids) {
     this.ids = this.store.doc
-      ? actions.expandGroups(this.store.doc, new Set(ids)) : new Set(ids);
+      ? model.expandGroups(this.store.doc, new Set(ids)) : new Set(ids);
     this.emit();
   }
 
   add(ids) {
     const merged = new Set([...this.ids, ...ids]);
-    this.ids = this.store.doc
-      ? actions.expandGroups(this.store.doc, merged) : merged;
+    this.ids = this.store.doc ? model.expandGroups(this.store.doc, merged) : merged;
     this.emit();
   }
 
   toggle(id) {
-    const group = actions.groupOf(this.store.doc, id);
+    const group = this.store.doc ? model.groupOf(this.store.doc, id) : null;
     const affected = group ? group.members : [id];
     if (this.ids.has(id)) affected.forEach((m) => this.ids.delete(m));
     else affected.forEach((m) => this.ids.add(m));
@@ -63,28 +68,30 @@ export class Selection {
   }
 
   selectAll() {
-    this.ids = new Set(this.store.doc.cells.map((c) => c.id));
+    if (!this.store.doc) return;
+    this.ids = new Set(model.items(this.store.doc).map((i) => i.id));
     this.emit();
   }
 
-  cells() {
+  items() {
     if (!this.store.doc) return [];
-    return this.store.doc.cells.filter((c) => this.ids.has(c.id));
+    return [...this.ids]
+      .map((id) => model.itemById(this.store.doc, id))
+      .filter(Boolean);
   }
 
-  // Combined bounds of everything selected, in document units.
   bounds() {
     if (!this.store.doc) return null;
-    const scale = Number(this.store.doc.canvas.symbolScale) || 1;
-    const points = [];
-    for (const cell of this.cells()) {
-      const symbol = symbols.get(cell.type);
-      if (!symbol) continue;
-      const box = symbols.cellBounds(symbol, cell, scale);
-      points.push([box[0], box[1]], [box[0] + box[2], box[1] + box[3]]);
-    }
-    return boundsOf(points);
+    return model.boundsOfIds(this.store.doc, this.ids);
   }
+}
+
+export function handlePoints(x, y, w, h) {
+  return {
+    nw: [x, y], n: [x + w / 2, y], ne: [x + w, y],
+    e: [x + w, y + h / 2], se: [x + w, y + h],
+    s: [x + w / 2, y + h], sw: [x, y + h], w: [x, y + h / 2],
+  };
 }
 
 // Handle size is given in screen pixels and divided by zoom, so grips stay the
@@ -96,8 +103,7 @@ export function drawHandles(svg, selection, zoom, options = {}) {
   if (options.marquee) {
     const [x, y, w, h] = options.marquee;
     layer.appendChild(el("rect", {
-      class: "dl-marquee", x, y, width: w, height: h,
-      "stroke-width": 1 / zoom,
+      class: "dl-marquee", x, y, width: w, height: h, "stroke-width": 1 / zoom,
     }));
   }
 
@@ -105,8 +111,7 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     for (const pin of options.pins) {
       layer.appendChild(el("circle", {
         class: `dl-pin${pin.active ? " active" : ""}`,
-        cx: pin.x, cy: pin.y, r: 4 / zoom,
-        "stroke-width": 1.2 / zoom,
+        cx: pin.x, cy: pin.y, r: 4 / zoom, "stroke-width": 1.2 / zoom,
         "data-cell": pin.cell, "data-pin": pin.pin,
       }));
     }
@@ -116,7 +121,7 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     layer.appendChild(el("path", {
       class: "dl-wire-preview",
       d: `M${options.wirePreview.map((p) => `${p[0]} ${p[1]}`).join(" L")}`,
-      "stroke-width": 1.6,
+      "stroke-width": 1.6 / zoom,
     }));
   }
 
@@ -145,13 +150,3 @@ export function drawHandles(svg, selection, zoom, options = {}) {
   }
   return layer;
 }
-
-export function handlePoints(x, y, w, h) {
-  return {
-    nw: [x, y], n: [x + w / 2, y], ne: [x + w, y],
-    e: [x + w, y + h / 2], se: [x + w, y + h],
-    s: [x + w / 2, y + h], sw: [x, y + h], w: [x, y + h / 2],
-  };
-}
-
-export { HANDLE_KEYS };

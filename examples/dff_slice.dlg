@@ -17,16 +17,16 @@
     }
   },
   "cells": [
-    {"id": "pa", "type": "port_in", "x": 60, "y": 104, "w": 28, "h": 12, "rotate": 0, "mirror": false, "label": "a", "style": {}},
-    {"id": "pb", "type": "port_in", "x": 60, "y": 164, "w": 28, "h": 12, "rotate": 0, "mirror": false, "label": "b", "style": {}},
-    {"id": "pclk", "type": "port_in", "x": 60, "y": 344, "w": 28, "h": 12, "rotate": 0, "mirror": false, "label": "clk", "style": {}},
-    {"id": "pd", "type": "port_in", "x": 60, "y": 434, "w": 28, "h": 12, "rotate": 0, "mirror": false, "label": "d", "style": {}},
+    {"id": "pa", "type": "port_in", "x": 60, "y": 105, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "a", "style": {}},
+    {"id": "pb", "type": "port_in", "x": 60, "y": 165, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "b", "style": {}},
+    {"id": "pclk", "type": "port_in", "x": 60, "y": 345, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "clk", "style": {}},
+    {"id": "pd", "type": "port_in", "x": 60, "y": 435, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "d", "style": {}},
     {"id": "u1", "type": "and2", "x": 220, "y": 120, "w": 60, "h": 40, "rotate": 0, "mirror": false, "label": "U1", "style": {}},
     {"id": "ff1", "type": "dff", "x": 380, "y": 110, "w": 70, "h": 60, "rotate": 0, "mirror": false, "label": "FF1", "style": {}},
     {"id": "u2", "type": "inv", "x": 560, "y": 260, "w": 50, "h": 40, "rotate": 0, "mirror": false, "label": "U2", "style": {}},
     {"id": "b1", "type": "block", "x": 300, "y": 400, "w": 140, "h": 90, "rotate": 0, "mirror": false, "label": "B1", "style": {}},
-    {"id": "pq", "type": "port_out", "x": 700, "y": 119, "w": 28, "h": 12, "rotate": 0, "mirror": false, "label": "q", "style": {}},
-    {"id": "pqb", "type": "port_out", "x": 700, "y": 274, "w": 28, "h": 12, "rotate": 0, "mirror": false, "label": "qb", "style": {}}
+    {"id": "pq", "type": "port_out", "x": 700, "y": 120, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "q", "style": {}},
+    {"id": "pqb", "type": "port_out", "x": 700, "y": 275, "w": 20, "h": 10, "rotate": 0, "mirror": false, "label": "qb", "style": {}}
   ],
   "nets": [
     {"id": "n1", "name": "a_in", "width": 1, "from": {"cell": "pa", "pin": "p"}, "to": {"cell": "u1", "pin": "a"}, "waypoints": [], "style": {}},

@@ -40,11 +40,37 @@
   </div>
 
   <div class="tgroup">
+    <button class="tool" data-tool="shape" data-shape="line" title="Line (L)">Line</button>
+    <button class="tool" data-tool="shape" data-shape="rect" title="Box (B)">Box</button>
+    <button class="tool" data-tool="shape" data-shape="polygon" title="Polygon (P) - click points, double-click to close">Polygon</button>
+    <button class="tool" data-tool="shape" data-shape="text" title="Text (T)">Text</button>
+  </div>
+
+  <div class="tgroup">
     <button class="tool" data-command="rotate-cw" title="Rotate 90 CW (Ctrl+R)">Rotate</button>
     <button class="tool" data-command="flip-h" title="Flip horizontal (Ctrl+H)">Flip</button>
     <button class="tool" data-command="group" title="Group (Ctrl+G)">Group</button>
     <button class="tool" data-command="ungroup" title="Ungroup (Ctrl+Shift+G)">Ungroup</button>
     <button class="tool" data-command="delete" title="Delete (Del)">Delete</button>
+  </div>
+
+  <div class="tgroup">
+    <label class="field">
+      <span>Arrange</span>
+      <select id="arrange-select">
+        <option value="">Choose...</option>
+        <option value="align-left">Align left</option>
+        <option value="align-hcenter">Align centre</option>
+        <option value="align-right">Align right</option>
+        <option value="align-top">Align top</option>
+        <option value="align-vcenter">Align middle</option>
+        <option value="align-bottom">Align bottom</option>
+        <option value="distribute-h">Distribute across</option>
+        <option value="distribute-v">Distribute down</option>
+        <option value="front">Bring to front</option>
+        <option value="back">Send to back</option>
+      </select>
+    </label>
   </div>
 
   <label class="field">

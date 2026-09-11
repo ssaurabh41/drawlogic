@@ -1,26 +1,26 @@
 // Boots the editor and wires the pieces together.
+//
+// Usage: loaded by index.html as a module. Talks to the server over
+// /api/theme, /api/symbols, /api/files, /api/doc and /api/export.
 
-import * as actions from "./actions.js";
-import { Properties } from "./properties.js";
+import * as geometry from "./geometry.js";
+import * as model from "./model.js";
+import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
 import * as render from "./render.js";
 import { Selection, drawHandles } from "./selection.js";
-import { Store } from "./store.js";
-import * as symbols from "./symbols.js";
-import { PlaceTool } from "./tools/place.js";
-import { SelectTool } from "./tools/select.js";
-import { WireTool } from "./tools/wire.js";
+import { makeTools } from "./tools.js";
 import { Viewport } from "./viewport.js";
 
-const store = new Store();
+const store = new model.Store();
 const selection = new Selection(store);
 const ui = {};
 
 let viewport = null;
-let properties = null;
+let inspector = null;
 let tools = {};
 let activeTool = "select";
 let clipboard = null;
-let lastOverlayOptions = {};
+let overlayOptions = {};
 
 function $(id) { return document.getElementById(id); }
 
@@ -42,23 +42,24 @@ function say(message, kind) {
 // ---- drawing ----
 
 function drawOverlay(options) {
-  lastOverlayOptions = options || {};
+  overlayOptions = options || {};
   if (!store.doc) return;
-  drawHandles(ui.canvas, selection, viewport.zoom, lastOverlayOptions);
+  drawHandles(ui.canvas, selection, viewport.zoom, overlayOptions);
 }
 
 function redraw() {
   if (!store.doc) return;
   render.render(ui.canvas, store.doc);
-  drawOverlay(lastOverlayOptions);
+  drawOverlay(overlayOptions);
   refreshStatus();
 }
 
 function refreshStatus() {
+  if (!store.doc) return;
   const doc = store.doc;
-  if (!doc) return;
   ui.counts.textContent =
     `${doc.cells.length} cells | ${doc.nets.length} nets`
+    + ((doc.shapes || []).length ? ` | ${doc.shapes.length} shapes` : "")
     + (selection.size ? ` | ${selection.size} selected` : "");
   ui.dirty.hidden = !store.dirty;
   ui.undo.disabled = !store.canUndo();
@@ -87,25 +88,29 @@ function setTool(name) {
   const tool = tools[name];
   if (tool && tool.onActivate) tool.onActivate();
   else drawOverlay({});
-  ui.canvas.style.cursor = name === "wire" ? "crosshair" : "default";
+  ui.canvas.style.cursor = tool && tool.cursorFor ? tool.cursorFor(null) : "default";
 }
 
 function bindCanvas() {
-  const canvas = ui.canvas;
-
-  canvas.addEventListener("mousedown", (event) => {
-    if (event.button !== 0) return;
+  ui.canvas.addEventListener("mousedown", (event) => {
+    if (event.button !== 0 || viewport.spaceHeld) return;
     if (event.shiftKey && activeTool === "select"
-        && !event.target.closest(".dl-cell")
-        && !event.target.closest("[data-handle]")) {
+        && !event.target.closest(".dl-cell, .dl-shape, .dl-net, [data-handle]")) {
       return; // shift-drag on empty space pans, handled by the viewport
     }
-    if (viewport.spaceHeld) return;
     const tool = tools[activeTool];
     if (tool && tool.onPointerDown) {
       tool.onPointerDown(event, viewport.toDoc(event.clientX, event.clientY));
       redraw();
-      properties.render();
+      inspector.render();
+    }
+  });
+
+  ui.canvas.addEventListener("dblclick", () => {
+    if (activeTool === "shape" && tools.shape.polygon) {
+      tools.shape.finishPolygon();
+      redraw();
+      inspector.render();
     }
   });
 
@@ -115,20 +120,19 @@ function bindCanvas() {
     ui.cursor.textContent = `x ${Math.round(point[0])} y ${Math.round(point[1])}`;
 
     const tool = tools[activeTool];
-    if (tool && tool.onPointerMove && tool.onPointerMove(event, point)) {
-      redraw();
-    }
+    if (tool && tool.onPointerMove && tool.onPointerMove(event, point)) redraw();
     if (activeTool === "select" && tool.cursorFor) {
-      canvas.style.cursor = viewport.spaceHeld ? "grab" : tool.cursorFor(event.target);
+      ui.canvas.style.cursor = viewport.spaceHeld ? "grab" : tool.cursorFor(event.target);
     }
   });
 
   window.addEventListener("mouseup", (event) => {
     const tool = tools[activeTool];
     if (tool && tool.onPointerUp) {
-      const changed = tool.onPointerUp(event, viewport.toDoc(event.clientX, event.clientY));
-      if (changed) redraw();
-      properties.render();
+      if (tool.onPointerUp(event, viewport.toDoc(event.clientX, event.clientY))) {
+        redraw();
+      }
+      inspector.render();
       refreshStatus();
     }
   });
@@ -136,69 +140,96 @@ function bindCanvas() {
 
 // ---- commands ----
 
-function withSelection(label, change) {
+function apply(label, change, note) {
   if (!selection.size) return;
   store.mutate(label, (doc) => change(doc, selection.ids));
   redraw();
-  properties.render();
+  inspector.render();
+  if (note) say(note);
 }
 
 function deleteSelection() {
   if (!selection.size) return;
   const ids = new Set(selection.ids);
-  store.mutate("delete", (doc) => actions.deleteCells(doc, ids));
+  store.mutate("delete", (doc) => model.deleteItems(doc, ids));
   selection.clear();
   redraw();
-  properties.render();
-  say(`deleted ${ids.size} cell(s)`);
+  inspector.render();
+  say(`deleted ${ids.size} item(s)`);
 }
 
 function copySelection(cut) {
   if (!selection.size) return;
-  clipboard = actions.copyCells(store.doc, selection.ids);
-  say(`${cut ? "cut" : "copied"} ${clipboard.cells.length} cell(s)`);
+  clipboard = model.copyItems(store.doc, selection.ids);
+  const count = clipboard.cells.length + clipboard.shapes.length;
+  say(`${cut ? "cut" : "copied"} ${count} item(s)`);
   if (cut) deleteSelection();
 }
 
-function paste() {
-  if (!clipboard || !clipboard.cells.length) return;
-  const step = actions.gridStep(store.doc);
+function paste(offset) {
+  if (!clipboard) return;
+  const step = model.gridStep(store.doc) * (offset === undefined ? 2 : offset);
   const added = store.mutate("paste",
-                             (doc) => actions.pasteCells(doc, clipboard, step * 2, step * 2));
-  if (added) {
+                             (doc) => model.pasteItems(doc, clipboard, step, step));
+  if (added && added.length) {
     selection.set(added);
     redraw();
-    properties.render();
-    say(`pasted ${added.length} cell(s)`);
+    inspector.render();
+    say(`pasted ${added.length} item(s)`);
   }
 }
 
 function nudge(dx, dy, big) {
-  if (!selection.size) return;
-  const step = actions.gridStep(store.doc) * (big ? 10 : 1);
-  withSelection("nudge",
-                (doc, ids) => actions.moveCells(doc, ids, dx * step, dy * step));
+  const step = model.gridStep(store.doc) * (big ? 10 : 1);
+  apply("nudge", (doc, ids) => model.moveItems(doc, ids, dx * step, dy * step));
 }
 
-function undo() {
-  const label = store.undo();
+function stepHistory(back) {
+  const label = back ? store.undo() : store.redo();
   if (label === false) return;
-  // Cells may have vanished, so drop anything selected that no longer exists.
-  const alive = new Set(store.doc.cells.map((c) => c.id));
+  // Items may have vanished, so drop anything selected that no longer exists.
+  const alive = new Set(model.items(store.doc).map((i) => i.id));
   selection.set([...selection.ids].filter((id) => alive.has(id)));
   redraw();
-  properties.render();
-  say(`undid ${label}`);
+  inspector.render();
+  say(`${back ? "undid" : "redid"} ${label}`);
 }
 
-function redo() {
-  const label = store.redo();
-  if (label === false) return;
-  const alive = new Set(store.doc.cells.map((c) => c.id));
-  selection.set([...selection.ids].filter((id) => alive.has(id)));
-  redraw();
-  properties.render();
-  say(`redid ${label}`);
+function runCommand(command) {
+  const commands = {
+    "rotate-cw": () => apply("rotate", (d, ids) => model.rotateCells(d, ids, 90)),
+    "rotate-ccw": () => apply("rotate", (d, ids) => model.rotateCells(d, ids, -90)),
+    "flip-h": () => apply("flip", (d, ids) => model.flipCells(d, ids, false)),
+    "flip-v": () => apply("flip", (d, ids) => model.flipCells(d, ids, true)),
+    group: () => {
+      if (selection.size > 1) {
+        apply("group", (d, ids) => model.groupItems(d, ids),
+              `grouped ${selection.size} items`);
+      }
+    },
+    ungroup: () => apply("ungroup", (d, ids) => model.ungroupItems(d, ids), "ungrouped"),
+    front: () => apply("z-order", (d, ids) => model.bringToFront(d, ids),
+                       "brought to front"),
+    back: () => apply("z-order", (d, ids) => model.sendToBack(d, ids), "sent to back"),
+    delete: deleteSelection,
+  };
+
+  if (command.startsWith("align-")) {
+    const edge = command.slice(6);
+    apply("align", (d, ids) => model.align(d, ids, edge), `aligned ${edge}`);
+    return;
+  }
+  if (command.startsWith("distribute-")) {
+    const axis = command.slice(11);
+    if (selection.size < 3) {
+      say("distributing needs three or more items", "bad");
+      return;
+    }
+    apply("distribute", (d, ids) => model.distribute(d, ids, axis), "distributed");
+    return;
+  }
+  const handler = commands[command];
+  if (handler) handler();
 }
 
 // ---- files ----
@@ -217,7 +248,7 @@ async function openDrawing(path) {
     syncControls();
     redraw();
     viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
-    properties.render();
+    inspector.render();
     say(`opened ${payload.path}`, "good");
   } catch (error) {
     say(error.message, "bad");
@@ -246,6 +277,8 @@ async function exportSvg() {
                                store.path.replace(/\.dlg$/, ".svg"));
   if (!target) return;
   try {
+    // Rendered by Python, the same code the CLI uses, so this file is
+    // byte-for-byte what `drawlogic export` would produce.
     const result = await api("/api/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -266,41 +299,6 @@ function syncControls() {
   const symbolScale = Math.round((Number(canvas.symbolScale) || 1) * 100);
   ui.symbolSlider.value = symbolScale;
   ui.symbolValue.value = `${symbolScale}%`;
-}
-
-// ---- palette ----
-
-function buildPalette() {
-  const groups = symbols.byCategory();
-  ui.paletteBody.textContent = "";
-
-  for (const category of Object.keys(groups).sort()) {
-    const heading = document.createElement("div");
-    heading.className = "palette-category";
-    heading.textContent = category;
-    ui.paletteBody.appendChild(heading);
-
-    const grid = document.createElement("div");
-    grid.className = "palette-grid";
-    for (const id of groups[category]) {
-      const symbol = symbols.get(id);
-      const item = document.createElement("button");
-      item.className = "palette-item";
-      item.type = "button";
-      item.title = `${symbol.name} (${id}) - click, then click the canvas`;
-      item.appendChild(render.symbolThumbnail(symbol));
-      item.addEventListener("click", () => {
-        tools.place.arm(id);
-        setTool("place");
-        for (const other of document.querySelectorAll(".palette-item")) {
-          other.classList.toggle("armed", other === item);
-        }
-        say(`click the canvas to place ${id} (shift-click to keep placing)`);
-      });
-      grid.appendChild(item);
-    }
-    ui.paletteBody.appendChild(grid);
-  }
 }
 
 // ---- controls ----
@@ -333,87 +331,59 @@ function bindControls() {
   ui.fileSelect.addEventListener("change", () => openDrawing(ui.fileSelect.value));
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
-  ui.undo.addEventListener("click", undo);
-  ui.redo.addEventListener("click", redo);
+  ui.undo.addEventListener("click", () => stepHistory(true));
+  ui.redo.addEventListener("click", () => stepHistory(false));
 
   for (const button of document.querySelectorAll("[data-tool]")) {
     button.addEventListener("click", () => {
-      setTool(button.getAttribute("data-tool"));
-      for (const item of document.querySelectorAll(".palette-item")) {
-        item.classList.remove("armed");
-      }
+      const name = button.getAttribute("data-tool");
+      const shape = button.getAttribute("data-shape");
+      if (shape) tools.shape.arm(shape);
+      setTool(name);
+      clearPaletteSelection(ui.paletteBody);
     });
   }
 
   for (const button of document.querySelectorAll("[data-command]")) {
-    button.addEventListener("click", () => runCommand(button.getAttribute("data-command")));
+    button.addEventListener("click",
+                            () => runCommand(button.getAttribute("data-command")));
   }
-}
 
-function runCommand(command) {
-  switch (command) {
-    case "rotate-cw":
-      withSelection("rotate", (doc, ids) => actions.rotateCells(doc, ids, 90));
-      break;
-    case "rotate-ccw":
-      withSelection("rotate", (doc, ids) => actions.rotateCells(doc, ids, -90));
-      break;
-    case "flip-h":
-      withSelection("flip", (doc, ids) => actions.flipCells(doc, ids, false));
-      break;
-    case "flip-v":
-      withSelection("flip", (doc, ids) => actions.flipCells(doc, ids, true));
-      break;
-    case "group":
-      if (selection.size > 1) {
-        withSelection("group", (doc, ids) => actions.groupCells(doc, ids));
-        say(`grouped ${selection.size} cells`);
-      }
-      break;
-    case "ungroup":
-      withSelection("ungroup", (doc, ids) => actions.ungroupCells(doc, ids));
-      say("ungrouped");
-      break;
-    case "delete":
-      deleteSelection();
-      break;
-    default:
-      break;
-  }
+  ui.arrange.addEventListener("change", () => {
+    if (!ui.arrange.value) return;
+    runCommand(ui.arrange.value);
+    ui.arrange.value = "";
+  });
 }
 
 function bindKeyboard() {
   window.addEventListener("keydown", (event) => {
-    const typing = event.target.matches("input, select, textarea");
-    if (typing) return;
-
+    if (event.target.matches("input, select, textarea")) return;
     const mod = event.ctrlKey || event.metaKey;
 
     if (mod) {
-      const key = event.key.toLowerCase();
       const handlers = {
         s: save,
         e: exportSvg,
-        z: () => (event.shiftKey ? redo() : undo()),
-        y: redo,
-        a: () => { selection.selectAll(); redraw(); properties.render(); },
+        z: () => stepHistory(!event.shiftKey),
+        y: () => stepHistory(false),
+        a: () => { selection.selectAll(); redraw(); inspector.render(); },
         c: () => copySelection(false),
         x: () => copySelection(true),
-        v: paste,
+        v: () => paste(),
         d: () => {
           if (!selection.size) return;
-          const clip = actions.copyCells(store.doc, selection.ids);
-          const step = actions.gridStep(store.doc);
-          const added = store.mutate("duplicate",
-                                     (doc) => actions.pasteCells(doc, clip, step * 2, step * 2));
-          if (added) { selection.set(added); redraw(); properties.render(); }
+          clipboard = model.copyItems(store.doc, selection.ids);
+          paste();
         },
         g: () => runCommand(event.shiftKey ? "ungroup" : "group"),
         r: () => runCommand(event.shiftKey ? "rotate-ccw" : "rotate-cw"),
         h: () => runCommand(event.shiftKey ? "flip-v" : "flip-h"),
+        "]": () => runCommand("front"),
+        "[": () => runCommand("back"),
         "0": () => viewport.fit(store.doc.canvas.width, store.doc.canvas.height),
       };
-      const handler = handlers[key];
+      const handler = handlers[event.key.toLowerCase()];
       if (handler) {
         event.preventDefault();
         handler();
@@ -426,25 +396,34 @@ function bindKeyboard() {
       deleteSelection();
     } else if (event.key === "Escape") {
       const tool = tools[activeTool];
-      if (tool && tool.reset) tool.reset();
+      if (activeTool === "shape" && tools.shape.polygon) tools.shape.finishPolygon();
+      else if (tool && tool.reset) tool.reset();
       selection.clear();
       setTool("select");
+      clearPaletteSelection(ui.paletteBody);
       redraw();
-      properties.render();
+      inspector.render();
     } else if (event.key.startsWith("Arrow")) {
       event.preventDefault();
-      const deltas = {
+      const delta = {
         ArrowLeft: [-1, 0], ArrowRight: [1, 0],
         ArrowUp: [0, -1], ArrowDown: [0, 1],
       }[event.key];
-      nudge(deltas[0], deltas[1], event.shiftKey);
+      nudge(delta[0], delta[1], event.shiftKey);
     } else {
-      const shortcuts = { v: "select", w: "wire" };
-      const name = shortcuts[event.key.toLowerCase()];
-      if (name) setTool(name);
+      const shapes = { l: "line", b: "rect", p: "polygon", t: "text" };
+      const key = event.key.toLowerCase();
+      if (key === "v") setTool("select");
+      else if (key === "w") setTool("wire");
+      else if (shapes[key]) {
+        tools.shape.arm(shapes[key]);
+        setTool("shape");
+      }
     }
   });
 
+  // Saving is manual, so the one thing done automatically is refusing to let
+  // the tab close on unsaved work.
   window.addEventListener("beforeunload", (event) => {
     if (!store.dirty) return;
     event.preventDefault();
@@ -466,6 +445,7 @@ async function start() {
     undo: $("btn-undo"),
     redo: $("btn-redo"),
     gridSelect: $("grid-select"),
+    arrange: $("arrange-select"),
     zoomSlider: $("zoom-slider"),
     zoomValue: $("zoom-value"),
     fontSlider: $("font-slider"),
@@ -473,7 +453,6 @@ async function start() {
     symbolSlider: $("symbol-slider"),
     symbolValue: $("symbol-value"),
     paletteBody: $("palette-body"),
-    propertiesBody: $("properties-body"),
     counts: $("status-counts"),
     cursor: $("status-cursor"),
     message: $("status-message"),
@@ -483,25 +462,26 @@ async function start() {
     const percent = Math.round(view.zoom * 100);
     ui.zoomSlider.value = Math.min(400, Math.max(10, percent));
     ui.zoomValue.value = `${percent}%`;
-    drawOverlay(lastOverlayOptions);
+    drawOverlay(overlayOptions);
   });
 
-  tools = {
-    select: new SelectTool(context),
-    wire: new WireTool(context),
-    place: new PlaceTool(context),
-  };
-
-  properties = new Properties($("properties-body"), store, selection, () => redraw());
-  selection.subscribe(() => { refreshStatus(); });
+  tools = makeTools(context);
+  inspector = new Inspector($("properties-body"), store, selection, () => redraw());
+  selection.subscribe(() => refreshStatus());
 
   try {
     const [theme, library, listing] = await Promise.all([
       api("/api/theme"), api("/api/symbols"), api("/api/files"),
     ]);
     render.setTheme(theme);
-    symbols.setLibrary(library);
-    buildPalette();
+    geometry.setLibrary(library);
+    buildPalette(ui.paletteBody, {
+      onPick: (id) => {
+        tools.place.arm(id);
+        setTool("place");
+        say(`click the canvas to place ${id} (shift-click to keep placing)`);
+      },
+    });
 
     for (const file of listing.files) {
       const option = document.createElement("option");

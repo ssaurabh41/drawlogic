@@ -3,6 +3,18 @@
 Endpoints are stored as pin references, never as coordinates, so a wire is
 re-resolved from scratch every time anything is drawn. That is what makes
 moving a gate carry its wires with it instead of leaving them behind.
+
+Usage:
+
+    from drawlogic import routing
+
+    points = routing.route(doc, doc.nets[0])   # [(x, y), ...], orthogonal
+    routes = routing.route_all(doc)            # [(net, points), ...]
+    dots = routing.junctions(routes)           # where three branches meet
+
+Routes avoid other cells: the corridor is chosen so that all three legs of
+the path clear every cell the wire is not connected to. A net's `waypoints`
+force the route through given points.
 """
 
 from . import theme

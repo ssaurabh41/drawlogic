@@ -4,9 +4,8 @@
 // leaves the tool is rendered by Python. That keeps the stakes here low and
 // guarantees the GUI and the CLI cannot disagree about an export.
 
-import { fmt } from "./geometry.js";
+import * as geometry from "./geometry.js";
 import * as routing from "./routing.js";
-import * as symbols from "./symbols.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -43,11 +42,11 @@ function rolePaint(role, style, scale, fontScale) {
       : (theme.widths[spec.width] || theme.widths.stroke);
     // Undo the cell's own scaling so an enlarged gate keeps its line weight
     // instead of turning bold.
-    paint["stroke-width"] = fmt(scale ? width / scale : width, 3);
+    paint["stroke-width"] = geometry.fmt(scale ? width / scale : width, 3);
   }
   if (spec.dash) paint["stroke-dasharray"] = spec.dash;
   if (spec.font) {
-    paint["font-size"] = fmt(theme.fontSizes[spec.font] * fontScale, 2);
+    paint["font-size"] = geometry.fmt(theme.fontSizes[spec.font] * fontScale, 2);
     paint["font-family"] = theme.fontSans;
   }
   return paint;
@@ -120,7 +119,7 @@ function gridPattern(grid) {
 }
 
 function renderCell(symbol, cell, fontScale, scale, into) {
-  const matrix = symbols.matrixFor(symbol, cell, scale);
+  const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
   const style = cell.style || {};
 
@@ -133,7 +132,15 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   into = outer;
 
   const group = el("g", { transform: matrix.toSvg() });
+  if (cell.image) {
+    group.appendChild(el("image", {
+      href: cell.image, x: 0, y: 0,
+      width: symbol.size[0], height: symbol.size[1],
+      preserveAspectRatio: "xMidYMid meet",
+    }));
+  }
   for (const op of symbol.draw) {
+    if (cell.image && op.role === "ghost") continue;
     if (op.op === "text") continue;
     const node = opElement(op, rolePaint(op.role || "body", style, factor, fontScale));
     if (node) group.appendChild(node);
@@ -149,9 +156,9 @@ function renderCell(symbol, cell, fontScale, scale, into) {
     let anchor = op.anchor || "start";
     if (mirrored) anchor = { start: "end", end: "start" }[anchor] || anchor;
     const text = el("text", {
-      x: fmt(x), y: fmt(y), "text-anchor": anchor,
+      x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": anchor,
       "font-family": theme.fontSans,
-      "font-size": fmt(theme.fontSizes.pin_label * fontScale, 2),
+      "font-size": geometry.fmt(theme.fontSizes.pin_label * fontScale, 2),
       fill: theme.colors.pin_label,
     });
     text.textContent = op.text;
@@ -159,18 +166,69 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   }
 
   if (cell.label) {
-    const box = symbols.cellBounds(symbol, cell, scale);
+    const box = geometry.cellBounds(symbol, cell, scale);
     const text = el("text", {
-      x: fmt(box[0] + box[2] / 2), y: fmt(box[1] - 5),
+      x: geometry.fmt(box[0] + box[2] / 2), y: geometry.fmt(box[1] - 5),
       "text-anchor": "middle",
       "font-family": theme.fontSans,
-      "font-size": fmt(theme.fontSizes.label * fontScale, 2),
+      "font-size": geometry.fmt(theme.fontSizes.label * fontScale, 2),
       "font-weight": "600",
       fill: theme.colors.label,
     });
     text.textContent = cell.label;
     into.appendChild(text);
   }
+}
+
+
+// Direction arrows. Mirrors _arrow_at / _render_arrow in render_svg.py: the
+// head sits near the receiving end, which is where a reader looks to ask
+// "what drives this?".
+function arrowAt(points, size) {
+  let best = null;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const [ax, ay] = points[i];
+    const [bx, by] = points[i + 1];
+    const length = Math.abs(bx - ax) + Math.abs(by - ay);
+    if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
+  }
+
+  let [ax, ay] = points[points.length - 2];
+  let [bx, by] = points[points.length - 1];
+  const last = Math.abs(bx - ax) + Math.abs(by - ay);
+
+  let tip;
+  if (last < size * 3 && best) {
+    [, [ax, ay], [bx, by]] = best;
+    tip = [(ax + bx) / 2, (ay + by) / 2];
+  } else {
+    const total = Math.max(last, 1e-6);
+    const offset = size * 1.6;
+    tip = [bx - ((bx - ax) / total) * offset, by - ((by - ay) / total) * offset];
+  }
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const total = Math.max(Math.abs(dx) + Math.abs(dy), 1e-6);
+  return [tip, [dx / total, dy / total]];
+}
+
+function arrowElement(tip, direction, size, color) {
+  const [ux, uy] = direction;
+  const px = -uy;
+  const py = ux;
+  const backX = tip[0] - ux * size;
+  const backY = tip[1] - uy * size;
+  const half = size * 0.45;
+  const points = [
+    tip,
+    [backX + px * half, backY + py * half],
+    [backX - px * half, backY - py * half],
+  ];
+  return el("polygon", {
+    points: points.map((p) => `${geometry.fmt(p[0])},${geometry.fmt(p[1])}`).join(" "),
+    fill: color,
+  });
 }
 
 function renderNets(doc, fontScale, into) {
@@ -181,10 +239,10 @@ function renderNets(doc, fontScale, into) {
     const style = net.style || {};
     into.appendChild(el("path", {
       class: "dl-net", "data-id": net.id,
-      d: `M${points.map((p) => `${fmt(p[0])} ${fmt(p[1])}`).join(" L")}`,
+      d: `M${points.map((p) => `${geometry.fmt(p[0])} ${geometry.fmt(p[1])}`).join(" L")}`,
       fill: "none",
       stroke: style.stroke || theme.colors.net,
-      "stroke-width": fmt(style.strokeWidth || theme.widths.net, 3),
+      "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.net, 3),
       "stroke-linecap": "square",
     }));
   }
@@ -192,31 +250,44 @@ function renderNets(doc, fontScale, into) {
   for (const { net, points } of routes) {
     if (!net.name || points.length < 2) continue;
     const text = el("text", {
-      x: fmt((points[0][0] + points[1][0]) / 2),
-      y: fmt((points[0][1] + points[1][1]) / 2 - 4),
+      x: geometry.fmt((points[0][0] + points[1][0]) / 2),
+      y: geometry.fmt((points[0][1] + points[1][1]) / 2 - 4),
       "text-anchor": "middle",
       "font-family": theme.fontMono,
-      "font-size": fmt(theme.fontSizes.net_label * fontScale, 2),
+      "font-size": geometry.fmt(theme.fontSizes.net_label * fontScale, 2),
       fill: theme.colors.net_label,
     });
     text.textContent = net.name;
     into.appendChild(text);
   }
 
+  if ((doc.canvas || {}).arrows !== false) {
+    for (const { net, points } of routes) {
+      if (points.length < 2) continue;
+      if ((net.style || {}).arrow === false) continue;
+      const [tip, direction] = arrowAt(points, theme.arrowSize || 7);
+      into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
+                                    (net.style || {}).stroke || theme.colors.net));
+    }
+  }
+
   for (const point of routing.junctions(routes)) {
     into.appendChild(el("circle", {
-      cx: fmt(point[0]), cy: fmt(point[1]),
-      r: fmt(theme.junctionRadius), fill: theme.colors.junction,
+      cx: geometry.fmt(point[0]), cy: geometry.fmt(point[1]),
+      r: geometry.fmt(theme.junctionRadius), fill: theme.colors.junction,
     }));
   }
 }
 
-function renderShape(shape, fontScale, into) {
+function renderShape(shape, fontScale, parent) {
   const style = shape.style || {};
+  const into = el("g", { class: "dl-shape", "data-id": shape.id,
+                         "data-kind": shape.kind });
+  parent.appendChild(into);
   const paint = {
     fill: style.fill || "none",
     stroke: style.stroke || theme.colors.stroke,
-    "stroke-width": fmt(style.strokeWidth || theme.widths.stroke, 3),
+    "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.stroke, 3),
   };
 
   if (shape.kind === "rect") {
@@ -237,7 +308,7 @@ function renderShape(shape, fontScale, into) {
       x: shape.x, y: shape.y,
       "text-anchor": style.anchor || "start",
       "font-family": theme.fontSans,
-      "font-size": fmt((style.fontSize || theme.fontSizes.shape_text) * fontScale, 2),
+      "font-size": geometry.fmt((style.fontSize || theme.fontSizes.shape_text) * fontScale, 2),
       fill: style.fill || theme.colors.label,
     });
     text.textContent = shape.text || "";
@@ -304,7 +375,7 @@ export function render(svg, doc) {
 
   const cells = el("g", { class: "dl-cells" });
   for (const cell of doc.cells || []) {
-    const symbol = symbols.get(cell.type);
+    const symbol = geometry.get(cell.type);
     if (symbol) renderCell(symbol, cell, fontScale, scale, cells);
   }
   content.appendChild(cells);
@@ -313,7 +384,7 @@ export function render(svg, doc) {
     const text = el("text", {
       x: 14, y: canvas.height - 14,
       "font-family": theme.fontSans,
-      "font-size": fmt(theme.fontSizes.title * fontScale, 2),
+      "font-size": geometry.fmt(theme.fontSizes.title * fontScale, 2),
       "font-weight": "600",
       fill: theme.colors.title,
     });

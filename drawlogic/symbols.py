@@ -1,9 +1,23 @@
 """The symbol library.
 
-Every cell type is a JSON entry describing its outline and its pins, so
-adding a gate, flop or custom cell means dropping a file in symbols/ -- no
-code changes anywhere. Both the Python exporter and the browser editor read
-these same files, which is what stops the two renderers drifting apart.
+Every cell type is an entry in symbols.json describing its outline and its
+pins, so adding a gate, flop or custom cell means adding one entry -- no code
+changes anywhere. Both the Python exporter and the browser editor read the
+same file, which is what stops the two renderers drifting apart.
+
+Usage:
+
+    from drawlogic.symbols import default_registry
+
+    registry = default_registry()
+    symbol = registry.require("and2")
+    symbol.pin_names()                      # ['a', 'b', 'y']
+    symbol.pin_position(cell, "y")          # where that pin lands on the sheet
+    symbol.matrix_for(cell)                 # transform used to draw the cell
+
+    # Your own cells, without touching the built-ins. A later entry with the
+    # same id overrides an earlier one.
+    registry = load_registry(["~/my-cells.json", "~/my-cells/"])
 """
 
 import json
@@ -11,7 +25,8 @@ import os
 
 from .geometry import cell_matrix
 
-BUILTIN_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "symbols")
+BUILTIN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "symbols.json")
 
 VALID_DIRECTIONS = ("in", "out", "inout")
 VALID_OPS = ("path", "line", "rect", "circle", "polygon", "text")
@@ -149,32 +164,40 @@ class Registry(object):
     return len(self._symbols)
 
 
-def load_dir(registry, directory):
-  """Load every *.json in a directory into the registry."""
-  if not os.path.isdir(directory):
-    return registry
-  for filename in sorted(os.listdir(directory)):
-    if not filename.endswith(".json"):
-      continue
-    path = os.path.join(directory, filename)
-    with open(path, "r") as handle:
-      try:
-        data = json.load(handle)
-      except ValueError as exc:
-        raise SymbolError("%s is not valid JSON: %s" % (path, exc))
-    if not isinstance(data, dict):
-      raise SymbolError("%s must hold an object of symbol definitions" % path)
-    for symbol_id, definition in data.items():
-      registry.add(Symbol(symbol_id, definition), source=path)
+def load_file(registry, path):
+  """Load one JSON file of symbol definitions into the registry."""
+  with open(path, "r") as handle:
+    try:
+      data = json.load(handle)
+    except ValueError as exc:
+      raise SymbolError("%s is not valid JSON: %s" % (path, exc))
+  if not isinstance(data, dict):
+    raise SymbolError("%s must hold an object of symbol definitions" % path)
+  for symbol_id, definition in data.items():
+    registry.add(Symbol(symbol_id, definition), source=path)
   return registry
 
 
-def load_registry(extra_dirs=None):
-  """Built-in symbols, then any extra directories, which may override them."""
+def load_path(registry, path):
+  """Load a JSON file, or every *.json in a directory."""
+  path = os.path.expanduser(path)
+  if os.path.isdir(path):
+    for filename in sorted(os.listdir(path)):
+      if filename.endswith(".json"):
+        load_file(registry, os.path.join(path, filename))
+  elif os.path.isfile(path):
+    load_file(registry, path)
+  else:
+    raise SymbolError("no such symbol file or directory: %s" % path)
+  return registry
+
+
+def load_registry(extra=None):
+  """Built-in symbols, then any extra files or directories, which override."""
   registry = Registry()
-  load_dir(registry, BUILTIN_DIR)
-  for directory in (extra_dirs or []):
-    load_dir(registry, directory)
+  load_file(registry, BUILTIN_FILE)
+  for path in (extra or []):
+    load_path(registry, path)
   return registry
 
 

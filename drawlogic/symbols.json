@@ -1,0 +1,1922 @@
+{
+  "inv": {
+    "name": "Inverter",
+    "category": "gates",
+    "size": [
+      50,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 20,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 50,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 20,
+        "x2": 10,
+        "y2": 20,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 4 L10 36 L36 20 Z",
+        "role": "body"
+      },
+      {
+        "op": "circle",
+        "cx": 40,
+        "cy": 20,
+        "r": 4,
+        "role": "bubble"
+      },
+      {
+        "op": "line",
+        "x1": 44,
+        "y1": 20,
+        "x2": 50,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "buf": {
+    "name": "Buffer",
+    "category": "gates",
+    "size": [
+      50,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 20,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 50,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 20,
+        "x2": 10,
+        "y2": 20,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 4 L10 36 L40 20 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 20,
+        "x2": 50,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "and2": {
+    "name": "2-input AND",
+    "category": "gates",
+    "size": [
+      60,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 10,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 10,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 H30 A20 20 0 0 1 30 40 H10 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 20,
+        "x2": 60,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "nand2": {
+    "name": "2-input NAND",
+    "category": "gates",
+    "size": [
+      60,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 10,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 10,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 H26 A20 20 0 0 1 26 40 H10 Z",
+        "role": "body"
+      },
+      {
+        "op": "circle",
+        "cx": 50,
+        "cy": 20,
+        "r": 4,
+        "role": "bubble"
+      },
+      {
+        "op": "line",
+        "x1": 54,
+        "y1": 20,
+        "x2": 60,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "or2": {
+    "name": "2-input OR",
+    "category": "gates",
+    "size": [
+      60,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 16,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 16,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 Q22 20 10 40 Q34 40 50 20 Q34 0 10 0 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 20,
+        "x2": 60,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "nor2": {
+    "name": "2-input NOR",
+    "category": "gates",
+    "size": [
+      60,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 16,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 16,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 Q22 20 10 40 Q32 40 46 20 Q32 0 10 0 Z",
+        "role": "body"
+      },
+      {
+        "op": "circle",
+        "cx": 50,
+        "cy": 20,
+        "r": 4,
+        "role": "bubble"
+      },
+      {
+        "op": "line",
+        "x1": 54,
+        "y1": 20,
+        "x2": 60,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "xor2": {
+    "name": "2-input XOR",
+    "category": "gates",
+    "size": [
+      60,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 17,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 17,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M4 0 Q16 20 4 40",
+        "role": "decor"
+      },
+      {
+        "op": "path",
+        "d": "M12 0 Q24 20 12 40 Q36 40 50 20 Q36 0 12 0 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 20,
+        "x2": 60,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "xnor2": {
+    "name": "2-input XNOR",
+    "category": "gates",
+    "size": [
+      60,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 20,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 17,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 17,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M4 0 Q16 20 4 40",
+        "role": "decor"
+      },
+      {
+        "op": "path",
+        "d": "M12 0 Q24 20 12 40 Q34 40 46 20 Q34 0 12 0 Z",
+        "role": "body"
+      },
+      {
+        "op": "circle",
+        "cx": 50,
+        "cy": 20,
+        "r": 4,
+        "role": "bubble"
+      },
+      {
+        "op": "line",
+        "x1": 54,
+        "y1": 20,
+        "x2": 60,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "and3": {
+    "name": "3-input AND",
+    "category": "gates",
+    "size": [
+      60,
+      60
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "c",
+        "x": 0,
+        "y": 50,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 30,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 10,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 10,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 50,
+        "x2": 10,
+        "y2": 50,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 H20 A30 30 0 0 1 20 60 H10 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 30,
+        "x2": 60,
+        "y2": 30,
+        "role": "pin"
+      }
+    ]
+  },
+  "nand3": {
+    "name": "3-input NAND",
+    "category": "gates",
+    "size": [
+      60,
+      60
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "c",
+        "x": 0,
+        "y": 50,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 30,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 10,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 10,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 50,
+        "x2": 10,
+        "y2": 50,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 H16 A30 30 0 0 1 16 60 H10 Z",
+        "role": "body"
+      },
+      {
+        "op": "circle",
+        "cx": 50,
+        "cy": 30,
+        "r": 4,
+        "role": "bubble"
+      },
+      {
+        "op": "line",
+        "x1": 54,
+        "y1": 30,
+        "x2": 60,
+        "y2": 30,
+        "role": "pin"
+      }
+    ]
+  },
+  "or3": {
+    "name": "3-input OR",
+    "category": "gates",
+    "size": [
+      60,
+      60
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "b",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "c",
+        "x": 0,
+        "y": 50,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 30,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 14,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 20,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 50,
+        "x2": 14,
+        "y2": 50,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 0 Q26 30 10 60 Q36 60 50 30 Q36 0 10 0 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 30,
+        "x2": 60,
+        "y2": 30,
+        "role": "pin"
+      }
+    ]
+  },
+  "dff": {
+    "name": "D flip-flop",
+    "category": "sequential",
+    "size": [
+      70,
+      60
+    ],
+    "pins": [
+      {
+        "name": "d",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "ck",
+        "x": 0,
+        "y": 45,
+        "dir": "in"
+      },
+      {
+        "name": "q",
+        "x": 70,
+        "y": 15,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 45,
+        "x2": 10,
+        "y2": 45,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 50,
+        "h": 60,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M10 39 L18 45 L10 51",
+        "role": "decor"
+      },
+      {
+        "op": "line",
+        "x1": 60,
+        "y1": 15,
+        "x2": 70,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "D",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 21,
+        "y": 49,
+        "text": "CK",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 56,
+        "y": 19,
+        "text": "Q",
+        "anchor": "end",
+        "role": "pin_label"
+      }
+    ]
+  },
+  "dffr": {
+    "name": "D flip-flop with reset",
+    "category": "sequential",
+    "size": [
+      70,
+      70
+    ],
+    "pins": [
+      {
+        "name": "d",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "ck",
+        "x": 0,
+        "y": 45,
+        "dir": "in"
+      },
+      {
+        "name": "rn",
+        "x": 35,
+        "y": 70,
+        "dir": "in"
+      },
+      {
+        "name": "q",
+        "x": 70,
+        "y": 15,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 45,
+        "x2": 10,
+        "y2": 45,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 50,
+        "h": 60,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M10 39 L18 45 L10 51",
+        "role": "decor"
+      },
+      {
+        "op": "line",
+        "x1": 60,
+        "y1": 15,
+        "x2": 70,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 35,
+        "y1": 60,
+        "x2": 35,
+        "y2": 70,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "D",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 21,
+        "y": 49,
+        "text": "CK",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 56,
+        "y": 19,
+        "text": "Q",
+        "anchor": "end",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 50,
+        "y": 56,
+        "text": "RN",
+        "anchor": "middle",
+        "role": "pin_label"
+      }
+    ]
+  },
+  "dlatch": {
+    "name": "D latch",
+    "category": "sequential",
+    "size": [
+      70,
+      60
+    ],
+    "pins": [
+      {
+        "name": "d",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "g",
+        "x": 0,
+        "y": 45,
+        "dir": "in"
+      },
+      {
+        "name": "q",
+        "x": 70,
+        "y": 15,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 45,
+        "x2": 10,
+        "y2": 45,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 50,
+        "h": 60,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 60,
+        "y1": 15,
+        "x2": 70,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "D",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 49,
+        "text": "G",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 56,
+        "y": 19,
+        "text": "Q",
+        "anchor": "end",
+        "role": "pin_label"
+      }
+    ]
+  },
+  "icg": {
+    "name": "Integrated clock gate",
+    "category": "sequential",
+    "size": [
+      80,
+      60
+    ],
+    "pins": [
+      {
+        "name": "ck",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "e",
+        "x": 0,
+        "y": 45,
+        "dir": "in"
+      },
+      {
+        "name": "gck",
+        "x": 80,
+        "y": 15,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 45,
+        "x2": 10,
+        "y2": 45,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 60,
+        "h": 60,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M10 9 L18 15 L10 21",
+        "role": "decor"
+      },
+      {
+        "op": "path",
+        "d": "M42 24 L36 34 H44 L38 44",
+        "role": "decor"
+      },
+      {
+        "op": "line",
+        "x1": 70,
+        "y1": 15,
+        "x2": 80,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 21,
+        "y": 19,
+        "text": "CK",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 49,
+        "text": "E",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 66,
+        "y": 19,
+        "text": "GCK",
+        "anchor": "end",
+        "role": "pin_label"
+      }
+    ]
+  },
+  "mux2": {
+    "name": "2:1 multiplexer",
+    "category": "mux",
+    "size": [
+      50,
+      60
+    ],
+    "pins": [
+      {
+        "name": "d0",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "d1",
+        "x": 0,
+        "y": 45,
+        "dir": "in"
+      },
+      {
+        "name": "s",
+        "x": 25,
+        "y": 60,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 50,
+        "y": 30,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 45,
+        "x2": 10,
+        "y2": 45,
+        "role": "pin"
+      },
+      {
+        "op": "polygon",
+        "points": [
+          [
+            10,
+            5
+          ],
+          [
+            40,
+            20
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            10,
+            55
+          ]
+        ],
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 30,
+        "x2": 50,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 25,
+        "y1": 47.5,
+        "x2": 25,
+        "y2": 60,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "0",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 49,
+        "text": "1",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 27,
+        "y": 37,
+        "text": "S",
+        "anchor": "middle",
+        "role": "pin_label"
+      }
+    ]
+  },
+  "mux4": {
+    "name": "4:1 multiplexer",
+    "category": "mux",
+    "size": [
+      60,
+      80
+    ],
+    "pins": [
+      {
+        "name": "d0",
+        "x": 0,
+        "y": 10,
+        "dir": "in"
+      },
+      {
+        "name": "d1",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "d2",
+        "x": 0,
+        "y": 50,
+        "dir": "in"
+      },
+      {
+        "name": "d3",
+        "x": 0,
+        "y": 70,
+        "dir": "in"
+      },
+      {
+        "name": "s",
+        "x": 30,
+        "y": 80,
+        "dir": "in",
+        "width": 2
+      },
+      {
+        "name": "y",
+        "x": 60,
+        "y": 40,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 10,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 10,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 50,
+        "x2": 10,
+        "y2": 50,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 70,
+        "x2": 10,
+        "y2": 70,
+        "role": "pin"
+      },
+      {
+        "op": "polygon",
+        "points": [
+          [
+            10,
+            2
+          ],
+          [
+            50,
+            22
+          ],
+          [
+            50,
+            58
+          ],
+          [
+            10,
+            78
+          ]
+        ],
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 40,
+        "x2": 60,
+        "y2": 40,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 30,
+        "y1": 68,
+        "x2": 30,
+        "y2": 80,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 14,
+        "text": "0",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 34,
+        "text": "1",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 54,
+        "text": "2",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 74,
+        "text": "3",
+        "anchor": "start",
+        "role": "pin_label"
+      },
+      {
+        "op": "text",
+        "x": 30,
+        "y": 64,
+        "text": "S",
+        "anchor": "middle",
+        "role": "pin_label"
+      }
+    ]
+  },
+  "nmos": {
+    "name": "NMOS transistor",
+    "category": "analog",
+    "size": [
+      60,
+      60
+    ],
+    "pins": [
+      {
+        "name": "g",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "d",
+        "x": 40,
+        "y": 0,
+        "dir": "inout"
+      },
+      {
+        "name": "s",
+        "x": 40,
+        "y": 60,
+        "dir": "inout"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 20,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 20,
+        "y1": 10,
+        "x2": 20,
+        "y2": 50,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 27,
+        "y1": 10,
+        "x2": 27,
+        "y2": 50,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 27,
+        "y1": 18,
+        "x2": 40,
+        "y2": 18,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 18,
+        "x2": 40,
+        "y2": 0,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 27,
+        "y1": 42,
+        "x2": 40,
+        "y2": 42,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 42,
+        "x2": 40,
+        "y2": 60,
+        "role": "body"
+      }
+    ]
+  },
+  "pmos": {
+    "name": "PMOS transistor",
+    "category": "analog",
+    "size": [
+      60,
+      60
+    ],
+    "pins": [
+      {
+        "name": "g",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "d",
+        "x": 40,
+        "y": 0,
+        "dir": "inout"
+      },
+      {
+        "name": "s",
+        "x": 40,
+        "y": 60,
+        "dir": "inout"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 13,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "circle",
+        "cx": 17,
+        "cy": 30,
+        "r": 4,
+        "role": "bubble"
+      },
+      {
+        "op": "line",
+        "x1": 21,
+        "y1": 10,
+        "x2": 21,
+        "y2": 50,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 27,
+        "y1": 10,
+        "x2": 27,
+        "y2": 50,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 27,
+        "y1": 18,
+        "x2": 40,
+        "y2": 18,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 18,
+        "x2": 40,
+        "y2": 0,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 27,
+        "y1": 42,
+        "x2": 40,
+        "y2": 42,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 42,
+        "x2": 40,
+        "y2": 60,
+        "role": "body"
+      }
+    ]
+  },
+  "resistor": {
+    "name": "Resistor",
+    "category": "analog",
+    "size": [
+      60,
+      20
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 10,
+        "dir": "inout"
+      },
+      {
+        "name": "b",
+        "x": 60,
+        "y": 10,
+        "dir": "inout"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 10,
+        "x2": 10,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 2,
+        "w": 40,
+        "h": 16,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 10,
+        "x2": 60,
+        "y2": 10,
+        "role": "pin"
+      }
+    ]
+  },
+  "capacitor": {
+    "name": "Capacitor",
+    "category": "analog",
+    "size": [
+      40,
+      40
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 20,
+        "dir": "inout"
+      },
+      {
+        "name": "b",
+        "x": 40,
+        "y": 20,
+        "dir": "inout"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 20,
+        "x2": 16,
+        "y2": 20,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 16,
+        "y1": 4,
+        "x2": 16,
+        "y2": 36,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 24,
+        "y1": 4,
+        "x2": 24,
+        "y2": 36,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 24,
+        "y1": 20,
+        "x2": 40,
+        "y2": 20,
+        "role": "pin"
+      }
+    ]
+  },
+  "block": {
+    "name": "Block",
+    "category": "blocks",
+    "size": [
+      140,
+      90
+    ],
+    "pins": [
+      {
+        "name": "in1",
+        "x": 0,
+        "y": 25,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "in2",
+        "x": 0,
+        "y": 65,
+        "dir": "in",
+        "width": 0
+      },
+      {
+        "name": "out1",
+        "x": 140,
+        "y": 25,
+        "dir": "out",
+        "width": 0
+      },
+      {
+        "name": "out2",
+        "x": 140,
+        "y": 65,
+        "dir": "out",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 0,
+        "w": 140,
+        "h": 90,
+        "role": "body"
+      }
+    ]
+  },
+  "port_in": {
+    "name": "Input port",
+    "category": "ports",
+    "size": [
+      20,
+      10
+    ],
+    "pins": [
+      {
+        "name": "p",
+        "x": 20,
+        "y": 5,
+        "dir": "out",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "path",
+        "d": "M0 0 H15 L20 5 L15 10 H0 Z",
+        "role": "body"
+      }
+    ]
+  },
+  "port_out": {
+    "name": "Output port",
+    "category": "ports",
+    "size": [
+      20,
+      10
+    ],
+    "pins": [
+      {
+        "name": "p",
+        "x": 0,
+        "y": 5,
+        "dir": "in",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "path",
+        "d": "M20 0 H5 L0 5 L5 10 H20 Z",
+        "role": "body"
+      }
+    ]
+  },
+  "port_inout": {
+    "name": "Bidirectional port",
+    "category": "ports",
+    "size": [
+      24,
+      10
+    ],
+    "pins": [
+      {
+        "name": "p",
+        "x": 0,
+        "y": 5,
+        "dir": "inout",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "path",
+        "d": "M5 0 H19 L24 5 L19 10 H5 L0 5 Z",
+        "role": "body"
+      }
+    ]
+  },
+  "ripper": {
+    "name": "Bus ripper",
+    "category": "bus",
+    "size": [
+      40,
+      30
+    ],
+    "pins": [
+      {
+        "name": "bus",
+        "x": 0,
+        "y": 15,
+        "dir": "inout",
+        "width": 0
+      },
+      {
+        "name": "bit",
+        "x": 40,
+        "y": 15,
+        "dir": "inout"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 12,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 12,
+        "y1": 15,
+        "x2": 24,
+        "y2": 3,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 24,
+        "y1": 3,
+        "x2": 24,
+        "y2": 15,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 24,
+        "y1": 15,
+        "x2": 40,
+        "y2": 15,
+        "role": "pin"
+      }
+    ]
+  },
+  "bus_tap": {
+    "name": "Bus tap",
+    "category": "bus",
+    "size": [
+      40,
+      40
+    ],
+    "pins": [
+      {
+        "name": "in",
+        "x": 0,
+        "y": 20,
+        "dir": "inout",
+        "width": 0
+      },
+      {
+        "name": "out",
+        "x": 40,
+        "y": 20,
+        "dir": "inout",
+        "width": 0
+      },
+      {
+        "name": "tap",
+        "x": 20,
+        "y": 40,
+        "dir": "inout",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 20,
+        "x2": 40,
+        "y2": 20,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 20,
+        "y1": 20,
+        "x2": 20,
+        "y2": 40,
+        "role": "body"
+      },
+      {
+        "op": "circle",
+        "cx": 20,
+        "cy": 20,
+        "r": 2.5,
+        "role": "body"
+      }
+    ]
+  },
+  "custom": {
+    "name": "Custom cell (placeholder)",
+    "category": "blocks",
+    "size": [
+      100,
+      70
+    ],
+    "pins": [
+      {
+        "name": "in",
+        "x": 0,
+        "y": 35,
+        "dir": "in"
+      },
+      {
+        "name": "out",
+        "x": 100,
+        "y": 35,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 70,
+        "role": "ghost"
+      },
+      {
+        "op": "path",
+        "d": "M22 50 L40 28 L54 42 L64 32 L78 50",
+        "role": "ghost"
+      }
+    ]
+  }
+}

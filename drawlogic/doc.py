@@ -3,12 +3,33 @@
 The file is plain JSON written with a stable key order, so `git diff` on a
 schematic reads as "moved U1, added net en" rather than as one unreadable
 line. That makes a drawing reviewable in the same way code is.
+
+Usage:
+
+    from drawlogic.doc import Document, new_document
+
+    doc = Document.load("alu_ctrl.dlg")       # checked; raises DocumentError
+    doc = new_document("alu_ctrl", 900, 560)
+
+    doc.cells.append({"id": "u1", "type": "and2", "x": 220, "y": 120})
+    doc.normalize()                           # fills defaults, e.g. w and h
+
+    for issue in doc.validate():              # [] means the drawing is sound
+        print(issue.level, issue.where, issue.message)
+
+    doc.save("alu_ctrl.dlg")
+
+Anything arriving from outside -- a file, or the editor over HTTP -- goes
+through Document.load or Document.from_data, which check format and version.
+The plain constructor trusts its input and is for code that just built one.
+
+This module also owns bus naming: net_name_width("d[7:0]") is 8.
 """
 
 import json
 import os
+import re
 
-from . import buses
 from . import theme
 from .geometry import corners, union_bbox
 from .symbols import default_registry
@@ -17,7 +38,8 @@ FORMAT = "drawlogic"
 VERSION = 1
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
-CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale"]
+CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
+               "arrows"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label", "style", "ref"]
@@ -35,7 +57,68 @@ DEFAULT_CANVAS = {
   "grid": {"style": "dots", "size": 10, "color": theme.COLORS["grid"]},
   "font": {"family": "IBM Plex Sans", "scale": 1.0},
   "symbolScale": 1.0,
+  "arrows": True,
 }
+
+
+# ---- bus names ----
+#
+# A net named `d[7:0]` carries eight bits; `d[3]` carries one. Width lives
+# in the name rather than only in a field, so what you read on the drawing
+# and what the checker enforces cannot drift apart.
+
+_RANGE = re.compile(r"^(?P<base>[A-Za-z_][A-Za-z0-9_.$]*)\[(?P<msb>\d+):(?P<lsb>\d+)\]$")
+_INDEX = re.compile(r"^(?P<base>[A-Za-z_][A-Za-z0-9_.$]*)\[(?P<bit>\d+)\]$")
+_PLAIN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.$]*$")
+
+
+def parse_net_name(name):
+  """Split a net name into (base, msb, lsb).
+
+  Returns None if the name is not a legal net name at all. A plain name and a
+  single-bit index both come back with msb == lsb.
+  """
+  if not name:
+    return None
+
+  match = _RANGE.match(name)
+  if match:
+    return (match.group("base"), int(match.group("msb")), int(match.group("lsb")))
+
+  match = _INDEX.match(name)
+  if match:
+    bit = int(match.group("bit"))
+    return (match.group("base"), bit, bit)
+
+  if _PLAIN.match(name):
+    return (name, 0, 0)
+
+  return None
+
+
+def net_name_width(name):
+  """Bit width implied by a net name; 1 for plain or unparseable names."""
+  parsed = parse_net_name(name)
+  if parsed is None:
+    return 1
+  _, msb, lsb = parsed
+  return abs(msb - lsb) + 1
+
+
+def is_bus_name(name):
+  return net_name_width(name) > 1
+
+
+def bus_bits(name):
+  """Expand `d[7:0]` into ['d[7]', 'd[6]', ... 'd[0]'], msb first."""
+  parsed = parse_net_name(name)
+  if parsed is None:
+    return []
+  base, msb, lsb = parsed
+  if msb == lsb and "[" not in (name or ""):
+    return [base]
+  step = -1 if msb >= lsb else 1
+  return ["%s[%d]" % (base, i) for i in range(msb, lsb + step, step)]
 
 
 class DocumentError(Exception):
@@ -229,7 +312,7 @@ class Document(object):
     data.setdefault("title", "untitled")
 
     canvas = data.setdefault("canvas", {})
-    for key in ("width", "height", "background", "symbolScale"):
+    for key in ("width", "height", "background", "symbolScale", "arrows"):
       canvas.setdefault(key, DEFAULT_CANVAS[key])
     grid = canvas.setdefault("grid", {})
     for key, value in DEFAULT_CANVAS["grid"].items():
@@ -252,7 +335,7 @@ class Document(object):
     for net in data.setdefault("nets", []):
       name = net.get("name")
       if name and "width" not in net:
-        net["width"] = buses.width_of(name)
+        net["width"] = net_name_width(name)
       net.setdefault("width", 1)
       net.setdefault("waypoints", [])
       net.setdefault("style", {})
@@ -348,12 +431,12 @@ class Document(object):
     for net in self.nets:
       where = "net %s" % (net.get("name") or net.get("id"))
       name = net.get("name")
-      if name and buses.parse(name) is None:
+      if name and parse_net_name(name) is None:
         issues.append(Issue("warning", where, "net name %r is not a legal name" % name))
-      if name and buses.width_of(name) != net.get("width", 1):
+      if name and net_name_width(name) != net.get("width", 1):
         issues.append(Issue("error", where,
                             "name implies width %d but width is %d"
-                            % (buses.width_of(name), net.get("width", 1))))
+                            % (net_name_width(name), net.get("width", 1))))
 
       endpoint_widths = []
       for end in ("from", "to"):

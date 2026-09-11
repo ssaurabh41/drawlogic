@@ -303,6 +303,12 @@ input.pcolor { padding: 1px; height: 24px; cursor: pointer; width: 42px; }
   line-height: 1.45;
 }
 
+/* An unfilled shape would otherwise only be clickable on its outline, which
+   makes a box drawn as an annotation frustrating to select. Cells render above
+   shapes, so this never steals a click from a gate inside the box. */
+.dl-shape > * { pointer-events: all; }
+.dl-net { pointer-events: stroke; }
+
 /* ---- selection overlay ---- */
 
 .dl-selbox { fill: none; stroke: var(--accent); }

@@ -1,4 +1,18 @@
-"""Command line entry points: export, symbols, info, validate."""
+"""Command line entry points.
+
+Usage:
+
+    drawlogic help                      # overview with examples
+    drawlogic help export               # detail for one command
+
+    drawlogic serve alu_ctrl.dlg        # open the browser editor
+    drawlogic export alu_ctrl.dlg -o alu_ctrl.svg --zoom 2
+    drawlogic validate alu_ctrl.dlg     # non-zero exit on errors
+    drawlogic info alu_ctrl.dlg
+    drawlogic symbols list
+
+Run with nothing, or with --help, for the same overview.
+"""
 
 import argparse
 import os
@@ -59,7 +73,8 @@ def cmd_export(args):
     svg = render_svg.render(
       doc, registry=registry, zoom=args.zoom, width=args.width,
       margin=args.margin, background=background,
-      show_grid=args.grid, crop=args.crop, title=not args.no_title)
+      show_grid=args.grid, crop=args.crop, title=not args.no_title,
+      arrows=not args.no_arrows)
 
     if args.output == "-":
       sys.stdout.write(svg)
@@ -201,6 +216,46 @@ def cmd_symbols(args):
   return 0
 
 
+EXAMPLES = """
+examples:
+  drawlogic serve                       open the editor on the current folder
+  drawlogic serve alu_ctrl.dlg          open one drawing straight away
+  drawlogic serve --dir ~/schematics --port 9000
+
+  drawlogic export alu_ctrl.dlg -o alu_ctrl.svg
+  drawlogic export alu_ctrl.dlg -o alu_ctrl.svg --zoom 2
+  drawlogic export *.dlg --outdir svg/
+  drawlogic export alu_ctrl.dlg -o -    write SVG to stdout
+
+  drawlogic validate alu_ctrl.dlg       exits non-zero if there are errors
+  drawlogic info alu_ctrl.dlg
+  drawlogic symbols list
+  drawlogic symbols show and2
+  drawlogic symbols preview and2 -o and2.svg
+
+  drawlogic help export                 detail for one command
+
+If the machine is remote, tunnel rather than binding to the network:
+  ssh -L 8080:localhost:8080 you@workstation
+"""
+
+
+def cmd_help(args):
+  parser = build_parser()
+  topic = getattr(args, "topic", None)
+  if not topic:
+    parser.print_help()
+    return 0
+
+  # Reach into the subparser table so `help export` prints that command's
+  # own usage rather than the top-level summary.
+  for action in parser._subparsers._group_actions:
+    if topic in getattr(action, "choices", {}):
+      action.choices[topic].print_help()
+      return 0
+  raise SystemExit("%s: no such command: %s" % (PROG, topic))
+
+
 def build_parser():
   # Options shared by every subcommand. SUPPRESS keeps an unset flag from
   # overwriting one given before the subcommand, so `drawlogic -q export ...`
@@ -216,7 +271,9 @@ def build_parser():
 
   parser = argparse.ArgumentParser(
     prog=PROG, parents=[common],
-    description="Draw and export logic circuit schematics.")
+    description="Draw and export logic circuit schematics.",
+    epilog=EXAMPLES,
+    formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument("--version", action="version",
                       version="%s %s" % (PROG, VERSION))
 
@@ -244,6 +301,8 @@ def build_parser():
                       help="trim to the drawing instead of the full canvas")
   export.add_argument("--no-title", action="store_true",
                       help="leave the title off the sheet")
+  export.add_argument("--no-arrows", action="store_true",
+                      help="leave direction arrows off the wires")
   export.set_defaults(func=cmd_export)
 
   serve = subs.add_parser("serve", parents=[common],
@@ -291,6 +350,11 @@ def build_parser():
   preview.set_defaults(action="preview")
 
   symbols.set_defaults(func=cmd_symbols)
+
+  helper = subs.add_parser("help", help="show help, optionally for one command")
+  helper.add_argument("topic", nargs="?", metavar="COMMAND")
+  helper.set_defaults(func=cmd_help)
+
   return parser
 
 

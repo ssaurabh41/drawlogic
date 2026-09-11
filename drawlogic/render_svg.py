@@ -4,6 +4,23 @@ This is the only place that turns a drawing into a file. The GUI's Export
 hands its document to this same function rather than screenshotting the
 canvas, so what you export from the browser and what you export from the
 terminal are the same bytes.
+
+Usage:
+
+    from drawlogic.doc import Document
+    from drawlogic import render_svg
+
+    document = Document.load("alu_ctrl.dlg")
+
+    svg = render_svg.render(document)                  # the whole sheet
+    svg = render_svg.render(document, zoom=2.0)        # twice the output size
+    svg = render_svg.render(document, crop=True)       # trimmed to the drawing
+    svg = render_svg.render(document, show_grid=True, background="none")
+
+    open("alu_ctrl.svg", "w").write(svg)
+
+Geometry always lives in the viewBox; `zoom` and `width` only scale the
+width/height attributes, so output stays vector-perfect at any size.
 """
 
 from . import routing
@@ -193,7 +210,58 @@ def _render_cell(symbol, cell, font_scale, out, scale=1.0):
       esc(label)))
 
 
-def _render_nets(doc, registry, font_scale, out):
+def _arrow_at(points, size):
+  """Where to put a direction arrow on a wire, and which way it points.
+
+  Sat near the receiving end, which is where a reader looks to ask "what
+  drives this?". Falls back to the longest segment when the last one is too
+  short to hold an arrow without colliding with the pin.
+  """
+  best = None
+  for index in range(len(points) - 1):
+    ax, ay = points[index]
+    bx, by = points[index + 1]
+    length = abs(bx - ax) + abs(by - ay)
+    if best is None or length > best[0]:
+      best = (length, (ax, ay), (bx, by))
+
+  ax, ay = points[-2]
+  bx, by = points[-1]
+  last = abs(bx - ax) + abs(by - ay)
+
+  if last < size * 3 and best is not None:
+    _, (ax, ay), (bx, by) = best
+    tip = ((ax + bx) / 2.0, (ay + by) / 2.0)
+  else:
+    # Back off from the pin so the head does not sit on top of it.
+    total = max(last, 1e-6)
+    offset = size * 1.6
+    tip = (bx - (bx - ax) / total * offset, by - (by - ay) / total * offset)
+
+  dx = bx - ax
+  dy = by - ay
+  total = max(abs(dx) + abs(dy), 1e-6)
+  return tip, (dx / total, dy / total)
+
+
+def _render_arrow(tip, direction, size, color, out):
+  ux, uy = direction
+  # Perpendicular, for the two trailing corners.
+  px, py = -uy, ux
+  back_x = tip[0] - ux * size
+  back_y = tip[1] - uy * size
+  half = size * 0.45
+  points = [
+    (tip[0], tip[1]),
+    (back_x + px * half, back_y + py * half),
+    (back_x - px * half, back_y - py * half),
+  ]
+  out.append("<polygon %s />" % _attrs([
+    ("points", " ".join("%s,%s" % (fmt(x), fmt(y)) for x, y in points)),
+    ("fill", color)]))
+
+
+def _render_nets(doc, registry, font_scale, out, arrows=True):
   routes = routing.route_all(doc, registry)
 
   for net, points in routes:
@@ -226,6 +294,17 @@ def _render_nets(doc, registry, font_scale, out):
         ("font-size", fmt(theme.FONT_SIZES["net_label"] * font_scale, 2)),
         ("fill", theme.COLORS["net_label"])]),
       esc(name)))
+
+  if arrows:
+    for net, points in routes:
+      if len(points) < 2:
+        continue
+      style = net.get("style") or {}
+      if style.get("arrow") is False:
+        continue
+      tip, direction = _arrow_at(points, theme.ARROW_SIZE)
+      _render_arrow(tip, direction, theme.ARROW_SIZE,
+                    style.get("stroke", theme.COLORS["net"]), out)
 
   for point in routing.junctions(routes):
     out.append("<circle %s />" % _attrs([
@@ -273,7 +352,8 @@ def _render_shape(shape, font_scale, out):
 
 
 def render(doc, registry=None, zoom=1.0, width=None, margin=None,
-           background=None, show_grid=False, crop=False, title=True):
+           background=None, show_grid=False, crop=False, title=True,
+           arrows=None):
   """Render a document to an SVG string.
 
   Geometry lives in the viewBox and never changes; `zoom` and `width` only
@@ -340,8 +420,9 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
     _render_shape(shape, font_scale, out)
   out.append("</g>")
 
+  show_arrows = canvas.get("arrows", True) if arrows is None else arrows
   out.append('<g class="dl-nets">')
-  _render_nets(doc, registry, font_scale, out)
+  _render_nets(doc, registry, font_scale, out, show_arrows)
   out.append("</g>")
 
   out.append('<g class="dl-cells">')

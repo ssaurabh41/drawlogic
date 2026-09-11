@@ -4,8 +4,7 @@
 // from scratch on every draw. That is what makes dragging a gate carry its
 // wires instead of leaving them behind.
 
-import { corners } from "./geometry.js";
-import * as symbols from "./symbols.js";
+import * as geometry from "./geometry.js";
 
 const STUB = 12;
 const EPSILON = 1e-6;
@@ -22,9 +21,9 @@ export function endpointPosition(doc, endpoint) {
   if (endpoint.cell !== undefined) {
     const cell = cellOf(doc, endpoint.cell);
     if (!cell) return null;
-    const symbol = symbols.get(cell.type);
+    const symbol = geometry.get(cell.type);
     if (!symbol) return null;
-    return symbols.pinPosition(symbol, cell, endpoint.pin, symbolScale(doc));
+    return geometry.pinPosition(symbol, cell, endpoint.pin, symbolScale(doc));
   }
   if (endpoint.x !== undefined && endpoint.y !== undefined) {
     return [endpoint.x, endpoint.y];
@@ -41,9 +40,9 @@ export function endpointDirection(doc, endpoint) {
   if (!endpoint || endpoint.cell === undefined) return null;
   const cell = cellOf(doc, endpoint.cell);
   if (!cell) return null;
-  const symbol = symbols.get(cell.type);
+  const symbol = geometry.get(cell.type);
   if (!symbol) return null;
-  const pin = symbols.findPin(symbol, endpoint.pin);
+  const pin = geometry.findPin(symbol, endpoint.pin);
   if (!pin) return null;
 
   const [sw, sh] = symbol.size;
@@ -54,7 +53,7 @@ export function endpointDirection(doc, endpoint) {
   else if (pin.y >= sh - EPSILON) local = [0, 1];
   else local = [1, 0];
 
-  const matrix = symbols.matrixFor(symbol, cell, symbolScale(doc));
+  const matrix = geometry.matrixFor(symbol, cell, symbolScale(doc));
   const origin = matrix.apply(0, 0);
   const tip = matrix.apply(local[0], local[1]);
   const dx = tip[0] - origin[0];
@@ -68,10 +67,10 @@ export function obstacleBoxes(doc, exclude = new Set()) {
   const boxes = [];
   for (const cell of doc.cells) {
     if (exclude.has(cell.id)) continue;
-    const symbol = symbols.get(cell.type);
+    const symbol = geometry.get(cell.type);
     if (!symbol) continue;
-    const matrix = symbols.matrixFor(symbol, cell, scale);
-    const points = corners(0, 0, symbol.size[0], symbol.size[1])
+    const matrix = geometry.matrixFor(symbol, cell, scale);
+    const points = geometry.corners(0, 0, symbol.size[0], symbol.size[1])
       .map(([px, py]) => matrix.apply(px, py));
     const xs = points.map((p) => p[0]);
     const ys = points.map((p) => p[1]);

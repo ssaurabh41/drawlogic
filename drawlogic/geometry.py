@@ -2,6 +2,17 @@
 
 Drawn shapes and pin coordinates are pushed through the same matrix, so a
 pin can never resolve to a place the symbol is not actually drawn.
+
+Usage:
+
+    from drawlogic.geometry import Affine, cell_matrix, fmt
+
+    m = cell_matrix(x=100, y=50, w=60, h=40,      # where the cell sits
+                    sw=60, sh=40,                 # the symbol's natural size
+                    rotate=90, mirror=False)
+    m.apply(60, 20)      # a symbol-local point in sheet coordinates
+    m.to_svg()           # "matrix(a,b,c,d,e,f)" for an SVG transform
+    fmt(3.140000)        # "3.14" -- trims trailing zeros for smaller output
 """
 
 import math

@@ -4,6 +4,26 @@ Binds to the loopback interface and serves exactly one directory of drawings,
 so nothing outside the folder you point it at is reachable. Export goes
 through render_svg, the same code path the CLI uses, so what you export from
 the browser and what you export from the terminal are the same bytes.
+
+Usage:
+
+    from drawlogic.server import serve
+    from drawlogic.symbols import default_registry
+
+    serve(root="~/schematics", port=8080, registry=default_registry())
+
+Endpoints:
+
+    GET  /                 the editor page
+    GET  /api/theme        colours, weights and role painting from theme.py
+    GET  /api/symbols      the symbol library, registry overrides included
+    GET  /api/files        .dlg files under the served root
+    GET  /api/doc?path=    one drawing
+    POST /api/doc?path=    save a drawing, re-emitted canonically
+    POST /api/export       render to SVG, optionally writing it to disk
+
+Client-supplied paths are resolved inside the served root and refused if they
+escape it.
 """
 
 import json
@@ -156,6 +176,7 @@ class Handler(BaseHTTPRequestHandler):
         "fontSans": theme.FONT_SANS,
         "fontMono": theme.FONT_MONO,
         "junctionRadius": theme.JUNCTION_RADIUS,
+        "arrowSize": theme.ARROW_SIZE,
         "gridStyles": list(theme.GRID_STYLES),
       })
 

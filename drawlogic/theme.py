@@ -3,6 +3,18 @@
 Documents override any of these per element; these are only the fallbacks.
 Keeping them in one place means restyling the whole tool is a single-file
 change rather than a hunt through the renderer.
+
+Usage:
+
+    from drawlogic import theme
+
+    theme.COLORS["net"]        # wire colour
+    theme.WIDTHS["stroke"]     # default line weight
+    theme.FONT_SIZES["label"]  # instance-name size, before font.scale
+    theme.ROLE_STYLES["body"]  # how a symbol draw-op role is painted
+
+The browser fetches all of this from /api/theme rather than restating it, so
+the canvas and the exporter cannot drift apart on colours or weights.
 """
 
 # IBM Plex first, then faces that exist on essentially every machine, so a
@@ -46,6 +58,7 @@ FONT_SIZES = {
 }
 
 JUNCTION_RADIUS = 3.0
+ARROW_SIZE = 7.0
 GHOST_DASH = "4 3"
 
 # How a symbol draw-op role is painted. "fill" and "stroke" name where the

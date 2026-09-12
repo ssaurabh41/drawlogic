@@ -42,7 +42,7 @@ CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
-             "style", "image", "ref"]
+             "pins", "style", "image", "ref"]
 NET_KEYS = ["id", "name", "width", "from", "to", "waypoints", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 SHAPE_KEYS = ["id", "kind", "x", "y", "w", "h", "points", "text", "rotate", "style"]
@@ -421,6 +421,11 @@ class Document(object):
         issues.append(Issue("warning", where,
                             "rotation %r is not a multiple of 90"
                             % cell.get("rotate")))
+      for pin_name in (cell.get("pins") or {}):
+        if symbol.pin(pin_name) is None:
+          issues.append(Issue("error", where,
+                              "pin label names %r, which %s has no such pin"
+                              % (pin_name, symbol.id)))
 
     for shape in self.shapes:
       kind = shape.get("kind")

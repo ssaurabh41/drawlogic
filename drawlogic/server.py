@@ -177,6 +177,7 @@ class Handler(BaseHTTPRequestHandler):
         "junctionRadius": theme.JUNCTION_RADIUS,
         "arrowSize": theme.ARROW_SIZE,
         "hopRadius": theme.HOP_RADIUS,
+        "pinLabelInset": theme.PIN_LABEL_INSET,
         "gridStyles": list(theme.GRID_STYLES),
       })
 

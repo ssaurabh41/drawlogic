@@ -126,10 +126,19 @@
 <g class="dl-cell" data-id="wptr" data-type="block6" transform="matrix(1.25,0,0,1.25,330,390)">
   <rect x="0" y="0" width="160" height="120" fill="#e8f2f6" stroke="#16202b" stroke-width="1.28" />
 </g>
+<text x="340" y="425" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">winc</text>
+<text x="340" y="470" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wrst_n</text>
+<text x="340" y="515" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wclk</text>
+<text x="520" y="425" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">waddr</text>
+<text x="520" y="470" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wclken</text>
+<text x="520" y="515" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wptr_g</text>
 <text x="430" y="385" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wptr_gray</text>
 <g class="dl-cell" data-id="wfull" data-type="block" transform="matrix(-1.2857,0,0,1,510,700)">
   <rect x="0" y="0" width="140" height="90" fill="#e8f2f6" stroke="#16202b" stroke-width="1.4" />
 </g>
+<text x="499.714" y="729" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wptr_g</text>
+<text x="499.714" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rptr_g2</text>
+<text x="340.286" y="729" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wfull</text>
 <text x="420" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">full_cmp</text>
 <g class="dl-cell" data-id="sr1" data-type="reg" transform="matrix(-1,0,0,1,830,750)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
@@ -176,10 +185,19 @@
 <g class="dl-cell" data-id="rptr" data-type="block6" transform="matrix(-1.25,0,0,1.25,1470,390)">
   <rect x="0" y="0" width="160" height="120" fill="#f7efe6" stroke="#16202b" stroke-width="1.28" />
 </g>
+<text x="1460" y="425" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rinc</text>
+<text x="1460" y="470" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rrst_n</text>
+<text x="1460" y="515" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rclk</text>
+<text x="1280" y="425" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">raddr</text>
+<text x="1280" y="470" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rclken</text>
+<text x="1280" y="515" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rptr_g</text>
 <text x="1370" y="385" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rptr_gray</text>
 <g class="dl-cell" data-id="rempty" data-type="block" transform="matrix(1.2857,0,0,1,1290,700)">
   <rect x="0" y="0" width="140" height="90" fill="#f7efe6" stroke="#16202b" stroke-width="1.4" />
 </g>
+<text x="1300.286" y="729" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rptr_g</text>
+<text x="1300.286" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wptr_g2</text>
+<text x="1459.714" y="729" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rempty</text>
 <text x="1380" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">empty_cmp</text>
 <g class="dl-cell" data-id="sw1" data-type="reg" transform="matrix(1,0,0,1,970,750)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />

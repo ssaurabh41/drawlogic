@@ -198,19 +198,30 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
   # Pin labels ride along with the cell but are drawn upright and at a fixed
   # size, so a rotated or enlarged gate still has readable pin names.
   mirrored = bool(cell.get("mirror", False))
+  overrides = dict(cell.get("pins") or {})
   for op in text_ops:
+    # A cell may rename a pin the symbol already labels: same spot, new word.
+    text = op["text"]
+    named = op.get("pin")
+    if named in overrides:
+      text = overrides.pop(named)
+      if not text:
+        continue
     x, y = matrix.apply(op["x"], op["y"])
     anchor = op.get("anchor", "start")
     if mirrored:
       anchor = {"start": "end", "end": "start"}.get(anchor, anchor)
-    out.append("<text %s>%s</text>" % (
-      _attrs([
-        ("x", fmt(x)), ("y", fmt(y)),
-        ("text-anchor", anchor),
-        ("font-family", theme.FONT_SANS),
-        ("font-size", fmt(theme.FONT_SIZES["pin_label"] * font_scale, 2)),
-        ("fill", theme.COLORS["pin_label"])]),
-      esc(op["text"])))
+    _pin_label(x, y, anchor, text, font_scale, out)
+
+  # Whatever is left names a pin the symbol draws no label for -- a generic
+  # block, say -- so place one from the pin's own geometry instead.
+  for pin_name, text in overrides.items():
+    if not text:
+      continue
+    spot = _free_pin_label(symbol, cell, pin_name, symbol_scale)
+    if spot:
+      (x, y), anchor = spot
+      _pin_label(x, y, anchor, text, font_scale, out)
 
   label = cell.get("label")
   if label:
@@ -225,6 +236,45 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
         ("font-weight", "600"),
         ("fill", theme.COLORS["label"])]),
       esc(label)))
+
+
+def _pin_label(x, y, anchor, text, font_scale, out):
+  """One pin name, upright and at a fixed size whatever the cell is doing."""
+  out.append("<text %s>%s</text>" % (
+    _attrs([
+      ("x", fmt(x)), ("y", fmt(y)),
+      ("text-anchor", anchor),
+      ("font-family", theme.FONT_SANS),
+      ("font-size", fmt(theme.FONT_SIZES["pin_label"] * font_scale, 2)),
+      ("fill", theme.COLORS["pin_label"])]),
+    esc(text)))
+
+
+def _free_pin_label(symbol, cell, pin_name, symbol_scale):
+  """Where to write a name for a pin the symbol itself does not label.
+
+  Set just inside the body, on the face the pin sits on, so it reads as the
+  block's own labelling rather than as a stray note. Returns sheet
+  coordinates and a text anchor, or None if the pin does not exist.
+  """
+  pin = symbol.pin(pin_name)
+  if pin is None:
+    return None
+
+  inset = theme.PIN_LABEL_INSET
+  if pin["x"] <= 1e-6:
+    local, anchor = (pin["x"] + inset, pin["y"] + 4), "start"
+  elif pin["x"] >= symbol.width - 1e-6:
+    local, anchor = (pin["x"] - inset, pin["y"] + 4), "end"
+  elif pin["y"] <= 1e-6:
+    local, anchor = (pin["x"], pin["y"] + inset + 4), "middle"
+  else:
+    local, anchor = (pin["x"], pin["y"] - inset), "middle"
+
+  matrix = symbol.matrix_for(cell, symbol_scale)
+  if cell.get("mirror"):
+    anchor = {"start": "end", "end": "start"}.get(anchor, anchor)
+  return matrix.apply(local[0], local[1]), anchor
 
 
 def _arrow_at(points, size):

@@ -62,6 +62,10 @@ FONT_SIZES = {
   "shape_text": 14.0,
 }
 
+# How far inside the body a pin name sits when the symbol does not draw one
+# itself, so a named block pin reads as the block's own labelling.
+PIN_LABEL_INSET = 8.0
+
 JUNCTION_RADIUS = 3.2
 ARROW_SIZE = 7.0
 

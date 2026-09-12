@@ -226,19 +226,32 @@ export class Inspector {
     root.appendChild(element("div", "ptitle", "Pins"));
     const doc = this.store.doc;
 
+    const labels = cell.pins || {};
+
     for (const pin of symbol.pins) {
       const nets = doc.nets.filter((net) =>
         ["from", "to"].some((side) =>
           net[side] && net[side].cell === cell.id && net[side].pin === pin.name));
 
-      const value = element("div", "pval");
+      // Name the pin on this instance. Blank falls back to whatever the
+      // symbol draws, which for a generic block is nothing at all.
+      const field = input(labels[pin.name] || "");
+      field.placeholder = pin.name;
+      this.bind(field, (d, value) =>
+        model.setPinLabel(d, cell.id, pin.name, value.trim()), "name pin");
+
+      const value = element("div", "pval pinwire");
       if (!nets.length) {
         value.textContent = `${pin.dir} - unconnected`;
         value.classList.add("unconnected");
       } else {
         value.textContent = `${pin.dir} - ${nets.map((n) => n.name || n.id).join(", ")}`;
       }
-      root.appendChild(row(pin.name, value));
+
+      const wrap = element("div", "pinrow");
+      wrap.appendChild(field);
+      wrap.appendChild(value);
+      root.appendChild(row(pin.name, wrap));
     }
   }
 

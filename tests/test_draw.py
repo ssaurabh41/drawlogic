@@ -300,6 +300,76 @@ class TestStrokeWeight(unittest.TestCase):
     self.assertAlmostEqual(width * 4, 1.6, places=2)
 
 
+class TestPinLabels(unittest.TestCase):
+  """Naming a pin on one instance, without touching the symbol."""
+
+  def cell(self, cell_type, **extra):
+    doc = new_document()
+    cell = {"id": "u1", "type": cell_type, "x": 100, "y": 100}
+    cell.update(extra)
+    doc.cells.append(cell)
+    doc.normalize()
+    return doc
+
+  def test_a_name_replaces_the_symbols_own_label(self):
+    doc = self.cell("dff", pins={"ck": "wclk"})
+    svg = render_svg.render(doc)
+    self.assertIn(">wclk<", svg)
+    self.assertNotIn(">CK<", svg)
+    # The other two are untouched.
+    self.assertIn(">D<", svg)
+    self.assertIn(">Q<", svg)
+
+  def test_an_empty_name_hides_the_symbols_label(self):
+    doc = self.cell("dff", pins={"ck": ""})
+    svg = render_svg.render(doc)
+    self.assertNotIn(">CK<", svg)
+
+  def test_a_block_with_no_labels_of_its_own_gets_one(self):
+    doc = self.cell("block", pins={"in1": "wptr"})
+    svg = render_svg.render(doc)
+    self.assertIn(">wptr<", svg)
+
+  def test_the_label_lands_inside_the_body_on_the_pins_own_face(self):
+    doc = self.cell("block", pins={"in1": "L", "out1": "R"})
+    svg = render_svg.render(doc)
+    left = re.search(r'<text x="([\d.]+)"[^>]*text-anchor="(\w+)"[^>]*>L<', svg)
+    right = re.search(r'<text x="([\d.]+)"[^>]*text-anchor="(\w+)"[^>]*>R<', svg)
+    self.assertIsNotNone(left)
+    self.assertIsNotNone(right)
+    # in1 sits on the west face at x=100, out1 on the east face at x=240.
+    self.assertGreater(float(left.group(1)), 100)
+    self.assertLess(float(right.group(1)), 240)
+    self.assertEqual(left.group(2), "start")
+    self.assertEqual(right.group(2), "end")
+
+  def test_a_mirrored_cell_flips_the_anchor(self):
+    doc = self.cell("block", pins={"in1": "L"}, mirror=True)
+    svg = render_svg.render(doc)
+    anchor = re.search(r'<text [^>]*text-anchor="(\w+)"[^>]*>L<', svg)
+    self.assertEqual(anchor.group(1), "end")
+
+  def test_naming_a_pin_that_does_not_exist_is_an_error(self):
+    doc = self.cell("block", pins={"nope": "x"})
+    errors = [i for i in doc.validate() if i.level == "error"]
+    self.assertTrue(any("nope" in str(i) for i in errors))
+
+  def test_every_labelled_symbol_ties_its_labels_to_real_pins(self):
+    # The override only works because each pin_label draw op says which pin it
+    # belongs to. A new symbol that forgets the link would silently ignore the
+    # cell's name.
+    registry = default_registry()
+    for symbol_id in registry.ids():
+      symbol = registry.require(symbol_id)
+      names = {pin["name"] for pin in symbol.pins}
+      for op in symbol.draw:
+        if op.get("role") != "pin_label":
+          continue
+        with self.subTest(symbol=symbol_id, text=op.get("text")):
+          self.assertIn(op.get("pin"), names,
+                        "pin_label %r is not tied to a pin" % op.get("text"))
+
+
 class TestSymbolPreview(unittest.TestCase):
 
   def test_previews_a_single_symbol(self):

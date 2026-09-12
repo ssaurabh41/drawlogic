@@ -273,6 +273,18 @@ export function setStyle(doc, ids, key, value) {
   }
 }
 
+// Name one pin on one instance. An empty name drops back to whatever the
+// symbol itself draws, so clearing the field is always a way back.
+export function setPinLabel(doc, cellId, pinName, label) {
+  const cell = doc.cells.find((c) => c.id === cellId);
+  if (!cell) return;
+  const pins = { ...(cell.pins || {}) };
+  if (label) pins[pinName] = label;
+  else delete pins[pinName];
+  if (Object.keys(pins).length) cell.pins = pins;
+  else delete cell.pins;
+}
+
 export function setLabel(doc, id, label) {
   const item = itemById(doc, id);
   if (!item) return;

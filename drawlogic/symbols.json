@@ -778,7 +778,8 @@
         "y": 19,
         "text": "D",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d"
       },
       {
         "op": "text",
@@ -786,7 +787,8 @@
         "y": 49,
         "text": "CK",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "ck"
       },
       {
         "op": "text",
@@ -794,7 +796,8 @@
         "y": 19,
         "text": "Q",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "q"
       }
     ]
   },
@@ -883,7 +886,8 @@
         "y": 19,
         "text": "D",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d"
       },
       {
         "op": "text",
@@ -891,7 +895,8 @@
         "y": 49,
         "text": "CK",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "ck"
       },
       {
         "op": "text",
@@ -899,7 +904,8 @@
         "y": 19,
         "text": "Q",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "q"
       },
       {
         "op": "text",
@@ -907,7 +913,8 @@
         "y": 56,
         "text": "RN",
         "anchor": "middle",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "rn"
       }
     ]
   },
@@ -977,7 +984,8 @@
         "y": 19,
         "text": "D",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d"
       },
       {
         "op": "text",
@@ -985,7 +993,8 @@
         "y": 49,
         "text": "G",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "g"
       },
       {
         "op": "text",
@@ -993,7 +1002,8 @@
         "y": 19,
         "text": "Q",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "q"
       }
     ]
   },
@@ -1073,7 +1083,8 @@
         "y": 19,
         "text": "CK",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "ck"
       },
       {
         "op": "text",
@@ -1081,7 +1092,8 @@
         "y": 49,
         "text": "E",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "e"
       },
       {
         "op": "text",
@@ -1089,7 +1101,8 @@
         "y": 19,
         "text": "GCK",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "gck"
       }
     ]
   },
@@ -1187,7 +1200,8 @@
         "y": 19,
         "text": "0",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d0"
       },
       {
         "op": "text",
@@ -1195,7 +1209,8 @@
         "y": 49,
         "text": "1",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d1"
       },
       {
         "op": "text",
@@ -1203,7 +1218,8 @@
         "y": 37,
         "text": "S",
         "anchor": "middle",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "s"
       }
     ]
   },
@@ -1330,7 +1346,8 @@
         "y": 14,
         "text": "0",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d0"
       },
       {
         "op": "text",
@@ -1338,7 +1355,8 @@
         "y": 34,
         "text": "1",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d1"
       },
       {
         "op": "text",
@@ -1346,7 +1364,8 @@
         "y": 54,
         "text": "2",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d2"
       },
       {
         "op": "text",
@@ -1354,7 +1373,8 @@
         "y": 74,
         "text": "3",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d3"
       },
       {
         "op": "text",
@@ -1362,7 +1382,8 @@
         "y": 64,
         "text": "S",
         "anchor": "middle",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "s"
       }
     ]
   },
@@ -2130,7 +2151,8 @@
         "y": 19,
         "text": "D",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "d"
       },
       {
         "op": "text",
@@ -2138,7 +2160,8 @@
         "y": 49,
         "text": "CK",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "ck"
       },
       {
         "op": "text",
@@ -2146,7 +2169,8 @@
         "y": 19,
         "text": "Q",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "q"
       }
     ]
   },
@@ -2214,7 +2238,8 @@
         "y": 34,
         "text": "WDATA",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "wdata"
       },
       {
         "op": "text",
@@ -2222,7 +2247,8 @@
         "y": 74,
         "text": "WADDR",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "waddr"
       },
       {
         "op": "text",
@@ -2230,7 +2256,8 @@
         "y": 114,
         "text": "WE",
         "anchor": "start",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "wen"
       },
       {
         "op": "text",
@@ -2238,7 +2265,8 @@
         "y": 34,
         "text": "RDATA",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "rdata"
       },
       {
         "op": "text",
@@ -2246,7 +2274,8 @@
         "y": 74,
         "text": "RADDR",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "raddr"
       },
       {
         "op": "text",
@@ -2254,7 +2283,8 @@
         "y": 114,
         "text": "RE",
         "anchor": "end",
-        "role": "pin_label"
+        "role": "pin_label",
+        "pin": "ren"
       }
     ]
   }

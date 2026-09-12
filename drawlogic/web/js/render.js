@@ -118,6 +118,26 @@ function gridPattern(grid) {
   return pattern;
 }
 
+// Where to write a name for a pin the symbol itself does not label: just
+// inside the body, on the face the pin sits on, so it reads as the block's own
+// labelling rather than as a stray note.
+function freePinLabel(symbol, cell, pinName, scale) {
+  const pin = geometry.findPin(symbol, pinName);
+  if (!pin) return null;
+
+  const inset = theme.pinLabelInset || 8;
+  const [w, h] = symbol.size;
+  let local;
+  let anchor;
+  if (pin.x <= 1e-6) { local = [pin.x + inset, pin.y + 4]; anchor = "start"; }
+  else if (pin.x >= w - 1e-6) { local = [pin.x - inset, pin.y + 4]; anchor = "end"; }
+  else if (pin.y <= 1e-6) { local = [pin.x, pin.y + inset + 4]; anchor = "middle"; }
+  else { local = [pin.x, pin.y - inset]; anchor = "middle"; }
+
+  if (cell.mirror) anchor = { start: "end", end: "start" }[anchor] || anchor;
+  return [geometry.matrixFor(symbol, cell, scale).apply(local[0], local[1]), anchor];
+}
+
 function renderCell(symbol, cell, fontScale, scale, into) {
   const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
@@ -150,19 +170,39 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   // Pin labels travel with the cell but are drawn upright at a fixed size, so
   // a rotated or enlarged gate still has readable pin names.
   const mirrored = Boolean(cell.mirror);
-  for (const op of symbol.draw) {
-    if (op.op !== "text") continue;
-    const [x, y] = matrix.apply(op.x, op.y);
-    let anchor = op.anchor || "start";
-    if (mirrored) anchor = { start: "end", end: "start" }[anchor] || anchor;
+  const overrides = { ...(cell.pins || {}) };
+  const pinLabel = (x, y, anchor, content) => {
     const text = el("text", {
       x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": anchor,
       "font-family": theme.fontSans,
       "font-size": geometry.fmt(theme.fontSizes.pin_label * fontScale, 2),
       fill: theme.colors.pin_label,
     });
-    text.textContent = op.text;
+    text.textContent = content;
     into.appendChild(text);
+  };
+
+  for (const op of symbol.draw) {
+    if (op.op !== "text") continue;
+    // A cell may rename a pin the symbol already labels: same spot, new word.
+    let content = op.text;
+    if (op.pin !== undefined && op.pin in overrides) {
+      content = overrides[op.pin];
+      delete overrides[op.pin];
+      if (!content) continue;
+    }
+    const [x, y] = matrix.apply(op.x, op.y);
+    let anchor = op.anchor || "start";
+    if (mirrored) anchor = { start: "end", end: "start" }[anchor] || anchor;
+    pinLabel(x, y, anchor, content);
+  }
+
+  // Whatever is left names a pin the symbol draws no label for -- a generic
+  // block, say -- so place one from the pin's own geometry instead.
+  for (const [pinName, content] of Object.entries(overrides)) {
+    if (!content) continue;
+    const spot = freePinLabel(symbol, cell, pinName, scale);
+    if (spot) pinLabel(spot[0][0], spot[0][1], spot[1], content);
   }
 
   if (cell.label) {

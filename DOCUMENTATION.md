@@ -276,6 +276,7 @@ passed.
 | `rotate` | 0, 90, 180 or 270, about the cell's centre |
 | `mirror` | flipped left-to-right |
 | `label` | instance name, drawn above the cell |
+| `pins` | per-pin names, e.g. `{"in1": "wptr"}`; see below |
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |
 | `ref` | reserved for hierarchy; ignored today |
@@ -396,6 +397,28 @@ bit and rejects a bus.
 
 A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
 is one bit, so wiring a bus to it is an error the checker will catch.
+
+### Naming the pins on one instance
+
+A symbol's pin labels are part of the symbol: every `dff` says `D`, `CK`, `Q`.
+A generic `block` says nothing at all, which leaves a reader tracing wires to
+find out what a pin is for.
+
+`cell.pins` names the pins on one instance without touching the symbol:
+
+```json
+{ "id": "wfull", "type": "block",
+  "pins": { "in1": "wptr_g", "in2": "rptr_g2", "out1": "wfull" } }
+```
+
+- Where the symbol already labels that pin, the name replaces it in the same
+  spot -- `{"ck": "wclk"}` on a flip-flop writes `wclk` where `CK` was.
+- Where it does not, the name is placed just inside the body on the face the
+  pin sits on, so a block labels itself.
+- An empty string hides the symbol's own label.
+
+Naming a pin the symbol does not have is a validation error. In the editor the
+Pins panel has a field per pin; clearing it goes back to the symbol's default.
 
 ### Junction dots and crossing hops
 

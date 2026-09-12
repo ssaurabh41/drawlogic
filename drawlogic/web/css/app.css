@@ -281,6 +281,11 @@ select {
 .pval { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pval.unconnected { color: var(--warm); }
 
+/* A pin row carries its name field above what the pin is wired to. */
+.pinrow { display: grid; gap: 3px; min-width: 0; }
+.pinrow .pinwire { background: none; border: 0; padding: 0 1px; font-size: 10.5px;
+                   color: var(--ink-3); }
+
 input.pcolor { padding: 1px; height: 24px; cursor: pointer; width: 42px; }
 
 .swatch { display: flex; align-items: center; gap: 7px; }

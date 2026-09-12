@@ -102,6 +102,14 @@
       "rotate": 0,
       "mirror": false,
       "label": "wptr_gray",
+      "pins": {
+        "in1": "winc",
+        "in2": "wrst_n",
+        "in3": "wclk",
+        "out1": "waddr",
+        "out2": "wclken",
+        "out3": "wptr_g"
+      },
       "style": {
         "fill": "#e8f2f6"
       }
@@ -116,6 +124,11 @@
       "rotate": 0,
       "mirror": true,
       "label": "full_cmp",
+      "pins": {
+        "in1": "wptr_g",
+        "in2": "rptr_g2",
+        "out1": "wfull"
+      },
       "style": {
         "fill": "#e8f2f6"
       }
@@ -218,6 +231,14 @@
       "rotate": 0,
       "mirror": true,
       "label": "rptr_gray",
+      "pins": {
+        "in1": "rinc",
+        "in2": "rrst_n",
+        "in3": "rclk",
+        "out1": "raddr",
+        "out2": "rclken",
+        "out3": "rptr_g"
+      },
       "style": {
         "fill": "#f7efe6"
       }
@@ -232,6 +253,11 @@
       "rotate": 0,
       "mirror": false,
       "label": "empty_cmp",
+      "pins": {
+        "in1": "rptr_g",
+        "in2": "wptr_g2",
+        "out1": "rempty"
+      },
       "style": {
         "fill": "#f7efe6"
       }

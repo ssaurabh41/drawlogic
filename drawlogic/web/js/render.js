@@ -64,6 +64,10 @@ function opElement(op, paint) {
     }
     case "rect":
       return el("rect", { x: op.x, y: op.y, width: op.w, height: op.h, ...paint });
+    case "ellipse":
+      return el("ellipse", {
+        cx: op.cx, cy: op.cy, rx: op.rx, ry: op.ry, ...paint,
+      });
     case "circle":
       return el("circle", { cx: op.cx, cy: op.cy, r: op.r, ...paint });
     case "polygon":

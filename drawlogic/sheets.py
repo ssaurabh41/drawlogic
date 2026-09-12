@@ -174,9 +174,13 @@ def open_document(path, base=None):
   it, so the same text names different files in different folders, and
   resolving one drawing must never change what another sees.
   """
-  from .symbols import default_registry
+  from .symbols import default_registry, load_folder
 
   registry = (base or default_registry()).copy()
+  # A drawing's folder may carry symbols of its own, the way it may carry the
+  # drawings it references. Picking them up here is what lets the editor's
+  # Save as symbol be seen by `drawlogic export` without a flag.
+  load_folder(registry, os.path.dirname(os.path.abspath(path)))
   doc = Document.load(path)
   issues = resolve(doc, registry)
   # Only now can a referenced block be given a size: until the reference

@@ -482,6 +482,50 @@ async function autoLayout() {
   }
 }
 
+// The palette is rebuilt rather than patched when a symbol is added, because
+// it is grouped by category and a new symbol may open a new group.
+function rebuildPalette() {
+  buildPalette(ui.paletteBody, {
+    onPick: (id) => {
+      tools.place.arm(id);
+      setTool("place");
+      say(`click the canvas to place ${id} (shift-click to keep placing)`);
+    },
+  });
+}
+
+// Turn the open drawing into a symbol the palette offers.
+//
+// There is no separate symbol editor, because a symbol is very nearly a
+// drawing already: the shapes are the artwork and the ports say where the
+// pins go. So it is made with the tools that are already here, and this is
+// the one command that converts it. The same rule hierarchy uses -- a
+// drawing's ports are the pins of the block standing for it -- one level down.
+async function saveAsSymbol() {
+  if (!store.doc) return;
+  const suggested = (store.doc.title || "my_symbol")
+    .replace(/[^A-Za-z0-9_]/g, "_").replace(/^[^A-Za-z]+/, "") || "my_symbol";
+  const id = window.prompt(
+    "Save this drawing as a symbol.\n\n"
+    + "Its shapes become the artwork and its ports become the pins.\n"
+    + "Symbol id (letters, digits and underscores):", suggested);
+  if (!id) return;
+
+  try {
+    const result = await api("/api/symbol", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc: store.doc, id, name: store.doc.title }),
+    });
+    geometry.setLibrary(result.symbols);
+    rebuildPalette();
+    say(`${result.id} is in the palette now, and in this folder's symbols.json`,
+        "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
 function syncControls() {
   const canvas = store.doc.canvas || {};
   ui.gridSelect.value = (canvas.grid || {}).style || "dots";
@@ -528,6 +572,7 @@ function bindControls() {
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
   ui.btnPng.addEventListener("click", copyPng);
+  ui.btnSymbol.addEventListener("click", saveAsSymbol);
   ui.undo.addEventListener("click", () => stepHistory(true));
   ui.redo.addEventListener("click", () => stepHistory(false));
 
@@ -641,6 +686,7 @@ async function start() {
     btnSave: $("btn-save"),
     btnExport: $("btn-export"),
     btnPng: $("btn-png"),
+    btnSymbol: $("btn-symbol"),
     breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),
     undo: $("btn-undo"),
@@ -677,13 +723,7 @@ async function start() {
     ]);
     render.setTheme(theme);
     geometry.setLibrary(library);
-    buildPalette(ui.paletteBody, {
-      onPick: (id) => {
-        tools.place.arm(id);
-        setTool("place");
-        say(`click the canvas to place ${id} (shift-click to keep placing)`);
-      },
-    });
+    rebuildPalette();
 
     for (const file of listing.files) {
       const option = document.createElement("option");

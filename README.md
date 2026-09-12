@@ -72,6 +72,14 @@ The full key list, including the Arrange menu, is in the
 Saving is manual and nothing else writes to disk. The one automatic behaviour
 is the browser refusing to close a tab with unsaved changes.
 
+### Your own cells
+
+Draw an outline with the shape tools, drop ports where wires should land, and
+press **Save as symbol**. It goes into the palette straight away, and into a
+`symbols.json` beside the drawings -- a text file you can diff and commit,
+which `drawlogic export` and `drawlogic validate` pick up with no flags. The
+shapes become the artwork, the ports become the pins.
+
 ## Command line
 
 ```bash
@@ -116,6 +124,7 @@ drawlogic/
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
+  authoring.py    turning a drawing of shapes and ports into a symbol
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
   cli.py          serve, export, layout, symbols, info, validate, help

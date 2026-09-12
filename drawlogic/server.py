@@ -22,6 +22,7 @@ Endpoints:
     POST /api/doc?path=    save a drawing, re-emitted canonically
     POST /api/export       render to SVG, optionally writing it to disk
     POST /api/layout       rearrange a drawing and hand it back unwritten
+    POST /api/symbol       turn the drawing into a symbol the palette offers
 
 A drawing that references others comes back with a block symbol for each,
 under `sheets`, because those blocks are built from the referenced drawings'
@@ -33,6 +34,7 @@ escape it.
 
 import json
 import os
+import re
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -40,9 +42,16 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import render_svg
 from . import theme
+from . import authoring
 from . import layout
 from . import sheets
 from .doc import Document, DocumentError
+from .symbols import (FOLDER_FILE, Symbol, SymbolError,
+                      default_registry, load_folder)
+
+# Letters, digits and underscores: a symbol id is a key in a JSON file and a
+# type name in every drawing that uses it.
+_SYMBOL_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 
@@ -229,6 +238,8 @@ class Handler(BaseHTTPRequestHandler):
       return self._export(payload)
     if route == "/api/layout":
       return self._layout(payload)
+    if route == "/api/symbol":
+      return self._save_symbol(payload)
     return self._fail(404, "no such endpoint")
 
   def _save(self, payload):
@@ -295,6 +306,37 @@ class Handler(BaseHTTPRequestHandler):
                             "shapes": len(document.shapes)})
 
 
+  def _save_symbol(self, payload):
+    """Turn the open drawing into a symbol and add it to the folder's library.
+
+    Written next to the drawings, under the name every reader already looks
+    for, so `drawlogic export` sees it without being told about it.
+    """
+    try:
+      document = Document.from_data(payload.get("doc") or {})
+    except (DocumentError, TypeError, ValueError) as exc:
+      return self._fail(422, "document is not valid: %s" % exc)
+
+    symbol_id = str(payload.get("id") or "").strip()
+    if not _SYMBOL_ID.match(symbol_id):
+      return self._fail(400, "a symbol id is letters, digits and underscores")
+
+    try:
+      data = authoring.symbol_from(document, symbol_id,
+                                   name=payload.get("name"),
+                                   category=payload.get("category") or "custom")
+      authoring.add_to_file(os.path.join(self.root, FOLDER_FILE),
+                            symbol_id, data)
+    except (authoring.AuthoringError, SymbolError) as exc:
+      return self._fail(422, str(exc))
+    except OSError as exc:
+      return self._fail(500, "cannot write: %s" % exc)
+
+    self.registry.add(Symbol(symbol_id, data),
+                      source=os.path.join(self.root, FOLDER_FILE))
+    return self._send_json({"id": symbol_id, "symbols": self.registry.as_data()})
+
+
   def _export(self, payload):
     try:
       document = Document.from_data(payload.get("doc") or {})
@@ -352,6 +394,9 @@ def serve(root=".", host="127.0.0.1", port=8080, registry=None,
   if not os.path.isdir(root):
     raise ValueError("no such directory: %s" % root)
 
+  registry = (registry or default_registry()).copy()
+  folder_file = load_folder(registry, root)
+
   handler = type("BoundHandler", (Handler,), {
     "root": root,
     "registry": registry,
@@ -364,6 +409,8 @@ def serve(root=".", host="127.0.0.1", port=8080, registry=None,
     url += "?open=" + initial
 
   print("drawlogic serving %s" % root)
+  if folder_file:
+    print("  with your own symbols from %s" % os.path.basename(folder_file))
   print("  %s" % url)
   if host in ("127.0.0.1", "localhost"):
     print("  (loopback only; for a remote box use: ssh -L %d:localhost:%d you@host)"

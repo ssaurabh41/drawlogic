@@ -106,6 +106,11 @@ def _op_element(op, paint):
       ("x", fmt(op["x"])), ("y", fmt(op["y"])),
       ("width", fmt(op["w"])), ("height", fmt(op["h"]))] + pairs)
 
+  if kind == "ellipse":
+    return "<ellipse %s />" % _attrs([
+      ("cx", fmt(op["cx"])), ("cy", fmt(op["cy"])),
+      ("rx", fmt(op["rx"])), ("ry", fmt(op["ry"]))] + pairs)
+
   if kind == "circle":
     return "<circle %s />" % _attrs([
       ("cx", fmt(op["cx"])), ("cy", fmt(op["cy"])), ("r", fmt(op["r"]))] + pairs)

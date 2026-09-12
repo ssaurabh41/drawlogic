@@ -252,6 +252,20 @@ def load_path(registry, path):
   return registry
 
 
+# A folder's own symbols live beside its drawings under this name, which is
+# what the editor writes and what every reader picks up.
+FOLDER_FILE = "symbols.json"
+
+
+def load_folder(registry, folder):
+  """Add a folder's own symbols, if it has any. Returns the file, or None."""
+  path = os.path.join(folder or ".", FOLDER_FILE)
+  if not os.path.isfile(path):
+    return None
+  load_file(registry, path)
+  return path
+
+
 def load_registry(extra=None):
   """Built-in symbols, then any extra files or directories, which override."""
   registry = Registry()

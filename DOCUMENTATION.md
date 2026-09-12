@@ -216,6 +216,48 @@ Place a `custom` cell, select it, and pick an image file in the properties
 panel. The picture is embedded in the `.dlg` as a data URI, so the drawing
 stays one shippable file rather than a file plus a folder of images.
 
+### Making your own symbol
+
+There is no separate symbol editor, because a symbol is already very nearly a
+drawing: a box, a pin list and some draw ops. So a custom cell is authored as
+an ordinary drawing, with the tools that are already there.
+
+1. Draw the outline and any markings with the shape tools -- box, line,
+   polygon, text.
+2. Drop a port on each edge where a wire should land. `port_in` becomes an
+   input pin, `port_out` an output, `port_inout` a bidirectional one, and the
+   port's name becomes the pin's name.
+3. **Save as symbol**, and give it an id (letters, digits and underscores).
+
+It appears immediately in the palette under **custom**, and is placed by
+clicking it and then clicking the canvas, the same as any built-in.
+
+Two things the conversion decides, both worth knowing before you draw:
+
+**The artwork sets the body.** The body box is the bounding box of the
+*shapes*, not of the ports. A port sits beside the thing it connects to, so
+counting it would leave every pin sunk inside the outline rather than sitting
+on it.
+
+**Each pin snaps to the nearest edge it is outside of.** A pin on an edge
+faces outwards, and which way it faces is what the router reads to decide
+which side a wire leaves from. So a port dropped roughly in the right place is
+moved exactly onto the edge it was nearest -- you do not have to land it on
+the pixel.
+
+The result is written to `symbols.json` in the folder you are serving, in the
+same format as the built-in library, so it is a text file you can diff, edit
+by hand, and commit alongside the drawings that use it. Every reader picks it
+up automatically:
+
+```bash
+drawlogic validate board.dlg        # knows my_block, no flags needed
+drawlogic symbols preview my_block -o my_block.svg
+```
+
+A drawing that uses a custom cell needs `symbols.json` beside it, the same way
+a hierarchical block needs the drawing it refers to.
+
 ---
 
 ## The .dlg file
@@ -418,6 +460,15 @@ drawlogic --symbols-dir ~/my-cells/ export foo.dlg -o foo.svg
 
 Accepts a file or a directory of `.json` files. An entry with the same id as a
 built-in overrides it.
+
+A `symbols.json` sitting **beside the drawings** is loaded without any flag,
+by the editor and by every CLI subcommand. That is where
+[Save as symbol](#making-your-own-symbol) writes, and it means a folder of
+drawings plus the cells they use is self-contained: clone it and everything
+resolves. `--symbols-dir` is for a library you share across folders.
+
+Load order is built-ins, then `--symbols-dir` in the order given, then the
+folder's own file -- so the nearest definition wins.
 
 ---
 
@@ -722,9 +773,10 @@ drawlogic/
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
+  authoring.py    turning a drawing of shapes and ports into a symbol
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
-  cli.py          serve, export, symbols, info, validate, help
+  cli.py          serve, export, layout, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
   web/
     index.html, css/app.css
@@ -815,7 +867,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-The suite is in seven parts:
+The suite is in ten parts:
 
 | File | Covers |
 |---|---|
@@ -828,6 +880,7 @@ The suite is in seven parts:
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
+| `tests/test_authoring.py` | turning a drawing into a symbol |
 
 ### The regression suite
 

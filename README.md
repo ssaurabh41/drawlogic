@@ -113,11 +113,12 @@ drawlogic/
   symbols.py      symbol registry, pin resolution
   symbols.json    the cell library
   doc.py          .dlg load, save, normalise, validate, bus names
+  layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
-  cli.py          serve, export, symbols, info, validate, help
+  cli.py          serve, export, layout, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
   web/            the browser editor (11 modules, no build step)
 tests/            unittest, a golden-file regression suite, a JS parity check

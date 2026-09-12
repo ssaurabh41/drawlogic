@@ -20,6 +20,7 @@ import sys
 
 from . import render_svg
 from .doc import Document, DocumentError
+from . import layout
 from . import sheets
 from .symbols import SymbolError, load_registry
 
@@ -181,6 +182,29 @@ def cmd_info(args):
       detail = "%d cells, %d nets" % (len(child.cells), len(child.nets)) \
         if child is not None else "cannot be read"
       print("  %s%s  (%s)" % ("  " * depth, ref, detail))
+  return 0
+
+
+def cmd_layout(args):
+  """Rearrange a drawing so it reads left to right, and write it back."""
+  registry = _registry(args)
+  doc, registry, problems = _open(args.file, registry)
+  _report_refs(args.file, problems)
+
+  result = layout.arrange(doc, registry, gap_x=args.gap_x, gap_y=args.gap_y)
+  target = args.output or args.file
+  try:
+    doc.save(target)
+  except OSError as exc:
+    raise SystemExit("%s: cannot write %s: %s" % (PROG, target, exc))
+
+  if not _quiet(args):
+    print("%s: %s" % (target, result))
+    if doc.shapes:
+      # Only cells are moved, because nothing says which cell a band or a
+      # caption belongs to.
+      print("%d shape%s left where they were; they may need nudging"
+            % (len(doc.shapes), "" if len(doc.shapes) == 1 else "s"))
   return 0
 
 
@@ -362,6 +386,17 @@ def build_parser():
   info = subs.add_parser("info", parents=[common], help="summarise a drawing")
   info.add_argument("file", metavar="FILE")
   info.set_defaults(func=cmd_info)
+
+  arrange = subs.add_parser("layout", parents=[common],
+                            help="lay a drawing out from what it is wired to")
+  arrange.add_argument("file")
+  arrange.add_argument("-o", "--output", metavar="PATH",
+                       help="write here instead of over the original")
+  arrange.add_argument("--gap-x", type=float, default=layout.GAP_X,
+                       metavar="N", help="room between columns")
+  arrange.add_argument("--gap-y", type=float, default=layout.GAP_Y,
+                       metavar="N", help="room between cells in a column")
+  arrange.set_defaults(func=cmd_layout)
 
   validate = subs.add_parser("validate", parents=[common],
                              help="check a drawing for problems")

@@ -498,6 +498,47 @@ Pin alignment wins even when the edge match is closer. The pull reaches about
 8 screen pixels, so it feels the same however far you are zoomed in. Hold
 `Alt` while dragging to turn it off and place a cell exactly where you put it.
 
+### Auto layout
+
+`Arrange > Auto layout`, or `drawlogic layout FILE`, rearranges the whole
+drawing from what it is wired to. It is the difference between a correct
+drawing and a readable one, and it is the thing hand-placing cells cannot
+give you.
+
+Four passes:
+
+1. **Rank.** Each cell goes one column right of everything that drives it.
+   Feedback loops make that impossible, so the edges that close a loop are
+   found first and left out of the ranking -- they are still drawn, as the
+   wires that come back. Output ports are pushed to the right edge rather than
+   one step past whatever drives them, or the sheet ends in a staircase.
+2. **Order.** Cells within a column are sorted by the median position of their
+   neighbours in the next column along, swept back and forth. Wires cross when
+   the order in one column disagrees with the next; the median is the cheap
+   way to make them agree.
+3. **Place.** Columns left to right. Within a column each cell sits at the
+   height that makes its incoming wire straight -- following one driver
+   rather than the average of several, because one wire dead straight beats
+   two half-straight -- then cells are pushed apart where two want the same
+   room.
+4. **Fit.** The sheet is resized to what is actually drawn, wires included.
+
+It also turns every cell to face forward and drops every waypoint. A mirrored
+block has its inputs on the east, so in a left-to-right layout every wire into
+it comes round the back; and a waypoint is a coordinate on the old sheet,
+which after everything moves names a place with nothing at it.
+
+**Only cells move.** Bands, captions and dividers stay where they are, because
+nothing says which cell a shape belongs to -- expect to nudge them after. The
+status bar and the CLI both say how many were left behind.
+
+Running it twice changes nothing the second time, so you can always tell
+whether it did something.
+
+The work happens in Python, in `layout.py`, and the editor calls it over
+`/api/layout`. A layout is not a gesture, so the round trip costs nothing, and
+there is one implementation of it the way there is one renderer.
+
 ### Tidy up
 
 `Arrange > Tidy up` pulls the selected cells into line with what they are wired
@@ -620,6 +661,7 @@ drawlogic/
   symbols.py      symbol registry, pin resolution
   symbols.json    the cell library -- add entries here, not code
   doc.py          .dlg load, save, normalise, validate, bus names
+  layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
   render_svg.py   the only path from document to SVG
@@ -715,7 +757,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-The suite is in five parts:
+The suite is in six parts:
 
 | File | Covers |
 |---|---|
@@ -726,6 +768,7 @@ The suite is in five parts:
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | drag-time alignment and Tidy |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
+| `tests/test_layout.py` | auto layout: flow, overlap, settling |
 
 ### The regression suite
 

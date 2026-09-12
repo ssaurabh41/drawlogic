@@ -292,6 +292,7 @@ function runCommand(command) {
     front: () => apply("z-order", (d, ids) => model.bringToFront(d, ids),
                        "brought to front"),
     back: () => apply("z-order", (d, ids) => model.sendToBack(d, ids), "sent to back"),
+    layout: autoLayout,
     tidy: () => {
       if (!selection.size) {
         say("select the cells to tidy", "bad");
@@ -423,6 +424,42 @@ async function copyPng() {
       say(`clipboard refused (${clipboardError.message}); downloaded instead`,
           "good");
     }
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
+// Rearrange the whole drawing from what it is wired to. Python does the work
+// -- see server._layout -- so there is one implementation of it, the same way
+// there is one renderer. A layout is not a gesture, so the round trip costs
+// nothing, and the answer lands as a single undo step.
+async function autoLayout() {
+  if (!store.doc) return;
+  if (!store.doc.cells.length) {
+    say("nothing to lay out", "bad");
+    return;
+  }
+  say("laying out...");
+  try {
+    const result = await api("/api/layout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc: store.doc, source: store.path }),
+    });
+    store.mutate("auto layout", (doc) => {
+      // Replacing the contents rather than the object keeps every other
+      // reference to the document valid.
+      for (const key of Object.keys(doc)) delete doc[key];
+      Object.assign(doc, result.doc);
+    });
+    selection.clear();
+    syncControls();
+    redraw();
+    inspector.render();
+    viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
+    const stranded = result.shapes
+      ? `; ${result.shapes} shape(s) stayed put and may need nudging` : "";
+    say(`${result.note}${stranded}`, "good");
   } catch (error) {
     say(error.message, "bad");
   }

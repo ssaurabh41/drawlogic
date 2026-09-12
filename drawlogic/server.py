@@ -21,6 +21,7 @@ Endpoints:
     GET  /api/doc?path=    one drawing
     POST /api/doc?path=    save a drawing, re-emitted canonically
     POST /api/export       render to SVG, optionally writing it to disk
+    POST /api/layout       rearrange a drawing and hand it back unwritten
 
 A drawing that references others comes back with a block symbol for each,
 under `sheets`, because those blocks are built from the referenced drawings'
@@ -39,6 +40,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import render_svg
 from . import theme
+from . import layout
 from . import sheets
 from .doc import Document, DocumentError
 
@@ -225,6 +227,8 @@ class Handler(BaseHTTPRequestHandler):
       return self._save(payload)
     if route == "/api/export":
       return self._export(payload)
+    if route == "/api/layout":
+      return self._layout(payload)
     return self._fail(404, "no such endpoint")
 
   def _save(self, payload):
@@ -254,6 +258,42 @@ class Handler(BaseHTTPRequestHandler):
       return self._fail(500, "cannot write: %s" % exc)
 
     return self._send_json({"path": relative, "bytes": len(text)})
+
+  def _layout(self, payload):
+    """Lay a drawing out and hand it back, without writing anything.
+
+    The editor replaces its document with the answer, as one undo step. Doing
+    the work here rather than in the browser keeps the arranging in one place,
+    the same way rendering is; a layout is not a gesture, so a round trip
+    costs nothing.
+    """
+    try:
+      document = Document.from_data(payload.get("doc") or {})
+    except (DocumentError, TypeError, ValueError) as exc:
+      return self._fail(422, "document is not valid: %s" % exc)
+
+    registry = self.registry
+    source = payload.get("source")
+    if source:
+      resolved = _safe_join(self.root, source)
+      if resolved is None:
+        return self._fail(400, "source is outside the served directory")
+      document.path = resolved
+      registry = self.registry.copy()
+      sheets.resolve(document, registry)
+
+    options = payload.get("options") or {}
+    try:
+      result = layout.arrange(
+        document, registry,
+        gap_x=float(options.get("gapX", layout.GAP_X)),
+        gap_y=float(options.get("gapY", layout.GAP_Y)))
+    except (TypeError, ValueError) as exc:
+      return self._fail(422, "cannot lay out: %s" % exc)
+
+    return self._send_json({"doc": document.ordered(), "note": str(result),
+                            "shapes": len(document.shapes)})
+
 
   def _export(self, payload):
     try:

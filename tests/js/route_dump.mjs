@@ -11,10 +11,11 @@
 // here while routing properly there, and the comparison would pass on two
 // empty answers.
 //
-// Usage: node tests/js/route_dump.mjs SYMBOLS.json DRAWING.dlg
+// Usage: node tests/js/route_dump.mjs SYMBOLS.json DRAWING.dlg THEME.json
 
 import { readFileSync } from "node:fs";
 import * as geometry from "../../drawlogic/web/js/geometry.js";
+import * as render from "../../drawlogic/web/js/render.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
 
 const [symbolsPath, drawingPath] = process.argv.slice(2);
@@ -23,8 +24,24 @@ const doc = JSON.parse(readFileSync(drawingPath, "utf8"));
 
 const routes = routing.routeAll(doc);
 const hops = routing.hopPoints(routes);
+const canvas = doc.canvas || {};
+const fontScale = Number((canvas.font || {}).scale) || 1;
+
+// Rendering decisions, not just routing ones: where each name ends up and
+// where each direction arrow goes. Both are worked out twice, once per
+// language, and both are easy to let drift.
+const theme = JSON.parse(readFileSync(process.argv[4], "utf8"));
+render.setTheme(theme);
+const labels = render.labelSpots(routes, render.cellBoxes(doc),
+                                 [canvas.width, canvas.height], fontScale);
+
 process.stdout.write(JSON.stringify({
   routes: routes.map(({ net, points }) => [net.id, points]),
   junctions: routing.junctions(routes),
   hops: [...hops.entries()],
+  labels: [...labels.entries()],
+  arrows: routes.map(({ net, points }) => [
+    net.id,
+    points.length < 2 ? [] : render.arrowSpots(points, theme.arrowSize || 7),
+  ]),
 }));

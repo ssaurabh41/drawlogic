@@ -277,38 +277,83 @@ def _free_pin_label(symbol, cell, pin_name, symbol_scale):
   return matrix.apply(local[0], local[1]), anchor
 
 
-def _arrow_at(points, size):
-  """Where to put a direction arrow on a wire, and which way it points.
-
-  Sat near the receiving end, which is where a reader looks to ask "what
-  drives this?". Falls back to the longest segment when the last one is too
-  short to hold an arrow without colliding with the pin.
-  """
-  best = None
+def _walk(points, distance):
+  """The point a given way along a path, and the direction of travel there."""
   for index in range(len(points) - 1):
     ax, ay = points[index]
     bx, by = points[index + 1]
     length = abs(bx - ax) + abs(by - ay)
-    if best is None or length > best[0]:
-      best = (length, (ax, ay), (bx, by))
+    if length <= 0:
+      continue
+    if distance <= length:
+      ratio = distance / length
+      return ((ax + (bx - ax) * ratio, ay + (by - ay) * ratio),
+              ((bx - ax) / length, (by - ay) / length),
+              min(distance, length - distance))
+    distance -= length
+  return None
+
+
+def _path_length(points):
+  return sum(abs(points[i + 1][0] - points[i][0])
+             + abs(points[i + 1][1] - points[i][1])
+             for i in range(len(points) - 1))
+
+
+def _arrow_spots(points, size, spacing=None):
+  """Where a wire's direction arrows go, and which way each one points.
+
+  One always sits near the receiving end, which is where a reader looks to ask
+  "what drives this?". On a long run that arrow is nowhere near most of the
+  wire, so more are spaced along it -- close enough that the direction reads
+  wherever the eye lands, far enough apart that the wire does not turn into a
+  dotted line. Arrows are kept off corners, where a head pointing into the
+  bend is worse than no head at all.
+  """
+  if len(points) < 2:
+    return []
+
+  spacing = spacing or theme.ARROW_SPACING
+  total = _path_length(points)
 
   ax, ay = points[-2]
   bx, by = points[-1]
   last = abs(bx - ax) + abs(by - ay)
 
-  if last < size * 3 and best is not None:
-    _, (ax, ay), (bx, by) = best
-    tip = ((ax + bx) / 2.0, (ay + by) / 2.0)
+  if last < size * 3:
+    # The final run is too short to hold a head clear of the pin, so the arrow
+    # goes in the middle of the longest run instead.
+    best = None
+    for index in range(len(points) - 1):
+      px, py = points[index]
+      qx, qy = points[index + 1]
+      length = abs(qx - px) + abs(qy - py)
+      if best is None or length > best[0]:
+        best = (length, (px, py), (qx, qy))
+    _, (px, py), (qx, qy) = best
+    length = max(best[0], 1e-6)
+    spots = [(((px + qx) / 2.0, (py + qy) / 2.0),
+              ((qx - px) / length, (qy - py) / length))]
+    keep_clear = total
   else:
     # Back off from the pin so the head does not sit on top of it.
-    total = max(last, 1e-6)
     offset = size * 1.6
-    tip = (bx - (bx - ax) / total * offset, by - (by - ay) / total * offset)
+    run = max(last, 1e-6)
+    spots = [((bx - (bx - ax) / run * offset, by - (by - ay) / run * offset),
+              ((bx - ax) / run, (by - ay) / run))]
+    keep_clear = total - offset
 
-  dx = bx - ax
-  dy = by - ay
-  total = max(abs(dx) + abs(dy), 1e-6)
-  return tip, (dx / total, dy / total)
+  extra = []
+  distance = spacing
+  while distance < keep_clear - spacing * 0.5:
+    found = _walk(points, distance)
+    if found is not None:
+      spot, direction, from_corner = found
+      if from_corner >= size * 2:
+        extra.append((spot, direction))
+    distance += spacing
+
+  return extra + spots
 
 
 def _net_path(points, hops, radius):
@@ -346,30 +391,137 @@ def _net_path(points, hops, radius):
   return " ".join(parts)
 
 
-def _label_spot(points):
-  """Where a net's name goes: the middle of its longest run.
+def _cell_boxes(doc, registry):
+  """Every cell's footprint, as (x0, y0, x1, y1), with room for its name.
 
-  Using the first segment instead would stack the names of every net leaving
-  the same pin on top of each other, which is exactly what a fanned-out clock
-  looks like. Horizontal runs win ties and are preferred outright, because a
-  name set beside a vertical wire sprawls across whatever is next to it.
+  The instance name is drawn above the cell, so the box is taller than the
+  cell to keep a net's name from landing on it.
   """
-  best = None
+  boxes = []
+  for cell in doc.cells:
+    symbol = registry.for_cell(cell)
+    if symbol is None:
+      continue
+    x, y, w, h = _cell_bbox(symbol, cell, doc.symbol_scale)
+    boxes.append((x - 2, y - 18, x + w + 2, y + h + 2))
+  return boxes
+
+
+# Where along a run a name may sit, as a fraction of the run.
+LABEL_STOPS = (0.5, 0.32, 0.68, 0.16, 0.84)
+
+# One character of the mono face, as a fraction of the font size. Close enough
+# to reserve the right amount of room without measuring text properly.
+LABEL_CHAR = 0.62
+
+
+def _label_box(spot, anchor, text, size):
+  """The rectangle a name will occupy, as (x0, y0, x1, y1)."""
+  width = max(len(text), 1) * size * LABEL_CHAR
+  if anchor == "middle":
+    x0 = spot[0] - width / 2.0
+  elif anchor == "end":
+    x0 = spot[0] - width
+  else:
+    x0 = spot[0]
+  # The spot is the text baseline, so most of the ink is above it.
+  return (x0, spot[1] - size * 0.8, x0 + width, spot[1] + size * 0.2)
+
+
+def _boxes_overlap(a, b):
+  return not (a[2] <= b[0] or a[0] >= b[2] or a[3] <= b[1] or a[1] >= b[3])
+
+
+def _segment_box(a, b, pad=1.5):
+  return (min(a[0], b[0]) - pad, min(a[1], b[1]) - pad,
+          max(a[0], b[0]) + pad, max(a[1], b[1]) + pad)
+
+
+def _label_candidates(points, text, size):
+  """Every place a name could reasonably go on one wire.
+
+  Along each run at a few points, on either side of it. The caller scores
+  them; this only says what the options are.
+  """
+  found = []
   for index in range(len(points) - 1):
     ax, ay = points[index]
     bx, by = points[index + 1]
-    horizontal = abs(bx - ax) >= abs(by - ay)
+    horizontal = abs(by - ay) < abs(bx - ax)
     length = abs(bx - ax) + abs(by - ay)
-    rank = (1 if horizontal else 0, length)
-    if best is None or rank > best[0]:
-      best = (rank, (ax, ay), (bx, by))
+    if length < size * 2:
+      continue
+    for stop in LABEL_STOPS:
+      x = ax + (bx - ax) * stop
+      y = ay + (by - ay) * stop
+      if horizontal:
+        found.append(((x, y - 4), "middle", horizontal, length, stop, False))
+        found.append(((x, y + size + 2), "middle", horizontal, length, stop, True))
+      else:
+        found.append(((x + 5, y + 4), "start", horizontal, length, stop, False))
+        found.append(((x - 5, y + 4), "end", horizontal, length, stop, True))
+  return found
 
-  _, (ax, ay), (bx, by) = best
-  mid_x = (ax + bx) / 2.0
-  mid_y = (ay + by) / 2.0
-  if abs(bx - ax) >= abs(by - ay):
-    return (mid_x, mid_y - 4), "middle"
-  return (mid_x + 5, mid_y), "start"
+
+def _label_spots(routes, cell_boxes, sheet, font_scale):
+  """Where every net's name goes, keyed by net id.
+
+  A name that lands on a wire it has nothing to do with is worse than no name
+  at all -- and picking the middle of the longest run, which is all this used
+  to do, lands on one constantly. So each name is tried in several places and
+  scored against the cells, the other wires, and the names already placed.
+
+  Nets are considered in document order, so the first net stated gets the
+  clearest spot, the same rule the router follows.
+  """
+  size = theme.FONT_SIZES["net_label"] * font_scale
+  segments = []
+  for net, points in routes:
+    for index in range(len(points) - 1):
+      segments.append((net.get("id"),
+                       _segment_box(points[index], points[index + 1])))
+
+  placed = []
+  spots = {}
+  for net, points in routes:
+    text = net.get("name")
+    if not text or len(points) < 2:
+      continue
+    net_id = net.get("id")
+
+    best = None
+    for spot, anchor, horizontal, length, stop, far_side in _label_candidates(
+        points, text, size):
+      box = _label_box(spot, anchor, text, size)
+
+      score = 0.0
+      if sheet and (box[0] < 2 or box[1] < 2
+                    or box[2] > sheet[0] - 2 or box[3] > sheet[1] - 2):
+        score += 500
+      for cell_box in cell_boxes:
+        if _boxes_overlap(box, cell_box):
+          score += 120
+      for other_id, seg_box in segments:
+        if other_id != net_id and _boxes_overlap(box, seg_box):
+          score += 45
+      for other in placed:
+        if _boxes_overlap(box, other):
+          score += 220
+
+      # Among equally clear spots: along a horizontal run, near the middle of
+      # it, on the near side, on the longest run available.
+      score += 0 if horizontal else 55
+      score += 18 if far_side else 0
+      score += abs(stop - 0.5) * 12
+      score -= min(length, 400) / 25.0
+
+      if best is None or score < best[0]:
+        best = (score, spot, anchor, box)
+
+    if best is not None:
+      spots[net_id] = (best[1], best[2])
+      placed.append(best[3])
+  return spots
 
 
 def _render_arrow(tip, direction, size, color, out):
@@ -408,11 +560,14 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
       ("stroke-linejoin", "miter"),
       ("stroke-linecap", "square")]))
 
+  spots = _label_spots(routes, _cell_boxes(doc, registry),
+                       (doc.canvas.get("width"), doc.canvas.get("height")),
+                       font_scale)
   for net, points in routes:
     name = net.get("name")
-    if not name or len(points) < 2:
+    if not name or net.get("id") not in spots:
       continue
-    (x, y), anchor = _label_spot(points)
+    (x, y), anchor = spots[net["id"]]
     out.append("<text %s>%s</text>" % (
       _attrs([
         ("x", fmt(x)),
@@ -430,9 +585,9 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
       style = net.get("style") or {}
       if style.get("arrow") is False:
         continue
-      tip, direction = _arrow_at(points, theme.ARROW_SIZE)
-      _render_arrow(tip, direction, theme.ARROW_SIZE,
-                    style.get("stroke", theme.COLORS["net"]), out)
+      for tip, direction in _arrow_spots(points, theme.ARROW_SIZE):
+        _render_arrow(tip, direction, theme.ARROW_SIZE,
+                      style.get("stroke", theme.COLORS["net"]), out)
 
   for point in routing.junctions(routes):
     out.append("<circle %s />" % _attrs([

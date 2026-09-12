@@ -3,7 +3,7 @@
 import re
 import unittest
 
-from drawlogic import render_svg, routing
+from drawlogic import render_svg, routing, theme
 from drawlogic.doc import Document, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE
@@ -242,9 +242,29 @@ class TestDirectionArrows(unittest.TestCase):
   def _arrows(self, svg):
     return svg.count("<polygon")
 
-  def test_every_wire_gets_an_arrow_by_default(self):
+  def test_every_wire_gets_at_least_one_arrow_by_default(self):
     svg = render_svg.render(self.doc)
-    self.assertEqual(self._arrows(svg), len(self.doc.nets))
+    self.assertGreaterEqual(self._arrows(svg), len(self.doc.nets))
+
+  def test_a_short_wire_gets_exactly_one(self):
+    doc = new_document()
+    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
+    doc.cells.append({"id": "u2", "type": "inv", "x": 140, "y": 0})
+    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "u2", "pin": "a"}})
+    doc.normalize()
+    self.assertEqual(self._arrows(render_svg.render(doc)), 1)
+
+  def test_a_long_wire_gets_more_so_direction_reads_along_it(self):
+    # One arrow near the receiving end says nothing about a run that is
+    # mostly somewhere else.
+    doc = new_document(width=2000)
+    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
+    doc.cells.append({"id": "u2", "type": "inv", "x": 1600, "y": 0})
+    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "u2", "pin": "a"}})
+    doc.normalize()
+    self.assertGreater(self._arrows(render_svg.render(doc)), 1)
 
   def test_arrows_can_be_switched_off_per_render(self):
     self.assertEqual(self._arrows(render_svg.render(self.doc, arrows=False)), 0)
@@ -254,9 +274,12 @@ class TestDirectionArrows(unittest.TestCase):
     self.assertEqual(self._arrows(render_svg.render(self.doc)), 0)
 
   def test_a_single_net_can_opt_out(self):
+    before = self._arrows(render_svg.render(self.doc))
+    own = len(render_svg._arrow_spots(
+      routing.route(self.doc, self.doc.nets[0]), theme.ARROW_SIZE))
     self.doc.nets[0]["style"] = {"arrow": False}
-    svg = render_svg.render(self.doc)
-    self.assertEqual(self._arrows(svg), len(self.doc.nets) - 1)
+    after = self._arrows(render_svg.render(self.doc))
+    self.assertEqual(after, before - own)
 
   def test_arrow_points_from_driver_to_load(self):
     # n5 runs left to right from FF1.q to the q port, so the arrow's tip must

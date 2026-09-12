@@ -537,6 +537,28 @@ the PNG. The SVG itself is unaffected.
 
 For PDF, print the drawing from the browser.
 
+### Direction arrows
+
+Arrows point from driver to load. One always sits near the receiving end,
+which is where a reader looks to ask "what drives this?", and on a long run
+more are spaced along the wire at `theme.ARROW_SPACING` -- a single arrow says
+nothing about a run that is mostly somewhere else. Arrows are kept off
+corners, where a head pointing into a bend reads worse than no head at all.
+
+Turn them off for a drawing with `"canvas": { "arrows": false }`, for one
+export with `--no-arrows`, or for one net with `"style": { "arrow": false }`.
+
+### Where a name goes
+
+A name that lands on a wire it has nothing to do with is worse than no name at
+all. Each name is tried in several places along its own route -- along each
+run, at a few points, on either side -- and scored against the cells, the
+other wires, and the names already placed. The clearest spot wins, with ties
+broken towards a horizontal run, near its middle, on the near side.
+
+Nets are considered in document order, so the first net stated gets the
+clearest spot: the same rule the router follows.
+
 ### Junction dots and crossing hops
 
 A dot is drawn where three or more wire branches meet. Where one wire merely
@@ -738,9 +760,11 @@ Adding a drawing to `examples/` automatically adds it to all of the above.
 
 ### The parity suite
 
-`test_js_parity.py` guards the one place where the same algorithm is written
-twice: `routing.js` against `routing.py`. It routes every example through both
-and compares every point, junction dot and crossing bridge.
+`test_js_parity.py` guards the places where the same algorithm is written
+twice: `routing.js` against `routing.py`, and the layout decisions in
+`render.js` against `render_svg.py`. It puts every example through both and
+compares every route point, junction dot, crossing bridge, name position and
+arrow position.
 
 `test_js_editor.py` covers alignment and Tidy, which exist only in JavaScript
 and so have no Python counterpart to compare against.

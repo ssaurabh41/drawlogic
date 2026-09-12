@@ -224,33 +224,80 @@ function renderCell(symbol, cell, fontScale, scale, into) {
 // Direction arrows. Mirrors _arrow_at / _render_arrow in render_svg.py: the
 // head sits near the receiving end, which is where a reader looks to ask
 // "what drives this?".
-function arrowAt(points, size) {
-  let best = null;
+// The point a given way along a path, and the direction of travel there.
+function walk(points, distance) {
   for (let i = 0; i < points.length - 1; i += 1) {
     const [ax, ay] = points[i];
     const [bx, by] = points[i + 1];
     const length = Math.abs(bx - ax) + Math.abs(by - ay);
-    if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
+    if (length <= 0) continue;
+    if (distance <= length) {
+      const ratio = distance / length;
+      return [[ax + (bx - ax) * ratio, ay + (by - ay) * ratio],
+              [(bx - ax) / length, (by - ay) / length],
+              Math.min(distance, length - distance)];
+    }
+    distance -= length;
   }
+  return null;
+}
+
+function pathLength(points) {
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    total += Math.abs(points[i + 1][0] - points[i][0])
+      + Math.abs(points[i + 1][1] - points[i][1]);
+  }
+  return total;
+}
+
+// One arrow always sits near the receiving end, which is where a reader looks
+// to ask "what drives this?". On a long run that arrow is nowhere near most of
+// the wire, so more are spaced along it -- close enough that the direction
+// reads wherever the eye lands, far enough apart that the wire does not turn
+// into a dotted line. Arrows are kept off corners.
+export function arrowSpots(points, size, spacing) {
+  if (points.length < 2) return [];
+  const step = spacing || theme.arrowSpacing || 240;
+  const total = pathLength(points);
 
   let [ax, ay] = points[points.length - 2];
   let [bx, by] = points[points.length - 1];
   const last = Math.abs(bx - ax) + Math.abs(by - ay);
 
-  let tip;
-  if (last < size * 3 && best) {
-    [, [ax, ay], [bx, by]] = best;
-    tip = [(ax + bx) / 2, (ay + by) / 2];
+  const spots = [];
+  let keepClear;
+  if (last < size * 3) {
+    // The final run is too short to hold a head clear of the pin, so the
+    // arrow goes in the middle of the longest run instead.
+    let best = null;
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const [px, py] = points[i];
+      const [qx, qy] = points[i + 1];
+      const length = Math.abs(qx - px) + Math.abs(qy - py);
+      if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
+    }
+    const [length, [px, py], [qx, qy]] = best;
+    const run = Math.max(length, 1e-6);
+    spots.push([[(px + qx) / 2, (py + qy) / 2],
+                [(qx - px) / run, (qy - py) / run]]);
+    keepClear = total;
   } else {
-    const total = Math.max(last, 1e-6);
     const offset = size * 1.6;
-    tip = [bx - ((bx - ax) / total) * offset, by - ((by - ay) / total) * offset];
+    const run = Math.max(last, 1e-6);
+    spots.push([[bx - ((bx - ax) / run) * offset, by - ((by - ay) / run) * offset],
+                [(bx - ax) / run, (by - ay) / run]]);
+    keepClear = total - offset;
   }
 
-  const dx = bx - ax;
-  const dy = by - ay;
-  const total = Math.max(Math.abs(dx) + Math.abs(dy), 1e-6);
-  return [tip, [dx / total, dy / total]];
+  const extra = [];
+  for (let d = step; d < keepClear - step * 0.5; d += step) {
+    const found = walk(points, d);
+    if (!found) continue;
+    const [spot, direction, fromCorner] = found;
+    if (fromCorner >= size * 2) extra.push([spot, direction]);
+  }
+  return extra.concat(spots);
 }
 
 function arrowElement(tip, direction, size, color) {
@@ -272,27 +319,116 @@ function arrowElement(tip, direction, size, color) {
 }
 
 
-// Where a net's name goes: the middle of its longest run. Using the first
-// segment would stack the names of every net leaving the same pin. Horizontal
-// runs are preferred outright, because a name set beside a vertical wire
-// sprawls across whatever is next to it.
-function labelSpot(points) {
-  let best = null;
+// Where along a run a name may sit, as a fraction of the run.
+const LABEL_STOPS = [0.5, 0.32, 0.68, 0.16, 0.84];
+
+// One character of the mono face, as a fraction of the font size.
+const LABEL_CHAR = 0.62;
+
+// The rectangle a name will occupy, as [x0, y0, x1, y1].
+function labelBox(spot, anchor, text, size) {
+  const width = Math.max(text.length, 1) * size * LABEL_CHAR;
+  let x0 = spot[0];
+  if (anchor === "middle") x0 -= width / 2;
+  else if (anchor === "end") x0 -= width;
+  return [x0, spot[1] - size * 0.8, x0 + width, spot[1] + size * 0.2];
+}
+
+function boxesOverlap(a, b) {
+  return !(a[2] <= b[0] || a[0] >= b[2] || a[3] <= b[1] || a[1] >= b[3]);
+}
+
+function segmentBox(a, b, pad = 1.5) {
+  return [Math.min(a[0], b[0]) - pad, Math.min(a[1], b[1]) - pad,
+          Math.max(a[0], b[0]) + pad, Math.max(a[1], b[1]) + pad];
+}
+
+// Every place a name could reasonably go on one wire: along each run at a few
+// points, on either side of it. The caller scores them.
+function labelCandidates(points, size) {
+  const found = [];
   for (let i = 0; i < points.length - 1; i += 1) {
     const [ax, ay] = points[i];
     const [bx, by] = points[i + 1];
-    const horizontal = Math.abs(bx - ax) >= Math.abs(by - ay);
-    const rank = [horizontal ? 1 : 0, Math.abs(bx - ax) + Math.abs(by - ay)];
-    if (!best || rank[0] > best[0][0]
-        || (rank[0] === best[0][0] && rank[1] > best[0][1])) {
-      best = [rank, points[i], points[i + 1]];
+    const horizontal = Math.abs(by - ay) < Math.abs(bx - ax);
+    const length = Math.abs(bx - ax) + Math.abs(by - ay);
+    if (length < size * 2) continue;
+    for (const stop of LABEL_STOPS) {
+      const x = ax + (bx - ax) * stop;
+      const y = ay + (by - ay) * stop;
+      if (horizontal) {
+        found.push([[x, y - 4], "middle", horizontal, length, stop, false]);
+        found.push([[x, y + size + 2], "middle", horizontal, length, stop, true]);
+      } else {
+        found.push([[x + 5, y + 4], "start", horizontal, length, stop, false]);
+        found.push([[x - 5, y + 4], "end", horizontal, length, stop, true]);
+      }
     }
   }
-  const [, [ax, ay], [bx, by]] = best;
-  const midX = (ax + bx) / 2;
-  const midY = (ay + by) / 2;
-  if (Math.abs(bx - ax) >= Math.abs(by - ay)) return [[midX, midY - 4], "middle"];
-  return [[midX + 5, midY], "start"];
+  return found;
+}
+
+// A name that lands on a wire it has nothing to do with is worse than no name
+// at all, and the middle of the longest run -- which is all this used to pick
+// -- lands on one constantly. Each name is tried in several places and scored
+// against the cells, the other wires, and the names already placed. Nets are
+// considered in document order, so the first net stated gets the clearest
+// spot: the same rule the router follows.
+export function labelSpots(routes, cellBoxes, sheet, fontScale) {
+  const size = theme.fontSizes.net_label * fontScale;
+  const segments = [];
+  for (const { net, points } of routes) {
+    for (let i = 0; i < points.length - 1; i += 1) {
+      segments.push([net.id, segmentBox(points[i], points[i + 1])]);
+    }
+  }
+
+  const placed = [];
+  const spots = new Map();
+  for (const { net, points } of routes) {
+    if (!net.name || points.length < 2) continue;
+
+    let best = null;
+    for (const [spot, anchor, horizontal, length, stop, farSide]
+         of labelCandidates(points, size)) {
+      const box = labelBox(spot, anchor, net.name, size);
+
+      let score = 0;
+      if (sheet && (box[0] < 2 || box[1] < 2
+                    || box[2] > sheet[0] - 2 || box[3] > sheet[1] - 2)) score += 500;
+      for (const cellBox of cellBoxes) if (boxesOverlap(box, cellBox)) score += 120;
+      for (const [otherId, segBox] of segments) {
+        if (otherId !== net.id && boxesOverlap(box, segBox)) score += 45;
+      }
+      for (const other of placed) if (boxesOverlap(box, other)) score += 220;
+
+      score += horizontal ? 0 : 55;
+      score += farSide ? 18 : 0;
+      score += Math.abs(stop - 0.5) * 12;
+      score -= Math.min(length, 400) / 25;
+
+      if (!best || score < best[0]) best = [score, spot, anchor, box];
+    }
+
+    if (best) {
+      spots.set(net.id, [best[1], best[2]]);
+      placed.push(best[3]);
+    }
+  }
+  return spots;
+}
+
+// Every cell's footprint, with room above it for the instance name.
+export function cellBoxes(doc) {
+  const scale = routing.symbolScale(doc);
+  const boxes = [];
+  for (const cell of doc.cells || []) {
+    const symbol = geometry.forCell(cell);
+    if (!symbol) continue;
+    const [x, y, w, h] = geometry.cellBounds(symbol, cell, scale);
+    boxes.push([x - 2, y - 18, x + w + 2, y + h + 2]);
+  }
+  return boxes;
 }
 
 // The `d` for a wire, bridging over any wire it merely crosses.
@@ -344,9 +480,12 @@ function renderNets(doc, fontScale, into) {
     }));
   }
 
+  const canvas = doc.canvas || {};
+  const spots = labelSpots(routes, cellBoxes(doc),
+                           [canvas.width, canvas.height], fontScale);
   for (const { net, points } of routes) {
-    if (!net.name || points.length < 2) continue;
-    const [[lx, ly], anchor] = labelSpot(points);
+    if (!net.name || !spots.has(net.id)) continue;
+    const [[lx, ly], anchor] = spots.get(net.id);
     const text = el("text", {
       x: geometry.fmt(lx),
       y: geometry.fmt(ly),
@@ -363,9 +502,10 @@ function renderNets(doc, fontScale, into) {
     for (const { net, points } of routes) {
       if (points.length < 2) continue;
       if ((net.style || {}).arrow === false) continue;
-      const [tip, direction] = arrowAt(points, theme.arrowSize || 7);
-      into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
-                                    (net.style || {}).stroke || theme.colors.net));
+      for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7)) {
+        into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
+                                      (net.style || {}).stroke || theme.colors.net));
+      }
     }
   }
 

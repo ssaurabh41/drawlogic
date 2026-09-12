@@ -162,6 +162,7 @@ class Handler(BaseHTTPRequestHandler):
         "fontMono": theme.FONT_MONO,
         "junctionRadius": theme.JUNCTION_RADIUS,
         "arrowSize": theme.ARROW_SIZE,
+        "arrowSpacing": theme.ARROW_SPACING,
         "hopRadius": theme.HOP_RADIUS,
         "pinLabelInset": theme.PIN_LABEL_INSET,
         "gridStyles": list(theme.GRID_STYLES),

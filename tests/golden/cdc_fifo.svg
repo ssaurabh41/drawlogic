@@ -59,21 +59,33 @@
 <text x="575" y="761" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g_sync[8:0]</text>
 <text x="235" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="1565" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
+<polygon points="380,180 373,183.15 373,176.85" fill="#16202b" />
+<polygon points="620,180 613,183.15 613,176.85" fill="#16202b" />
 <polygon points="778.8,180 771.8,183.15 771.8,176.85" fill="#16202b" />
 <polygon points="318.8,420 311.8,423.15 311.8,416.85" fill="#16202b" />
 <polygon points="318.8,465 311.8,468.15 311.8,461.85" fill="#16202b" />
 <polygon points="318.8,510 311.8,513.15 311.8,506.85" fill="#16202b" />
+<polygon points="660,310 663.15,317 656.85,317" fill="#16202b" />
 <polygon points="778.8,220 771.8,223.15 771.8,216.85" fill="#16202b" />
+<polygon points="680,375 683.15,382 676.85,382" fill="#16202b" />
 <polygon points="778.8,260 771.8,263.15 771.8,256.85" fill="#16202b" />
+<polygon points="1250,180 1243,183.15 1243,176.85" fill="#16202b" />
+<polygon points="1490,180 1483,183.15 1483,176.85" fill="#16202b" />
 <polygon points="1648.8,180 1641.8,183.15 1641.8,176.85" fill="#16202b" />
 <polygon points="1481.2,420 1488.2,416.85 1488.2,423.15" fill="#16202b" />
 <polygon points="1481.2,465 1488.2,461.85 1488.2,468.15" fill="#16202b" />
 <polygon points="1481.2,510 1488.2,506.85 1488.2,513.15" fill="#16202b" />
+<polygon points="1140,310 1143.15,317 1136.85,317" fill="#16202b" />
 <polygon points="1021.2,220 1028.2,216.85 1028.2,223.15" fill="#16202b" />
+<polygon points="1120,375 1123.15,382 1116.85,382" fill="#16202b" />
 <polygon points="1021.2,260 1028.2,256.85 1028.2,263.15" fill="#16202b" />
 <polygon points="521.2,725 528.2,721.85 528.2,728.15" fill="#16202b" />
 <polygon points="1278.8,725 1271.8,728.15 1271.8,721.85" fill="#16202b" />
+<polygon points="680,600 673,603.15 673,596.85" fill="#16202b" />
+<polygon points="920,600 913,603.15 913,596.85" fill="#16202b" />
 <polygon points="958.8,765 951.8,768.15 951.8,761.85" fill="#16202b" />
+<polygon points="1080,560 1087,556.85 1087,563.15" fill="#16202b" />
+<polygon points="860,580 856.85,573 863.15,573" fill="#16202b" />
 <polygon points="841.2,765 848.2,761.85 848.2,768.15" fill="#16202b" />
 <polygon points="1078.8,765 1071.8,768.15 1071.8,761.85" fill="#16202b" />
 <polygon points="1278.8,765 1271.8,768.15 1271.8,761.85" fill="#16202b" />
@@ -81,9 +93,23 @@
 <polygon points="521.2,765 528.2,761.85 528.2,768.15" fill="#16202b" />
 <polygon points="151.2,725 158.2,721.85 158.2,728.15" fill="#16202b" />
 <polygon points="1648.8,725 1641.8,728.15 1641.8,721.85" fill="#16202b" />
+<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
+<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
+<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
+<polygon points="730,880 723,883.15 723,876.85" fill="#16202b" />
 <polygon points="841.2,795 848.2,791.85 848.2,798.15" fill="#16202b" />
+<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
+<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
+<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
 <polygon points="721.2,795 728.2,791.85 728.2,798.15" fill="#16202b" />
+<polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
+<polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
+<polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
+<polygon points="1070,880 1077,876.85 1077,883.15" fill="#16202b" />
 <polygon points="958.8,795 951.8,798.15 951.8,791.85" fill="#16202b" />
+<polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
+<polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
+<polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
 <polygon points="1078.8,795 1071.8,798.15 1071.8,791.85" fill="#16202b" />
 <circle cx="210" cy="510" r="3.2" fill="#16202b" />
 <circle cx="542" cy="510" r="3.2" fill="#16202b" />

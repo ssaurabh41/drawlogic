@@ -118,7 +118,7 @@ drawlogic/
   theme.py        colours, line weights, font stacks
   cli.py          serve, export, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
-  web/            the browser editor (10 modules, no build step)
+  web/            the browser editor (11 modules, no build step)
 tests/            unittest, a golden-file regression suite, a JS parity check
 examples/         worked schematics, including a CDC FIFO
 ```

@@ -212,6 +212,21 @@ function runCommand(command) {
     front: () => apply("z-order", (d, ids) => model.bringToFront(d, ids),
                        "brought to front"),
     back: () => apply("z-order", (d, ids) => model.sendToBack(d, ids), "sent to back"),
+    tidy: () => {
+      if (!selection.size) {
+        say("select the cells to tidy", "bad");
+        return;
+      }
+      // Counted inside the mutation so the message can say what happened
+      // rather than just that something did.
+      let straightened = 0;
+      store.mutate("tidy", (doc) => { straightened = model.tidy(doc, selection.ids); });
+      redraw();
+      inspector.render();
+      say(straightened
+        ? `tidied: ${straightened} wire${straightened === 1 ? "" : "s"} now run straight`
+        : "nothing to line up -- those cells already sit square");
+    },
     delete: deleteSelection,
   };
 

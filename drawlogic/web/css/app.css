@@ -319,6 +319,9 @@ input.pcolor { padding: 1px; height: 24px; cursor: pointer; width: 42px; }
 .dl-selbox { fill: none; stroke: var(--accent); }
 .dl-handle { fill: #ffffff; stroke: var(--accent); cursor: pointer; }
 .dl-marquee { fill: rgba(13, 116, 144, 0.08); stroke: var(--accent); }
+
+/* Why the thing you are dragging just jumped into line. */
+.dl-guide { stroke: var(--warm); fill: none; pointer-events: none; }
 .dl-pin {
   fill: #ffffff;
   stroke: var(--accent);

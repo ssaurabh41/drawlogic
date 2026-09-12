@@ -13,6 +13,7 @@
 // fall out of step with the edit it is meant to undo.
 
 import * as geometry from "./geometry.js";
+import * as guides from "./guides.js";
 
 const UNDO_LIMIT = 120;
 
@@ -375,6 +376,88 @@ export function align(doc, ids, edge) {
     }
     if (dx || dy) moveItems(doc, new Set([id]), dx, dy);
   }
+}
+
+// Pull the selected cells into line with what they are wired to, so their
+// wires run straight instead of dog-legging.
+//
+// Only the selected cells move. Everything else anchors them, which is what
+// makes tidying one block at a time safe -- and it means selecting a single
+// cell snaps just that cell to its neighbours.
+//
+// Cells are settled left to right, and each takes its line from the nearest
+// thing already fixed, so a chain of gates collapses onto one row rather than
+// one stray cell dragging the lot across the sheet.
+export function tidy(doc, ids) {
+  const moving = new Set([...ids].filter((id) => doc.cells.some((c) => c.id === id)));
+  if (!moving.size) return 0;
+
+  const order = doc.cells
+    .filter((cell) => moving.has(cell.id))
+    .slice()
+    .sort((a, b) => (a.x - b.x) || (a.y - b.y));
+
+  const settled = new Set();
+  let straightened = 0;
+
+  for (const cell of order) {
+    const fix = bestLine(doc, cell.id, moving, settled);
+    if (fix) {
+      if (fix.axis === "x") cell.x += fix.delta;
+      else cell.y += fix.delta;
+      straightened += 1;
+    }
+    settled.add(cell.id);
+  }
+  return straightened;
+}
+
+// The line this cell should take.
+//
+// A cell that already has a straight wire keeps it: tidying must not trade one
+// alignment for another, or a second Tidy would undo the first. Otherwise the
+// cell lines up with whatever is staying put (rank 0) in preference to a cell
+// that only settled this pass (rank 1), and with the neighbour on its left in
+// preference to the one on its right, because drawings read that way. Among
+// equals the shortest move wins, so nothing is flung across the sheet.
+function bestLine(doc, cellId, moving, settled) {
+  const cell = doc.cells.find((c) => c.id === cellId);
+  const locked = new Set();
+  let best = null;
+
+  for (const net of doc.nets || []) {
+    const ends = [net.from, net.to];
+    if (!ends[0] || !ends[1]) continue;
+    const mine = ends.find((e) => e.cell === cellId);
+    const other = ends.find((e) => e !== mine);
+    if (!mine || !other || other.cell === undefined || other.cell === cellId) continue;
+
+    const fix = guides.straighten(doc, mine, other);
+    if (!fix) continue;
+    if (!fix.delta) {
+      locked.add(fix.axis);
+      continue;
+    }
+
+    const rank = moving.has(other.cell) ? 1 : 0;
+    if (rank === 1 && !settled.has(other.cell)) continue;
+
+    const neighbour = doc.cells.find((c) => c.id === other.cell);
+    const side = neighbour && cell && neighbour.x < cell.x ? 0 : 1;
+    const score = [rank, side, Math.abs(fix.delta)];
+    if (best && !better(score, best.score)) continue;
+    best = { axis: fix.axis, delta: fix.delta, score };
+  }
+
+  if (!best || locked.has(best.axis)) return null;
+  return best;
+}
+
+function better(score, than) {
+  for (let i = 0; i < score.length; i += 1) {
+    if (score[i] !== than[i]) return score[i] < than[i];
+  }
+  return false;
 }
 
 export function distribute(doc, ids, axis) {

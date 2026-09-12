@@ -4,7 +4,8 @@
 //
 //   const selection = new Selection(store);
 //   selection.set(["u1", "u2"]);
-//   drawHandles(svg, selection, viewport.zoom, { marquee, pins, wirePreview });
+//   drawHandles(svg, selection, viewport.zoom,
+//               { marquee, guides, pins, wirePreview });
 //
 // Cells and shapes are both selectable, so this works in item ids rather than
 // cell ids. Selecting one member of a group selects the whole group.
@@ -104,6 +105,20 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     const [x, y, w, h] = options.marquee;
     layer.appendChild(el("rect", {
       class: "dl-marquee", x, y, width: w, height: h, "stroke-width": 1 / zoom,
+    }));
+  }
+
+  // Alignment guides: why the thing you are dragging just jumped into line.
+  for (const guide of options.guides || []) {
+    const horizontal = guide.axis === "y";
+    layer.appendChild(el("line", {
+      class: "dl-guide",
+      x1: horizontal ? guide.from : guide.at,
+      y1: horizontal ? guide.at : guide.from,
+      x2: horizontal ? guide.to : guide.at,
+      y2: horizontal ? guide.at : guide.to,
+      "stroke-width": 1 / zoom,
+      "stroke-dasharray": `${4 / zoom} ${3 / zoom}`,
     }));
   }
 

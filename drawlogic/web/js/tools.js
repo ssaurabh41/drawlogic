@@ -9,12 +9,18 @@
 // through context.store.mutate, so undo works the same however an edit began.
 
 import * as geometry from "./geometry.js";
+import * as guides from "./guides.js";
 import * as model from "./model.js";
 import * as routing from "./routing.js";
 import { handlePoints } from "./selection.js";
 
 const DRAG_THRESHOLD = 3;
 const PIN_SNAP = 14;
+
+// How close, in screen pixels, a drag has to come before it is pulled into
+// line. Screen pixels rather than sheet units, so the pull feels the same
+// however far you are zoomed in.
+const SNAP_PIXELS = 8;
 
 // ---- select, move, resize ----
 
@@ -133,19 +139,35 @@ export class SelectTool {
     if (this.mode === "move") {
       if (this.pendingDuplicate && !this.duplicated) this.duplicate();
       const step = model.gridStep(store.doc);
+      const sdx = model.snap(dx, step);
+      const sdy = model.snap(dy, step);
+      // Alt is the escape hatch: hold it to place a cell exactly where you
+      // put it, with no help.
+      const helping = !event.altKey;
+      let lines = [];
+
       store.mutate(this.gestureLabel, (doc) => {
-        for (const [id, start] of this.startBoxes) {
-          const item = model.itemById(doc, id);
-          if (!item) continue;
-          const sdx = model.snap(dx, step);
-          const sdy = model.snap(dy, step);
-          if (start.points) {
-            item.points = start.points.map((p) => [p[0] + sdx, p[1] + sdy]);
+        const shift = (fx, fy) => {
+          for (const [id, start] of this.startBoxes) {
+            const item = model.itemById(doc, id);
+            if (!item) continue;
+            if (start.points) {
+              item.points = start.points.map((p) => [p[0] + fx, p[1] + fy]);
+            }
+            if (start.x !== undefined) item.x = start.x + fx;
+            if (start.y !== undefined) item.y = start.y + fy;
           }
-          if (start.x !== undefined) item.x = start.x + sdx;
-          if (start.y !== undefined) item.y = start.y + sdy;
-        }
+        };
+        shift(sdx, sdy);
+        if (!helping) return;
+        // Asked of the drawing as it now stands, so the answer is a nudge
+        // from where the cell actually is rather than from where it started.
+        const fix = guides.suggest(doc, selection.ids, SNAP_PIXELS / this.ctx.zoom());
+        if (fix.dx || fix.dy) shift(sdx + fix.dx, sdy + fix.dy);
+        lines = fix.guides;
       });
+
+      this.ctx.drawOverlay({ guides: lines });
       return true;
     }
 

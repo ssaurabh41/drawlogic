@@ -169,6 +169,7 @@ pins on every redraw.
 | `Ctrl+]` / `Ctrl+[` | bring to front / send to back |
 | `Delete`, `Esc` | delete, cancel and deselect |
 | `Ctrl+A`, `Ctrl+0` | select all, fit to window |
+| `Alt`+drag | move without any alignment help |
 | `Ctrl+S`, `Ctrl+E` | save, export SVG |
 | `Ctrl+Shift+E` | copy the drawing as a picture, for pasting into a slide |
 | scroll, `Space`+drag, shift-drag | zoom, pan, pan |
@@ -421,6 +422,42 @@ find out what a pin is for.
 Naming a pin the symbol does not have is a validation error. In the editor the
 Pins panel has a field per pin; clearing it goes back to the symbol's default.
 
+### Help while you drag
+
+Dropping cells on a grid gets you close; it does not get you a straight wire.
+A wire runs straight only when the two pins it joins share a row (or a column),
+and being one grid step out is enough to put a kink in it.
+
+So while you drag, drawlogic looks for a small nudge that would line something
+up, and draws the line it found:
+
+- a pin on a moving cell with the pin it is wired to -- the one that matters,
+  since it is what turns an elbow into a straight line
+- an edge or centre of a moving cell with one that is staying put
+
+Pin alignment wins even when the edge match is closer. The pull reaches about
+8 screen pixels, so it feels the same however far you are zoomed in. Hold
+`Alt` while dragging to turn it off and place a cell exactly where you put it.
+
+### Tidy up
+
+`Arrange > Tidy up` pulls the selected cells into line with what they are wired
+to, so a rough sketch becomes a clean one. The status bar says how many wires
+it straightened.
+
+Only the selected cells move. Everything else anchors them, so you can tidy one
+block at a time -- and selecting a single cell snaps just that cell to its
+neighbours.
+
+Two rules keep it predictable:
+
+- **A cell that already has a straight wire keeps it.** Tidying never trades
+  one alignment for another, so running it twice changes nothing the second
+  time.
+- **Nothing moves sideways.** Only the coordinate across the flow changes, so
+  the left-to-right order you placed things in survives. For even spacing along
+  the flow, use `Distribute across` after.
+
 ### Getting the drawing into a slide
 
 **Copy PNG** (`Ctrl+Shift+E`) puts the drawing on the clipboard as a picture,
@@ -517,6 +554,7 @@ drawlogic/
     js/tools.js      select, wire, place, shape
     js/panels.js     palette and properties inspector
     js/viewport.js   pan and zoom
+    js/guides.js     drag-time alignment and the Tidy rule
     js/picture.js    rasterise the export to a pasteable PNG
     js/main.js       bootstrap and controls
 tests/            unittest, a golden-file regression suite, a JS parity check
@@ -604,6 +642,7 @@ The suite is in four parts:
 | `tests/test_server.py` | HTTP endpoints, path-traversal refusal |
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
+| `tests/test_js_editor.py` | drag-time alignment and Tidy |
 
 ### The regression suite
 
@@ -641,6 +680,9 @@ Adding a drawing to `examples/` automatically adds it to all of the above.
 `test_js_parity.py` guards the one place where the same algorithm is written
 twice: `routing.js` against `routing.py`. It routes every example through both
 and compares every point, junction dot and crossing bridge.
+
+`test_js_editor.py` covers alignment and Tidy, which exist only in JavaScript
+and so have no Python counterpart to compare against.
 
 It shells out to `node`, which is **not** a dependency of drawlogic, so it
 skips itself when node is not installed and the rest of the suite still runs.

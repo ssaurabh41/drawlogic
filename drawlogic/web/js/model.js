@@ -14,6 +14,7 @@
 
 import * as geometry from "./geometry.js";
 import * as guides from "./guides.js";
+import * as routing from "./routing.js";
 
 const UNDO_LIMIT = 120;
 
@@ -248,13 +249,14 @@ export function deleteItems(doc, ids) {
   doc.cells = doc.cells.filter((cell) => !ids.has(cell.id));
   doc.shapes = (doc.shapes || []).filter((shape) => !ids.has(shape.id));
   doc.nets = doc.nets.filter((net) => {
-    for (const side of ["from", "to"]) {
-      const endpoint = net[side];
-      if (endpoint && endpoint.cell !== undefined && ids.has(endpoint.cell)) {
-        return false;
-      }
+    if (ids.has(net.id)) return false;
+    if (net.from && net.from.cell !== undefined && ids.has(net.from.cell)) {
+      return false;
     }
-    return !ids.has(net.id);
+    // Losing one load does not lose the net; losing the last one does.
+    net.to = routing.loadsOf(net)
+      .filter((load) => load.cell === undefined || !ids.has(load.cell));
+    return net.to.length > 0;
   });
   doc.groups = (doc.groups || [])
     .map((group) => ({
@@ -426,12 +428,8 @@ function bestLine(doc, cellId, moving, settled) {
   let best = null;
 
   for (const net of doc.nets || []) {
-    const ends = [net.from, net.to];
-    if (!ends[0] || !ends[1]) continue;
-    const mine = ends.find((e) => e.cell === cellId);
-    const other = ends.find((e) => e !== mine);
-    if (!mine || !other || other.cell === undefined || other.cell === cellId) continue;
-
+    // Each branch is its own chance to line something up.
+    for (const [mine, other] of branchPairs(net, cellId)) {
     const fix = guides.straighten(doc, mine, other);
     if (!fix) continue;
     if (!fix.delta) {
@@ -447,10 +445,29 @@ function bestLine(doc, cellId, moving, settled) {
     const score = [rank, side, Math.abs(fix.delta)];
     if (best && !better(score, best.score)) continue;
     best = { axis: fix.axis, delta: fix.delta, score };
+    }
   }
 
   if (!best || locked.has(best.axis)) return null;
   return best;
+}
+
+// The ends of each branch of a net that touch this cell, paired with the end
+// at the other side of that branch.
+function branchPairs(net, cellId) {
+  const pairs = [];
+  const driver = net.from;
+  for (const load of routing.loadsOf(net)) {
+    if (!driver || !load) continue;
+    if (load.cell === cellId && driver.cell !== undefined
+        && driver.cell !== cellId) {
+      pairs.push([load, driver]);
+    } else if (driver.cell === cellId && load.cell !== undefined
+               && load.cell !== cellId) {
+      pairs.push([driver, load]);
+    }
+  }
+  return pairs;
 }
 
 function better(score, than) {
@@ -495,11 +512,11 @@ export function copyItems(doc, ids) {
   const shapes = (doc.shapes || []).filter((s) => ids.has(s.id));
   // Wires between two copied cells travel with them; a wire with one end
   // outside the selection would have nothing to attach to.
-  const nets = doc.nets.filter((net) =>
-    ["from", "to"].every((side) => {
-      const endpoint = net[side];
-      return endpoint && endpoint.cell !== undefined && ids.has(endpoint.cell);
-    }));
+  const inside = (endpoint) =>
+    endpoint && endpoint.cell !== undefined && ids.has(endpoint.cell);
+  const nets = doc.nets
+    .filter((net) => inside(net.from) && routing.loadsOf(net).some(inside))
+    .map((net) => ({ ...net, to: routing.loadsOf(net).filter(inside) }));
   return JSON.parse(JSON.stringify({ cells, shapes, nets }));
 }
 
@@ -532,12 +549,14 @@ export function pasteItems(doc, clip, dx, dy) {
   for (const source of clip.nets || []) {
     const net = JSON.parse(JSON.stringify(source));
     net.id = uniqueId(doc, "n");
-    for (const side of ["from", "to"]) {
-      if (net[side] && remap.has(net[side].cell)) {
-        net[side].cell = remap.get(net[side].cell);
-      }
+    if (net.from && remap.has(net.from.cell)) {
+      net.from.cell = remap.get(net.from.cell);
     }
-    net.waypoints = (net.waypoints || []).map((p) => [p[0] + dx, p[1] + dy]);
+    net.to = routing.loadsOf(net).map((load) => {
+      if (remap.has(load.cell)) load.cell = remap.get(load.cell);
+      load.waypoints = (load.waypoints || []).map((p) => [p[0] + dx, p[1] + dy]);
+      return load;
+    });
     doc.nets.push(net);
   }
 
@@ -598,11 +617,21 @@ function pinWidth(doc, endpoint) {
   return pin ? (pin.width === undefined ? 1 : pin.width) : 1;
 }
 
+// Wiring a second load onto a pin that already drives one extends that net
+// rather than making another. That is what a net is: one driver, many loads.
 export function addNet(doc, from, to) {
-  const exists = doc.nets.some((net) =>
-    (sameEnd(net.from, from) && sameEnd(net.to, to))
-    || (sameEnd(net.from, to) && sameEnd(net.to, from)));
-  if (exists) return null;
+  const already = doc.nets.some((net) =>
+    routing.loadsOf(net).some((load) =>
+      (sameEnd(net.from, from) && sameEnd(load, to))
+      || (sameEnd(net.from, to) && sameEnd(load, from))));
+  if (already) return null;
+
+  const load = { ...to, waypoints: [] };
+  const existing = doc.nets.find((net) => sameEnd(net.from, from));
+  if (existing) {
+    existing.to = [...routing.loadsOf(existing), load];
+    return existing;
+  }
 
   // Width 0 means "any width", so it never decides the net's width.
   const net = {
@@ -610,8 +639,7 @@ export function addNet(doc, from, to) {
     name: null,
     width: pinWidth(doc, from) || pinWidth(doc, to) || 1,
     from,
-    to,
-    waypoints: [],
+    to: [load],
     style: {},
   };
   doc.nets.push(net);
@@ -625,9 +653,14 @@ export function setNetName(doc, id, name) {
   net.width = busWidth(name);
 }
 
-export function setWaypoints(doc, id, points) {
+// Waypoints belong to one branch, since a net may have several and they go
+// different ways. `branch` is the index of the load the wire ends at.
+export function setWaypoints(doc, id, points, branch = 0) {
   const net = doc.nets.find((n) => n.id === id);
-  if (net) net.waypoints = points;
+  if (!net) return;
+  const loads = routing.loadsOf(net);
+  if (loads[branch]) loads[branch].waypoints = points;
+  net.to = loads;
 }
 
 // `d[7:0]` is eight bits; a plain name is one. Mirrors doc.py.

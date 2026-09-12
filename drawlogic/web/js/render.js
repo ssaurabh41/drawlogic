@@ -345,7 +345,14 @@ function segmentBox(a, b, pad = 1.5) {
 
 // Every place a name could reasonably go on one wire: along each run at a few
 // points, on either side of it. The caller scores them.
-function labelCandidates(points, size) {
+// Along each run of each branch, at a few points, on either side of it.
+function labelCandidates(branches, size) {
+  const found = [];
+  for (const points of branches) found.push(...candidatesOn(points, size));
+  return found;
+}
+
+function candidatesOn(points, size) {
   const found = [];
   for (let i = 0; i < points.length - 1; i += 1) {
     const [ax, ay] = points[i];
@@ -376,21 +383,17 @@ function labelCandidates(points, size) {
 // spot: the same rule the router follows.
 export function labelSpots(routes, cellBoxes, sheet, fontScale) {
   const size = theme.fontSizes.net_label * fontScale;
-  const segments = [];
-  for (const { net, points } of routes) {
-    for (let i = 0; i < points.length - 1; i += 1) {
-      segments.push([net.id, segmentBox(points[i], points[i + 1])]);
-    }
-  }
+  const segments = routing.segmentsOf(routes)
+    .map(([netId, a, b]) => [netId, segmentBox(a, b)]);
 
   const placed = [];
   const spots = new Map();
-  for (const { net, points } of routes) {
-    if (!net.name || points.length < 2) continue;
+  for (const { net, branches } of routes) {
+    if (!net.name || !branches.length) continue;
 
     let best = null;
     for (const [spot, anchor, horizontal, length, stop, farSide]
-         of labelCandidates(points, size)) {
+         of labelCandidates(branches, size)) {
       const box = labelBox(spot, anchor, net.name, size);
 
       let score = 0;
@@ -467,12 +470,16 @@ function renderNets(doc, fontScale, into) {
   const hops = (doc.canvas || {}).hops === false
     ? new Map() : routing.hopPoints(routes);
 
-  for (const { net, points } of routes) {
-    if (points.length < 2) continue;
+  for (const { net, branches } of routes) {
+    if (!branches.length) continue;
     const style = net.style || {};
+    // One path element per net, with a subpath per branch: a net is one thing,
+    // so clicking any part of it should find the same thing.
+    const spots = hops.get(net.id);
     into.appendChild(el("path", {
       class: "dl-net", "data-id": net.id,
-      d: netPath(points, hops.get(net.id), theme.hopRadius || 5),
+      d: branches.map((points) => netPath(points, spots, theme.hopRadius || 5))
+        .join(" "),
       fill: "none",
       stroke: style.stroke || theme.colors.net,
       "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.net, 3),
@@ -483,7 +490,7 @@ function renderNets(doc, fontScale, into) {
   const canvas = doc.canvas || {};
   const spots = labelSpots(routes, cellBoxes(doc),
                            [canvas.width, canvas.height], fontScale);
-  for (const { net, points } of routes) {
+  for (const { net } of routes) {
     if (!net.name || !spots.has(net.id)) continue;
     const [[lx, ly], anchor] = spots.get(net.id);
     const text = el("text", {
@@ -499,12 +506,15 @@ function renderNets(doc, fontScale, into) {
   }
 
   if ((doc.canvas || {}).arrows !== false) {
-    for (const { net, points } of routes) {
-      if (points.length < 2) continue;
+    for (const { net, branches } of routes) {
       if ((net.style || {}).arrow === false) continue;
-      for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7)) {
-        into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
-                                      (net.style || {}).stroke || theme.colors.net));
+      // Per branch: every load wants to know which way the signal reaches it.
+      for (const points of branches) {
+        if (points.length < 2) continue;
+        for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7)) {
+          into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
+                                        (net.style || {}).stroke || theme.colors.net));
+        }
       }
     }
   }

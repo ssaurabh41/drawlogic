@@ -143,7 +143,7 @@ class TestTheDerivedBlock(SheetCase):
                               "to": {"cell": "u1", "pin": "a"},
                               "waypoints": [], "style": {}}])
     doc, registry, _ = sheets.open_document(path)
-    points = routing.route(doc, doc.nets[0], registry)
+    [points] = routing.route(doc, doc.nets[0], registry)
     self.assertGreaterEqual(len(points), 2)
 
 

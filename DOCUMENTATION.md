@@ -287,11 +287,48 @@ passed.
 
 | Field | Meaning |
 |---|---|
-| `from`, `to` | `{cell, pin}` or a free `{x, y}` |
+| `from` | the driver: `{cell, pin}` or a free `{x, y}` |
+| `to` | the loads: a **list** of the same, each with its own `waypoints` |
 | `name` | net name; carries bus width |
 | `width` | bit width, derived from the name |
-| `waypoints` | points the route must pass through |
 | `style` | `stroke`, `strokeWidth`, `arrow: false` |
+
+### One driver, many loads
+
+A net has one driver and any number of loads:
+
+```json
+{ "id": "n4", "name": "wclk", "width": 1,
+  "from": { "cell": "p_wclk", "pin": "p" },
+  "to": [ { "cell": "sr1", "pin": "ck", "waypoints": [] },
+          { "cell": "sr2", "pin": "ck", "waypoints": [] } ] }
+```
+
+Each load is routed from the driving pin in turn, which is why the branches
+lie on top of each other near the driver and part company where they must --
+the junction dots mark exactly where. They are drawn as one path element with
+a subpath per branch, so clicking any part of a rail finds the same net.
+
+Waypoints belong to a load rather than to the net, because branches go
+different ways.
+
+**Why it is worth the format version.** Before version 2 a net had exactly one
+load, so a signal reaching three places was three separate nets that happened
+to share a driving pin and happened to be drawn on top of each other. That was
+a convincing picture and a poor model: a rail could not carry one name (only
+one of the three nets could hold it), its width could not be checked as a
+whole, renaming it meant editing three things, and nothing could tell a
+fan-out apart from a short. Two nets driving one pin is now a validation
+error, which could not previously be said at all.
+
+### Opening an older drawing
+
+A version 1 file is upgraded when it is loaded, and nets that share a driving
+pin are merged into one. Nets whose names disagree are left alone: two names
+on one pin is either a mistake or a deliberate alias, and silently dropping
+one would be worse than leaving the drawing as it was.
+
+Saving writes version 2. Upgrading is safe to repeat.
 
 ### shapes
 
@@ -757,7 +794,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-The suite is in six parts:
+The suite is in seven parts:
 
 | File | Covers |
 |---|---|
@@ -769,6 +806,7 @@ The suite is in six parts:
 | `tests/test_js_editor.py` | drag-time alignment and Tidy |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling |
+| `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 
 ### The regression suite
 

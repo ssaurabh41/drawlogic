@@ -14,6 +14,31 @@ import * as model from "./model.js";
 import * as routing from "./routing.js";
 import { handlePoints } from "./selection.js";
 
+// Which branch of a net a point is closest to. Distance to a run, not to its
+// ends, or a click in the middle of a long branch would pick a short one.
+function nearestBranch(doc, netId, point) {
+  const net = (doc.nets || []).find((n) => n.id === netId);
+  if (!net) return 0;
+  let best = 0;
+  let closest = Infinity;
+  routing.route(doc, net).forEach((points, index) => {
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const distance = distanceToRun(point, points[i], points[i + 1]);
+      if (distance < closest) {
+        closest = distance;
+        best = index;
+      }
+    }
+  });
+  return best;
+}
+
+function distanceToRun(point, a, b) {
+  const x = Math.min(Math.max(point[0], Math.min(a[0], b[0])), Math.max(a[0], b[0]));
+  const y = Math.min(Math.max(point[1], Math.min(a[1], b[1])), Math.max(a[1], b[1]));
+  return Math.hypot(point[0] - x, point[1] - y);
+}
+
 const DRAG_THRESHOLD = 3;
 const PIN_SNAP = 14;
 
@@ -40,6 +65,7 @@ export class SelectTool {
     this.duplicated = false;
     this.moved = false;
     this.waypointNet = null;
+    this.waypointBranch = 0;
   }
 
   cursorFor(target) {
@@ -99,6 +125,9 @@ export class SelectTool {
       this.mode = "waypoint";
       this.gestureLabel = "bend wire";
       this.waypointNet = wire.getAttribute("data-id");
+      // A net is one path with a subpath per branch, so the element alone
+      // does not say which branch was grabbed. The nearest one was.
+      this.waypointBranch = nearestBranch(store.doc, this.waypointNet, point);
       selection.clear();
       return;
     }
@@ -132,7 +161,8 @@ export class SelectTool {
       const step = model.gridStep(store.doc);
       const at = [model.snap(point[0], step), model.snap(point[1], step)];
       store.mutate(this.gestureLabel,
-                   (doc) => model.setWaypoints(doc, this.waypointNet, [at]));
+                   (doc) => model.setWaypoints(doc, this.waypointNet, [at],
+                                               this.waypointBranch));
       return true;
     }
 
@@ -334,13 +364,12 @@ export class WireTool {
     const probe = {
       id: "__preview",
       from: this.from.endpoint,
-      to: this.hover
-        ? { cell: this.hover.cell, pin: this.hover.pin }
-        : { x: target[0], y: target[1] },
-      waypoints: [],
+      to: [this.hover
+        ? { cell: this.hover.cell, pin: this.hover.pin, waypoints: [] }
+        : { x: target[0], y: target[1], waypoints: [] }],
     };
-    const points = routing.route(this.ctx.store.doc, probe);
-    return points.length ? points : [[this.from.x, this.from.y], target];
+    const [points] = routing.route(this.ctx.store.doc, probe);
+    return points && points.length ? points : [[this.from.x, this.from.y], target];
   }
 
   onPointerDown(event, point) {

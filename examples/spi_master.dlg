@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "spi_master",
   "canvas": {
     "width": 1220,
@@ -258,11 +258,13 @@
         "cell": "p_clk",
         "pin": "p"
       },
-      "to": {
-        "cell": "div",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "div",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -273,11 +275,13 @@
         "cell": "p_rstn",
         "pin": "p"
       },
-      "to": {
-        "cell": "div",
-        "pin": "in2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "div",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -288,34 +292,26 @@
         "cell": "div",
         "pin": "out1"
       },
-      "to": {
-        "cell": "p_sck",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n4",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "div",
-        "pin": "out1"
-      },
-      "to": {
-        "cell": "shr",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          440,
-          760
-        ],
-        [
-          440,
-          620
-        ]
+      "to": [
+        {
+          "cell": "p_sck",
+          "pin": "p",
+          "waypoints": []
+        },
+        {
+          "cell": "shr",
+          "pin": "ck",
+          "waypoints": [
+            [
+              440,
+              760
+            ],
+            [
+              440,
+              620
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -327,43 +323,35 @@
         "cell": "div",
         "pin": "out2"
       },
-      "to": {
-        "cell": "fsm",
-        "pin": "in2"
-      },
-      "waypoints": [
-        [
-          390,
-          800
-        ],
-        [
-          390,
-          202
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n6",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "div",
-        "pin": "out2"
-      },
-      "to": {
-        "cell": "cnt",
-        "pin": "in2"
-      },
-      "waypoints": [
-        [
-          690,
-          800
-        ],
-        [
-          690,
-          420
-        ]
+      "to": [
+        {
+          "cell": "fsm",
+          "pin": "in2",
+          "waypoints": [
+            [
+              390,
+              800
+            ],
+            [
+              390,
+              202
+            ]
+          ]
+        },
+        {
+          "cell": "cnt",
+          "pin": "in2",
+          "waypoints": [
+            [
+              690,
+              800
+            ],
+            [
+              690,
+              420
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -375,11 +363,13 @@
         "cell": "p_start",
         "pin": "p"
       },
-      "to": {
-        "cell": "fsm",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "fsm",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -390,11 +380,35 @@
         "cell": "p_cpol",
         "pin": "p"
       },
-      "to": {
-        "cell": "fsm",
-        "pin": "in4"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "fsm",
+          "pin": "in4",
+          "waypoints": []
+        },
+        {
+          "cell": "bitsel",
+          "pin": "in2",
+          "waypoints": [
+            [
+              200,
+              278
+            ],
+            [
+              200,
+              470
+            ],
+            [
+              700,
+              470
+            ],
+            [
+              700,
+              600
+            ]
+          ]
+        }
+      ],
       "style": {}
     },
     {
@@ -405,11 +419,13 @@
         "cell": "fsm",
         "pin": "out3"
       },
-      "to": {
-        "cell": "p_cs",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_cs",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -420,11 +436,13 @@
         "cell": "fsm",
         "pin": "out4"
       },
-      "to": {
-        "cell": "p_busy",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_busy",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -435,11 +453,13 @@
         "cell": "fsm",
         "pin": "out2"
       },
-      "to": {
-        "cell": "cnt",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "cnt",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -450,27 +470,29 @@
         "cell": "cnt",
         "pin": "out1"
       },
-      "to": {
-        "cell": "fsm",
-        "pin": "in3"
-      },
-      "waypoints": [
-        [
-          940,
-          380
-        ],
-        [
-          940,
-          110
-        ],
-        [
-          380,
-          110
-        ],
-        [
-          380,
-          246
-        ]
+      "to": [
+        {
+          "cell": "fsm",
+          "pin": "in3",
+          "waypoints": [
+            [
+              940,
+              380
+            ],
+            [
+              940,
+              110
+            ],
+            [
+              380,
+              110
+            ],
+            [
+              380,
+              246
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -482,23 +504,25 @@
         "cell": "fsm",
         "pin": "out1"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "s"
-      },
-      "waypoints": [
-        [
-          670,
-          170
-        ],
-        [
-          670,
-          720
-        ],
-        [
-          335,
-          720
-        ]
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "s",
+          "waypoints": [
+            [
+              670,
+              170
+            ],
+            [
+              670,
+              720
+            ],
+            [
+              335,
+              720
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -510,11 +534,13 @@
         "cell": "p_tx",
         "pin": "p"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "d0"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "d0",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -525,11 +551,13 @@
         "cell": "m1",
         "pin": "y"
       },
-      "to": {
-        "cell": "shr",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "shr",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -540,11 +568,13 @@
         "cell": "shr",
         "pin": "q"
       },
-      "to": {
-        "cell": "bitsel",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "bitsel",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -555,11 +585,13 @@
         "cell": "bitsel",
         "pin": "out1"
       },
-      "to": {
-        "cell": "p_mosi",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_mosi",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -570,59 +602,29 @@
         "cell": "bitsel",
         "pin": "out2"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "d1"
-      },
-      "waypoints": [
-        [
-          900,
-          600
-        ],
-        [
-          900,
-          690
-        ],
-        [
-          270,
-          690
-        ],
-        [
-          270,
-          615
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n19",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_cpol",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "bitsel",
-        "pin": "in2"
-      },
-      "waypoints": [
-        [
-          200,
-          278
-        ],
-        [
-          200,
-          470
-        ],
-        [
-          700,
-          470
-        ],
-        [
-          700,
-          600
-        ]
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "d1",
+          "waypoints": [
+            [
+              900,
+              600
+            ],
+            [
+              900,
+              690
+            ],
+            [
+              270,
+              690
+            ],
+            [
+              270,
+              615
+            ]
+          ]
+        }
       ],
       "style": {}
     }

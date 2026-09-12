@@ -7,6 +7,7 @@
 //   inspector.render();
 
 import * as geometry from "./geometry.js";
+import * as routing from "./routing.js";
 import * as model from "./model.js";
 import { symbolThumbnail } from "./render.js";
 
@@ -240,9 +241,10 @@ export class Inspector {
     const labels = cell.pins || {};
 
     for (const pin of symbol.pins) {
-      const nets = doc.nets.filter((net) =>
-        ["from", "to"].some((side) =>
-          net[side] && net[side].cell === cell.id && net[side].pin === pin.name));
+      const touches = (endpoint) =>
+        endpoint && endpoint.cell === cell.id && endpoint.pin === pin.name;
+      const nets = doc.nets.filter(
+        (net) => touches(net.from) || routing.loadsOf(net).some(touches));
 
       // Name the pin on this instance. Blank falls back to whatever the
       // symbol draws, which for a generic block is nothing at all.

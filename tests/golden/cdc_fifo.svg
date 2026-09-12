@@ -18,39 +18,33 @@
 <path class="dl-net" data-id="n1" d="M140 180 L790 180" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n2" d="M140 420 L330 420" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n3" d="M140 465 L330 465" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n4" d="M140 510 L330 510" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n4" d="M140 510 L330 510 M140 510 L210 510 L210 880 L880 880 L880 795 L830 795 M140 510 L210 510 L210 880 L735 880 L735 795 L710 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n5" d="M530 420 L660 420 L660 220 L790 220" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n6" d="M530 465 L680 465 L680 260 L790 260" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n7" d="M1010 180 L1660 180" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n8" d="M1660 420 L1470 420" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n9" d="M1660 465 L1470 465" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n10" d="M1660 510 L1470 510" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n10" d="M1660 510 L1470 510 M1660 510 L1590 510 L1590 880 L920 880 L920 795 L970 795 M1660 510 L1590 510 L1590 880 L1065 880 L1065 795 L1090 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n11" d="M1270 420 L1140 420 L1140 220 L1010 220" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n12" d="M1270 465 L1120 465 L1120 260 L1010 260" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n13" d="M530 510 L542 510 L542 725 L510 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n14" d="M1270 510 L1258 510 L1258 725 L1290 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n15" d="M530 510 L600 510 L600 600 L855 600 A5 5 0 0 1 865 600 L940 600 L940 765 L970 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n16" d="M1270 510 L1200 510 L1200 560 L860 560 L860 765 L830 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n13" d="M530 510 L542 510 L542 725 L510 725 M530 510 L600 510 L600 600 L855 600 A5 5 0 0 1 865 600 L940 600 L940 765 L970 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n14" d="M1270 510 L1258 510 L1258 725 L1290 725 M1270 510 L1200 510 L1200 560 L860 560 L860 765 L830 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n17" d="M1040 765 L1090 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n18" d="M1160 765 L1290 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n19" d="M760 765 L710 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n20" d="M640 765 L510 765" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n21" d="M330 725 L215 725 A5 5 0 0 0 205 725 L140 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n22" d="M1470 725 L1585 725 A5 5 0 0 1 1595 725 L1660 725" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n23" d="M140 510 L210 510 L210 880 L880 880 L880 795 L830 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n24" d="M140 510 L210 510 L210 880 L735 880 L735 795 L710 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n25" d="M1660 510 L1590 510 L1590 880 L920 880 L920 795 L970 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n26" d="M1660 510 L1590 510 L1590 880 L1065 880 L1065 795 L1090 795" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <text x="465" y="176" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wdata[7:0]</text>
 <text x="235" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">winc</text>
 <text x="235" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wrst_n</text>
-<text x="235" y="506" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wclk</text>
+<text x="545" y="876" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wclk</text>
 <text x="595" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">waddr[7:0]</text>
 <text x="605" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wclken</text>
 <text x="1335" y="176" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
 <text x="1565" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rinc</text>
 <text x="1565" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rrst_n</text>
-<text x="1565" y="506" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rclk</text>
+<text x="1255" y="876" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rclk</text>
 <text x="1205" y="416" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">raddr[7:0]</text>
 <text x="1195" y="461" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rclken</text>
 <text x="770" y="596" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wptr_g[8:0]</text>
@@ -65,6 +59,15 @@
 <polygon points="318.8,420 311.8,423.15 311.8,416.85" fill="#16202b" />
 <polygon points="318.8,465 311.8,468.15 311.8,461.85" fill="#16202b" />
 <polygon points="318.8,510 311.8,513.15 311.8,506.85" fill="#16202b" />
+<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
+<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
+<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
+<polygon points="730,880 723,883.15 723,876.85" fill="#16202b" />
+<polygon points="841.2,795 848.2,791.85 848.2,798.15" fill="#16202b" />
+<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
+<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
+<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
+<polygon points="721.2,795 728.2,791.85 728.2,798.15" fill="#16202b" />
 <polygon points="660,310 663.15,317 656.85,317" fill="#16202b" />
 <polygon points="778.8,220 771.8,223.15 771.8,216.85" fill="#16202b" />
 <polygon points="680,375 683.15,382 676.85,382" fill="#16202b" />
@@ -75,33 +78,6 @@
 <polygon points="1481.2,420 1488.2,416.85 1488.2,423.15" fill="#16202b" />
 <polygon points="1481.2,465 1488.2,461.85 1488.2,468.15" fill="#16202b" />
 <polygon points="1481.2,510 1488.2,506.85 1488.2,513.15" fill="#16202b" />
-<polygon points="1140,310 1143.15,317 1136.85,317" fill="#16202b" />
-<polygon points="1021.2,220 1028.2,216.85 1028.2,223.15" fill="#16202b" />
-<polygon points="1120,375 1123.15,382 1116.85,382" fill="#16202b" />
-<polygon points="1021.2,260 1028.2,256.85 1028.2,263.15" fill="#16202b" />
-<polygon points="521.2,725 528.2,721.85 528.2,728.15" fill="#16202b" />
-<polygon points="1278.8,725 1271.8,728.15 1271.8,721.85" fill="#16202b" />
-<polygon points="680,600 673,603.15 673,596.85" fill="#16202b" />
-<polygon points="920,600 913,603.15 913,596.85" fill="#16202b" />
-<polygon points="958.8,765 951.8,768.15 951.8,761.85" fill="#16202b" />
-<polygon points="1080,560 1087,556.85 1087,563.15" fill="#16202b" />
-<polygon points="860,580 856.85,573 863.15,573" fill="#16202b" />
-<polygon points="841.2,765 848.2,761.85 848.2,768.15" fill="#16202b" />
-<polygon points="1078.8,765 1071.8,768.15 1071.8,761.85" fill="#16202b" />
-<polygon points="1278.8,765 1271.8,768.15 1271.8,761.85" fill="#16202b" />
-<polygon points="721.2,765 728.2,761.85 728.2,768.15" fill="#16202b" />
-<polygon points="521.2,765 528.2,761.85 528.2,768.15" fill="#16202b" />
-<polygon points="151.2,725 158.2,721.85 158.2,728.15" fill="#16202b" />
-<polygon points="1648.8,725 1641.8,728.15 1641.8,721.85" fill="#16202b" />
-<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
-<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
-<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
-<polygon points="730,880 723,883.15 723,876.85" fill="#16202b" />
-<polygon points="841.2,795 848.2,791.85 848.2,798.15" fill="#16202b" />
-<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
-<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
-<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
-<polygon points="721.2,795 728.2,791.85 728.2,798.15" fill="#16202b" />
 <polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
 <polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
 <polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
@@ -111,6 +87,24 @@
 <polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
 <polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
 <polygon points="1078.8,795 1071.8,798.15 1071.8,791.85" fill="#16202b" />
+<polygon points="1140,310 1143.15,317 1136.85,317" fill="#16202b" />
+<polygon points="1021.2,220 1028.2,216.85 1028.2,223.15" fill="#16202b" />
+<polygon points="1120,375 1123.15,382 1116.85,382" fill="#16202b" />
+<polygon points="1021.2,260 1028.2,256.85 1028.2,263.15" fill="#16202b" />
+<polygon points="521.2,725 528.2,721.85 528.2,728.15" fill="#16202b" />
+<polygon points="680,600 673,603.15 673,596.85" fill="#16202b" />
+<polygon points="920,600 913,603.15 913,596.85" fill="#16202b" />
+<polygon points="958.8,765 951.8,768.15 951.8,761.85" fill="#16202b" />
+<polygon points="1278.8,725 1271.8,728.15 1271.8,721.85" fill="#16202b" />
+<polygon points="1080,560 1087,556.85 1087,563.15" fill="#16202b" />
+<polygon points="860,580 856.85,573 863.15,573" fill="#16202b" />
+<polygon points="841.2,765 848.2,761.85 848.2,768.15" fill="#16202b" />
+<polygon points="1078.8,765 1071.8,768.15 1071.8,761.85" fill="#16202b" />
+<polygon points="1278.8,765 1271.8,768.15 1271.8,761.85" fill="#16202b" />
+<polygon points="721.2,765 728.2,761.85 728.2,768.15" fill="#16202b" />
+<polygon points="521.2,765 528.2,761.85 528.2,768.15" fill="#16202b" />
+<polygon points="151.2,725 158.2,721.85 158.2,728.15" fill="#16202b" />
+<polygon points="1648.8,725 1641.8,728.15 1641.8,721.85" fill="#16202b" />
 <circle cx="210" cy="510" r="3.2" fill="#16202b" />
 <circle cx="542" cy="510" r="3.2" fill="#16202b" />
 <circle cx="735" cy="880" r="3.2" fill="#16202b" />

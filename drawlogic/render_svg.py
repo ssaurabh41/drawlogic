@@ -437,12 +437,19 @@ def _segment_box(a, b, pad=1.5):
           max(a[0], b[0]) + pad, max(a[1], b[1]) + pad)
 
 
-def _label_candidates(points, text, size):
+def _label_candidates(branches, text, size):
   """Every place a name could reasonably go on one wire.
 
-  Along each run at a few points, on either side of it. The caller scores
-  them; this only says what the options are.
+  Along each run of each branch, at a few points, on either side of it. The
+  caller scores them; this only says what the options are.
   """
+  found = []
+  for points in branches:
+    found.extend(_candidates_on(points, size))
+  return found
+
+
+def _candidates_on(points, size):
   found = []
   for index in range(len(points) - 1):
     ax, ay = points[index]
@@ -475,23 +482,20 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
   clearest spot, the same rule the router follows.
   """
   size = theme.FONT_SIZES["net_label"] * font_scale
-  segments = []
-  for net, points in routes:
-    for index in range(len(points) - 1):
-      segments.append((net.get("id"),
-                       _segment_box(points[index], points[index + 1])))
+  segments = [(net_id, _segment_box(a, b))
+              for net_id, a, b in routing.segments_of(routes)]
 
   placed = []
   spots = {}
-  for net, points in routes:
+  for net, branches in routes:
     text = net.get("name")
-    if not text or len(points) < 2:
+    if not text or not branches:
       continue
     net_id = net.get("id")
 
     best = None
     for spot, anchor, horizontal, length, stop, far_side in _label_candidates(
-        points, text, size):
+        branches, text, size):
       box = _label_box(spot, anchor, text, size)
 
       score = 0.0
@@ -545,11 +549,15 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   routes = routing.route_all(doc, registry)
   hop_map = routing.hop_points(routes) if hops else {}
 
-  for net, points in routes:
-    if len(points) < 2:
+  for net, branches in routes:
+    if not branches:
       continue
     style = net.get("style") or {}
-    d = _net_path(points, hop_map.get(net.get("id")), theme.HOP_RADIUS)
+    # One path element per net, with a subpath per branch: a net is one thing,
+    # so clicking any part of it should find the same thing.
+    hops = hop_map.get(net.get("id"))
+    d = " ".join(_net_path(points, hops, theme.HOP_RADIUS)
+                 for points in branches)
     out.append("<path %s />" % _attrs([
       ("class", "dl-net"),
       ("data-id", net.get("id")),
@@ -563,7 +571,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   spots = _label_spots(routes, _cell_boxes(doc, registry),
                        (doc.canvas.get("width"), doc.canvas.get("height")),
                        font_scale)
-  for net, points in routes:
+  for net, _branches in routes:
     name = net.get("name")
     if not name or net.get("id") not in spots:
       continue
@@ -579,15 +587,17 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
       esc(name)))
 
   if arrows:
-    for net, points in routes:
-      if len(points) < 2:
-        continue
+    for net, branches in routes:
       style = net.get("style") or {}
       if style.get("arrow") is False:
         continue
-      for tip, direction in _arrow_spots(points, theme.ARROW_SIZE):
-        _render_arrow(tip, direction, theme.ARROW_SIZE,
-                      style.get("stroke", theme.COLORS["net"]), out)
+      # Per branch: every load wants to know which way the signal reaches it.
+      for points in branches:
+        if len(points) < 2:
+          continue
+        for tip, direction in _arrow_spots(points, theme.ARROW_SIZE):
+          _render_arrow(tip, direction, theme.ARROW_SIZE,
+                        style.get("stroke", theme.COLORS["net"]), out)
 
   for point in routing.junctions(routes):
     out.append("<circle %s />" % _attrs([

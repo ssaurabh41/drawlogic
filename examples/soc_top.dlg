@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "soc_top",
   "canvas": {
     "width": 1780,
@@ -309,11 +309,13 @@
         "cell": "p_clken",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_mac",
-        "pin": "en"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_mac",
+          "pin": "en",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -324,11 +326,13 @@
         "cell": "p_winc",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "winc"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "winc",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -339,11 +343,13 @@
         "cell": "p_rinc",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "rinc"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "rinc",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -354,11 +360,13 @@
         "cell": "p_wrstn",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "wrst_n"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "wrst_n",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -369,11 +377,13 @@
         "cell": "p_rrstn",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "rrst_n"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "rrst_n",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -384,11 +394,13 @@
         "cell": "p_start",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_spi",
-        "pin": "start"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_spi",
+          "pin": "start",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -399,11 +411,13 @@
         "cell": "p_cpol",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_spi",
-        "pin": "cpol"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_spi",
+          "pin": "cpol",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -414,11 +428,13 @@
         "cell": "p_spirst",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_spi",
-        "pin": "rst_n"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_spi",
+          "pin": "rst_n",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -429,11 +445,13 @@
         "cell": "p_a",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_mac",
-        "pin": "a[15:0]"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_mac",
+          "pin": "a[15:0]",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -444,11 +462,13 @@
         "cell": "p_b",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_mac",
-        "pin": "b[15:0]"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_mac",
+          "pin": "b[15:0]",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -459,11 +479,13 @@
         "cell": "u_mac",
         "pin": "result[31:0]"
       },
-      "to": {
-        "cell": "pack",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "pack",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -474,11 +496,13 @@
         "cell": "pack",
         "pin": "out1"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "wdata[7:0]"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "wdata[7:0]",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -489,11 +513,13 @@
         "cell": "u_fifo",
         "pin": "rdata[7:0]"
       },
-      "to": {
-        "cell": "u_spi",
-        "pin": "tx_data[7:0]"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_spi",
+          "pin": "tx_data[7:0]",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -504,11 +530,13 @@
         "cell": "u_spi",
         "pin": "mosi"
       },
-      "to": {
-        "cell": "p_mosi",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_mosi",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -519,11 +547,13 @@
         "cell": "u_spi",
         "pin": "sck"
       },
-      "to": {
-        "cell": "p_sck",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_sck",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -534,11 +564,13 @@
         "cell": "u_spi",
         "pin": "cs_n"
       },
-      "to": {
-        "cell": "p_csn",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_csn",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -549,11 +581,13 @@
         "cell": "u_spi",
         "pin": "busy"
       },
-      "to": {
-        "cell": "p_busy",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_busy",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -564,19 +598,21 @@
         "cell": "u_mac",
         "pin": "overflow"
       },
-      "to": {
-        "cell": "p_ovf",
-        "pin": "p"
-      },
-      "waypoints": [
-        [
-          580,
-          254
-        ],
-        [
-          580,
-          480
-        ]
+      "to": [
+        {
+          "cell": "p_ovf",
+          "pin": "p",
+          "waypoints": [
+            [
+              580,
+              254
+            ],
+            [
+              580,
+              480
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -588,19 +624,21 @@
         "cell": "u_fifo",
         "pin": "wfull"
       },
-      "to": {
-        "cell": "p_wfull",
-        "pin": "p"
-      },
-      "waypoints": [
-        [
-          1250,
-          254
-        ],
-        [
-          1250,
-          440
-        ]
+      "to": [
+        {
+          "cell": "p_wfull",
+          "pin": "p",
+          "waypoints": [
+            [
+              1250,
+              254
+            ],
+            [
+              1250,
+              440
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -612,19 +650,21 @@
         "cell": "u_fifo",
         "pin": "rempty"
       },
-      "to": {
-        "cell": "p_rempty",
-        "pin": "p"
-      },
-      "waypoints": [
-        [
-          1290,
-          286
-        ],
-        [
-          1290,
-          410
-        ]
+      "to": [
+        {
+          "cell": "p_rempty",
+          "pin": "p",
+          "waypoints": [
+            [
+              1290,
+              286
+            ],
+            [
+              1290,
+              410
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -636,91 +676,63 @@
         "cell": "p_clk",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_mac",
-        "pin": "clk"
-      },
-      "waypoints": [
-        [
-          300,
-          700
-        ],
-        [
-          300,
-          286
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n22",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_clk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "wclk"
-      },
-      "waypoints": [
-        [
-          860,
-          700
-        ],
-        [
-          860,
-          382
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n23",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_clk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "rclk"
-      },
-      "waypoints": [
-        [
-          900,
-          700
-        ],
-        [
-          900,
-          414
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n24",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_clk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "u_spi",
-        "pin": "clk"
-      },
-      "waypoints": [
-        [
-          1340,
-          700
-        ],
-        [
-          1340,
-          254
-        ]
+      "to": [
+        {
+          "cell": "u_mac",
+          "pin": "clk",
+          "waypoints": [
+            [
+              300,
+              700
+            ],
+            [
+              300,
+              286
+            ]
+          ]
+        },
+        {
+          "cell": "u_fifo",
+          "pin": "wclk",
+          "waypoints": [
+            [
+              860,
+              700
+            ],
+            [
+              860,
+              382
+            ]
+          ]
+        },
+        {
+          "cell": "u_fifo",
+          "pin": "rclk",
+          "waypoints": [
+            [
+              900,
+              700
+            ],
+            [
+              900,
+              414
+            ]
+          ]
+        },
+        {
+          "cell": "u_spi",
+          "pin": "clk",
+          "waypoints": [
+            [
+              1340,
+              700
+            ],
+            [
+              1340,
+              254
+            ]
+          ]
+        }
       ],
       "style": {}
     }

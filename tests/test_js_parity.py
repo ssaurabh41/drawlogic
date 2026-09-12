@@ -31,6 +31,10 @@ def _round(value, places=3):
   return round(float(value), places)
 
 
+def _rounded(branches):
+  return [[[_round(x), _round(y)] for x, y in points] for points in branches]
+
+
 def _theme_payload():
   """The same theme the server hands the browser."""
   return {
@@ -78,13 +82,12 @@ class TestRouterParity(unittest.TestCase):
         doc, registry, _ = open_example(path)
         browser = _browser_result(path, registry)
         routes = routing.route_all(doc, registry)
-        self.assertTrue(any(points for _, points in routes),
+        self.assertTrue(any(branches for _, branches in routes),
                         "%s routed to nothing, so this proves nothing" % name)
 
-        expected = [[net["id"], [[_round(x), _round(y)] for x, y in points]]
-                    for net, points in routes]
-        actual = [[net_id, [[_round(x), _round(y)] for x, y in points]]
-                  for net_id, points in browser["routes"]]
+        expected = [[net["id"], _rounded(branches)] for net, branches in routes]
+        actual = [[net_id, _rounded(branches)]
+                  for net_id, branches in browser["routes"]]
         self.assertEqual(actual, expected,
                          "%s: routing.js and routing.py disagree" % name)
 
@@ -139,13 +142,14 @@ class TestRouterParity(unittest.TestCase):
         routes = routing.route_all(doc, registry)
 
         expected = {
-          net["id"]: [[_round(tip[0]), _round(tip[1])]
-                      for tip, _ in render_svg._arrow_spots(
-                        points, theme.ARROW_SIZE)]
-          for net, points in routes if len(points) >= 2}
-        actual = {net_id: [[_round(tip[0]), _round(tip[1])]
-                           for tip, _ in spots]
-                  for net_id, spots in browser["arrows"] if spots}
+          net["id"]: [[[_round(tip[0]), _round(tip[1])]
+                       for tip, _ in render_svg._arrow_spots(
+                         points, theme.ARROW_SIZE)]
+                      for points in branches if len(points) >= 2]
+          for net, branches in routes if branches}
+        actual = {net_id: [[[_round(tip[0]), _round(tip[1])] for tip, _ in spots]
+                           for spots in per_branch]
+                  for net_id, per_branch in browser["arrows"] if per_branch}
         self.assertEqual(actual, expected,
                          "%s: direction arrows land in different places" % name)
 

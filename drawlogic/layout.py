@@ -35,6 +35,7 @@ Usage:
 """
 
 from . import routing
+from .doc import loads_of
 from .geometry import corners
 from .symbols import default_registry
 
@@ -108,7 +109,8 @@ def _forget_waypoints(doc):
   bottom of it.
   """
   for net in doc.nets:
-    net["waypoints"] = []
+    for load in loads_of(net):
+      load["waypoints"] = []
 
 
 # ---- the graph ----
@@ -124,17 +126,17 @@ def _edges(doc, cells):
   raw = []
   for net in doc.nets:
     source = net.get("from")
-    target = net.get("to")
-    if not isinstance(source, dict) or not isinstance(target, dict):
+    if not isinstance(source, dict) or "cell" not in source:
       continue
-    if "cell" not in source or "cell" not in target:
-      continue
-    if source["cell"] == target["cell"]:
-      continue
-    if source["cell"] not in known or target["cell"] not in known:
-      continue
-    raw.append((source["cell"], target["cell"], source.get("pin"),
-                target.get("pin")))
+    # A net drives any number of loads, and each one is an edge: what decides
+    # where a cell goes is what reaches it, not which net it arrived on.
+    for target in loads_of(net):
+      if "cell" not in target or source["cell"] == target["cell"]:
+        continue
+      if source["cell"] not in known or target["cell"] not in known:
+        continue
+      raw.append((source["cell"], target["cell"], source.get("pin"),
+                  target.get("pin")))
 
   back = _back_edges([(a, b) for a, b, _, _ in raw])
   forward = [e for e in raw if (e[0], e[1]) not in back]
@@ -390,9 +392,8 @@ def _fit(doc, registry, margin):
   bottom = box[1] + box[3]
   # Wires can reach past every cell -- a feedback path returning underneath
   # the row it came from, for one -- so the sheet has to hold them too.
-  for _, points in routing.route_all(doc, registry):
-    for x, y in points:
-      right = max(right, x)
-      bottom = max(bottom, y)
+  for _, _a, b in routing.segments_of(routing.route_all(doc, registry)):
+    right = max(right, b[0])
+    bottom = max(bottom, b[1])
   doc.canvas["width"] = int(right + margin)
   doc.canvas["height"] = int(bottom + margin)

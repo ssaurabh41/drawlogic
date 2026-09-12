@@ -21,6 +21,7 @@ checking it clears every cell the wire is not connected to. A net's
 
 from . import theme
 from .geometry import corners
+from .doc import loads_of
 from .symbols import default_registry
 
 STUB = 12.0
@@ -194,26 +195,31 @@ class Sheet:
     self.boxes = boxes
     self._runs = []
     self._keys = frozenset()
+    self._net = None
 
-  def reserve(self, keys, points):
+  def reserve(self, keys, points, net_id=None):
     """Remember the runs of a wire that has been routed."""
     for index in range(len(points) - 1):
       a = points[index]
       b = points[index + 1]
       if abs(a[1] - b[1]) < EPSILON:
-        self._runs.append((keys, True, a[1], min(a[0], b[0]), max(a[0], b[0])))
+        self._runs.append((net_id, keys, True, a[1],
+                           min(a[0], b[0]), max(a[0], b[0])))
       elif abs(a[0] - b[0]) < EPSILON:
-        self._runs.append((keys, False, a[0], min(a[1], b[1]), max(a[1], b[1])))
+        self._runs.append((net_id, keys, False, a[0],
+                           min(a[1], b[1]), max(a[1], b[1])))
 
-  def for_net(self, boxes, keys):
+  def for_net(self, boxes, keys, net_id=None):
     """A view of this sheet for one net: its own obstacles, shared history.
 
-    The net's own endpoints are exempt from the reserved runs, so its fan-out
-    does not block itself.
+    The net's own branches are exempt from the reserved runs, so a fan-out
+    does not block itself -- that overlap is the rail, and the junction dots
+    on it are the point.
     """
     view = Sheet(boxes)
     view._runs = self._runs
     view._keys = keys
+    view._net = net_id
     return view
 
   def free(self, horizontal, fixed, v0, v1, crossings=True):
@@ -228,8 +234,10 @@ class Sheet:
     of a corridor search uses.
     """
     lo, hi = min(v0, v1), max(v0, v1)
-    for keys, run_h, run_fixed, run_lo, run_hi in self._runs:
-      if keys & self._keys:
+    for net_id, keys, run_h, run_fixed, run_lo, run_hi in self._runs:
+      # A net never crowds itself, and neither does anything sharing a pin
+      # with it: two wires off one pin are one signal, drawn as one rail.
+      if (net_id is not None and net_id == self._net) or (keys & self._keys):
         continue
       if run_h == horizontal:
         if abs(run_fixed - fixed) >= WIRE_GAP:
@@ -476,36 +484,54 @@ def _direct_route(start, end, start_dir, end_dir, sheet):
 
 
 def route(doc, net, registry=None, sheet=None):
-  """Points making up one wire, or an empty list if it cannot be resolved.
+  """The branches of one wire: a list of paths, one per load it drives.
+
+  A net has one driver and any number of loads, so what comes back is a list
+  of paths rather than a single one. Branches are routed one at a time from
+  the driving pin, which is why they lie on top of each other near it and part
+  company where they have to -- the junction dots mark exactly where.
 
   Pass the `sheet` from `route_all` to let a wire see the ones routed before
   it; on its own a wire only dodges cells.
   """
   registry = registry or default_registry()
   start = endpoint_position(doc, net.get("from"), registry)
-  end = endpoint_position(doc, net.get("to"), registry)
-  if start is None or end is None:
+  if start is None:
     return []
 
-  waypoints = [(float(p[0]), float(p[1])) for p in net.get("waypoints", [])]
+  start_dir = endpoint_direction(doc, net.get("from"), registry)
+  sheet = sheet or Sheet()
+  keys = _endpoint_keys(net)
+
+  branches = []
+  for load in loads_of(net):
+    points = _branch(doc, net, load, start, start_dir, registry, sheet, keys)
+    if points:
+      branches.append(points)
+  return branches
+
+
+def _branch(doc, net, load, start, start_dir, registry, sheet, keys):
+  """One path, from the driving pin to one of the loads."""
+  end = endpoint_position(doc, load, registry)
+  if end is None:
+    return []
+
+  waypoints = [(float(p[0]), float(p[1])) for p in load.get("waypoints", [])]
 
   if not waypoints:
-    start_dir = endpoint_direction(doc, net.get("from"), registry)
-    end_dir = endpoint_direction(doc, net.get("to"), registry)
+    end_dir = endpoint_direction(doc, load, registry)
     exclude = set()
-    for side in ("from", "to"):
-      endpoint = net.get(side) or {}
-      if "cell" in endpoint:
+    for endpoint in (net.get("from"), load):
+      if isinstance(endpoint, dict) and "cell" in endpoint:
         exclude.add(endpoint["cell"])
     boxes = obstacle_boxes(doc, registry, exclude)
-    sheet = sheet or Sheet()
-    view = sheet.for_net(boxes, _endpoint_keys(net))
+    view = sheet.for_net(boxes, keys, net.get("id"))
     return _clean(_direct_route(start, end, start_dir, end_dir, view))
 
   points = [start] + waypoints + [end]
   chain = [points[0]]
   horizontal_first = True
-  start_dir = endpoint_direction(doc, net.get("from"), registry)
   if start_dir is not None:
     horizontal_first = abs(start_dir[0]) > abs(start_dir[1])
   for index in range(len(points) - 1):
@@ -520,7 +546,7 @@ def route(doc, net, registry=None, sheet=None):
 
 
 def route_all(doc, registry=None):
-  """Every net's path, in document order.
+  """Every net's branches, in document order.
 
   Wires are routed one after another and each remembers where it ran, so a
   later wire picks a corridor of its own rather than landing on an earlier
@@ -530,18 +556,32 @@ def route_all(doc, registry=None):
   sheet = Sheet()
   routes = []
   for net in doc.nets:
-    points = route(doc, net, registry, sheet)
-    sheet.reserve(_endpoint_keys(net), points)
-    routes.append((net, points))
+    branches = route(doc, net, registry, sheet)
+    keys = _endpoint_keys(net)
+    for points in branches:
+      sheet.reserve(keys, points, net.get("id"))
+    routes.append((net, branches))
   return routes
 
 
+def segments_of(routes):
+  """Every straight run in a drawing, as (net id, a, b).
+
+  Branches of one net are separate paths, so anything looking at the drawing
+  as a whole -- junction dots, crossing bridges -- goes through here rather
+  than assuming one path per net.
+  """
+  found = []
+  for net, branches in routes:
+    net_id = net.get("id")
+    for points in branches:
+      for index in range(len(points) - 1):
+        found.append((net_id, points[index], points[index + 1]))
+  return found
+
+
 def _segments(routes):
-  out = []
-  for _, points in routes:
-    for index in range(len(points) - 1):
-      out.append((points[index], points[index + 1]))
-  return out
+  return [(a, b) for _, a, b in segments_of(routes)]
 
 
 def _touches(point, segment):
@@ -590,9 +630,10 @@ def junctions(routes):
   """
   segments = _segments(routes)
   candidates = {}
-  for _, points in routes:
-    for point in points:
-      candidates.setdefault(_key(point), point)
+  for _, branches in routes:
+    for points in branches:
+      for point in points:
+        candidates.setdefault(_key(point), point)
 
   found = []
   for _, point in sorted(candidates.items()):
@@ -613,17 +654,13 @@ def hop_points(routes):
   """
   segments = []
   vertices = set()
-  for net, points in routes:
-    net_id = net.get("id")
-    for point in points:
-      vertices.add(_key(point))
-    for index in range(len(points) - 1):
-      a = points[index]
-      b = points[index + 1]
-      if abs(a[1] - b[1]) < EPSILON:
-        segments.append((net_id, a, b, "h"))
-      elif abs(a[0] - b[0]) < EPSILON:
-        segments.append((net_id, a, b, "v"))
+  for net_id, a, b in segments_of(routes):
+    vertices.add(_key(a))
+    vertices.add(_key(b))
+    if abs(a[1] - b[1]) < EPSILON:
+      segments.append((net_id, a, b, "h"))
+    elif abs(a[0] - b[0]) < EPSILON:
+      segments.append((net_id, a, b, "v"))
 
   found = {}
   for net_id, a, b, orientation in segments:

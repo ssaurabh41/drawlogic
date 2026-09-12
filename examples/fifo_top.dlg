@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "fifo_top",
   "canvas": {
     "width": 1100,
@@ -165,11 +165,13 @@
         "cell": "p1",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "wdata[7:0]"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "wdata[7:0]",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -180,11 +182,13 @@
         "cell": "p2",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "winc"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "winc",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -195,11 +199,13 @@
         "cell": "p3",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "rinc"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "rinc",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -210,11 +216,13 @@
         "cell": "p4",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "wrst_n"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "wrst_n",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -225,11 +233,13 @@
         "cell": "p5",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "rrst_n"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "rrst_n",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -240,11 +250,13 @@
         "cell": "p6",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "wclk"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "wclk",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -255,11 +267,13 @@
         "cell": "p7",
         "pin": "p"
       },
-      "to": {
-        "cell": "u_fifo",
-        "pin": "rclk"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u_fifo",
+          "pin": "rclk",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -270,11 +284,13 @@
         "cell": "u_fifo",
         "pin": "rdata[7:0]"
       },
-      "to": {
-        "cell": "p8",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p8",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -285,11 +301,13 @@
         "cell": "u_fifo",
         "pin": "wfull"
       },
-      "to": {
-        "cell": "p9",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p9",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -300,11 +318,13 @@
         "cell": "u_fifo",
         "pin": "rempty"
       },
-      "to": {
-        "cell": "p10",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p10",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     }
   ],

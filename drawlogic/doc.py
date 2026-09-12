@@ -34,7 +34,7 @@ from .geometry import corners, union_bbox
 from .symbols import default_registry
 
 FORMAT = "drawlogic"
-VERSION = 1
+VERSION = 2
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
 CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
@@ -43,8 +43,10 @@ GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
              "pins", "style", "image", "ref"]
-NET_KEYS = ["id", "name", "width", "from", "to", "waypoints", "style"]
+NET_KEYS = ["id", "name", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
+# A load is a point that may also say which way the wire to it should go.
+LOAD_KEYS = POINT_KEYS + ["waypoints"]
 SHAPE_KEYS = ["id", "kind", "x", "y", "w", "h", "points", "text", "rotate", "style"]
 GROUP_KEYS = ["id", "label", "members"]
 
@@ -120,6 +122,77 @@ def bus_bits(name):
     return [base]
   step = -1 if msb >= lsb else 1
   return ["%s[%d]" % (base, i) for i in range(msb, lsb + step, step)]
+
+
+def loads_of(net):
+  """A net's loads, as a list, whatever shape the net is in.
+
+  Version 1 gave a net one load and put it in `to` directly. Version 2 lets a
+  net drive several, so `to` is a list -- and every reader goes through here so
+  nothing has to care which it is holding.
+  """
+  target = net.get("to")
+  if isinstance(target, dict):
+    return [target]
+  if isinstance(target, list):
+    return [load for load in target if isinstance(load, dict)]
+  return []
+
+
+def upgrade_from_v1(data):
+  """Bring a version 1 document up to version 2.
+
+  In version 1 a net had exactly one load, so a signal reaching three places
+  was three separate nets that happened to share a driving pin and happened to
+  be drawn on top of each other. That illusion is what junction dots were
+  hiding. Here those nets are merged into one, which is what they always were.
+
+  Nets are only merged when their names agree -- two names on one pin is
+  either a mistake or a deliberate alias, and silently dropping one of them
+  would be worse than leaving the drawing as it was.
+  """
+  data = dict(data)
+  merged = []
+  by_driver = {}
+
+  for net in data.get("nets") or []:
+    net = dict(net)
+    source = net.get("from")
+    waypoints = net.pop("waypoints", None)
+
+    if isinstance(net.get("to"), list):
+      # Already in the new shape. Upgrading has to be safe to repeat, or a
+      # caller being careful destroys the document it was protecting.
+      net["to"] = [dict(load) for load in net["to"] if isinstance(load, dict)]
+    else:
+      load = dict(net["to"]) if isinstance(net.get("to"), dict) else {}
+      if waypoints:
+        load["waypoints"] = waypoints
+      net["to"] = [load] if load else []
+
+    key = None
+    if isinstance(source, dict) and "cell" in source:
+      key = (source["cell"], source.get("pin"))
+
+    host = by_driver.get(key) if key else None
+    if host is not None and _names_agree(host.get("name"), net.get("name")):
+      host["to"].extend(net["to"])
+      if host.get("name") is None:
+        host["name"] = net.get("name")
+        host["width"] = net.get("width", host.get("width"))
+      continue
+
+    merged.append(net)
+    if key is not None and host is None:
+      by_driver[key] = net
+
+  data["nets"] = merged
+  data["version"] = 2
+  return data
+
+
+def _names_agree(one, other):
+  return one is None or other is None or one == other
 
 
 class DocumentError(Exception):
@@ -199,6 +272,9 @@ class Document(object):
     if fmt != FORMAT:
       raise DocumentError("not a drawlogic document (format is %r)" % fmt)
     version = data.get("version")
+    if version == 1:
+      data = upgrade_from_v1(data)
+      version = data.get("version")
     if version != VERSION:
       raise DocumentError(
         "document version %r is not supported by this build (expected %d)"
@@ -242,9 +318,9 @@ class Document(object):
     nets = []
     for net in self.nets:
       item = _ordered(net, NET_KEYS)
-      for end in ("from", "to"):
-        if isinstance(item.get(end), dict):
-          item[end] = _ordered(item[end], POINT_KEYS)
+      if isinstance(item.get("from"), dict):
+        item["from"] = _ordered(item["from"], POINT_KEYS)
+      item["to"] = [_ordered(load, LOAD_KEYS) for load in loads_of(net)]
       nets.append(item)
     out["nets"] = nets
     out["shapes"] = [_ordered(s, SHAPE_KEYS) for s in self.shapes]
@@ -338,8 +414,11 @@ class Document(object):
       if name and "width" not in net:
         net["width"] = net_name_width(name)
       net.setdefault("width", 1)
-      net.setdefault("waypoints", [])
       net.setdefault("style", {})
+      loads = loads_of(net)
+      for load in loads:
+        load.setdefault("waypoints", [])
+      net["to"] = loads
 
     for shape in data.setdefault("shapes", []):
       shape.setdefault("style", {})
@@ -469,8 +548,14 @@ class Document(object):
                             % (net_name_width(name), net.get("width", 1))))
 
       endpoint_widths = []
-      for end in ("from", "to"):
-        endpoint = net.get(end)
+      ends = [("from", net.get("from"))]
+      loads = loads_of(net)
+      if not loads:
+        issues.append(Issue("error", where, "the net drives nothing"))
+      for index, load in enumerate(loads):
+        ends.append(("load %d" % (index + 1) if len(loads) > 1 else "to", load))
+
+      for end, endpoint in ends:
         if not isinstance(endpoint, dict):
           issues.append(Issue("error", where, "%s endpoint is missing" % end))
           continue
@@ -505,6 +590,22 @@ class Document(object):
           issues.append(Issue("error", where,
                               "connects a %d-bit pin to a %d-bit net"
                               % (pin_width, net_width)))
+
+    # A load pin driven by two different nets is a short. That could not be
+    # said before: every fan-out looked like several nets sharing a pin, so
+    # there was nothing to tell a rail apart from a short.
+    driven = {}
+    for net in self.nets:
+      for load in loads_of(net):
+        if "cell" not in load:
+          continue
+        key = (load["cell"], load.get("pin"))
+        driven.setdefault(key, []).append(net.get("name") or net.get("id"))
+    for (cell_id, pin_name), owners in sorted(driven.items()):
+      if len(owners) > 1:
+        issues.append(Issue("error", "cell %s" % cell_id,
+                            "pin %r is driven by %d nets (%s)"
+                            % (pin_name, len(owners), ", ".join(owners))))
 
     for cell in self.cells:
       symbol = registry.for_cell(cell)

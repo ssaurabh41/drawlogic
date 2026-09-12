@@ -36,12 +36,13 @@ const labels = render.labelSpots(routes, render.cellBoxes(doc),
                                  [canvas.width, canvas.height], fontScale);
 
 process.stdout.write(JSON.stringify({
-  routes: routes.map(({ net, points }) => [net.id, points]),
+  routes: routes.map(({ net, branches }) => [net.id, branches]),
   junctions: routing.junctions(routes),
   hops: [...hops.entries()],
   labels: [...labels.entries()],
-  arrows: routes.map(({ net, points }) => [
+  arrows: routes.map(({ net, branches }) => [
     net.id,
-    points.length < 2 ? [] : render.arrowSpots(points, theme.arrowSize || 7),
+    branches.filter((points) => points.length >= 2)
+      .map((points) => render.arrowSpots(points, theme.arrowSize || 7)),
   ]),
 }));

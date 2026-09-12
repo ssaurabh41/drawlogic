@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "alu_slice",
   "canvas": {
     "width": 1200,
@@ -198,41 +198,23 @@
         "cell": "p_a",
         "pin": "p"
       },
-      "to": {
-        "cell": "g_xor1",
-        "pin": "a"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n2",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_a",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "g_and1",
-        "pin": "a"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n3",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_a",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "g_or1",
-        "pin": "a"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "g_xor1",
+          "pin": "a",
+          "waypoints": []
+        },
+        {
+          "cell": "g_and1",
+          "pin": "a",
+          "waypoints": []
+        },
+        {
+          "cell": "g_or1",
+          "pin": "a",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -243,41 +225,23 @@
         "cell": "p_b",
         "pin": "p"
       },
-      "to": {
-        "cell": "g_xor1",
-        "pin": "b"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n5",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_b",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "g_and1",
-        "pin": "b"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n6",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_b",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "g_or1",
-        "pin": "b"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "g_xor1",
+          "pin": "b",
+          "waypoints": []
+        },
+        {
+          "cell": "g_and1",
+          "pin": "b",
+          "waypoints": []
+        },
+        {
+          "cell": "g_or1",
+          "pin": "b",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -288,41 +252,23 @@
         "cell": "g_xor1",
         "pin": "y"
       },
-      "to": {
-        "cell": "g_xor2",
-        "pin": "a"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n8",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "g_xor1",
-        "pin": "y"
-      },
-      "to": {
-        "cell": "g_and2",
-        "pin": "a"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n9",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "g_xor1",
-        "pin": "y"
-      },
-      "to": {
-        "cell": "m1",
-        "pin": "d0"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "g_xor2",
+          "pin": "a",
+          "waypoints": []
+        },
+        {
+          "cell": "g_and2",
+          "pin": "a",
+          "waypoints": []
+        },
+        {
+          "cell": "m1",
+          "pin": "d0",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -333,26 +279,18 @@
         "cell": "p_cin",
         "pin": "p"
       },
-      "to": {
-        "cell": "g_xor2",
-        "pin": "b"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n11",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_cin",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "g_and2",
-        "pin": "b"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "g_xor2",
+          "pin": "b",
+          "waypoints": []
+        },
+        {
+          "cell": "g_and2",
+          "pin": "b",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -363,11 +301,13 @@
         "cell": "g_xor2",
         "pin": "y"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "d1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "d1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -378,11 +318,18 @@
         "cell": "g_and1",
         "pin": "y"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "d2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "d2",
+          "waypoints": []
+        },
+        {
+          "cell": "g_or2",
+          "pin": "a",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -393,11 +340,13 @@
         "cell": "g_or1",
         "pin": "y"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "d3"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "d3",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -408,11 +357,13 @@
         "cell": "p_sel",
         "pin": "p"
       },
-      "to": {
-        "cell": "m1",
-        "pin": "s"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "m1",
+          "pin": "s",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -423,26 +374,13 @@
         "cell": "m1",
         "pin": "y"
       },
-      "to": {
-        "cell": "p_y",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n17",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "g_and1",
-        "pin": "y"
-      },
-      "to": {
-        "cell": "g_or2",
-        "pin": "a"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_y",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -453,11 +391,13 @@
         "cell": "g_and2",
         "pin": "y"
       },
-      "to": {
-        "cell": "g_or2",
-        "pin": "b"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "g_or2",
+          "pin": "b",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -468,11 +408,13 @@
         "cell": "g_or2",
         "pin": "y"
       },
-      "to": {
-        "cell": "p_cout",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_cout",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     }
   ],

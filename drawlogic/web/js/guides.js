@@ -86,18 +86,19 @@ export function straighten(doc, mover, anchor) {
 
 function pinAlignments(doc, moving, offer) {
   for (const net of doc.nets || []) {
-    const ends = endsToAlign(net, moving);
-    if (!ends) continue;
-    const fix = straighten(doc, ends[0], ends[1]);
-    if (fix) offer(fix.axis, fix.delta, PIN_RANK, fix.guide);
+    // Each branch of a net is its own wire, and each can be straightened.
+    for (const load of routing.loadsOf(net)) {
+      const ends = endsToAlign(net.from, load, moving);
+      if (!ends) continue;
+      const fix = straighten(doc, ends[0], ends[1]);
+      if (fix) offer(fix.axis, fix.delta, PIN_RANK, fix.guide);
+    }
   }
 }
 
-// The moving end and the staying end of a net, or null when the net is wholly
-// inside or wholly outside the moving set -- neither has anything to line up.
-export function endsToAlign(net, moving) {
-  const from = net.from;
-  const to = net.to;
+// The moving end and the staying end of one branch, or null when both ends
+// move together or neither does -- either way there is nothing to line up.
+export function endsToAlign(from, to, moving) {
   if (!from || !to || from.cell === undefined || to.cell === undefined) return null;
   const fromMoves = moving.has(from.cell);
   const toMoves = moving.has(to.cell);

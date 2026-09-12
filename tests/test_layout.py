@@ -18,7 +18,7 @@ import random
 import unittest
 
 from drawlogic import layout, routing
-from drawlogic.doc import Document, new_document
+from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 
 from tests import ROOT, open_example
@@ -73,6 +73,12 @@ def overlapping(doc, registry):
   return found
 
 
+def _straight(routes):
+  """How many branches run dead straight, and how many there are."""
+  branches = [points for _, all_of_them in routes for points in all_of_them]
+  return sum(1 for points in branches if len(points) == 2), len(branches)
+
+
 def positions(doc):
   return [(c["id"], round(c["x"], 3), round(c["y"], 3)) for c in doc.cells]
 
@@ -95,9 +101,11 @@ class TestFlow(unittest.TestCase):
     by_id = {c["id"]: c for c in doc.cells}
     for net in doc.nets:
       source = by_id[net["from"]["cell"]]
-      target = by_id[net["to"]["cell"]]
-      self.assertLess(source["x"], target["x"],
-                      "%s should sit left of %s" % (source["id"], target["id"]))
+      for load in loads_of(net):
+        target = by_id[load["cell"]]
+        self.assertLess(source["x"], target["x"],
+                        "%s should sit left of %s"
+                        % (source["id"], target["id"]))
 
   def test_output_ports_line_up_on_the_right_edge(self):
     doc = new_document("fan", 900, 400)
@@ -190,9 +198,11 @@ class TestWhatItTidiesAway(unittest.TestCase):
     # A waypoint is a coordinate on the old sheet. Left in place it names
     # somewhere with nothing at it, and the wire dutifully goes there.
     doc = chain(3)
-    doc.nets[0]["waypoints"] = [[700, 700]]
+    loads_of(doc.nets[0])[0]["waypoints"] = [[700, 700]]
     layout.arrange(doc, self.registry)
-    self.assertEqual([n["waypoints"] for n in doc.nets], [[]] * len(doc.nets))
+    for net in doc.nets:
+      for load in loads_of(net):
+        self.assertEqual(load["waypoints"], [])
 
   def test_cells_are_turned_to_face_forward(self):
     doc = chain(3)
@@ -255,18 +265,15 @@ class TestItActuallyHelps(unittest.TestCase):
         doc, registry, _ = open_example(
           os.path.join(ROOT, "examples", name + ".dlg"))
         scramble(doc, seed=9)
-        before = routing.route_all(doc, registry)
-        straight_before = sum(1 for _, p in before if len(p) == 2)
-
+        straight_before, total = _straight(routing.route_all(doc, registry))
         layout.arrange(doc, registry)
-        after = routing.route_all(doc, registry)
-        straight_after = sum(1 for _, p in after if len(p) == 2)
+        straight_after, total = _straight(routing.route_all(doc, registry))
 
         self.assertGreater(straight_after, straight_before,
                            "%s: laying out should straighten wires" % name)
-        self.assertGreater(straight_after, len(after) * 0.2,
-                           "%s: only %d of %d wires run straight"
-                           % (name, straight_after, len(after)))
+        self.assertGreater(straight_after, total * 0.2,
+                           "%s: only %d of %d branches run straight"
+                           % (name, straight_after, total))
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ import re
 import unittest
 
 from drawlogic import render_svg, routing
-from drawlogic.doc import Document
+from drawlogic.doc import Document, loads_of
 from drawlogic.symbols import default_registry
 from tests import ROOT, open_example
 
@@ -121,21 +121,22 @@ class TestEveryExample(unittest.TestCase):
   def test_every_net_resolves(self):
     for name, doc, registry, _ in self.documents():
       with self.subTest(example=name):
-        for net, points in routing.route_all(doc, registry):
-          self.assertGreaterEqual(
-            len(points), 2,
-            "%s: net %s does not resolve to a path" % (name, net.get("id")))
+        for net, branches in routing.route_all(doc, registry):
+          self.assertTrue(branches,
+                          "%s: net %s drives nothing" % (name, net.get("id")))
+          for points in branches:
+            self.assertGreaterEqual(
+              len(points), 2,
+              "%s: net %s has a branch with no path" % (name, net.get("id")))
 
   def test_every_segment_is_axis_aligned(self):
     for name, doc, registry, _ in self.documents():
       with self.subTest(example=name):
-        for net, points in routing.route_all(doc, registry):
-          for index in range(len(points) - 1):
-            ax, ay = points[index]
-            bx, by = points[index + 1]
-            self.assertTrue(
-              abs(ax - bx) < 1e-6 or abs(ay - by) < 1e-6,
-              "%s: net %s has a diagonal segment" % (name, net.get("id")))
+        routes = routing.route_all(doc, registry)
+        for net_id, (ax, ay), (bx, by) in routing.segments_of(routes):
+          self.assertTrue(
+            abs(ax - bx) < 1e-6 or abs(ay - by) < 1e-6,
+            "%s: net %s has a diagonal segment" % (name, net_id))
 
   def test_no_wire_crosses_an_unrelated_cell(self):
     # The router may fall back to a blocked corridor when a layout leaves it
@@ -144,21 +145,21 @@ class TestEveryExample(unittest.TestCase):
     worst = {}
     for name, doc, registry, _ in self.documents():
       crossings = 0
-      for net, points in routing.route_all(doc, registry):
-        exclude = set()
-        for side in ("from", "to"):
-          endpoint = net.get(side) or {}
-          if "cell" in endpoint:
-            exclude.add(endpoint["cell"])
-        boxes = routing.obstacle_boxes(doc, registry, exclude=exclude)
-        for index in range(len(points) - 1):
-          (ax, ay), (bx, by) = points[index], points[index + 1]
-          if abs(ax - bx) < 1e-6:
-            clear = routing._vertical_clear(ax, ay, by, boxes)
-          else:
-            clear = routing._horizontal_clear(ay, ax, bx, boxes)
-          if not clear:
-            crossings += 1
+      for net, branches in routing.route_all(doc, registry):
+        for load, points in zip(loads_of(net), branches):
+          exclude = set()
+          for endpoint in (net.get("from"), load):
+            if isinstance(endpoint, dict) and "cell" in endpoint:
+              exclude.add(endpoint["cell"])
+          boxes = routing.obstacle_boxes(doc, registry, exclude=exclude)
+          for index in range(len(points) - 1):
+            (ax, ay), (bx, by) = points[index], points[index + 1]
+            if abs(ax - bx) < 1e-6:
+              clear = routing._vertical_clear(ax, ay, by, boxes)
+            else:
+              clear = routing._horizontal_clear(ay, ax, bx, boxes)
+            if not clear:
+              crossings += 1
       worst[name] = crossings
 
     self.assertEqual(worst.get("dff_slice"), 0,
@@ -319,12 +320,9 @@ class TestCrossingHops(unittest.TestCase):
 
   def test_a_hop_sits_on_a_real_crossing(self):
     routes = routing.route_all(self.doc)
-    verticals = []
-    for _, points in routes:
-      for index in range(len(points) - 1):
-        a, b = points[index], points[index + 1]
-        if abs(a[0] - b[0]) < 1e-6:
-          verticals.append((a[0], min(a[1], b[1]), max(a[1], b[1])))
+    verticals = [(a[0], min(a[1], b[1]), max(a[1], b[1]))
+                 for _, a, b in routing.segments_of(routes)
+                 if abs(a[0] - b[0]) < 1e-6]
 
     for points in routing.hop_points(routes).values():
       for x, y in points:

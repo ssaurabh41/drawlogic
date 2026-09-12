@@ -19,6 +19,15 @@ function cellOf(doc, id) {
   return doc.cells.find((cell) => cell.id === id) || null;
 }
 
+// A net's loads, as a list, whatever shape it is in. Version 1 gave a net one
+// load and put it in `to` directly; version 2 lets a net drive several.
+export function loadsOf(net) {
+  if (!net) return [];
+  if (Array.isArray(net.to)) return net.to.filter((load) => load && typeof load === "object");
+  if (net.to && typeof net.to === "object") return [net.to];
+  return [];
+}
+
 export function endpointPosition(doc, endpoint) {
   if (!endpoint) return null;
   if (endpoint.cell !== undefined) {
@@ -109,24 +118,28 @@ export class Sheet {
     this.boxes = boxes;
     this.runs = [];
     this.keys = new Set();
+    this.net = null;
   }
 
-  reserve(keys, points) {
+  reserve(keys, points, netId = null) {
     for (let i = 0; i < points.length - 1; i += 1) {
       const a = points[i];
       const b = points[i + 1];
       if (Math.abs(a[1] - b[1]) < EPSILON) {
-        this.runs.push([keys, true, a[1], Math.min(a[0], b[0]), Math.max(a[0], b[0])]);
+        this.runs.push([netId, keys, true, a[1],
+                        Math.min(a[0], b[0]), Math.max(a[0], b[0])]);
       } else if (Math.abs(a[0] - b[0]) < EPSILON) {
-        this.runs.push([keys, false, a[0], Math.min(a[1], b[1]), Math.max(a[1], b[1])]);
+        this.runs.push([netId, keys, false, a[0],
+                        Math.min(a[1], b[1]), Math.max(a[1], b[1])]);
       }
     }
   }
 
-  forNet(boxes, keys) {
+  forNet(boxes, keys, netId = null) {
     const view = new Sheet(boxes);
     view.runs = this.runs;
     view.keys = keys;
+    view.net = netId;
     return view;
   }
 
@@ -138,7 +151,10 @@ export class Sheet {
   free(horizontal, fixed, v0, v1, crossings = true) {
     const lo = Math.min(v0, v1);
     const hi = Math.max(v0, v1);
-    return !this.runs.some(([keys, runH, runFixed, runLo, runHi]) => {
+    return !this.runs.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
+      // A net never crowds itself, and neither does anything sharing a pin
+      // with it: two wires off one pin are one signal, drawn as one rail.
+      if (netId !== null && netId === this.net) return false;
       for (const key of keys) if (this.keys.has(key)) return false;
       if (runH === horizontal) {
         if (Math.abs(runFixed - fixed) >= WIRE_GAP) return false;
@@ -152,7 +168,7 @@ export class Sheet {
 
 function endpointKeys(net) {
   const keys = new Set();
-  for (const endpoint of [net.from, net.to]) {
+  for (const endpoint of [net.from, ...loadsOf(net)]) {
     if (endpoint && endpoint.cell) keys.add(`${endpoint.cell}.${endpoint.pin}`);
   }
   return keys;
@@ -369,30 +385,45 @@ function elbow(a, b, horizontalFirst) {
 
 // Pass the `sheet` from routeAll to let a wire see the ones routed before it;
 // on its own a wire only dodges cells.
+// The branches of one wire: a list of paths, one per load it drives. Branches
+// are routed one at a time from the driving pin, which is why they lie on top
+// of each other near it and part company where they have to -- the junction
+// dots mark exactly where.
 export function route(doc, net, sheet = null) {
   const start = endpointPosition(doc, net.from);
-  const end = endpointPosition(doc, net.to);
-  if (!start || !end) return [];
+  if (!start) return [];
 
-  const waypoints = (net.waypoints || []).map((p) => [p[0], p[1]]);
+  const startDir = endpointDirection(doc, net.from);
+  const board = sheet || new Sheet();
+  const keys = endpointKeys(net);
+
+  const branches = [];
+  for (const load of loadsOf(net)) {
+    const points = branchTo(doc, net, load, start, startDir, board, keys);
+    if (points.length) branches.push(points);
+  }
+  return branches;
+}
+
+// One path, from the driving pin to one of the loads.
+function branchTo(doc, net, load, start, startDir, sheet, keys) {
+  const end = endpointPosition(doc, load);
+  if (!end) return [];
+
+  const waypoints = (load.waypoints || []).map((p) => [p[0], p[1]]);
 
   if (!waypoints.length) {
     const exclude = new Set();
-    for (const side of ["from", "to"]) {
-      const endpoint = net[side];
+    for (const endpoint of [net.from, load]) {
       if (endpoint && endpoint.cell !== undefined) exclude.add(endpoint.cell);
     }
-    const view = (sheet || new Sheet()).forNet(obstacleBoxes(doc, exclude),
-                                               endpointKeys(net));
-    return clean(directRoute(start, end,
-                             endpointDirection(doc, net.from),
-                             endpointDirection(doc, net.to),
-                             view));
+    const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id);
+    return clean(directRoute(start, end, startDir,
+                             endpointDirection(doc, load), view));
   }
 
   const points = [start, ...waypoints, end];
   const chain = [points[0]];
-  const startDir = endpointDirection(doc, net.from);
   let horizontalFirst = startDir
     ? Math.abs(startDir[0]) > Math.abs(startDir[1]) : true;
   for (let i = 0; i < points.length - 1; i += 1) {
@@ -409,10 +440,26 @@ export function route(doc, net, sheet = null) {
 export function routeAll(doc) {
   const sheet = new Sheet();
   return (doc.nets || []).map((net) => {
-    const points = route(doc, net, sheet);
-    sheet.reserve(endpointKeys(net), points);
-    return { net, points };
+    const branches = route(doc, net, sheet);
+    const keys = endpointKeys(net);
+    for (const points of branches) sheet.reserve(keys, points, net.id);
+    return { net, branches };
   });
+}
+
+// Every straight run in a drawing, as [net id, a, b]. Branches of one net are
+// separate paths, so anything looking at the drawing as a whole -- junction
+// dots, crossing bridges -- comes through here.
+export function segmentsOf(routes) {
+  const found = [];
+  for (const { net, branches } of routes) {
+    for (const points of branches) {
+      for (let i = 0; i < points.length - 1; i += 1) {
+        found.push([net.id, points[i], points[i + 1]]);
+      }
+    }
+  }
+  return found;
 }
 
 function touches(point, [a, b]) {
@@ -439,14 +486,10 @@ function touches(point, [a, b]) {
 export function hopPoints(routes) {
   const segments = [];
   const vertices = new Set();
-  for (const { net, points } of routes) {
-    for (const p of points) vertices.add(`${p[0].toFixed(3)},${p[1].toFixed(3)}`);
-    for (let i = 0; i < points.length - 1; i += 1) {
-      const a = points[i];
-      const b = points[i + 1];
-      if (Math.abs(a[1] - b[1]) < EPSILON) segments.push([net.id, a, b, "h"]);
-      else if (Math.abs(a[0] - b[0]) < EPSILON) segments.push([net.id, a, b, "v"]);
-    }
+  for (const [netId, a, b] of segmentsOf(routes)) {
+    for (const p of [a, b]) vertices.add(`${p[0].toFixed(3)},${p[1].toFixed(3)}`);
+    if (Math.abs(a[1] - b[1]) < EPSILON) segments.push([netId, a, b, "h"]);
+    else if (Math.abs(a[0] - b[0]) < EPSILON) segments.push([netId, a, b, "v"]);
   }
 
   const found = new Map();
@@ -476,16 +519,11 @@ export function hopPoints(routes) {
 }
 
 export function junctions(routes) {
-  const segments = [];
-  for (const { points } of routes) {
-    for (let i = 0; i < points.length - 1; i += 1) {
-      segments.push([points[i], points[i + 1]]);
-    }
-  }
+  const segments = segmentsOf(routes).map(([, a, b]) => [a, b]);
 
   const candidates = new Map();
-  for (const { points } of routes) {
-    for (const point of points) {
+  for (const [, a, b] of segmentsOf(routes)) {
+    for (const point of [a, b]) {
       candidates.set(`${point[0].toFixed(3)},${point[1].toFixed(3)}`, point);
     }
   }

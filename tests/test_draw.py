@@ -4,9 +4,14 @@ import re
 import unittest
 
 from drawlogic import render_svg, routing, theme
-from drawlogic.doc import Document, new_document
+from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE
+
+
+def _flat(routes):
+  """(net, points) for every branch, for tests that look at one wire at a time."""
+  return [(net, points) for net, branches in routes for points in branches]
 
 
 def _doc_with_pair(gap=300):
@@ -35,14 +40,14 @@ class TestRouting(unittest.TestCase):
   def test_aligned_pins_route_straight(self):
     doc = _doc_with_pair()
     # and2.y sits at y=20; inv.a sits at y=20 as well.
-    points = routing.route(doc, doc.nets[0])
+    [points] = routing.route(doc, doc.nets[0])
     self.assertEqual(len(points), 2)
     self.assertAlmostEqual(points[0][1], points[1][1])
 
   def test_offset_pins_route_with_two_corners(self):
     doc = _doc_with_pair()
     doc.cell("u2")["y"] = 120
-    points = routing.route(doc, doc.nets[0])
+    [points] = routing.route(doc, doc.nets[0])
     self.assertEqual(len(points), 4)
     self.assertAlmostEqual(points[0][1], points[1][1])
     self.assertAlmostEqual(points[1][0], points[2][0])
@@ -50,7 +55,7 @@ class TestRouting(unittest.TestCase):
 
   def test_every_segment_is_axis_aligned(self):
     doc = Document.load(EXAMPLE)
-    for net, points in routing.route_all(doc):
+    for net, points in _flat(routing.route_all(doc)):
       for index in range(len(points) - 1):
         ax, ay = points[index]
         bx, by = points[index + 1]
@@ -61,10 +66,10 @@ class TestRouting(unittest.TestCase):
     # This is the whole point of storing pin references instead of
     # coordinates, so it gets an explicit test.
     doc = _doc_with_pair()
-    before = routing.route(doc, doc.nets[0])
+    [before] = routing.route(doc, doc.nets[0])
     doc.cell("u1")["x"] += 40
     doc.cell("u1")["y"] += 25
-    after = routing.route(doc, doc.nets[0])
+    [after] = routing.route(doc, doc.nets[0])
 
     self.assertAlmostEqual(after[0][0], before[0][0] + 40)
     self.assertAlmostEqual(after[0][1], before[0][1] + 25)
@@ -75,7 +80,7 @@ class TestRouting(unittest.TestCase):
     doc = _doc_with_pair()
     doc.cell("u2")["x"] = -200
     doc.cell("u2")["y"] = 150
-    points = routing.route(doc, doc.nets[0])
+    [points] = routing.route(doc, doc.nets[0])
     start = points[0]
     # The wire must leave the driving pin heading east before turning back.
     self.assertGreater(points[1][0], start[0])
@@ -84,20 +89,21 @@ class TestRouting(unittest.TestCase):
     # Every leg has to clear other cells, not just the corridor. A corridor
     # that dodges a gate is useless if the leg into it still cuts through one.
     doc = Document.load(EXAMPLE)
-    for net, points in routing.route_all(doc):
-      exclude = set()
-      for side in ("from", "to"):
-        endpoint = net.get(side) or {}
-        if "cell" in endpoint:
-          exclude.add(endpoint["cell"])
-      boxes = routing.obstacle_boxes(doc, exclude=exclude)
-      for index in range(len(points) - 1):
-        (ax, ay), (bx, by) = points[index], points[index + 1]
-        if abs(ax - bx) < 1e-6:
-          clear = routing._vertical_clear(ax, ay, by, boxes)
-        else:
-          clear = routing._horizontal_clear(ay, ax, bx, boxes)
-        self.assertTrue(clear, "net %s cuts through a cell" % net.get("id"))
+    doc.normalize()
+    for net, branches in routing.route_all(doc):
+      for load, points in zip(loads_of(net), branches):
+        exclude = set()
+        for endpoint in (net.get("from"), load):
+          if isinstance(endpoint, dict) and "cell" in endpoint:
+            exclude.add(endpoint["cell"])
+        boxes = routing.obstacle_boxes(doc, exclude=exclude)
+        for index in range(len(points) - 1):
+          (ax, ay), (bx, by) = points[index], points[index + 1]
+          if abs(ax - bx) < 1e-6:
+            clear = routing._vertical_clear(ax, ay, by, boxes)
+          else:
+            clear = routing._horizontal_clear(ay, ax, bx, boxes)
+          self.assertTrue(clear, "net %s cuts through a cell" % net.get("id"))
 
   def test_unresolvable_net_routes_to_nothing(self):
     doc = _doc_with_pair()
@@ -107,7 +113,7 @@ class TestRouting(unittest.TestCase):
   def test_free_endpoint_is_honoured(self):
     doc = _doc_with_pair()
     doc.nets[0]["to"] = {"x": 400, "y": 200}
-    points = routing.route(doc, doc.nets[0])
+    [points] = routing.route(doc, doc.nets[0])
     self.assertAlmostEqual(points[-1][0], 400)
     self.assertAlmostEqual(points[-1][1], 200)
 
@@ -275,8 +281,8 @@ class TestDirectionArrows(unittest.TestCase):
 
   def test_a_single_net_can_opt_out(self):
     before = self._arrows(render_svg.render(self.doc))
-    own = len(render_svg._arrow_spots(
-      routing.route(self.doc, self.doc.nets[0]), theme.ARROW_SIZE))
+    own = sum(len(render_svg._arrow_spots(points, theme.ARROW_SIZE))
+              for points in routing.route(self.doc, self.doc.nets[0]))
     self.doc.nets[0]["style"] = {"arrow": False}
     after = self._arrows(render_svg.render(self.doc))
     self.assertEqual(after, before - own)

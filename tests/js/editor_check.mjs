@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import * as geometry from "../../drawlogic/web/js/geometry.js";
 import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
+import * as routing from "../../drawlogic/web/js/routing.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -131,6 +132,76 @@ function sketch(flopY) {
   doc.nets = [];
   const straightened = model.tidy(doc, new Set(["u1", "ff1"]));
   check("cells with no wires between them are left alone", straightened === 0);
+}
+
+// ---- nets with more than one load ----
+
+function wired() {
+  const doc = {
+    canvas: { width: 900, height: 400, symbolScale: 1 },
+    cells: [
+      { id: "u1", type: "and2", x: 100, y: 100, w: 60, h: 40, rotate: 0, mirror: false },
+      { id: "a", type: "inv", x: 300, y: 60, w: 50, h: 40, rotate: 0, mirror: false },
+      { id: "b", type: "inv", x: 300, y: 160, w: 50, h: 40, rotate: 0, mirror: false },
+    ],
+    nets: [], shapes: [], groups: [],
+  };
+  return doc;
+}
+
+{
+  const doc = wired();
+  const first = model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "a", pin: "a" });
+  check("wiring a pin to a pin makes a net", doc.nets.length === 1 && !!first);
+  check("with one load", routing.loadsOf(doc.nets[0]).length === 1);
+
+  const second = model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "b", pin: "a" });
+  check("wiring the same pin somewhere else extends that net",
+        doc.nets.length === 1 && second === doc.nets[0],
+        `nets=${doc.nets.length}`);
+  check("which now has two loads", routing.loadsOf(doc.nets[0]).length === 2);
+
+  const again = model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "b", pin: "a" });
+  check("and wiring the same pair twice does nothing", again === null
+        && routing.loadsOf(doc.nets[0]).length === 2);
+}
+
+{
+  const doc = wired();
+  model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "a", pin: "a" });
+  model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "b", pin: "a" });
+
+  model.deleteItems(doc, new Set(["b"]));
+  check("deleting one load leaves the net with the others",
+        doc.nets.length === 1 && routing.loadsOf(doc.nets[0]).length === 1,
+        `nets=${doc.nets.length}`);
+
+  model.deleteItems(doc, new Set(["a"]));
+  check("deleting the last load takes the net with it", doc.nets.length === 0);
+}
+
+{
+  const doc = wired();
+  model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "a", pin: "a" });
+  model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "b", pin: "a" });
+  // Branches go different ways, so a bend belongs to one of them.
+  model.setWaypoints(doc, doc.nets[0].id, [[200, 200]], 1);
+  const loads = routing.loadsOf(doc.nets[0]);
+  check("a bend belongs to the branch it was made on",
+        loads[0].waypoints.length === 0 && loads[1].waypoints.length === 1,
+        JSON.stringify(loads.map((l) => l.waypoints)));
+}
+
+{
+  const doc = wired();
+  model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "a", pin: "a" });
+  model.addNet(doc, { cell: "u1", pin: "y" }, { cell: "b", pin: "a" });
+  const branches = routing.route(doc, doc.nets[0]);
+  check("one net routes to one path per load", branches.length === 2,
+        `branches=${branches.length}`);
+  check("and both start at the driving pin",
+        branches[0][0][0] === branches[1][0][0]
+        && branches[0][0][1] === branches[1][0][1]);
 }
 
 if (failures) {

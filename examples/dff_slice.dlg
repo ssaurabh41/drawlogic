@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "dff_slice",
   "canvas": {
     "width": 900,
@@ -150,11 +150,13 @@
         "cell": "pa",
         "pin": "p"
       },
-      "to": {
-        "cell": "u1",
-        "pin": "a"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u1",
+          "pin": "a",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -165,11 +167,13 @@
         "cell": "pb",
         "pin": "p"
       },
-      "to": {
-        "cell": "u1",
-        "pin": "b"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "u1",
+          "pin": "b",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -180,11 +184,13 @@
         "cell": "u1",
         "pin": "y"
       },
-      "to": {
-        "cell": "ff1",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "ff1",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -195,11 +201,13 @@
         "cell": "pclk",
         "pin": "p"
       },
-      "to": {
-        "cell": "ff1",
-        "pin": "ck"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "ff1",
+          "pin": "ck",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -210,26 +218,18 @@
         "cell": "ff1",
         "pin": "q"
       },
-      "to": {
-        "cell": "pq",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n6",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "ff1",
-        "pin": "q"
-      },
-      "to": {
-        "cell": "u2",
-        "pin": "a"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "pq",
+          "pin": "p",
+          "waypoints": []
+        },
+        {
+          "cell": "u2",
+          "pin": "a",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -240,11 +240,13 @@
         "cell": "u2",
         "pin": "y"
       },
-      "to": {
-        "cell": "pqb",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "pqb",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -255,11 +257,13 @@
         "cell": "pd",
         "pin": "p"
       },
-      "to": {
-        "cell": "b1",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "b1",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     }
   ],

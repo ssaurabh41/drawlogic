@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "cdc_fifo",
   "canvas": {
     "width": 1800,
@@ -300,11 +300,13 @@
         "cell": "p_wdata",
         "pin": "p"
       },
-      "to": {
-        "cell": "mem",
-        "pin": "wdata"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mem",
+          "pin": "wdata",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -315,11 +317,13 @@
         "cell": "p_winc",
         "pin": "p"
       },
-      "to": {
-        "cell": "wptr",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "wptr",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -330,11 +334,13 @@
         "cell": "p_wrstn",
         "pin": "p"
       },
-      "to": {
-        "cell": "wptr",
-        "pin": "in2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "wptr",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -345,11 +351,57 @@
         "cell": "p_wclk",
         "pin": "p"
       },
-      "to": {
-        "cell": "wptr",
-        "pin": "in3"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "wptr",
+          "pin": "in3",
+          "waypoints": []
+        },
+        {
+          "cell": "sr1",
+          "pin": "ck",
+          "waypoints": [
+            [
+              210,
+              510
+            ],
+            [
+              210,
+              880
+            ],
+            [
+              880,
+              880
+            ],
+            [
+              880,
+              795
+            ]
+          ]
+        },
+        {
+          "cell": "sr2",
+          "pin": "ck",
+          "waypoints": [
+            [
+              210,
+              510
+            ],
+            [
+              210,
+              880
+            ],
+            [
+              735,
+              880
+            ],
+            [
+              735,
+              795
+            ]
+          ]
+        }
+      ],
       "style": {}
     },
     {
@@ -360,11 +412,13 @@
         "cell": "wptr",
         "pin": "out1"
       },
-      "to": {
-        "cell": "mem",
-        "pin": "waddr"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mem",
+          "pin": "waddr",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -375,11 +429,13 @@
         "cell": "wptr",
         "pin": "out2"
       },
-      "to": {
-        "cell": "mem",
-        "pin": "wen"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mem",
+          "pin": "wen",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -390,11 +446,13 @@
         "cell": "mem",
         "pin": "rdata"
       },
-      "to": {
-        "cell": "p_rdata",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_rdata",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -405,11 +463,13 @@
         "cell": "p_rinc",
         "pin": "p"
       },
-      "to": {
-        "cell": "rptr",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "rptr",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -420,11 +480,13 @@
         "cell": "p_rrstn",
         "pin": "p"
       },
-      "to": {
-        "cell": "rptr",
-        "pin": "in2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "rptr",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -435,11 +497,57 @@
         "cell": "p_rclk",
         "pin": "p"
       },
-      "to": {
-        "cell": "rptr",
-        "pin": "in3"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "rptr",
+          "pin": "in3",
+          "waypoints": []
+        },
+        {
+          "cell": "sw1",
+          "pin": "ck",
+          "waypoints": [
+            [
+              1590,
+              510
+            ],
+            [
+              1590,
+              880
+            ],
+            [
+              920,
+              880
+            ],
+            [
+              920,
+              795
+            ]
+          ]
+        },
+        {
+          "cell": "sw2",
+          "pin": "ck",
+          "waypoints": [
+            [
+              1590,
+              510
+            ],
+            [
+              1590,
+              880
+            ],
+            [
+              1065,
+              880
+            ],
+            [
+              1065,
+              795
+            ]
+          ]
+        }
+      ],
       "style": {}
     },
     {
@@ -450,11 +558,13 @@
         "cell": "rptr",
         "pin": "out1"
       },
-      "to": {
-        "cell": "mem",
-        "pin": "raddr"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mem",
+          "pin": "raddr",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -465,104 +575,90 @@
         "cell": "rptr",
         "pin": "out2"
       },
-      "to": {
-        "cell": "mem",
-        "pin": "ren"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mem",
+          "pin": "ren",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
       "id": "n13",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "wptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "wfull",
-        "pin": "in1"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n14",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "rptr",
-        "pin": "out3"
-      },
-      "to": {
-        "cell": "rempty",
-        "pin": "in1"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n15",
       "name": "wptr_g[8:0]",
       "width": 9,
       "from": {
         "cell": "wptr",
         "pin": "out3"
       },
-      "to": {
-        "cell": "sw1",
-        "pin": "d"
-      },
-      "waypoints": [
-        [
-          600,
-          510
-        ],
-        [
-          600,
-          600
-        ],
-        [
-          940,
-          600
-        ],
-        [
-          940,
-          765
-        ]
+      "to": [
+        {
+          "cell": "wfull",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "sw1",
+          "pin": "d",
+          "waypoints": [
+            [
+              600,
+              510
+            ],
+            [
+              600,
+              600
+            ],
+            [
+              940,
+              600
+            ],
+            [
+              940,
+              765
+            ]
+          ]
+        }
       ],
       "style": {}
     },
     {
-      "id": "n16",
+      "id": "n14",
       "name": "rptr_g[8:0]",
       "width": 9,
       "from": {
         "cell": "rptr",
         "pin": "out3"
       },
-      "to": {
-        "cell": "sr1",
-        "pin": "d"
-      },
-      "waypoints": [
-        [
-          1200,
-          510
-        ],
-        [
-          1200,
-          560
-        ],
-        [
-          860,
-          560
-        ],
-        [
-          860,
-          765
-        ]
+      "to": [
+        {
+          "cell": "rempty",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "sr1",
+          "pin": "d",
+          "waypoints": [
+            [
+              1200,
+              510
+            ],
+            [
+              1200,
+              560
+            ],
+            [
+              860,
+              560
+            ],
+            [
+              860,
+              765
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -574,11 +670,13 @@
         "cell": "sw1",
         "pin": "q"
       },
-      "to": {
-        "cell": "sw2",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "sw2",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -589,11 +687,13 @@
         "cell": "sw2",
         "pin": "q"
       },
-      "to": {
-        "cell": "rempty",
-        "pin": "in2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "rempty",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -604,11 +704,13 @@
         "cell": "sr1",
         "pin": "q"
       },
-      "to": {
-        "cell": "sr2",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "sr2",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -619,11 +721,13 @@
         "cell": "sr2",
         "pin": "q"
       },
-      "to": {
-        "cell": "wfull",
-        "pin": "in2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "wfull",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -634,11 +738,13 @@
         "cell": "wfull",
         "pin": "out1"
       },
-      "to": {
-        "cell": "p_wfull",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_wfull",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -649,138 +755,12 @@
         "cell": "rempty",
         "pin": "out1"
       },
-      "to": {
-        "cell": "p_rempty",
-        "pin": "p"
-      },
-      "waypoints": [],
-      "style": {}
-    },
-    {
-      "id": "n23",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_wclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sr1",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          210,
-          510
-        ],
-        [
-          210,
-          880
-        ],
-        [
-          880,
-          880
-        ],
-        [
-          880,
-          795
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n24",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_wclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sr2",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          210,
-          510
-        ],
-        [
-          210,
-          880
-        ],
-        [
-          735,
-          880
-        ],
-        [
-          735,
-          795
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n25",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_rclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sw1",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          1590,
-          510
-        ],
-        [
-          1590,
-          880
-        ],
-        [
-          920,
-          880
-        ],
-        [
-          920,
-          795
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n26",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "p_rclk",
-        "pin": "p"
-      },
-      "to": {
-        "cell": "sw2",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          1590,
-          510
-        ],
-        [
-          1590,
-          880
-        ],
-        [
-          1065,
-          880
-        ],
-        [
-          1065,
-          795
-        ]
+      "to": [
+        {
+          "cell": "p_rempty",
+          "pin": "p",
+          "waypoints": []
+        }
       ],
       "style": {}
     }

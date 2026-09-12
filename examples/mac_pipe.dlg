@@ -1,6 +1,6 @@
 {
   "format": "drawlogic",
-  "version": 1,
+  "version": 2,
   "title": "mac_pipe",
   "canvas": {
     "width": 1520,
@@ -229,11 +229,13 @@
         "cell": "p_a",
         "pin": "p"
       },
-      "to": {
-        "cell": "r_a",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "r_a",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -244,11 +246,13 @@
         "cell": "p_b",
         "pin": "p"
       },
-      "to": {
-        "cell": "r_b",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "r_b",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -259,11 +263,13 @@
         "cell": "r_a",
         "pin": "q"
       },
-      "to": {
-        "cell": "mult",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mult",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -274,11 +280,13 @@
         "cell": "r_b",
         "pin": "q"
       },
-      "to": {
-        "cell": "mult",
-        "pin": "in2"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "mult",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -289,11 +297,13 @@
         "cell": "mult",
         "pin": "out1"
       },
-      "to": {
-        "cell": "r_p",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "r_p",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -304,11 +314,13 @@
         "cell": "r_p",
         "pin": "q"
       },
-      "to": {
-        "cell": "add",
-        "pin": "in1"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "add",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -319,11 +331,13 @@
         "cell": "add",
         "pin": "out1"
       },
-      "to": {
-        "cell": "r_acc",
-        "pin": "d"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "r_acc",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -334,11 +348,13 @@
         "cell": "r_acc",
         "pin": "q"
       },
-      "to": {
-        "cell": "p_res",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_res",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -349,11 +365,13 @@
         "cell": "add",
         "pin": "out2"
       },
-      "to": {
-        "cell": "p_ovf",
-        "pin": "p"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "p_ovf",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -364,27 +382,29 @@
         "cell": "r_acc",
         "pin": "q"
       },
-      "to": {
-        "cell": "add",
-        "pin": "in2"
-      },
-      "waypoints": [
-        [
-          1330,
-          180
-        ],
-        [
-          1330,
-          430
-        ],
-        [
-          900,
-          430
-        ],
-        [
-          900,
-          260
-        ]
+      "to": [
+        {
+          "cell": "add",
+          "pin": "in2",
+          "waypoints": [
+            [
+              1330,
+              180
+            ],
+            [
+              1330,
+              430
+            ],
+            [
+              900,
+              430
+            ],
+            [
+              900,
+              260
+            ]
+          ]
+        }
       ],
       "style": {}
     },
@@ -396,11 +416,13 @@
         "cell": "p_clk",
         "pin": "p"
       },
-      "to": {
-        "cell": "icg1",
-        "pin": "ck"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "icg1",
+          "pin": "ck",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -411,11 +433,13 @@
         "cell": "p_en",
         "pin": "p"
       },
-      "to": {
-        "cell": "icg1",
-        "pin": "e"
-      },
-      "waypoints": [],
+      "to": [
+        {
+          "cell": "icg1",
+          "pin": "e",
+          "waypoints": []
+        }
+      ],
       "style": {}
     },
     {
@@ -426,91 +450,63 @@
         "cell": "icg1",
         "pin": "gck"
       },
-      "to": {
-        "cell": "r_a",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          285,
-          540
-        ],
-        [
-          285,
-          210
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n14",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "icg1",
-        "pin": "gck"
-      },
-      "to": {
-        "cell": "r_b",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          285,
-          540
-        ],
-        [
-          285,
-          290
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n15",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "icg1",
-        "pin": "gck"
-      },
-      "to": {
-        "cell": "r_p",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          750,
-          540
-        ],
-        [
-          750,
-          210
-        ]
-      ],
-      "style": {}
-    },
-    {
-      "id": "n16",
-      "name": null,
-      "width": 1,
-      "from": {
-        "cell": "icg1",
-        "pin": "gck"
-      },
-      "to": {
-        "cell": "r_acc",
-        "pin": "ck"
-      },
-      "waypoints": [
-        [
-          1170,
-          540
-        ],
-        [
-          1170,
-          210
-        ]
+      "to": [
+        {
+          "cell": "r_a",
+          "pin": "ck",
+          "waypoints": [
+            [
+              285,
+              540
+            ],
+            [
+              285,
+              210
+            ]
+          ]
+        },
+        {
+          "cell": "r_b",
+          "pin": "ck",
+          "waypoints": [
+            [
+              285,
+              540
+            ],
+            [
+              285,
+              290
+            ]
+          ]
+        },
+        {
+          "cell": "r_p",
+          "pin": "ck",
+          "waypoints": [
+            [
+              750,
+              540
+            ],
+            [
+              750,
+              210
+            ]
+          ]
+        },
+        {
+          "cell": "r_acc",
+          "pin": "ck",
+          "waypoints": [
+            [
+              1170,
+              540
+            ],
+            [
+              1170,
+              210
+            ]
+          ]
+        }
       ],
       "style": {}
     }

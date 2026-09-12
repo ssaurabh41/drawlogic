@@ -255,6 +255,23 @@ function onDoubleClick(event) {
     inspector.render();
     return true;
   }
+  // Double-clicking a wire hands it back to the router, which is the way out
+  // of a hand-routed wire you no longer want.
+  const wire = event.target.closest(".dl-net, .dl-hit");
+  if (wire && store.doc) {
+    const netId = wire.getAttribute("data-id");
+    const point = viewport.toDoc(event.clientX, event.clientY);
+    const run = model.grabRun(store.doc, netId, point);
+    if (run) {
+      store.mutate("straighten wire",
+                   (doc) => model.straighten(doc, netId, run.branch));
+      redraw();
+      inspector.render();
+      say("wire handed back to the router");
+      return true;
+    }
+  }
+
   // Double-clicking a block that stands for another drawing opens it, the way
   // double-clicking a folder opens it.
   const node = event.target.closest(".dl-cell");

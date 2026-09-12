@@ -158,6 +158,8 @@ pins on every redraw.
 | click, shift-click, drag a box | select one, add to selection, marquee |
 | drag | move, snapped to the grid |
 | `Ctrl`+drag | duplicate as you drag |
+| drag a wire | slide that run of it; the wire becomes hand-routed |
+| double-click a wire | hand it back to the router |
 | drag a wire | bend it: the drag point becomes a waypoint |
 | handles, `Alt`+handle | resize with ratio locked / free |
 | arrows, `Shift`+arrows | nudge one grid step / ten |
@@ -534,6 +536,25 @@ up, and draws the line it found:
 Pin alignment wins even when the edge match is closer. The pull reaches about
 8 screen pixels, so it feels the same however far you are zoomed in. Hold
 `Alt` while dragging to turn it off and place a cell exactly where you put it.
+
+### Bending a wire by hand
+
+Drag any run of a wire and it slides: a horizontal run moves in y, a vertical
+one in x. A run slides across itself, not along itself. Grab an end run -- one
+with a pin on it -- and a corner is inserted for it, because a pin cannot
+move; that is how a straight wire is bent into a Z.
+
+**Dragging a wire is what decides it is routed by hand.** Every corner becomes
+a waypoint, so it stays exactly where you put it rather than being re-derived
+into something else on the next redraw. Double-click a wire to clear those and
+hand it back to the router.
+
+Each branch is dragged on its own, so bending one leg of a rail leaves the
+others alone.
+
+Wires carry a wide invisible stroke underneath them for the pointer to catch;
+a 1.6-unit line is too thin to grab reliably, and it is only on the canvas --
+the exported file has no use for it.
 
 ### Auto layout
 

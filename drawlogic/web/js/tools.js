@@ -14,31 +14,6 @@ import * as model from "./model.js";
 import * as routing from "./routing.js";
 import { handlePoints } from "./selection.js";
 
-// Which branch of a net a point is closest to. Distance to a run, not to its
-// ends, or a click in the middle of a long branch would pick a short one.
-function nearestBranch(doc, netId, point) {
-  const net = (doc.nets || []).find((n) => n.id === netId);
-  if (!net) return 0;
-  let best = 0;
-  let closest = Infinity;
-  routing.route(doc, net).forEach((points, index) => {
-    for (let i = 0; i < points.length - 1; i += 1) {
-      const distance = distanceToRun(point, points[i], points[i + 1]);
-      if (distance < closest) {
-        closest = distance;
-        best = index;
-      }
-    }
-  });
-  return best;
-}
-
-function distanceToRun(point, a, b) {
-  const x = Math.min(Math.max(point[0], Math.min(a[0], b[0])), Math.max(a[0], b[0]));
-  const y = Math.min(Math.max(point[1], Math.min(a[1], b[1])), Math.max(a[1], b[1]));
-  return Math.hypot(point[0] - x, point[1] - y);
-}
-
 const DRAG_THRESHOLD = 3;
 const PIN_SNAP = 14;
 
@@ -65,7 +40,7 @@ export class SelectTool {
     this.duplicated = false;
     this.moved = false;
     this.waypointNet = null;
-    this.waypointBranch = 0;
+    this.run = null;
   }
 
   cursorFor(target) {
@@ -76,7 +51,7 @@ export class SelectTool {
         n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
       }[handle.getAttribute("data-handle")] || "default";
     }
-    if (target && target.closest && target.closest(".dl-net")) return "crosshair";
+    if (target && target.closest && target.closest(".dl-net, .dl-hit")) return "crosshair";
     return target && target.closest && target.closest(".dl-cell, .dl-shape")
       ? "move" : "default";
   }
@@ -118,16 +93,17 @@ export class SelectTool {
       return;
     }
 
-    // Dragging a wire bends it: the drag point becomes a waypoint the router
-    // then has to route through.
-    const wire = event.target.closest(".dl-net");
+    // Dragging a wire slides the run you grabbed. A net is one path with a
+    // subpath per branch, so the element alone does not say what was grabbed;
+    // the nearest run did.
+    const wire = event.target.closest(".dl-net, .dl-hit");
     if (wire) {
-      this.mode = "waypoint";
-      this.gestureLabel = "bend wire";
       this.waypointNet = wire.getAttribute("data-id");
-      // A net is one path with a subpath per branch, so the element alone
-      // does not say which branch was grabbed. The nearest one was.
-      this.waypointBranch = nearestBranch(store.doc, this.waypointNet, point);
+      this.run = model.grabRun(store.doc, this.waypointNet, point);
+      if (this.run) {
+        this.mode = "waypoint";
+        this.gestureLabel = this.run.horizontal ? "move wire" : "move wire";
+      }
       selection.clear();
       return;
     }
@@ -159,10 +135,11 @@ export class SelectTool {
 
     if (this.mode === "waypoint") {
       const step = model.gridStep(store.doc);
-      const at = [model.snap(point[0], step), model.snap(point[1], step)];
+      // A horizontal run moves in y and a vertical one in x: a run slides
+      // across itself, it does not travel along itself.
+      const value = model.snap(this.run.horizontal ? point[1] : point[0], step);
       store.mutate(this.gestureLabel,
-                   (doc) => model.setWaypoints(doc, this.waypointNet, [at],
-                                               this.waypointBranch));
+                   (doc) => model.slideRun(doc, this.waypointNet, this.run, value));
       return true;
     }
 

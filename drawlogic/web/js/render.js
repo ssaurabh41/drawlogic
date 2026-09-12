@@ -476,10 +476,19 @@ function renderNets(doc, fontScale, into) {
     // One path element per net, with a subpath per branch: a net is one thing,
     // so clicking any part of it should find the same thing.
     const spots = hops.get(net.id);
+    const d = branches.map((points) => netPath(points, spots, theme.hopRadius || 5))
+      .join(" ");
+    // A wire is 1.6 units wide, which is a hard thing to hit with a mouse --
+    // and dragging one is now a gesture that matters. This invisible stroke
+    // underneath is what the pointer actually catches. It is a canvas-only
+    // affordance: the exported file has no use for it.
+    into.appendChild(el("path", {
+      class: "dl-hit", "data-id": net.id, d, fill: "none",
+      stroke: "transparent", "stroke-width": 12, "pointer-events": "stroke",
+    }));
     into.appendChild(el("path", {
       class: "dl-net", "data-id": net.id,
-      d: branches.map((points) => netPath(points, spots, theme.hopRadius || 5))
-        .join(" "),
+      d,
       fill: "none",
       stroke: style.stroke || theme.colors.net,
       "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.net, 3),

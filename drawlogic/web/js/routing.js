@@ -234,7 +234,7 @@ function stubEnd(point, direction) {
   return [point[0] + direction[0] * STUB, point[1] + direction[1] * STUB];
 }
 
-function clean(points) {
+export function clean(points) {
   const out = [];
   for (const point of points) {
     const last = out[out.length - 1];

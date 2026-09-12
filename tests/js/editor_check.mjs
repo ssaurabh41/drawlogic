@@ -204,6 +204,111 @@ function wired() {
         && branches[0][0][1] === branches[1][0][1]);
 }
 
+// ---- dragging a wire by one of its runs ----
+
+function twoCorners() {
+  // A gate driving a flop that sits lower: the wire leaves, drops, arrives.
+  const doc = {
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 10 } },
+    cells: [
+      { id: "u1", type: "and2", x: 100, y: 100, w: 60, h: 40, rotate: 0, mirror: false },
+      { id: "ff", type: "dff", x: 400, y: 260, w: 70, h: 60, rotate: 0, mirror: false },
+    ],
+    nets: [{ id: "n1", name: null, width: 1,
+             from: { cell: "u1", pin: "y" },
+             to: [{ cell: "ff", pin: "d", waypoints: [] }], style: {} }],
+    shapes: [], groups: [],
+  };
+  return doc;
+}
+
+{
+  const doc = twoCorners();
+  const [before] = routing.route(doc, doc.nets[0]);
+  check("the wire starts with a corner in it", before.length > 2,
+        JSON.stringify(before));
+
+  // Grab the vertical run in the middle and slide it left.
+  const middle = before[Math.floor(before.length / 2)];
+  const run = model.grabRun(doc, "n1", [middle[0], middle[1]]);
+  check("grabbing finds a run", !!run && !run.horizontal, JSON.stringify(run && run.horizontal));
+
+  model.slideRun(doc, "n1", run, 200);
+  const [after] = routing.route(doc, doc.nets[0]);
+  const verticals = after.filter((p, i) =>
+    i < after.length - 1 && Math.abs(p[0] - after[i + 1][0]) < 1e-6);
+  check("sliding it puts the run where it was put",
+        verticals.some((p) => Math.abs(p[0] - 200) < 1e-6),
+        JSON.stringify(after));
+  check("and the wire still starts and ends on its pins",
+        after[0][0] === before[0][0] && after[0][1] === before[0][1]
+        && after[after.length - 1][0] === before[before.length - 1][0],
+        JSON.stringify([before[0], after[0]]));
+}
+
+{
+  // Every corner becomes a waypoint, so the wire stays put rather than being
+  // re-derived into something else on the next redraw.
+  const doc = twoCorners();
+  const run = model.grabRun(doc, "n1", [330, 200]);
+  model.slideRun(doc, "n1", run, 250);
+  const once = JSON.stringify(routing.route(doc, doc.nets[0]));
+  const twice = JSON.stringify(routing.route(doc, doc.nets[0]));
+  check("a dragged wire is stable across redraws", once === twice);
+  check("and is held by waypoints",
+        routing.loadsOf(doc.nets[0])[0].waypoints.length > 0);
+}
+
+{
+  // A straight wire has a pin at each end, so there is nothing to absorb a
+  // drag until a corner is inserted for it.
+  const doc = twoCorners();
+  // and2's y pin sits 20 down its box, dff's d pin 15 down its own.
+  doc.cells[1].y = 105;
+  const [straight] = routing.route(doc, doc.nets[0]);
+  check("the wire is straight to begin with", straight.length === 2,
+        JSON.stringify(straight));
+
+  const run = model.grabRun(doc, "n1", [300, straight[0][1]]);
+  model.slideRun(doc, "n1", run, straight[0][1] + 80);
+  const [bent] = routing.route(doc, doc.nets[0]);
+  check("dragging a straight wire bends it", bent.length > 2, JSON.stringify(bent));
+  check("without moving either pin",
+        bent[0][1] === straight[0][1]
+        && bent[bent.length - 1][1] === straight[1][1],
+        JSON.stringify(bent));
+}
+
+{
+  const doc = twoCorners();
+  const run = model.grabRun(doc, "n1", [330, 200]);
+  model.slideRun(doc, "n1", run, 250);
+  model.straighten(doc, "n1", 0);
+  check("straightening hands the wire back to the router",
+        routing.loadsOf(doc.nets[0])[0].waypoints.length === 0);
+  check("and it routes itself again",
+        JSON.stringify(routing.route(doc, doc.nets[0]))
+        === JSON.stringify(routing.route(twoCorners(), twoCorners().nets[0])));
+}
+
+{
+  // Each branch of a rail is dragged on its own.
+  const doc = twoCorners();
+  doc.cells.push({ id: "ff2", type: "dff", x: 400, y: 380, w: 70, h: 60,
+                   rotate: 0, mirror: false });
+  doc.nets[0].to.push({ cell: "ff2", pin: "d", waypoints: [] });
+  const branches = routing.route(doc, doc.nets[0]);
+  const low = branches[1][Math.floor(branches[1].length / 2)];
+  const run = model.grabRun(doc, "n1", [low[0], low[1]]);
+  check("grabbing picks the branch it was nearest to", run.branch === 1,
+        `branch=${run.branch}`);
+  model.slideRun(doc, "n1", run, 220);
+  const loads = routing.loadsOf(doc.nets[0]);
+  check("and only that branch is bent by hand",
+        loads[0].waypoints.length === 0 && loads[1].waypoints.length > 0,
+        JSON.stringify(loads.map((l) => l.waypoints.length)));
+}
+
 if (failures) {
   console.log(`${failures} check(s) failed`);
   process.exit(1);

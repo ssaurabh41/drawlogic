@@ -663,6 +663,77 @@ export function setWaypoints(doc, id, points, branch = 0) {
   net.to = loads;
 }
 
+// ---- dragging a wire by one of its runs ----
+
+// Which run of which branch a point is nearest, ready to be dragged.
+//
+// The run is returned with a copy of its whole path, and with a duplicate
+// point inserted when the run is at either end. An end run has a pin on one
+// side that cannot move, so there is nothing to absorb the drag; the
+// duplicate starts as a zero-length segment and becomes the corner that
+// holds the new position.
+export function grabRun(doc, netId, point) {
+  const net = (doc.nets || []).find((n) => n.id === netId);
+  if (!net) return null;
+
+  let best = null;
+  routing.route(doc, net).forEach((points, branch) => {
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const away = distanceToRun(point, points[i], points[i + 1]);
+      if (!best || away < best.away) best = { away, branch, index: i, points };
+    }
+  });
+  if (!best) return null;
+
+  const points = best.points.map((p) => [p[0], p[1]]);
+  let index = best.index;
+  if (index === 0) {
+    points.splice(1, 0, [points[0][0], points[0][1]]);
+    index = 1;
+  }
+  if (index === points.length - 2) {
+    const last = points[points.length - 1];
+    points.splice(points.length - 1, 0, [last[0], last[1]]);
+  }
+
+  const a = points[index];
+  const b = points[index + 1];
+  return {
+    branch: best.branch,
+    index,
+    points,
+    horizontal: Math.abs(a[1] - b[1]) < Math.abs(a[0] - b[0]) || a[1] === b[1],
+  };
+}
+
+function distanceToRun(point, a, b) {
+  const x = Math.min(Math.max(point[0], Math.min(a[0], b[0])), Math.max(a[0], b[0]));
+  const y = Math.min(Math.max(point[1], Math.min(a[1], b[1])), Math.max(a[1], b[1]));
+  return Math.hypot(point[0] - x, point[1] - y);
+}
+
+// Put a grabbed run at `value` -- a y for a horizontal run, an x for a
+// vertical one -- and hand the branch over to hand routing.
+//
+// Dragging a wire is what decides it is routed by hand: every corner becomes
+// a waypoint, so it stays exactly where it was put rather than being
+// re-derived into something else on the next redraw. `straighten` gives it
+// back to the router.
+export function slideRun(doc, netId, run, value) {
+  const points = run.points.map((p) => [p[0], p[1]]);
+  const axis = run.horizontal ? 1 : 0;
+  points[run.index][axis] = value;
+  points[run.index + 1][axis] = value;
+
+  const tidy = routing.clean(points);
+  setWaypoints(doc, netId, tidy.slice(1, -1), run.branch);
+}
+
+// Hand a branch back to the router.
+export function straighten(doc, netId, branch = 0) {
+  setWaypoints(doc, netId, [], branch);
+}
+
 // `d[7:0]` is eight bits; a plain name is one. Mirrors doc.py.
 export function busWidth(name) {
   if (!name) return 1;

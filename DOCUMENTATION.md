@@ -170,6 +170,7 @@ pins on every redraw.
 | `Delete`, `Esc` | delete, cancel and deselect |
 | `Ctrl+A`, `Ctrl+0` | select all, fit to window |
 | `Ctrl+S`, `Ctrl+E` | save, export SVG |
+| `Ctrl+Shift+E` | copy the drawing as a picture, for pasting into a slide |
 | scroll, `Space`+drag, shift-drag | zoom, pan, pan |
 
 Selecting one member of a group selects all of it, so a group drags and
@@ -420,6 +421,26 @@ find out what a pin is for.
 Naming a pin the symbol does not have is a validation error. In the editor the
 Pins panel has a field per pin; clearing it goes back to the symbol's default.
 
+### Getting the drawing into a slide
+
+**Copy PNG** (`Ctrl+Shift+E`) puts the drawing on the clipboard as a picture,
+at twice sheet size so it holds up on a projector. Paste straight into
+PowerPoint, a doc or a chat.
+
+It is a picture of the *exported file*, not a screenshot of the canvas: the
+browser asks Python for the SVG -- the same render `drawlogic export` and the
+Export SVG button produce -- and rasterises that. Selection handles, the grid
+and wherever you happened to be scrolled never appear in it.
+
+If the browser refuses the clipboard write, the PNG is downloaded instead and
+the status bar says so.
+
+One caveat: text in a rasterised SVG uses the fonts the machine has, not the
+web font the page loaded, so a machine without IBM Plex falls back to Arial in
+the PNG. The SVG itself is unaffected.
+
+For PDF, print the drawing from the browser.
+
 ### Junction dots and crossing hops
 
 A dot is drawn where three or more wire branches meet. Where one wire merely
@@ -496,8 +517,9 @@ drawlogic/
     js/tools.js      select, wire, place, shape
     js/panels.js     palette and properties inspector
     js/viewport.js   pan and zoom
+    js/picture.js    rasterise the export to a pasteable PNG
     js/main.js       bootstrap and controls
-tests/            unittest plus a golden-file regression suite
+tests/            unittest, a golden-file regression suite, a JS parity check
 examples/         worked schematics, including a CDC FIFO
 ```
 

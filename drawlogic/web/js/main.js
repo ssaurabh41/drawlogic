@@ -6,6 +6,7 @@
 import * as geometry from "./geometry.js";
 import * as model from "./model.js";
 import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
+import * as picture from "./picture.js";
 import * as render from "./render.js";
 import { Selection, drawHandles } from "./selection.js";
 import { makeTools } from "./tools.js";
@@ -290,6 +291,37 @@ async function exportSvg() {
   }
 }
 
+// Ask Python for the drawing as SVG, without writing it anywhere.
+async function renderedSvg() {
+  return api("/api/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ doc: store.doc, options: { zoom: 1 } }),
+  });
+}
+
+// Put the drawing on the clipboard as a picture, ready to paste into a slide.
+// A browser that will not allow the clipboard write gets the file instead,
+// which is the difference between a small annoyance and a dead button.
+async function copyPng() {
+  if (!store.doc) return;
+  const name = `${(store.path || "drawing").replace(/\.dlg$/, "")}.png`;
+  say("making a picture...");
+  try {
+    const blob = await picture.rasterise(await renderedSvg());
+    try {
+      await picture.copy(blob);
+      say(`copied a ${picture.SCALE}x picture -- paste it anywhere`, "good");
+    } catch (clipboardError) {
+      picture.download(blob, name.split("/").pop());
+      say(`clipboard refused (${clipboardError.message}); downloaded instead`,
+          "good");
+    }
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
 function syncControls() {
   const canvas = store.doc.canvas || {};
   ui.gridSelect.value = (canvas.grid || {}).style || "dots";
@@ -331,6 +363,7 @@ function bindControls() {
   ui.fileSelect.addEventListener("change", () => openDrawing(ui.fileSelect.value));
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
+  ui.btnPng.addEventListener("click", copyPng);
   ui.undo.addEventListener("click", () => stepHistory(true));
   ui.redo.addEventListener("click", () => stepHistory(false));
 
@@ -364,7 +397,9 @@ function bindKeyboard() {
     if (mod) {
       const handlers = {
         s: save,
-        e: exportSvg,
+        // Shift makes it a picture. Ctrl+P is left alone: printing to PDF
+        // from the browser is the way to get a PDF out of drawlogic.
+        e: () => (event.shiftKey ? copyPng() : exportSvg()),
         z: () => stepHistory(!event.shiftKey),
         y: () => stepHistory(false),
         a: () => { selection.selectAll(); redraw(); inspector.render(); },
@@ -441,6 +476,7 @@ async function start() {
     dirty: $("dirty"),
     btnSave: $("btn-save"),
     btnExport: $("btn-export"),
+    btnPng: $("btn-png"),
     btnFit: $("btn-fit"),
     undo: $("btn-undo"),
     redo: $("btn-redo"),

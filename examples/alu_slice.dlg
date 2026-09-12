@@ -1,0 +1,521 @@
+{
+  "format": "drawlogic",
+  "version": 1,
+  "title": "alu_slice",
+  "canvas": {
+    "width": 1200,
+    "height": 780,
+    "background": "#ffffff",
+    "grid": {
+      "style": "dots",
+      "size": 10,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "p_a",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 145.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "a",
+      "style": {}
+    },
+    {
+      "id": "p_b",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 195.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "b",
+      "style": {}
+    },
+    {
+      "id": "p_cin",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 245.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "cin",
+      "style": {}
+    },
+    {
+      "id": "p_sel",
+      "type": "port_in",
+      "x": 580.0,
+      "y": 695.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "sel[1:0]",
+      "style": {}
+    },
+    {
+      "id": "g_xor1",
+      "type": "xor2",
+      "x": 310.0,
+      "y": 140.0,
+      "w": 60.0,
+      "h": 40.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "X1",
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "g_and1",
+      "type": "and2",
+      "x": 310.0,
+      "y": 290.0,
+      "w": 60.0,
+      "h": 40.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "A1",
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "g_or1",
+      "type": "or2",
+      "x": 310.0,
+      "y": 430.0,
+      "w": 60.0,
+      "h": 40.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "O1",
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "g_xor2",
+      "type": "xor2",
+      "x": 540.0,
+      "y": 170.0,
+      "w": 60.0,
+      "h": 40.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "X2",
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "g_and2",
+      "type": "and2",
+      "x": 540.0,
+      "y": 550.0,
+      "w": 60.0,
+      "h": 40.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "A2",
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "g_or2",
+      "type": "or2",
+      "x": 740.0,
+      "y": 580.0,
+      "w": 60.0,
+      "h": 40.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "O2",
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "m1",
+      "type": "mux4",
+      "x": 900.0,
+      "y": 155.0,
+      "w": 90,
+      "h": 200,
+      "rotate": 0,
+      "mirror": false,
+      "label": "M1",
+      "style": {}
+    },
+    {
+      "id": "p_y",
+      "type": "port_out",
+      "x": 1100.0,
+      "y": 275.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "y",
+      "style": {}
+    },
+    {
+      "id": "p_cout",
+      "type": "port_out",
+      "x": 1100.0,
+      "y": 595.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "cout",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_a",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_xor1",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_a",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_and1",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_a",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_or1",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_b",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_xor1",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_b",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_and1",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_b",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_or1",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "name": "a^b",
+      "width": 1,
+      "from": {
+        "cell": "g_xor1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "g_xor2",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "g_xor1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "g_and2",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "g_xor1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "d0"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n10",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_cin",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_xor2",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n11",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_cin",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "g_and2",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "name": "sum",
+      "width": 1,
+      "from": {
+        "cell": "g_xor2",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "d1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n13",
+      "name": "a&b",
+      "width": 1,
+      "from": {
+        "cell": "g_and1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "d2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n14",
+      "name": "a|b",
+      "width": 1,
+      "from": {
+        "cell": "g_or1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "d3"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n15",
+      "name": "sel[1:0]",
+      "width": 2,
+      "from": {
+        "cell": "p_sel",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "s"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n16",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "m1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "p_y",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n17",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "g_and1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "g_or2",
+        "pin": "a"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n18",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "g_and2",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "g_or2",
+        "pin": "b"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n19",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "g_or2",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "p_cout",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    }
+  ],
+  "shapes": [
+    {
+      "id": "s1",
+      "kind": "text",
+      "x": 90,
+      "y": 95,
+      "text": "ONE ALU BIT SLICE",
+      "rotate": 0,
+      "style": {
+        "fontSize": 17,
+        "fill": "#0d7490",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "s2",
+      "kind": "text",
+      "x": 90,
+      "y": 120,
+      "text": "cout = a&b | (a^b)&cin",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "s3",
+      "kind": "text",
+      "x": 90,
+      "y": 740,
+      "text": "sel picks  0 xor   1 sum   2 and   3 or",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    }
+  ],
+  "groups": []
+}

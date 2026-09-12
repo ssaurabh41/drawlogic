@@ -1,0 +1,713 @@
+{
+  "format": "drawlogic",
+  "version": 1,
+  "title": "spi_master",
+  "canvas": {
+    "width": 1220,
+    "height": 880,
+    "background": "#ffffff",
+    "grid": {
+      "style": "dots",
+      "size": 10,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "p_clk",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 755.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "clk",
+      "style": {}
+    },
+    {
+      "id": "p_rstn",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 795.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rst_n",
+      "style": {}
+    },
+    {
+      "id": "div",
+      "type": "block",
+      "x": 220.0,
+      "y": 735.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "clk_div /8",
+      "pins": {
+        "in1": "clk",
+        "in2": "rst_n",
+        "out1": "sck",
+        "out2": "tick"
+      },
+      "style": {
+        "fill": "#eef2e6"
+      }
+    },
+    {
+      "id": "p_start",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 165.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "start",
+      "style": {}
+    },
+    {
+      "id": "p_cpol",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 273.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "cpol",
+      "style": {}
+    },
+    {
+      "id": "fsm",
+      "type": "block8",
+      "x": 420.0,
+      "y": 144.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "spi_fsm",
+      "pins": {
+        "in1": "start",
+        "in2": "tick",
+        "in3": "last",
+        "in4": "cpol",
+        "out1": "load",
+        "out2": "shift",
+        "out3": "cs_n",
+        "out4": "busy"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "cnt",
+      "type": "block",
+      "x": 760.0,
+      "y": 355.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "bit_cnt",
+      "pins": {
+        "in1": "shift",
+        "in2": "tick",
+        "out1": "last",
+        "out2": ""
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "p_tx",
+      "type": "port_in",
+      "x": 70.0,
+      "y": 555.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "tx_data[7:0]",
+      "style": {}
+    },
+    {
+      "id": "m1",
+      "type": "mux2w",
+      "x": 300.0,
+      "y": 532.5,
+      "w": 70,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "M1",
+      "pins": {
+        "d0": "new",
+        "d1": "shifted"
+      },
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "shr",
+      "type": "reg",
+      "x": 500.0,
+      "y": 530.0,
+      "w": 140,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "shift_reg",
+      "pins": {
+        "d": "d[7:0]",
+        "q": "q[7:0]"
+      },
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "bitsel",
+      "type": "block",
+      "x": 720.0,
+      "y": 535.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "bit select",
+      "pins": {
+        "in1": "q[7:0]",
+        "in2": "cpol",
+        "out1": "msb",
+        "out2": "next[7:0]"
+      },
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "p_cs",
+      "type": "port_out",
+      "x": 1100.0,
+      "y": 241.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "cs_n",
+      "style": {}
+    },
+    {
+      "id": "p_busy",
+      "type": "port_out",
+      "x": 1100.0,
+      "y": 273.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "busy",
+      "style": {}
+    },
+    {
+      "id": "p_mosi",
+      "type": "port_out",
+      "x": 1100.0,
+      "y": 555.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "mosi",
+      "style": {}
+    },
+    {
+      "id": "p_sck",
+      "type": "port_out",
+      "x": 1100.0,
+      "y": 755.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "sck",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_clk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "div",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_rstn",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "div",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": "sck",
+      "width": 1,
+      "from": {
+        "cell": "div",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_sck",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "div",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "shr",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          440,
+          760
+        ],
+        [
+          440,
+          620
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "div",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "fsm",
+        "pin": "in2"
+      },
+      "waypoints": [
+        [
+          390,
+          800
+        ],
+        [
+          390,
+          202
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "div",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "cnt",
+        "pin": "in2"
+      },
+      "waypoints": [
+        [
+          690,
+          800
+        ],
+        [
+          690,
+          420
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_start",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "fsm",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_cpol",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "fsm",
+        "pin": "in4"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "name": "cs_n",
+      "width": 1,
+      "from": {
+        "cell": "fsm",
+        "pin": "out3"
+      },
+      "to": {
+        "cell": "p_cs",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n10",
+      "name": "busy",
+      "width": 1,
+      "from": {
+        "cell": "fsm",
+        "pin": "out4"
+      },
+      "to": {
+        "cell": "p_busy",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n11",
+      "name": "shift",
+      "width": 1,
+      "from": {
+        "cell": "fsm",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "cnt",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "name": "last",
+      "width": 1,
+      "from": {
+        "cell": "cnt",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "fsm",
+        "pin": "in3"
+      },
+      "waypoints": [
+        [
+          940,
+          380
+        ],
+        [
+          940,
+          110
+        ],
+        [
+          380,
+          110
+        ],
+        [
+          380,
+          246
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n13",
+      "name": "load",
+      "width": 1,
+      "from": {
+        "cell": "fsm",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "s"
+      },
+      "waypoints": [
+        [
+          670,
+          170
+        ],
+        [
+          670,
+          720
+        ],
+        [
+          335,
+          720
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n14",
+      "name": "tx_data[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "p_tx",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "d0"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n15",
+      "name": "d[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "m1",
+        "pin": "y"
+      },
+      "to": {
+        "cell": "shr",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n16",
+      "name": "q[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "shr",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "bitsel",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n17",
+      "name": "mosi",
+      "width": 1,
+      "from": {
+        "cell": "bitsel",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "p_mosi",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n18",
+      "name": "shifted[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "bitsel",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "m1",
+        "pin": "d1"
+      },
+      "waypoints": [
+        [
+          900,
+          600
+        ],
+        [
+          900,
+          690
+        ],
+        [
+          270,
+          690
+        ],
+        [
+          270,
+          615
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n19",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_cpol",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "bitsel",
+        "pin": "in2"
+      },
+      "waypoints": [
+        [
+          200,
+          278
+        ],
+        [
+          200,
+          470
+        ],
+        [
+          700,
+          470
+        ],
+        [
+          700,
+          600
+        ]
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [
+    {
+      "id": "band3",
+      "kind": "rect",
+      "x": 280,
+      "y": 505,
+      "w": 600,
+      "h": 165,
+      "rotate": 0,
+      "style": {
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
+      }
+    },
+    {
+      "id": "band1",
+      "kind": "rect",
+      "x": 400,
+      "y": 130,
+      "w": 220,
+      "h": 190,
+      "rotate": 0,
+      "style": {
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
+      }
+    },
+    {
+      "id": "s2",
+      "kind": "text",
+      "x": 510,
+      "y": 345,
+      "text": "CONTROL",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    },
+    {
+      "id": "s4",
+      "kind": "text",
+      "x": 925,
+      "y": 480,
+      "text": "DATAPATH",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "s5",
+      "kind": "text",
+      "x": 90,
+      "y": 75,
+      "text": "SPI MASTER",
+      "rotate": 0,
+      "style": {
+        "fontSize": 17,
+        "fill": "#0d7490",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "s6",
+      "kind": "text",
+      "x": 90,
+      "y": 103,
+      "text": "control on top, datapath below, one divided clock between them",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    }
+  ],
+  "groups": []
+}

@@ -121,7 +121,7 @@ drawlogic/
   server.py       stdlib HTTP server for the editor
   web/            the browser editor (11 modules, no build step)
 tests/            unittest, a golden-file regression suite, a JS parity check
-examples/         worked schematics: a CDC FIFO and a top sheet over it
+examples/         seven worked schematics, gate level up to a top sheet
 ```
 
 Every module opens with a usage section showing how to call it.

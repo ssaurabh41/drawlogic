@@ -1,0 +1,628 @@
+{
+  "format": "drawlogic",
+  "version": 1,
+  "title": "mac_pipe",
+  "canvas": {
+    "width": 1520,
+    "height": 700,
+    "background": "#ffffff",
+    "grid": {
+      "style": "dots",
+      "size": 10,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "p_clk",
+      "type": "port_in",
+      "x": 40.0,
+      "y": 535.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "clk",
+      "style": {}
+    },
+    {
+      "id": "p_en",
+      "type": "port_in",
+      "x": 40.0,
+      "y": 575.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "en",
+      "style": {}
+    },
+    {
+      "id": "icg1",
+      "type": "icg",
+      "x": 100.0,
+      "y": 520.0,
+      "w": 100,
+      "h": 80,
+      "rotate": 0,
+      "mirror": false,
+      "label": "ICG",
+      "pins": {
+        "ck": "CK",
+        "e": "EN",
+        "gck": "GCK"
+      },
+      "style": {
+        "fill": "#eef2e6"
+      }
+    },
+    {
+      "id": "p_a",
+      "type": "port_in",
+      "x": 180.0,
+      "y": 175.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "a[15:0]",
+      "style": {}
+    },
+    {
+      "id": "p_b",
+      "type": "port_in",
+      "x": 180.0,
+      "y": 255.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "b[15:0]",
+      "style": {}
+    },
+    {
+      "id": "r_a",
+      "type": "reg",
+      "x": 300.0,
+      "y": 165.0,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "A_Q",
+      "pins": {
+        "d": "a"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "r_b",
+      "type": "reg",
+      "x": 300.0,
+      "y": 245.0,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "B_Q",
+      "pins": {
+        "d": "b"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "mult",
+      "type": "block",
+      "x": 520.0,
+      "y": 130.0,
+      "w": 180,
+      "h": 180,
+      "rotate": 0,
+      "mirror": false,
+      "label": "mult 16 x 16",
+      "pins": {
+        "in1": "a",
+        "in2": "b",
+        "out1": "p[31:0]",
+        "out2": ""
+      },
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "r_p",
+      "type": "reg",
+      "x": 780.0,
+      "y": 165.0,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "P_Q",
+      "pins": {
+        "d": "p"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "add",
+      "type": "block",
+      "x": 940.0,
+      "y": 130.0,
+      "w": 180,
+      "h": 180,
+      "rotate": 0,
+      "mirror": false,
+      "label": "add 32 + 32",
+      "pins": {
+        "in1": "p",
+        "in2": "acc",
+        "out1": "sum[31:0]",
+        "out2": "ovf"
+      },
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "r_acc",
+      "type": "reg",
+      "x": 1200.0,
+      "y": 165.0,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "ACC",
+      "pins": {
+        "d": "sum"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "p_res",
+      "type": "port_out",
+      "x": 1420.0,
+      "y": 175.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "result[31:0]",
+      "style": {}
+    },
+    {
+      "id": "p_ovf",
+      "type": "port_out",
+      "x": 1420.0,
+      "y": 255.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "overflow",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "name": "a[15:0]",
+      "width": 16,
+      "from": {
+        "cell": "p_a",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "r_a",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": "b[15:0]",
+      "width": 16,
+      "from": {
+        "cell": "p_b",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "r_b",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": "a_q[15:0]",
+      "width": 16,
+      "from": {
+        "cell": "r_a",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "mult",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": "b_q[15:0]",
+      "width": 16,
+      "from": {
+        "cell": "r_b",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "mult",
+        "pin": "in2"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": "p[31:0]",
+      "width": 32,
+      "from": {
+        "cell": "mult",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "r_p",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": "p_q[31:0]",
+      "width": 32,
+      "from": {
+        "cell": "r_p",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "add",
+        "pin": "in1"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "name": "sum[31:0]",
+      "width": 32,
+      "from": {
+        "cell": "add",
+        "pin": "out1"
+      },
+      "to": {
+        "cell": "r_acc",
+        "pin": "d"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": "result[31:0]",
+      "width": 32,
+      "from": {
+        "cell": "r_acc",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "p_res",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "add",
+        "pin": "out2"
+      },
+      "to": {
+        "cell": "p_ovf",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n10",
+      "name": "acc[31:0]",
+      "width": 32,
+      "from": {
+        "cell": "r_acc",
+        "pin": "q"
+      },
+      "to": {
+        "cell": "add",
+        "pin": "in2"
+      },
+      "waypoints": [
+        [
+          1330,
+          180
+        ],
+        [
+          1330,
+          430
+        ],
+        [
+          900,
+          430
+        ],
+        [
+          900,
+          260
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n11",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_clk",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "icg1",
+        "pin": "ck"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n12",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_en",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "icg1",
+        "pin": "e"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n13",
+      "name": "gclk",
+      "width": 1,
+      "from": {
+        "cell": "icg1",
+        "pin": "gck"
+      },
+      "to": {
+        "cell": "r_a",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          285,
+          540
+        ],
+        [
+          285,
+          210
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n14",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "icg1",
+        "pin": "gck"
+      },
+      "to": {
+        "cell": "r_b",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          285,
+          540
+        ],
+        [
+          285,
+          290
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n15",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "icg1",
+        "pin": "gck"
+      },
+      "to": {
+        "cell": "r_p",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          750,
+          540
+        ],
+        [
+          750,
+          210
+        ]
+      ],
+      "style": {}
+    },
+    {
+      "id": "n16",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "icg1",
+        "pin": "gck"
+      },
+      "to": {
+        "cell": "r_acc",
+        "pin": "ck"
+      },
+      "waypoints": [
+        [
+          1170,
+          540
+        ],
+        [
+          1170,
+          210
+        ]
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [
+    {
+      "id": "band3",
+      "kind": "rect",
+      "x": 920,
+      "y": 145,
+      "w": 360,
+      "h": 190,
+      "rotate": 0,
+      "style": {
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
+      }
+    },
+    {
+      "id": "band2",
+      "kind": "rect",
+      "x": 500,
+      "y": 145,
+      "w": 380,
+      "h": 190,
+      "rotate": 0,
+      "style": {
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
+      }
+    },
+    {
+      "id": "band1",
+      "kind": "rect",
+      "x": 280,
+      "y": 145,
+      "w": 110,
+      "h": 190,
+      "rotate": 0,
+      "style": {
+        "fill": "#eef4f6",
+        "stroke": "#c3d0d5",
+        "strokeWidth": 1.0
+      }
+    },
+    {
+      "id": "s4",
+      "kind": "text",
+      "x": 335,
+      "y": 358,
+      "text": "STAGE 1",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    },
+    {
+      "id": "s5",
+      "kind": "text",
+      "x": 690,
+      "y": 358,
+      "text": "STAGE 2",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    },
+    {
+      "id": "s6",
+      "kind": "text",
+      "x": 1100,
+      "y": 358,
+      "text": "STAGE 3",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    },
+    {
+      "id": "s7",
+      "kind": "text",
+      "x": 60,
+      "y": 80,
+      "text": "PIPELINED MULTIPLY-ACCUMULATE",
+      "rotate": 0,
+      "style": {
+        "fontSize": 17,
+        "fill": "#0d7490",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "s8",
+      "kind": "text",
+      "x": 60,
+      "y": 640,
+      "text": "one clock gate drives every stage; the accumulator feeds back into the adder",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    }
+  ],
+  "groups": []
+}

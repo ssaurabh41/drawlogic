@@ -342,7 +342,7 @@ change to `theme.py`.
 | Role | Painted as |
 |---|---|
 | `body` | the cell's fill and stroke |
-| `pin` | stroke only, thinner |
+| `pin` | stroke only, at wire weight so joints look continuous |
 | `bubble` | filled, for inversion circles |
 | `decor` | stroke only, no fill, for open marks |
 | `ghost` | dashed grey, for placeholders |

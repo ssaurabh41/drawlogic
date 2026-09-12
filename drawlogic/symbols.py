@@ -124,18 +124,56 @@ class Symbol(object):
 
 
 class Registry(object):
-  """All known symbols, keyed by type id."""
+  """All known symbols, keyed by type id.
+
+  Most symbols are read from symbol files and offered in the palette. A few
+  are built at load time instead -- the block standing in for a drawing a cell
+  references -- and those are unlisted: real symbols to everything that draws
+  or routes, but not something you can pick up and place.
+  """
 
   def __init__(self):
     self._symbols = {}
     self._sources = {}
+    self._listed = set()
 
-  def add(self, symbol, source=None):
+  def add(self, symbol, source=None, listed=True):
     self._symbols[symbol.id] = symbol
     self._sources[symbol.id] = source
+    if listed:
+      self._listed.add(symbol.id)
+    else:
+      self._listed.discard(symbol.id)
+
+  def copy(self):
+    """An independent registry holding the same symbols.
+
+    Resolving one drawing's references must not change what another sees, so
+    each open drawing works from its own copy of the shared library.
+    """
+    other = Registry()
+    other._symbols = dict(self._symbols)
+    other._sources = dict(self._sources)
+    other._listed = set(self._listed)
+    return other
 
   def get(self, type_id):
     return self._symbols.get(type_id)
+
+  def for_cell(self, cell):
+    """The symbol a placed cell draws with.
+
+    A cell that references another drawing takes its symbol from that
+    drawing's ports, so the lookup is by ref rather than by type. Returns None
+    when the ref has not been resolved, which reads the same as an unknown
+    type and is reported the same way.
+    """
+    if not isinstance(cell, dict):
+      return None
+    ref = cell.get("ref")
+    if ref:
+      return self._symbols.get("sheet:%s" % ref)
+    return self._symbols.get(cell.get("type"))
 
   def require(self, type_id):
     symbol = self._symbols.get(type_id)
@@ -146,12 +184,34 @@ class Registry(object):
   def source_of(self, type_id):
     return self._sources.get(type_id)
 
-  def ids(self):
+  def as_data(self, listed_only=False):
+    """The library as plain JSON-able data, keyed by type id.
+
+    What the browser is handed, so the editor draws from the same definitions
+    the exporter does -- symbol-directory overrides and resolved sheets alike.
+    """
+    return {
+      type_id: {
+        "name": symbol.name,
+        "category": symbol.category,
+        "size": [symbol.width, symbol.height],
+        "pins": symbol.pins,
+        "draw": symbol.draw,
+        "listed": type_id in self._listed,
+      }
+      for type_id, symbol in self._symbols.items()
+      if not listed_only or type_id in self._listed
+    }
+
+  def ids(self, listed_only=True):
+    if listed_only:
+      return sorted(self._listed)
     return sorted(self._symbols)
 
   def categories(self):
     groups = {}
-    for symbol in self._symbols.values():
+    for type_id in self._listed:
+      symbol = self._symbols[type_id]
       groups.setdefault(symbol.category, []).append(symbol.id)
     for ids in groups.values():
       ids.sort()

@@ -15,16 +15,15 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 import unittest
 
 from drawlogic import routing
-from drawlogic.doc import Document
 
-from tests import ROOT
+from tests import ROOT, open_example
 
 NODE = shutil.which("node")
 DUMP = os.path.join(ROOT, "tests", "js", "route_dump.mjs")
-SYMBOLS = os.path.join(ROOT, "drawlogic", "symbols.json")
 EXAMPLES = os.path.join(ROOT, "examples")
 
 
@@ -32,9 +31,21 @@ def _round(value, places=3):
   return round(float(value), places)
 
 
-def _browser_result(path):
-  out = subprocess.check_output([NODE, DUMP, SYMBOLS, path], cwd=ROOT)
-  return json.loads(out)
+def _browser_result(path, registry):
+  """Route a drawing in node, using the library Python resolved for it.
+
+  Handing node drawlogic/symbols.json instead would leave a referenced drawing
+  with no symbol, so every net would route to nothing -- and match a Python
+  side that had not resolved either. Two empty answers agree.
+  """
+  handle, symbols = tempfile.mkstemp(suffix=".json")
+  try:
+    with os.fdopen(handle, "w") as out:
+      json.dump(registry.as_data(), out)
+    return json.loads(subprocess.check_output([NODE, DUMP, symbols, path],
+                                              cwd=ROOT))
+  finally:
+    os.unlink(symbols)
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -48,9 +59,11 @@ class TestRouterParity(unittest.TestCase):
   def test_every_example_routes_the_same_in_both(self):
     for name, path in self.examples():
       with self.subTest(example=name):
-        browser = _browser_result(path)
-        doc = Document.load(path)
-        routes = routing.route_all(doc)
+        doc, registry, _ = open_example(path)
+        browser = _browser_result(path, registry)
+        routes = routing.route_all(doc, registry)
+        self.assertTrue(any(points for _, points in routes),
+                        "%s routed to nothing, so this proves nothing" % name)
 
         expected = [[net["id"], [[_round(x), _round(y)] for x, y in points]]
                     for net, points in routes]
@@ -62,9 +75,9 @@ class TestRouterParity(unittest.TestCase):
   def test_every_example_dots_and_bridges_the_same(self):
     for name, path in self.examples():
       with self.subTest(example=name):
-        browser = _browser_result(path)
-        doc = Document.load(path)
-        routes = routing.route_all(doc)
+        doc, registry, _ = open_example(path)
+        browser = _browser_result(path, registry)
+        routes = routing.route_all(doc, registry)
 
         expected_dots = sorted([_round(x), _round(y)]
                                for x, y in routing.junctions(routes))

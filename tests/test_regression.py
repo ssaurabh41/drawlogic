@@ -28,7 +28,7 @@ import unittest
 from drawlogic import render_svg, routing
 from drawlogic.doc import Document
 from drawlogic.symbols import default_registry
-from tests import ROOT
+from tests import ROOT, open_example
 
 GOLDEN_DIR = os.path.join(ROOT, "tests", "golden")
 EXAMPLES = sorted(glob.glob(os.path.join(ROOT, "examples", "*.dlg")))
@@ -65,7 +65,8 @@ class TestGoldenSvg(unittest.TestCase):
     for path in EXAMPLES:
       name = example_name(path)
       with self.subTest(example=name):
-        svg = render_svg.render(Document.load(path), **RENDER_OPTIONS)
+        doc, registry, _ = open_example(path)
+        svg = render_svg.render(doc, registry=registry, **RENDER_OPTIONS)
         golden = os.path.join(GOLDEN_DIR, name + ".svg")
 
         if REGOLD or not os.path.isfile(golden):
@@ -105,27 +106,30 @@ class TestEveryExample(unittest.TestCase):
   """Invariants that must hold for every drawing in examples/."""
 
   def documents(self):
+    """Every example, opened the way the CLI opens it."""
     for path in EXAMPLES:
-      yield example_name(path), Document.load(path)
+      doc, registry, issues = open_example(path)
+      yield example_name(path), doc, registry, issues
 
   def test_no_validation_errors(self):
-    for name, doc in self.documents():
+    for name, doc, registry, issues in self.documents():
       with self.subTest(example=name):
-        errors = [i for i in doc.validate() if i.level == "error"]
+        errors = [i for i in issues + doc.validate(registry)
+                  if i.level == "error"]
         self.assertEqual(errors, [], "%s has validation errors" % name)
 
   def test_every_net_resolves(self):
-    for name, doc in self.documents():
+    for name, doc, registry, _ in self.documents():
       with self.subTest(example=name):
-        for net, points in routing.route_all(doc):
+        for net, points in routing.route_all(doc, registry):
           self.assertGreaterEqual(
             len(points), 2,
             "%s: net %s does not resolve to a path" % (name, net.get("id")))
 
   def test_every_segment_is_axis_aligned(self):
-    for name, doc in self.documents():
+    for name, doc, registry, _ in self.documents():
       with self.subTest(example=name):
-        for net, points in routing.route_all(doc):
+        for net, points in routing.route_all(doc, registry):
           for index in range(len(points) - 1):
             ax, ay = points[index]
             bx, by = points[index + 1]
@@ -138,15 +142,15 @@ class TestEveryExample(unittest.TestCase):
     # no choice, so this reports rather than asserting zero -- but a jump in
     # the count means the router got worse.
     worst = {}
-    for name, doc in self.documents():
+    for name, doc, registry, _ in self.documents():
       crossings = 0
-      for net, points in routing.route_all(doc):
+      for net, points in routing.route_all(doc, registry):
         exclude = set()
         for side in ("from", "to"):
           endpoint = net.get(side) or {}
           if "cell" in endpoint:
             exclude.add(endpoint["cell"])
-        boxes = routing.obstacle_boxes(doc, exclude=exclude)
+        boxes = routing.obstacle_boxes(doc, registry, exclude=exclude)
         for index in range(len(points) - 1):
           (ax, ay), (bx, by) = points[index], points[index + 1]
           if abs(ax - bx) < 1e-6:
@@ -166,7 +170,7 @@ class TestEveryExample(unittest.TestCase):
         "than this layout used to need" % (name, count))
 
   def test_documents_round_trip_unchanged(self):
-    for name, doc in self.documents():
+    for name, doc, _registry, _issues in self.documents():
       with self.subTest(example=name):
         once = doc.dumps()
         twice = Document.loads(once).dumps()
@@ -184,11 +188,13 @@ class TestEveryExample(unittest.TestCase):
                          % os.path.basename(path))
 
   def test_rendering_is_reproducible(self):
-    for name, doc in self.documents():
+    for name, doc, registry, _ in self.documents():
       with self.subTest(example=name):
-        first = render_svg.render(doc, **RENDER_OPTIONS)
-        second = render_svg.render(Document.load(
-          os.path.join(ROOT, "examples", name + ".dlg")), **RENDER_OPTIONS)
+        first = render_svg.render(doc, registry=registry, **RENDER_OPTIONS)
+        again, again_registry, _ = open_example(
+          os.path.join(ROOT, "examples", name + ".dlg"))
+        second = render_svg.render(again, registry=again_registry,
+                                   **RENDER_OPTIONS)
         self.assertEqual(first, second)
 
 

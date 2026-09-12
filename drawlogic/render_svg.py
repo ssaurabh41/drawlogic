@@ -561,7 +561,7 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
 
   out.append('<g class="dl-cells">')
   for cell in doc.cells:
-    symbol = registry.get(cell.get("type"))
+    symbol = registry.for_cell(cell)
     if symbol is None:
       continue
     _render_cell(symbol, cell, font_scale, out, doc.symbol_scale)

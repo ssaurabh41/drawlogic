@@ -137,6 +137,17 @@ export class Inspector {
     root.appendChild(element("div", "ptitle", "Cell"));
     root.appendChild(row("Type", element("div", "pval", cell.type)));
 
+    // A block that stands for another drawing says so, with the way in --
+    // double-clicking it works too, but nothing on screen would tell you that.
+    if (cell.ref) {
+      const open = document.createElement("button");
+      open.className = "linkish";
+      open.textContent = cell.ref;
+      open.title = "open this drawing";
+      open.addEventListener("click", () => this.onOpenRef && this.onOpenRef(cell));
+      root.appendChild(row("Sheet", open));
+    }
+
     const name = input(cell.label || "");
     this.bind(name, (doc, value) => model.setLabel(doc, cell.id, value), "rename");
     root.appendChild(row("Name", name));
@@ -163,7 +174,7 @@ export class Inspector {
     // shippable file.
     if (cell.type === "custom") this.renderImagePicker(cell);
 
-    const symbol = geometry.get(cell.type);
+    const symbol = geometry.forCell(cell);
     if (symbol) this.renderPins(cell, symbol);
   }
 

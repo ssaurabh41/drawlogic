@@ -110,7 +110,7 @@ function boxAlignments(doc, moving, offer) {
   const movers = [];
   const anchors = [];
   for (const cell of doc.cells || []) {
-    const symbol = geometry.get(cell.type);
+    const symbol = geometry.forCell(cell);
     if (!symbol) continue;
     const box = geometry.cellBounds(symbol, cell, scale);
     (moving.has(cell.id) ? movers : anchors).push(box);

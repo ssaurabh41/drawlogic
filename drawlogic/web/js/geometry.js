@@ -98,17 +98,43 @@ export function setLibrary(data) {
   library = data || {};
 }
 
+// Blocks standing in for referenced drawings arrive with the drawing that
+// references them, not with the library, so they are merged in on open. The
+// previous drawing's are dropped first: the same ref means a different file
+// from a different folder, and a stale one would draw the wrong pins.
+export function setSheets(data) {
+  for (const id of Object.keys(library)) {
+    if (id.startsWith("sheet:")) delete library[id];
+  }
+  Object.assign(library, data || {});
+}
+
 export function get(typeId) {
   return library[typeId] || null;
+}
+
+// The symbol a placed cell draws with. A cell that references another drawing
+// takes its symbol from that drawing's ports, so the lookup is by ref rather
+// than by type; null when the reference has not been resolved, which reads the
+// same as an unknown type.
+export function forCell(cell) {
+  if (!cell) return null;
+  if (cell.ref) return library[`sheet:${cell.ref}`] || null;
+  return library[cell.type] || null;
 }
 
 export function ids() {
   return Object.keys(library).sort();
 }
 
+// The palette: only symbols you can pick up and place. A block standing in
+// for another drawing is a real symbol to everything that draws or routes, but
+// it comes from that drawing's ports rather than from the library, so there is
+// nothing to offer.
 export function byCategory() {
   const groups = {};
   for (const id of ids()) {
+    if (library[id].listed === false) continue;
     const category = library[id].category || "misc";
     (groups[category] = groups[category] || []).push(id);
   }

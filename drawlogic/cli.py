@@ -20,6 +20,7 @@ import sys
 
 from . import render_svg
 from .doc import Document, DocumentError
+from . import sheets
 from .symbols import SymbolError, load_registry
 
 PROG = "drawlogic"
@@ -46,6 +47,31 @@ def _load(path):
     raise SystemExit("%s: %s: %s" % (PROG, path, exc))
 
 
+def _open(path, registry):
+  """Load a drawing and the symbols it needs, references included.
+
+  Returns the drawing, its own registry, and whatever went wrong resolving
+  those references, which each caller reports in its own way.
+  """
+  try:
+    return sheets.open_document(path, registry)
+  except (IOError, OSError) as exc:
+    raise SystemExit("%s: cannot read %s: %s" % (PROG, path, exc))
+  except DocumentError as exc:
+    raise SystemExit("%s: %s: %s" % (PROG, path, exc))
+
+
+def _report_refs(path, problems):
+  """Warn about unresolved references without refusing to do the work.
+
+  A broken reference is drawn as a labelled empty box, so the output says what
+  is wrong far better than a refusal to produce it would.
+  """
+  for problem in problems:
+    sys.stderr.write("%s: %s: %s: %s\n"
+                     % (PROG, path, problem.where, problem.message))
+
+
 def _output_path(source, args, count):
   if args.output and count == 1:
     return args.output
@@ -69,9 +95,10 @@ def cmd_export(args):
     os.makedirs(args.outdir)
 
   for source in args.files:
-    doc = _load(source)
+    doc, sheet_registry, problems = _open(source, registry)
+    _report_refs(source, problems)
     svg = render_svg.render(
-      doc, registry=registry, zoom=args.zoom, width=args.width,
+      doc, registry=sheet_registry, zoom=args.zoom, width=args.width,
       margin=args.margin, background=background,
       show_grid=args.grid, crop=args.crop, title=not args.no_title,
       arrows=not args.no_arrows, hops=not args.no_hops)
@@ -118,7 +145,8 @@ def cmd_serve(args):
 
 def cmd_info(args):
   registry = _registry(args)
-  doc = _load(args.file)
+  doc, registry, problems = _open(args.file, registry)
+  _report_refs(args.file, problems)
   box = doc.content_bbox(registry)
 
   print("title    %s" % doc.title)
@@ -144,13 +172,24 @@ def cmd_info(args):
     print("by type")
     for type_id in sorted(counts):
       print("  %-12s %d" % (type_id, counts[type_id]))
+
+  rows = sheets.tree(doc, registry)
+  if rows:
+    print("")
+    print("hierarchy")
+    for depth, ref, child in rows:
+      detail = "%d cells, %d nets" % (len(child.cells), len(child.nets)) \
+        if child is not None else "cannot be read"
+      print("  %s%s  (%s)" % ("  " * depth, ref, detail))
   return 0
 
 
 def cmd_validate(args):
   registry = _registry(args)
-  doc = _load(args.file)
-  issues = doc.validate(registry)
+  doc, registry, problems = _open(args.file, registry)
+  # A reference that will not resolve is a fault in this drawing, so it is
+  # reported alongside everything else rather than shouted about separately.
+  issues = problems + doc.validate(registry)
 
   errors = [i for i in issues if i.level == "error"]
   warnings = [i for i in issues if i.level == "warning"]

@@ -21,6 +21,8 @@ let inspector = null;
 let tools = {};
 let activeTool = "select";
 let clipboard = null;
+// Where we came from while drilling into referenced drawings.
+const trail = [];
 let overlayOptions = {};
 
 function $(id) { return document.getElementById(id); }
@@ -92,24 +94,34 @@ function setTool(name) {
   ui.canvas.style.cursor = tool && tool.cursorFor ? tool.cursorFor(null) : "default";
 }
 
+// Long enough to be comfortable, short enough not to catch two deliberate
+// clicks in the same spot.
+const DOUBLE_CLICK_MS = 400;
+const DOUBLE_CLICK_SLOP = 4;
+
 function bindCanvas() {
+  // A redraw replaces the clicked node between the two clicks, so the browser
+  // never gets two clicks on the same element and never fires `dblclick` here.
+  // Recognising it from the timing is the only reliable way.
+  let lastPress = { at: -Infinity, x: 0, y: 0 };
+
   ui.canvas.addEventListener("mousedown", (event) => {
     if (event.button !== 0 || viewport.spaceHeld) return;
     if (event.shiftKey && activeTool === "select"
         && !event.target.closest(".dl-cell, .dl-shape, .dl-net, [data-handle]")) {
       return; // shift-drag on empty space pans, handled by the viewport
     }
+
+    const now = performance.now();
+    const again = now - lastPress.at < DOUBLE_CLICK_MS
+      && Math.abs(event.clientX - lastPress.x) < DOUBLE_CLICK_SLOP
+      && Math.abs(event.clientY - lastPress.y) < DOUBLE_CLICK_SLOP;
+    lastPress = { at: now, x: event.clientX, y: event.clientY };
+    if (again && onDoubleClick(event)) return;
+
     const tool = tools[activeTool];
     if (tool && tool.onPointerDown) {
       tool.onPointerDown(event, viewport.toDoc(event.clientX, event.clientY));
-      redraw();
-      inspector.render();
-    }
-  });
-
-  ui.canvas.addEventListener("dblclick", () => {
-    if (activeTool === "shape" && tools.shape.polygon) {
-      tools.shape.finishPolygon();
       redraw();
       inspector.render();
     }
@@ -185,6 +197,74 @@ function nudge(dx, dy, big) {
   apply("nudge", (doc, ids) => model.moveItems(doc, ids, dx * step, dy * step));
 }
 
+// ---- hierarchy ----
+
+// Where a ref points, read relative to the drawing that holds it. The server
+// serves one folder, so these stay relative to its root.
+function refPath(fromPath, ref) {
+  const parts = (fromPath || "").split("/").slice(0, -1).concat(ref.split("/"));
+  const out = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === ".." && out.length && out[out.length - 1] !== "..") out.pop();
+    else out.push(part);
+  }
+  return out.join("/");
+}
+
+async function drillInto(cell) {
+  const target = refPath(store.path, cell.ref);
+  trail.push({ path: store.path, label: cell.label || cell.id });
+  await openDrawing(target);
+}
+
+function drawBreadcrumb() {
+  const bar = ui.breadcrumb;
+  bar.textContent = "";
+  // The trail only makes sense while it leads to where we actually are.
+  if (!trail.length) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  trail.forEach((step, index) => {
+    const link = document.createElement("button");
+    link.className = "crumb";
+    link.textContent = step.label;
+    link.title = `back to ${step.path}`;
+    link.addEventListener("click", async () => {
+      const back = trail[index];
+      trail.length = index;
+      await openDrawing(back.path);
+    });
+    bar.appendChild(link);
+    bar.appendChild(document.createTextNode(" / "));
+  });
+  const here = document.createElement("span");
+  here.className = "crumb here";
+  here.textContent = (store.doc && store.doc.title) || store.path || "";
+  bar.appendChild(here);
+}
+
+// What a second click in the same spot means. Returns true when it meant
+// something, so the tool's own press handler is left out of it.
+function onDoubleClick(event) {
+  if (activeTool === "shape" && tools.shape.polygon) {
+    tools.shape.finishPolygon();
+    redraw();
+    inspector.render();
+    return true;
+  }
+  // Double-clicking a block that stands for another drawing opens it, the way
+  // double-clicking a folder opens it.
+  const node = event.target.closest(".dl-cell");
+  if (!node || !store.doc) return false;
+  const cell = store.doc.cells.find((c) => c.id === node.getAttribute("data-id"));
+  if (!cell || !cell.ref) return false;
+  drillInto(cell);
+  return true;
+}
+
 function stepHistory(back) {
   const label = back ? store.undo() : store.redo();
   if (label === false) return;
@@ -257,6 +337,8 @@ async function openDrawing(path) {
   }
   try {
     const payload = await api(`/api/doc?path=${encodeURIComponent(path)}`);
+    // Blocks for the drawings this one references, built from their ports.
+    geometry.setSheets(payload.sheets);
     store.load(payload.doc, payload.path);
     selection.clear();
     ui.filePath.textContent = payload.path;
@@ -265,7 +347,14 @@ async function openDrawing(path) {
     redraw();
     viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
     inspector.render();
-    say(`opened ${payload.path}`, "good");
+    drawBreadcrumb();
+
+    const problems = payload.problems || [];
+    if (problems.length) {
+      say(`${payload.path}: ${problems[0].where}: ${problems[0].message}`, "bad");
+    } else {
+      say(`opened ${payload.path}`, "good");
+    }
   } catch (error) {
     say(error.message, "bad");
   }
@@ -298,7 +387,8 @@ async function exportSvg() {
     const result = await api("/api/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: store.doc, path: target, options: { zoom: 1 } }),
+      body: JSON.stringify({ doc: store.doc, source: store.path,
+                             path: target, options: { zoom: 1 } }),
     });
     say(`exported ${result.path} (${result.bytes} bytes)`, "good");
   } catch (error) {
@@ -311,7 +401,8 @@ async function renderedSvg() {
   return api("/api/export", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ doc: store.doc, options: { zoom: 1 } }),
+    body: JSON.stringify({ doc: store.doc, source: store.path,
+                           options: { zoom: 1 } }),
   });
 }
 
@@ -375,7 +466,11 @@ function bindControls() {
     redraw();
   });
 
-  ui.fileSelect.addEventListener("change", () => openDrawing(ui.fileSelect.value));
+  ui.fileSelect.addEventListener("change", () => {
+    // Picking a file outright is not drilling in, so the trail is over.
+    trail.length = 0;
+    openDrawing(ui.fileSelect.value);
+  });
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
   ui.btnPng.addEventListener("click", copyPng);
@@ -492,6 +587,7 @@ async function start() {
     btnSave: $("btn-save"),
     btnExport: $("btn-export"),
     btnPng: $("btn-png"),
+    breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),
     undo: $("btn-undo"),
     redo: $("btn-redo"),
@@ -518,6 +614,7 @@ async function start() {
 
   tools = makeTools(context);
   inspector = new Inspector($("properties-body"), store, selection, () => redraw());
+  inspector.onOpenRef = (cell) => drillInto(cell);
   selection.subscribe(() => refreshStatus());
 
   try {

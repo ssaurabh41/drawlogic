@@ -22,6 +22,10 @@ Endpoints:
     POST /api/doc?path=    save a drawing, re-emitted canonically
     POST /api/export       render to SVG, optionally writing it to disk
 
+A drawing that references others comes back with a block symbol for each,
+under `sheets`, because those blocks are built from the referenced drawings'
+ports rather than read from the symbol library.
+
 Client-supplied paths are resolved inside the served root and refused if they
 escape it.
 """
@@ -35,6 +39,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import render_svg
 from . import theme
+from . import sheets
 from .doc import Document, DocumentError
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
@@ -63,25 +68,6 @@ def _safe_join(root, relative):
   if candidate != root and not candidate.startswith(root + os.sep):
     return None
   return candidate
-
-
-def _symbol_payload(registry):
-  """The symbol library as the browser needs it, straight from the registry.
-
-  The editor draws from the same definitions the exporter uses, including any
-  --symbols-dir overrides, so the two cannot disagree about a shape.
-  """
-  out = {}
-  for type_id in registry.ids():
-    symbol = registry.require(type_id)
-    out[type_id] = {
-      "name": symbol.name,
-      "category": symbol.category,
-      "size": [symbol.width, symbol.height],
-      "pins": symbol.pins,
-      "draw": symbol.draw,
-    }
-  return out
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -162,7 +148,7 @@ class Handler(BaseHTTPRequestHandler):
 
   def _api_get(self, route):
     if route == "/api/symbols":
-      return self._send_json(_symbol_payload(self.registry))
+      return self._send_json(self.registry.as_data())
 
     if route == "/api/theme":
       # Served rather than restated in JS, so the canvas and the exporter
@@ -195,12 +181,23 @@ class Handler(BaseHTTPRequestHandler):
       if not os.path.isfile(target):
         return self._fail(404, "no such drawing")
       try:
-        document = Document.load(target)
+        document, registry, problems = sheets.open_document(
+          target, self.registry)
       except DocumentError as exc:
         return self._fail(422, str(exc))
       except OSError as exc:
         return self._fail(500, "cannot read: %s" % exc)
-      return self._send_json({"path": relative, "doc": document.ordered()})
+      # A block standing in for another drawing belongs to this drawing, not
+      # to the library, so it travels with it. The editor merges it in on open.
+      return self._send_json({
+        "path": relative,
+        "doc": document.ordered(),
+        "sheets": {type_id: data
+                   for type_id, data in registry.as_data().items()
+                   if type_id.startswith("sheet:")},
+        "problems": [{"level": p.level, "where": p.where, "message": p.message}
+                     for p in problems],
+      })
 
     return self._fail(404, "no such endpoint")
 
@@ -263,11 +260,23 @@ class Handler(BaseHTTPRequestHandler):
     except (DocumentError, TypeError, ValueError) as exc:
       return self._fail(422, "document is not valid: %s" % exc)
 
+    # Where the drawing came from, so a `ref` in it still means the same file.
+    # Without this an export of a hierarchy would draw its blocks as empty.
+    registry = self.registry
+    source = payload.get("source")
+    if source:
+      resolved = _safe_join(self.root, source)
+      if resolved is None:
+        return self._fail(400, "source is outside the served directory")
+      document.path = resolved
+      registry = self.registry.copy()
+      sheets.resolve(document, registry)
+
     options = payload.get("options") or {}
     try:
       svg = render_svg.render(
         document,
-        registry=self.registry,
+        registry=registry,
         zoom=float(options.get("zoom", 1.0)),
         width=options.get("width"),
         margin=options.get("margin"),

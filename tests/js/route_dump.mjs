@@ -5,6 +5,12 @@
 // implementations of the same algorithm; nothing else in the suite would
 // notice them drifting apart.
 //
+// SYMBOLS.json is the whole resolved library, blocks for referenced drawings
+// included -- dumped by the Python side rather than read from
+// drawlogic/symbols.json, or a hierarchical drawing would route to nothing
+// here while routing properly there, and the comparison would pass on two
+// empty answers.
+//
 // Usage: node tests/js/route_dump.mjs SYMBOLS.json DRAWING.dlg
 
 import { readFileSync } from "node:fs";

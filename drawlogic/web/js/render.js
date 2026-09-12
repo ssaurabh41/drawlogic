@@ -474,7 +474,7 @@ export function render(svg, doc) {
 
   const cells = el("g", { class: "dl-cells" });
   for (const cell of doc.cells || []) {
-    const symbol = geometry.get(cell.type);
+    const symbol = geometry.forCell(cell);
     if (symbol) renderCell(symbol, cell, fontScale, scale, cells);
   }
   content.appendChild(cells);

@@ -173,7 +173,7 @@ export function itemBounds(doc, item) {
     }
     return [item.x, item.y, item.w || 0, item.h || 0];
   }
-  const symbol = geometry.get(item.type);
+  const symbol = geometry.forCell(item);
   if (!symbol) return null;
   return geometry.cellBounds(symbol, item, symbolScale(doc));
 }
@@ -594,7 +594,7 @@ function pinWidth(doc, endpoint) {
   if (!endpoint || endpoint.cell === undefined) return 1;
   const cell = doc.cells.find((c) => c.id === endpoint.cell);
   if (!cell) return 1;
-  const pin = geometry.findPin(geometry.get(cell.type), endpoint.pin);
+  const pin = geometry.findPin(geometry.forCell(cell), endpoint.pin);
   return pin ? (pin.width === undefined ? 1 : pin.width) : 1;
 }
 

@@ -54,7 +54,7 @@ def endpoint_position(doc, endpoint, registry=None):
     cell = doc.cell(endpoint["cell"])
     if cell is None:
       return None
-    symbol = registry.get(cell.get("type"))
+    symbol = registry.for_cell(cell)
     if symbol is None:
       return None
     return symbol.pin_position(cell, endpoint.get("pin"), doc.symbol_scale)
@@ -74,7 +74,7 @@ def endpoint_direction(doc, endpoint, registry=None):
   cell = doc.cell(endpoint["cell"])
   if cell is None:
     return None
-  symbol = registry.get(cell.get("type"))
+  symbol = registry.for_cell(cell)
   if symbol is None:
     return None
   pin = symbol.pin(endpoint.get("pin"))
@@ -150,7 +150,7 @@ def obstacle_boxes(doc, registry=None, exclude=()):
   for cell in doc.cells:
     if cell.get("id") in exclude:
       continue
-    symbol = registry.get(cell.get("type"))
+    symbol = registry.for_cell(cell)
     if symbol is None:
       continue
     matrix = symbol.matrix_for(cell, doc.symbol_scale)
@@ -216,14 +216,16 @@ class Sheet:
     view._keys = keys
     return view
 
-  def free(self, horizontal, fixed, v0, v1):
-    """True if this line neither shadows nor crosses an unrelated wire.
+  def free(self, horizontal, fixed, v0, v1, crossings=True):
+    """True if this line stays clear of the wires already placed.
 
-    Shadowing is the worse of the two -- two wires drawn nearly on top of each
-    other cannot be told apart at all -- but crossings are worth avoiding as
-    well, since the corridor one step the other way usually has none. Both are
-    preferences: `_pick_corridor` falls back to a merely cell-free corridor
-    when every candidate is taken.
+    Two faults, of very different weight. Shadowing -- running alongside
+    another wire close enough that the pair reads as one line -- is always
+    worth avoiding. Crossing one is only worth avoiding if there is somewhere
+    better to go, since in a busy drawing every route crosses something.
+
+    `crossings=False` asks the milder question, which is what the second pass
+    of a corridor search uses.
     """
     lo, hi = min(v0, v1), max(v0, v1)
     for keys, run_h, run_fixed, run_lo, run_hi in self._runs:
@@ -232,10 +234,13 @@ class Sheet:
       if run_h == horizontal:
         if abs(run_fixed - fixed) >= WIRE_GAP:
           continue
-        if hi - EPSILON <= run_lo or lo + EPSILON >= run_hi:
+        # Meeting end to end counts: two unrelated wires that share a single
+        # point are drawn with a junction dot, which says they are connected.
+        if hi + EPSILON < run_lo or lo - EPSILON > run_hi:
           continue
         return False
-      if run_lo + EPSILON < fixed < run_hi - EPSILON and lo < run_fixed < hi:
+      if crossings and run_lo + EPSILON < fixed < run_hi - EPSILON \
+          and lo < run_fixed < hi:
         return False
     return True
 
@@ -302,10 +307,21 @@ def _pick_outward(preferred, direction, path_is_clear, is_free=None):
 
 
 def _tests(path_is_clear, is_free):
-  """Corridor tests to try in turn: the fussy one first, then the bare one."""
+  """Corridor tests to try in turn, from fussiest to bare.
+
+  The middle pass matters more than it looks. Without it, a wire that can
+  find no crossing-free corridor falls straight back to its preferred one --
+  and since every wire between the same two columns prefers the same corridor,
+  they would all pile onto it and be drawn on top of each other. Giving up on
+  crossings first, and only then on everything, keeps them apart.
+  """
   if is_free is None:
     return [path_is_clear]
-  return [lambda value: path_is_clear(value) and is_free(value), path_is_clear]
+  return [
+    lambda value: path_is_clear(value) and is_free(value, True),
+    lambda value: path_is_clear(value) and is_free(value, False),
+    path_is_clear,
+  ]
 
 
 def _free_direction(point, other):
@@ -330,7 +346,7 @@ def _sidestep(a, b, sheet, vertical):
               and _horizontal_clear(a[1], a[0], x, boxes)
               and _horizontal_clear(b[1], x, b[0], boxes))
     x = _pick_corridor(a[0], NEG_SPAN, POS_SPAN, clear_at,
-                       lambda x: sheet.free(False, x, a[1], b[1]))
+                       lambda x, cross: sheet.free(False, x, a[1], b[1], cross))
     return [a, (x, a[1]), (x, b[1]), b]
 
   def clear_at(y):
@@ -338,7 +354,7 @@ def _sidestep(a, b, sheet, vertical):
             and _vertical_clear(a[0], a[1], y, boxes)
             and _vertical_clear(b[0], y, b[1], boxes))
   y = _pick_corridor(a[1], NEG_SPAN, POS_SPAN, clear_at,
-                     lambda y: sheet.free(True, y, a[0], b[0]))
+                     lambda y, cross: sheet.free(True, y, a[0], b[0], cross))
   return [a, (a[0], y), (b[0], y), b]
 
 
@@ -351,8 +367,8 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
             and _horizontal_clear(a[1], a[0], x, boxes)
             and _horizontal_clear(b[1], x, b[0], boxes))
 
-  def free_at(x):
-    return sheet.free(False, x, a[1], b[1])
+  def free_at(x, crossings):
+    return sheet.free(False, x, a[1], b[1], crossings)
 
   facing = ((b[0] - a[0]) * a_dir[0] > EPSILON
             and (a[0] - b[0]) * b_dir[0] > EPSILON)
@@ -374,7 +390,7 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
             and _vertical_clear(a[0], a[1], y, boxes)
             and _vertical_clear(b[0], y, b[1], boxes))
   y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, row_clear,
-                     lambda y: sheet.free(True, y, a[0], b[0]))
+                     lambda y, cross: sheet.free(True, y, a[0], b[0], cross))
   return [a, (a[0], y), (b[0], y), b]
 
 
@@ -387,8 +403,8 @@ def _route_vv(a, b, a_dir, b_dir, sheet):
             and _vertical_clear(a[0], a[1], y, boxes)
             and _vertical_clear(b[0], y, b[1], boxes))
 
-  def free_at(y):
-    return sheet.free(True, y, a[0], b[0])
+  def free_at(y, crossings):
+    return sheet.free(True, y, a[0], b[0], crossings)
 
   facing = ((b[1] - a[1]) * a_dir[1] > EPSILON
             and (a[1] - b[1]) * b_dir[1] > EPSILON)
@@ -408,7 +424,7 @@ def _route_vv(a, b, a_dir, b_dir, sheet):
             and _horizontal_clear(a[1], a[0], x, boxes)
             and _horizontal_clear(b[1], x, b[0], boxes))
   x = _pick_corridor((a[0] + b[0]) / 2.0, NEG_SPAN, POS_SPAN, column_clear,
-                     lambda x: sheet.free(False, x, a[1], b[1]))
+                     lambda x, cross: sheet.free(False, x, a[1], b[1], cross))
   return [a, (x, a[1]), (x, b[1]), b]
 
 

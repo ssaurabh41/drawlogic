@@ -132,6 +132,13 @@ select {
 }
 .dirty { color: var(--warm); font-size: 14px; line-height: 1; }
 
+/* The trail back up from a drawing you drilled into. */
+.crumbs { display: flex; align-items: center; gap: 4px; color: var(--ink-3); }
+.crumbs .crumb { font: inherit; color: var(--accent); background: none;
+                 border: 0; padding: 0; cursor: pointer; }
+.crumbs .crumb:hover { text-decoration: underline; }
+.crumbs .crumb.here { color: var(--ink-2); cursor: default; }
+
 .toolbar {
   gap: 18px;
   padding: 7px 12px;

@@ -1,0 +1,327 @@
+{
+  "format": "drawlogic",
+  "version": 1,
+  "title": "fifo_top",
+  "canvas": {
+    "width": 1100,
+    "height": 620,
+    "background": "#ffffff",
+    "grid": {
+      "style": "dots",
+      "size": 10,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "u_fifo",
+      "type": "sheet",
+      "x": 420,
+      "y": 120,
+      "w": 198.0,
+      "h": 236.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "U_FIFO",
+      "style": {
+        "fill": "#eef4f6"
+      },
+      "ref": "cdc_fifo.dlg"
+    },
+    {
+      "id": "p1",
+      "type": "port_in",
+      "x": 80,
+      "y": 137.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wdata[7:0]",
+      "style": {}
+    },
+    {
+      "id": "p2",
+      "type": "port_in",
+      "x": 80,
+      "y": 169.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "winc",
+      "style": {}
+    },
+    {
+      "id": "p3",
+      "type": "port_in",
+      "x": 80,
+      "y": 201.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rinc",
+      "style": {}
+    },
+    {
+      "id": "p4",
+      "type": "port_in",
+      "x": 80,
+      "y": 233.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wrst_n",
+      "style": {}
+    },
+    {
+      "id": "p5",
+      "type": "port_in",
+      "x": 80,
+      "y": 265.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rrst_n",
+      "style": {}
+    },
+    {
+      "id": "p6",
+      "type": "port_in",
+      "x": 80,
+      "y": 297.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wclk",
+      "style": {}
+    },
+    {
+      "id": "p7",
+      "type": "port_in",
+      "x": 80,
+      "y": 329.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rclk",
+      "style": {}
+    },
+    {
+      "id": "p8",
+      "type": "port_out",
+      "x": 940,
+      "y": 137.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rdata[7:0]",
+      "style": {}
+    },
+    {
+      "id": "p9",
+      "type": "port_out",
+      "x": 940,
+      "y": 169.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "wfull",
+      "style": {}
+    },
+    {
+      "id": "p10",
+      "type": "port_out",
+      "x": 940,
+      "y": 201.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rempty",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "name": "wdata[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "p1",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "wdata[7:0]"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": "winc",
+      "width": 1,
+      "from": {
+        "cell": "p2",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "winc"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": "rinc",
+      "width": 1,
+      "from": {
+        "cell": "p3",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "rinc"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": "wrst_n",
+      "width": 1,
+      "from": {
+        "cell": "p4",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "wrst_n"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": "rrst_n",
+      "width": 1,
+      "from": {
+        "cell": "p5",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "rrst_n"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": "wclk",
+      "width": 1,
+      "from": {
+        "cell": "p6",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "wclk"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n7",
+      "name": "rclk",
+      "width": 1,
+      "from": {
+        "cell": "p7",
+        "pin": "p"
+      },
+      "to": {
+        "cell": "u_fifo",
+        "pin": "rclk"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n8",
+      "name": "rdata[7:0]",
+      "width": 8,
+      "from": {
+        "cell": "u_fifo",
+        "pin": "rdata[7:0]"
+      },
+      "to": {
+        "cell": "p8",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n9",
+      "name": "wfull",
+      "width": 1,
+      "from": {
+        "cell": "u_fifo",
+        "pin": "wfull"
+      },
+      "to": {
+        "cell": "p9",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    },
+    {
+      "id": "n10",
+      "name": "rempty",
+      "width": 1,
+      "from": {
+        "cell": "u_fifo",
+        "pin": "rempty"
+      },
+      "to": {
+        "cell": "p10",
+        "pin": "p"
+      },
+      "waypoints": [],
+      "style": {}
+    }
+  ],
+  "shapes": [
+    {
+      "id": "s1",
+      "kind": "text",
+      "x": 550,
+      "y": 560,
+      "text": "U_FIFO is examples/cdc_fifo.dlg -- its pins are that drawing's ports",
+      "rotate": 0,
+      "style": {
+        "fontSize": 13,
+        "fill": "#5b6b74",
+        "anchor": "middle"
+      }
+    }
+  ],
+  "groups": []
+}

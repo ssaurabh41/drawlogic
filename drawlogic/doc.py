@@ -323,7 +323,7 @@ class Document(object):
       font.setdefault(key, value)
 
     for cell in data.setdefault("cells", []):
-      symbol = registry.get(cell.get("type"))
+      symbol = registry.for_cell(cell)
       if symbol is not None:
         cell.setdefault("w", symbol.width)
         cell.setdefault("h", symbol.height)
@@ -357,7 +357,7 @@ class Document(object):
     scale = self.symbol_scale
 
     for cell in self.cells:
-      symbol = registry.get(cell.get("type"))
+      symbol = registry.for_cell(cell)
       if symbol is None:
         continue
       matrix = symbol.matrix_for(cell, scale)
@@ -411,9 +411,17 @@ class Document(object):
 
     for cell in self.cells:
       where = "cell %s" % cell.get("id")
-      symbol = registry.get(cell.get("type"))
+      symbol = registry.for_cell(cell)
       if symbol is None:
-        issues.append(Issue("error", where, "unknown cell type %r" % cell.get("type")))
+        if cell.get("ref"):
+          # Resolving a ref means opening the drawing it names, which is the
+          # job of whoever opened this one -- see sheets.resolve.
+          issues.append(Issue("error", where,
+                              "references %r, which has not been resolved"
+                              % cell.get("ref")))
+        else:
+          issues.append(Issue("error", where,
+                              "unknown cell type %r" % cell.get("type")))
         continue
       if cell.get("w", 0) <= 0 or cell.get("h", 0) <= 0:
         issues.append(Issue("error", where, "size must be positive"))
@@ -426,6 +434,22 @@ class Document(object):
           issues.append(Issue("error", where,
                               "pin label names %r, which %s has no such pin"
                               % (pin_name, symbol.id)))
+
+    # Two ports of the same name make an ambiguous pin the moment another
+    # drawing instantiates this one, so it is worth saying early.
+    port_labels = {}
+    for cell in self.cells:
+      if not str(cell.get("type", "")).startswith("port_"):
+        continue
+      name = (cell.get("label") or "").strip()
+      if name:
+        port_labels.setdefault(name, []).append(cell.get("id"))
+    for name, owners in sorted(port_labels.items()):
+      if len(owners) > 1:
+        issues.append(Issue("warning", "ports",
+                            "%d ports are named %r (%s); a drawing that "
+                            "instantiates this one can only see the first"
+                            % (len(owners), name, ", ".join(sorted(owners)))))
 
     for shape in self.shapes:
       kind = shape.get("kind")
@@ -457,7 +481,7 @@ class Document(object):
                                 "%s endpoint refers to missing cell %r"
                                 % (end, endpoint["cell"])))
             continue
-          symbol = registry.get(cell.get("type"))
+          symbol = registry.for_cell(cell)
           if symbol is None:
             continue
           pin = symbol.pin(endpoint.get("pin"))
@@ -483,7 +507,7 @@ class Document(object):
                               % (pin_width, net_width)))
 
     for cell in self.cells:
-      symbol = registry.get(cell.get("type"))
+      symbol = registry.for_cell(cell)
       if symbol is None:
         continue
       for pin in symbol.pins:

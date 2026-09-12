@@ -114,13 +114,14 @@ drawlogic/
   symbols.json    the cell library
   doc.py          .dlg load, save, normalise, validate, bus names
   routing.py      orthogonal routing, corridors, junction dots
+  sheets.py       hierarchy: a block built from another drawing's ports
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
   cli.py          serve, export, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
   web/            the browser editor (11 modules, no build step)
 tests/            unittest, a golden-file regression suite, a JS parity check
-examples/         worked schematics, including a CDC FIFO
+examples/         worked schematics: a CDC FIFO and a top sheet over it
 ```
 
 Every module opens with a usage section showing how to call it.
@@ -141,6 +142,6 @@ reasoning.
 
 ## Not built yet
 
-Hierarchy (the `ref` field is reserved), netlist export and electrical rule
-checks, a sheet border and title block. PDF export is out of scope; print to
-PDF from the browser.
+Netlist export and electrical rule checks, a sheet border and title block,
+several sheets inside one file. PDF export is out of scope; print to PDF from
+the browser.

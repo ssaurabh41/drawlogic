@@ -24,7 +24,7 @@ export function endpointPosition(doc, endpoint) {
   if (endpoint.cell !== undefined) {
     const cell = cellOf(doc, endpoint.cell);
     if (!cell) return null;
-    const symbol = geometry.get(cell.type);
+    const symbol = geometry.forCell(cell);
     if (!symbol) return null;
     return geometry.pinPosition(symbol, cell, endpoint.pin, symbolScale(doc));
   }
@@ -43,7 +43,7 @@ export function endpointDirection(doc, endpoint) {
   if (!endpoint || endpoint.cell === undefined) return null;
   const cell = cellOf(doc, endpoint.cell);
   if (!cell) return null;
-  const symbol = geometry.get(cell.type);
+  const symbol = geometry.forCell(cell);
   if (!symbol) return null;
   const pin = geometry.findPin(symbol, endpoint.pin);
   if (!pin) return null;
@@ -70,7 +70,7 @@ export function obstacleBoxes(doc, exclude = new Set()) {
   const boxes = [];
   for (const cell of doc.cells) {
     if (exclude.has(cell.id)) continue;
-    const symbol = geometry.get(cell.type);
+    const symbol = geometry.forCell(cell);
     if (!symbol) continue;
     const matrix = geometry.matrixFor(symbol, cell, scale);
     const points = geometry.corners(0, 0, symbol.size[0], symbol.size[1])
@@ -130,20 +130,21 @@ export class Sheet {
     return view;
   }
 
-  // Shadowing another wire is the worse fault -- two wires drawn nearly on
-  // top of each other cannot be told apart at all -- but crossings are worth
-  // avoiding too, since the corridor one step the other way usually has none.
-  // Both are preferences: pickCorridor falls back when every candidate is taken.
-  free(horizontal, fixed, v0, v1) {
+  // Two faults of very different weight. Shadowing -- running alongside
+  // another wire close enough that the pair reads as one line, meeting it end
+  // to end included -- is always worth avoiding. Crossing one is only worth
+  // avoiding if there is somewhere better to go, since in a busy drawing every
+  // route crosses something; `crossings: false` asks the milder question.
+  free(horizontal, fixed, v0, v1, crossings = true) {
     const lo = Math.min(v0, v1);
     const hi = Math.max(v0, v1);
     return !this.runs.some(([keys, runH, runFixed, runLo, runHi]) => {
       for (const key of keys) if (this.keys.has(key)) return false;
       if (runH === horizontal) {
         if (Math.abs(runFixed - fixed) >= WIRE_GAP) return false;
-        return !(hi - EPSILON <= runLo || lo + EPSILON >= runHi);
+        return !(hi + EPSILON < runLo || lo - EPSILON > runHi);
       }
-      return runLo + EPSILON < fixed && fixed < runHi - EPSILON
+      return crossings && runLo + EPSILON < fixed && fixed < runHi - EPSILON
         && lo < runFixed && runFixed < hi;
     });
   }
@@ -157,10 +158,18 @@ function endpointKeys(net) {
   return keys;
 }
 
-// Corridor tests to try in turn: the fussy one first, then the bare one.
+// Corridor tests to try in turn, from fussiest to bare. The middle pass
+// matters more than it looks: without it a wire that can find no crossing-free
+// corridor falls straight back to its preferred one, and since every wire
+// between the same two columns prefers the same corridor they would all pile
+// onto it and be drawn on top of each other.
 function corridorTests(pathIsClear, isFree) {
   if (!isFree) return [pathIsClear];
-  return [(v) => pathIsClear(v) && isFree(v), pathIsClear];
+  return [
+    (v) => pathIsClear(v) && isFree(v, true),
+    (v) => pathIsClear(v) && isFree(v, false),
+    pathIsClear,
+  ];
 }
 
 // Checks all three legs, not just the corridor: a corridor that dodges a gate
@@ -243,14 +252,14 @@ function sidestep(a, b, sheet, vertical) {
       (m) => verticalClear(m, a[1], b[1], boxes)
         && horizontalClear(a[1], a[0], m, boxes)
         && horizontalClear(b[1], m, b[0], boxes),
-      (m) => sheet.free(false, m, a[1], b[1]));
+      (m, cross) => sheet.free(false, m, a[1], b[1], cross));
     return [a, [x, a[1]], [x, b[1]], b];
   }
   const y = pickCorridor(a[1], -Infinity, Infinity,
     (m) => horizontalClear(m, a[0], b[0], boxes)
       && verticalClear(a[0], a[1], m, boxes)
       && verticalClear(b[0], m, b[1], boxes),
-    (m) => sheet.free(true, m, a[0], b[0]));
+    (m, cross) => sheet.free(true, m, a[0], b[0], cross));
   return [a, [a[0], y], [b[0], y], b];
 }
 
@@ -260,7 +269,7 @@ function routeHH(a, b, aDir, bDir, sheet) {
   const clearAt = (m) => verticalClear(m, a[1], b[1], boxes)
     && horizontalClear(a[1], a[0], m, boxes)
     && horizontalClear(b[1], m, b[0], boxes);
-  const freeAt = (m) => sheet.free(false, m, a[1], b[1]);
+  const freeAt = (m, cross) => sheet.free(false, m, a[1], b[1], cross);
 
   const facing = (b[0] - a[0]) * aDir[0] > EPSILON && (a[0] - b[0]) * bDir[0] > EPSILON;
   if (facing) {
@@ -281,7 +290,7 @@ function routeHH(a, b, aDir, bDir, sheet) {
     (m) => horizontalClear(m, a[0], b[0], boxes)
       && verticalClear(a[0], a[1], m, boxes)
       && verticalClear(b[0], m, b[1], boxes),
-    (m) => sheet.free(true, m, a[0], b[0]));
+    (m, cross) => sheet.free(true, m, a[0], b[0], cross));
   return [a, [a[0], y], [b[0], y], b];
 }
 
@@ -291,7 +300,7 @@ function routeVV(a, b, aDir, bDir, sheet) {
   const clearAt = (m) => horizontalClear(m, a[0], b[0], boxes)
     && verticalClear(a[0], a[1], m, boxes)
     && verticalClear(b[0], m, b[1], boxes);
-  const freeAt = (m) => sheet.free(true, m, a[0], b[0]);
+  const freeAt = (m, cross) => sheet.free(true, m, a[0], b[0], cross);
 
   const facing = (b[1] - a[1]) * aDir[1] > EPSILON && (a[1] - b[1]) * bDir[1] > EPSILON;
   if (facing) {
@@ -310,7 +319,7 @@ function routeVV(a, b, aDir, bDir, sheet) {
     (m) => verticalClear(m, a[1], b[1], boxes)
       && horizontalClear(a[1], a[0], m, boxes)
       && horizontalClear(b[1], m, b[0], boxes),
-    (m) => sheet.free(false, m, a[1], b[1]));
+    (m, cross) => sheet.free(false, m, a[1], b[1], cross));
   return [a, [x, a[1]], [x, b[1]], b];
 }
 

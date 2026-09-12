@@ -281,7 +281,7 @@ passed.
 | `pins` | per-pin names, e.g. `{"in1": "wptr"}`; see below |
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |
-| `ref` | reserved for hierarchy; ignored today |
+| `ref` | path to another drawing this cell stands for; see Hierarchy |
 
 ### nets
 
@@ -422,6 +422,65 @@ find out what a pin is for.
 Naming a pin the symbol does not have is a validation error. In the editor the
 Pins panel has a field per pin; clearing it goes back to the symbol's default.
 
+## Hierarchy
+
+A cell with a `ref` stands for another drawing, the way a module instance
+stands for a module:
+
+```json
+{ "id": "u_fifo", "type": "sheet", "ref": "cdc_fifo.dlg",
+  "x": 420, "y": 120, "label": "U_FIFO" }
+```
+
+The path is read relative to the drawing that holds it.
+
+### The block's pins are the child's ports
+
+They are not written down anywhere. Every `port_in`, `port_out` and
+`port_inout` in the child becomes a pin on the parent's block: the port's
+label is the pin name, its type gives the direction, and the pins run down the
+block's faces in the order the ports run down the child's sheet -- inputs west,
+outputs east. The block is sized to fit them.
+
+So the two cannot quietly disagree. Add a port to the child and the parent
+grows a pin. Rename one and the parent's pin is renamed with it, which makes
+any wire still using the old name a validation error rather than a wire
+pointing at nothing.
+
+The block's `w` and `h` are stored like any other cell's, so a child that
+later grows a port keeps the size you gave it. Delete `w` and `h` to take the
+natural size again.
+
+### Opening the child
+
+In the editor, double-click a block to open what it references; a trail at the
+top right leads back up. The Properties panel names the reference and opens it
+too. From the command line:
+
+```bash
+drawlogic info top.dlg          # prints the hierarchy under it
+drawlogic validate top.dlg      # reports references that do not resolve
+drawlogic export top.dlg        # draws the block from the child's ports
+```
+
+### When a reference does not resolve
+
+A missing, unreadable or looping reference is a validation error, and the cell
+is drawn as a labelled empty box saying which. It is drawn rather than left
+out on purpose: a cell you cannot see is a cell you cannot click on to fix.
+
+A drawing can reference another that references a third, to sixteen levels. A
+loop back to a drawing already open above is caught and reported.
+
+### One drawing never affects another
+
+A `ref` is a path relative to the drawing holding it, so the same text names
+different files in different folders. Each open drawing therefore resolves
+into its own copy of the symbol library, and the shared library is never
+touched.
+
+---
+
 ### Help while you drag
 
 Dropping cells on a grid gets you close; it does not get you a straight wire.
@@ -540,6 +599,7 @@ drawlogic/
   symbols.json    the cell library -- add entries here, not code
   doc.py          .dlg load, save, normalise, validate, bus names
   routing.py      orthogonal routing, corridors, junction dots
+  sheets.py       hierarchy: a block built from another drawing's ports
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
   cli.py          serve, export, symbols, info, validate, help
@@ -633,7 +693,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-The suite is in four parts:
+The suite is in five parts:
 
 | File | Covers |
 |---|---|
@@ -643,6 +703,7 @@ The suite is in four parts:
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | drag-time alignment and Tidy |
+| `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 
 ### The regression suite
 
@@ -703,8 +764,9 @@ the install path would be the way to fix it.
 
 ## Not built yet
 
-- **Hierarchy.** The `ref` field is reserved on every cell but ignored.
-  Drill-down can be added without migrating files you have already drawn.
+- **Several sheets inside one file.** Today a drawing is one sheet, and a
+  hierarchy is a folder of them tied together by `ref`. Pages in one file,
+  with off-sheet connectors, would be a different thing.
 - **Netlist export** (Verilog, SPICE) and electrical rule checks. The net
   model supports it; `validate` is where it would grow.
 - **Sheet border and title block.** Today there is just a title name at the

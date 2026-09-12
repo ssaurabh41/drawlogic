@@ -294,7 +294,7 @@ export class WireTool {
     const scale = model.symbolScale(doc);
     const pins = [];
     for (const cell of doc.cells) {
-      const symbol = geometry.get(cell.type);
+      const symbol = geometry.forCell(cell);
       if (!symbol) continue;
       for (const pin of symbol.pins) {
         const at = geometry.pinPosition(symbol, cell, pin.name, scale);

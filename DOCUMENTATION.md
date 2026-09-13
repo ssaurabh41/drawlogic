@@ -86,8 +86,7 @@ Everything below is the complete reference.
 - [Tests](#tests)
 - [Not built yet](#not-built-yet)
 
-For how to review or verify this project, see [REVIEW.md](REVIEW.md). For
-working on it as a coding agent, see [AGENTS.md](AGENTS.md).
+For how to review or verify this project, see [REVIEW.md](REVIEW.md).
 
 ---
 

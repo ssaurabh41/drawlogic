@@ -35,7 +35,7 @@
 <text x="502.5" y="716" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">load</text>
 <text x="195" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">tx_data[7:0]</text>
 <text x="467.5" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">d[7:0]</text>
-<text x="665.6" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">q[7:0]</text>
+<text x="680" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">q[7:0]</text>
 <text x="980" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">mosi</text>
 <text x="585" y="686" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">shifted[7:0]</text>
 <polygon points="208.8,760 201.8,763.15 201.8,756.85" fill="#16202b" />

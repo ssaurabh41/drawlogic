@@ -21,6 +21,7 @@ checking it clears every cell the wire is not connected to. A net's
 
 from . import theme
 from .geometry import corners
+from . import rules
 from .doc import loads_of
 from .symbols import default_registry
 
@@ -29,13 +30,13 @@ EPSILON = 1e-6
 
 # How far a wire keeps away from a cell it is not connected to, and how far
 # apart the candidate corridors are when the first choice is blocked.
-CLEARANCE = 8.0
-CORRIDOR_STEP = 10.0
-CORRIDOR_TRIES = 16
+CLEARANCE = rules.WIRE_TO_CELL
+CORRIDOR_STEP = rules.CORRIDOR_STEP
+CORRIDOR_TRIES = rules.CORRIDOR_TRIES
 
 # How far apart two wires that have nothing to do with each other must sit
 # before they read as two wires rather than one.
-WIRE_GAP = 16.0
+WIRE_GAP = rules.WIRE_GAP
 
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")

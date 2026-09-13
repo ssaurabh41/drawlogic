@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 import unittest
 
-from drawlogic import render_svg, routing, theme
+from drawlogic import render_svg, routing, rules, theme
 
 from tests import ROOT, open_example
 
@@ -56,16 +56,39 @@ def _browser_result(path, registry):
   """
   handles = []
   try:
-    for payload in (registry.as_data(), _theme_payload()):
+    for payload in (registry.as_data(), _theme_payload(), rules.as_data()):
       handle, name = tempfile.mkstemp(suffix=".json")
       with os.fdopen(handle, "w") as out:
         json.dump(payload, out)
       handles.append(name)
     return json.loads(subprocess.check_output(
-      [NODE, DUMP, handles[0], path, handles[1]], cwd=ROOT))
+      [NODE, DUMP, handles[0], path, handles[1], handles[2]], cwd=ROOT))
   finally:
     for name in handles:
       os.unlink(name)
+
+
+RULES_DUMP = os.path.join(ROOT, "tests", "js", "rules_dump.mjs")
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestRuleDefaults(unittest.TestCase):
+  """The rules routing.js falls back to must be the rules Python holds.
+
+  The editor sets them from /api/rules, so a stale default never shows up
+  there. It shows up as the canvas routing a drawing one way and the exporter
+  routing it another, which is exactly the drift this suite exists to catch.
+  """
+
+  def test_js_defaults_match_rules_py(self):
+    actual = json.loads(subprocess.check_output([NODE, RULES_DUMP], cwd=ROOT))
+    expected = rules.as_data()
+    for key in actual:
+      self.assertIn(key, expected, "routing.js has a rule Python does not")
+      self.assertAlmostEqual(
+        float(actual[key]), float(expected[key]), places=6,
+        msg="routing.js default for %r is stale: %r, rules.py says %r"
+            % (key, actual[key], expected[key]))
 
 
 @unittest.skipUnless(NODE, "node is not installed")

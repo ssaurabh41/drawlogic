@@ -34,15 +34,17 @@ Usage:
     print(note)          # "6 columns, 14 cells, 2 feedback wires"
 """
 
+from . import rules
 from . import routing
 from .doc import loads_of
 from .geometry import corners
 from .symbols import default_registry
 
-# Room between columns, and between cells stacked in one column.
-GAP_X = 100.0
-GAP_Y = 40.0
-MARGIN = 90.0
+# Room between columns, and between cells stacked in one column. The numbers
+# themselves are drafting rules, so they live in rules.py with the rest.
+GAP_X = rules.CELL_GAP_X
+GAP_Y = rules.CELL_GAP_Y
+MARGIN = rules.SHEET_MARGIN
 
 # How many back-and-forth passes the ordering gets. Past about four it stops
 # finding anything.
@@ -271,7 +273,7 @@ def _headroom(cell):
   Without it a column packs cells tight enough that each name lands on the one
   above, which is a tidy-looking layout that cannot be read.
   """
-  return 20.0 if cell.get("label") else 0.0
+  return rules.LABEL_HEADROOM if cell.get("label") else 0.0
 
 
 def _box(registry, doc, cell):

@@ -8,6 +8,7 @@ import * as model from "./model.js";
 import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
 import * as picture from "./picture.js";
 import * as render from "./render.js";
+import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
 import { makeTools } from "./tools.js";
 import { Viewport } from "./viewport.js";
@@ -718,10 +719,12 @@ async function start() {
   selection.subscribe(() => refreshStatus());
 
   try {
-    const [theme, library, listing] = await Promise.all([
+    const [theme, library, listing, designRules] = await Promise.all([
       api("/api/theme"), api("/api/symbols"), api("/api/files"),
+      api("/api/rules"),
     ]);
     render.setTheme(theme);
+    routing.setRules(designRules);
     geometry.setLibrary(library);
     rebuildPalette();
 

@@ -8,12 +8,28 @@ import * as geometry from "./geometry.js";
 
 const STUB = 12;
 const EPSILON = 1e-6;
-const CLEARANCE = 8;
-const CORRIDOR_STEP = 10;
-const CORRIDOR_TRIES = 16;
-// How far apart two wires that have nothing to do with each other must sit
-// before they read as two wires rather than one.
-const WIRE_GAP = 16;
+
+// Drafting rules, mirrored from drawlogic/rules.py. The editor overwrites
+// these from /api/rules at startup so a drag obeys the same distances the
+// exporter does; the defaults are here only so this module still routes when
+// it is loaded on its own, as the parity harness does. tests/test_js_parity.py
+// checks the defaults still match the Python, since a stale copy here would
+// route the canvas differently from the file it exports.
+let rules = {
+  wireToCell: 10,
+  corridorStep: 10,
+  corridorTries: 18,
+  wireGap: 18,
+  labelClearance: 5,
+};
+
+export function setRules(data) {
+  if (data) rules = { ...rules, ...data };
+}
+
+export function currentRules() {
+  return { ...rules };
+}
 
 function cellOf(doc, id) {
   return doc.cells.find((cell) => cell.id === id) || null;
@@ -87,8 +103,8 @@ export function obstacleBoxes(doc, exclude = new Set()) {
     const xs = points.map((p) => p[0]);
     const ys = points.map((p) => p[1]);
     boxes.push([
-      Math.min(...xs) - CLEARANCE, Math.min(...ys) - CLEARANCE,
-      Math.max(...xs) + CLEARANCE, Math.max(...ys) + CLEARANCE,
+      Math.min(...xs) - rules.wireToCell, Math.min(...ys) - rules.wireToCell,
+      Math.max(...xs) + rules.wireToCell, Math.max(...ys) + rules.wireToCell,
     ]);
   }
   return boxes;
@@ -157,7 +173,7 @@ export class Sheet {
       if (netId !== null && netId === this.net) return false;
       for (const key of keys) if (this.keys.has(key)) return false;
       if (runH === horizontal) {
-        if (Math.abs(runFixed - fixed) >= WIRE_GAP) return false;
+        if (Math.abs(runFixed - fixed) >= rules.wireGap) return false;
         return !(hi + EPSILON < runLo || lo - EPSILON > runHi);
       }
       return crossings && runLo + EPSILON < fixed && fixed < runHi - EPSILON
@@ -193,9 +209,9 @@ function corridorTests(pathIsClear, isFree) {
 function pickCorridor(preferred, spanLo, spanHi, pathIsClear, isFree) {
   for (const test of corridorTests(pathIsClear, isFree)) {
     if (test(preferred)) return preferred;
-    for (let step = 1; step <= CORRIDOR_TRIES; step += 1) {
-      for (const candidate of [preferred + step * CORRIDOR_STEP,
-                               preferred - step * CORRIDOR_STEP]) {
+    for (let step = 1; step <= rules.corridorTries; step += 1) {
+      for (const candidate of [preferred + step * rules.corridorStep,
+                               preferred - step * rules.corridorStep]) {
         if (candidate <= spanLo || candidate >= spanHi) continue;
         if (test(candidate)) return candidate;
       }
@@ -208,8 +224,8 @@ function pickCorridor(preferred, spanLo, spanHi, pathIsClear, isFree) {
 // of both before it can turn in: only one search direction makes sense.
 function pickOutward(preferred, direction, pathIsClear, isFree) {
   for (const test of corridorTests(pathIsClear, isFree)) {
-    for (let step = 0; step <= CORRIDOR_TRIES; step += 1) {
-      const candidate = preferred + step * CORRIDOR_STEP * direction;
+    for (let step = 0; step <= rules.corridorTries; step += 1) {
+      const candidate = preferred + step * rules.corridorStep * direction;
       if (test(candidate)) return candidate;
     }
   }

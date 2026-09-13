@@ -15,6 +15,7 @@ Usage:
 Endpoints:
 
     GET  /                 the editor page
+    GET  /api/rules        drafting distances from rules.py
     GET  /api/theme        colours, weights and role painting from theme.py
     GET  /api/symbols      the symbol library, registry overrides included
     GET  /api/files        .dlg files under the served root
@@ -41,6 +42,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 from . import render_svg
+from . import rules
 from . import theme
 from . import authoring
 from . import layout
@@ -160,6 +162,12 @@ class Handler(BaseHTTPRequestHandler):
   def _api_get(self, route):
     if route == "/api/symbols":
       return self._send_json(self.registry.as_data())
+
+    if route == "/api/rules":
+      # The drafting distances -- wire separation, cell spacing, label
+      # clearance. Served for the same reason the theme is: a drag on the
+      # canvas and a file from the exporter must obey one set of rules.
+      return self._send_json(rules.as_data())
 
     if route == "/api/theme":
       # Served rather than restated in JS, so the canvas and the exporter

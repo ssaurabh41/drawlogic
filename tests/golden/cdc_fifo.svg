@@ -52,7 +52,7 @@
 <text x="1225" y="761" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wptr_g_sync[8:0]</text>
 <text x="575" y="761" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g_sync[8:0]</text>
 <text x="235" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
-<text x="1565" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
+<text x="1530.8" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
 <polygon points="380,180 373,183.15 373,176.85" fill="#16202b" />
 <polygon points="620,180 613,183.15 613,176.85" fill="#16202b" />
 <polygon points="778.8,180 771.8,183.15 771.8,176.85" fill="#16202b" />

@@ -24,6 +24,7 @@ width/height attributes, so output stays vector-perfect at any size.
 """
 
 from . import routing
+from . import rules
 from . import theme
 from .geometry import corners, fmt
 from .symbols import default_registry
@@ -433,6 +434,16 @@ def _label_box(spot, anchor, text, size):
   return (x0, spot[1] - size * 0.8, x0 + width, spot[1] + size * 0.2)
 
 
+def _grown(box, pad):
+  """A box with clear space around it.
+
+  Overlaps are tested against this rather than the label's own rectangle, so a
+  name that merely touches a wire counts as landing on it. Text needs air to
+  stay readable, and zero separation is not air.
+  """
+  return (box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad)
+
+
 def _boxes_overlap(a, b):
   return not (a[2] <= b[0] or a[0] >= b[2] or a[3] <= b[1] or a[1] >= b[3])
 
@@ -502,19 +513,20 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
     for spot, anchor, horizontal, length, stop, far_side in _label_candidates(
         branches, text, size):
       box = _label_box(spot, anchor, text, size)
+      near = _grown(box, rules.LABEL_CLEARANCE)
 
       score = 0.0
       if sheet and (box[0] < 2 or box[1] < 2
                     or box[2] > sheet[0] - 2 or box[3] > sheet[1] - 2):
         score += 500
       for cell_box in cell_boxes:
-        if _boxes_overlap(box, cell_box):
+        if _boxes_overlap(near, cell_box):
           score += 120
       for other_id, seg_box in segments:
-        if other_id != net_id and _boxes_overlap(box, seg_box):
+        if other_id != net_id and _boxes_overlap(near, seg_box):
           score += 45
       for other in placed:
-        if _boxes_overlap(box, other):
+        if _boxes_overlap(near, other):
           score += 220
 
       # Among equally clear spots: along a horizontal run, near the middle of

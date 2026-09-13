@@ -338,6 +338,13 @@ function labelBox(spot, anchor, text, size) {
   return [x0, spot[1] - size * 0.8, x0 + width, spot[1] + size * 0.2];
 }
 
+// A box with clear space around it. Overlaps are tested against this rather
+// than the label's own rectangle, so a name that merely touches a wire counts
+// as landing on it. Mirrors _grown in render_svg.py.
+function grown(box, pad) {
+  return [box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad];
+}
+
 function boxesOverlap(a, b) {
   return !(a[2] <= b[0] || a[0] >= b[2] || a[3] <= b[1] || a[1] >= b[3]);
 }
@@ -399,15 +406,16 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
     for (const [spot, anchor, horizontal, length, stop, farSide]
          of labelCandidates(branches, size)) {
       const box = labelBox(spot, anchor, net.name, size);
+      const near = grown(box, routing.currentRules().labelClearance);
 
       let score = 0;
       if (sheet && (box[0] < 2 || box[1] < 2
                     || box[2] > sheet[0] - 2 || box[3] > sheet[1] - 2)) score += 500;
-      for (const cellBox of cellBoxes) if (boxesOverlap(box, cellBox)) score += 120;
+      for (const cellBox of cellBoxes) if (boxesOverlap(near, cellBox)) score += 120;
       for (const [otherId, segBox] of segments) {
-        if (otherId !== net.id && boxesOverlap(box, segBox)) score += 45;
+        if (otherId !== net.id && boxesOverlap(near, segBox)) score += 45;
       }
-      for (const other of placed) if (boxesOverlap(box, other)) score += 220;
+      for (const other of placed) if (boxesOverlap(near, other)) score += 220;
 
       score += horizontal ? 0 : 55;
       score += farSide ? 18 : 0;

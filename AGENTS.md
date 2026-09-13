@@ -7,7 +7,8 @@ standard library only**, plus a browser editor written as plain ES modules with
 no build step. There is no package manager, no lockfile and no CI pipeline.
 Nothing here is installed; everything runs from a clone.
 
-Start with [REVIEW.md](REVIEW.md) -- it is the honest account of what this
+Start with [DOCUMENTATION.md](DOCUMENTATION.md) for what the tool does, and
+[REVIEW.md](REVIEW.md) -- it is the honest account of what this
 project does, how to verify it, and where it is weak.
 
 ## Dev environment tips
@@ -72,5 +73,6 @@ project does, how to verify it, and where it is weak.
   - No new runtime dependencies, in either language. Ever.
   - Comments explain reasoning. Do not narrate what the next line does.
 - Do not refactor code you were not asked to touch.
-- Update `DOCUMENTATION.md` when you change behaviour a user can see, and
-  `README.md` when you change how the project is run.
+- Update `DOCUMENTATION.md` when you change behaviour a user can see. It is
+  the only user-facing document: there is no README, on purpose, because two
+  documents describing the same tool drift apart.

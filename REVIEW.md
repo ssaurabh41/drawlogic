@@ -13,8 +13,9 @@ pin**, so moving a cell carries its wires. Drawings are plain JSON. Output is
 SVG. It runs on Python 3.8+ with nothing installed -- no pip packages, no
 Node, no network.
 
-**Size.** 4,523 lines of Python across 13 modules, 4,317 lines of JavaScript
-across 11 browser modules, 195 tests, 33 built-in symbols, 7 worked examples.
+**Size.** About 4,700 lines of Python across 14 modules, 4,400 lines of
+JavaScript across 11 browser modules, 200 tests, 33 built-in symbols, 7 worked
+examples.
 
 ---
 
@@ -24,7 +25,7 @@ Five minutes, no install:
 
 ```bash
 git clone <this repo> drawlogic && cd drawlogic
-python3 -m unittest discover            # expect: Ran 195 tests ... OK
+python3 -m unittest discover            # expect: Ran 200 tests ... OK
 python3 -m drawlogic export examples/soc_top.dlg -o /tmp/soc.svg
 python3 -m drawlogic serve examples/dff_slice.dlg   # editor on 127.0.0.1:8080
 ```
@@ -47,8 +48,10 @@ independently. Treat a claim with no check as unverified.
 
 | Claim | Check it | Expected |
 |---|---|---|
-| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | passes; nothing is downloaded |
+| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 200 pass; nothing is downloaded |
 | Wires follow their cells | open an example, drag a gate, watch the wires | paths re-route, stay attached |
+| One place to tune the drawing | change `WIRE_GAP` in `drawlogic/rules.py`, re-export | every wire spacing moves; no other file edited |
+| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 5 tests, incl. that `routing.js`'s fallback rules still match `rules.py` |
 | Wires store pins, not coordinates | open `examples/dff_slice.dlg`, read `nets[0].from` and `nets[0].to` | endpoints name `cell` and `pin`; no x/y anywhere |
 | One renderer for every export | `tests/test_server.py::test_export_writes_svg_through_the_python_renderer` | browser export goes through Python, not a canvas screenshot |
 | The browser and Python route identically | `python3 -m unittest tests.test_js_parity` (needs node) | 4 tests pass -- but read section 4, this is narrower than it sounds |
@@ -101,7 +104,7 @@ Two things to confirm:
 the sharpest edge in the suite. On a machine without `node`:
 
 ```
-Ran 195 tests ... OK (skipped=5)
+Ran 200 tests ... OK (skipped=5)
 ```
 
 Those 5 are the entire cross-language safety net: 4 parity tests and 1 wrapper
@@ -196,7 +199,13 @@ Ranked by where I would look first, with reasoning rather than a flat list.
    the port is inside the body. Try pathological placements: a port at a
    corner, two ports on the same edge at the same spot, a port dead centre.
 
-5. **Label placement (`render_svg.py`).** A scoring function with seven
+5. **The two-ordering choice in `layout.py`.** Auto layout runs the whole
+   place-and-route twice and keeps the better result. Worth checking: that
+   the losing attempt leaves nothing behind in the document, that the score
+   is stable rather than flipping between runs, and that a drawing where both
+   orderings tie comes out the same every time.
+
+6. **Label placement (`render_svg.py`).** A scoring function with seven
    weighted terms (off-sheet, cell overlap, wire overlap, label overlap,
    vertical, far side, distance from midpoint). Hand-tuned constants. It will
    have inputs where it picks a poor spot; the question is whether it ever
@@ -208,8 +217,8 @@ Ranked by where I would look first, with reasoning rather than a flat list.
 
 Stated plainly so nobody assumes more than exists.
 
-**~3,100 lines of browser JavaScript have no automated tests.** Parity covers
-`routing.js` and `render.js` (1,218 lines). The remaining modules -- `main.js`,
+**~3,300 lines of browser JavaScript have no automated tests.** Parity covers
+`routing.js` and `render.js` (1,251 of 4,580 lines). The remaining modules -- `main.js`,
 `tools.js`, `model.js`, `selection.js`, `panels.js`, `viewport.js`,
 `picture.js` -- are exercised by 37 Node checks (drag alignment, Tidy, net
 building) and otherwise verified by hand in a headless browser. Selection,
@@ -237,6 +246,14 @@ but a workstation, that is a finding.
 **Not built:** netlist export (Verilog, SPICE), electrical rule checks, sheet
 border and title block, multiple sheets in one file. PDF is out of scope --
 print to PDF from the browser.
+
+**Auto layout is measured, not merely asserted.** It lays each drawing out two
+ways and keeps whichever scores better on crossings and wire length
+(`layout._score`). Across the seven examples that is 118 crossings against 129
+for the previous single-pass version. The score is two numbers and one
+weighting constant, `CROSSING_COST`, set by judgement rather than experiment;
+whether a crossing really is worth about a gate's width of wire is a fair
+thing to challenge.
 
 **A known inconsistency:** `export` accepts many files (`export *.dlg
 --outdir svg/`) but `validate` takes exactly one and errors on a glob.
@@ -267,7 +284,8 @@ keyboard shortcut was not what your hands expected; whether the properties
 panel told you what you needed; whether anything was lost when you saved.
 Saving is manual and there is no autosave -- notice whether that bit you.
 
-The full manual is [DOCUMENTATION.md](DOCUMENTATION.md); every module also
+The manual is [DOCUMENTATION.md](DOCUMENTATION.md) -- the only user-facing
+document, there is deliberately no README. Every module also
 opens with a usage section explaining how to call it and why it works the way
 it does.
 

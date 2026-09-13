@@ -1,6 +1,77 @@
-# drawlogic manual
+# drawlogic
 
-Complete reference. For a quick start, see [README.md](README.md).
+**Draw logic circuit diagrams, and export them as SVG.**
+
+## What this is for
+
+You have a circuit in your head -- a few gates, a flip-flop, a block with a
+bus going into it -- and you need a picture of it for a document, a review, or
+a slide. Drawing that in PowerPoint works until you move one gate and spend
+the next ten minutes dragging its wires back into place.
+
+drawlogic exists because of that ten minutes. Wires here are attached to
+**pins**, not to positions on the page. You say "the output of U1 goes to the
+D input of FF1", and from then on the wire is the tool's problem: move the
+gate anywhere and the wire follows, routes itself round whatever is in the
+way, and stays connected.
+
+The other half is that a drawing is a **plain text file**. It goes in git, it
+shows up in a diff as "moved U1, added net en" rather than as an unreadable
+binary blob, and a reviewer can read the change the same way they read code.
+
+## Using it, in one minute
+
+Nothing to install. You need Python 3.8 or newer and nothing else -- no pip
+packages, no Node, no network.
+
+```bash
+git clone <repo-url> drawlogic
+cd drawlogic
+python3 -m drawlogic serve examples/dff_slice.dlg
+```
+
+That opens the editor in your browser. Then:
+
+1. **Place a part.** Drag a gate out of the palette on the left onto the
+   sheet, or click it and then click where you want it.
+2. **Wire it up.** Press `W`, click one pin, click another. That is a net.
+3. **Move things about.** Drag them. The wires re-route themselves.
+4. **Make it tidy.** Press the auto-layout button and the whole drawing
+   rearranges itself by what is wired to what.
+5. **Save it** with `Ctrl+S`, and **export a picture** with `Ctrl+E`.
+
+Nothing is written to disk until you save. There is no autosave and no backup
+file, on purpose -- the only surprise the editor allows itself is refusing to
+close a tab with unsaved changes.
+
+If you would rather not open a browser at all, the command line does the same
+work:
+
+```bash
+python3 -m drawlogic export mydrawing.dlg -o mydrawing.svg
+python3 -m drawlogic validate mydrawing.dlg    # catches pins that only look connected
+```
+
+## Two things worth knowing up front
+
+**Symbols are data, not code.** Every cell type is an entry in
+`drawlogic/symbols.json` naming its outline and its pins. Adding a gate, flop
+or custom cell means adding one entry and changing no Python and no
+JavaScript. Both renderers read that file, which is what stops them drifting
+apart. Point `--symbols-dir` at your own file or folder to add cells without
+touching the built-ins, or draw one in the editor and press **Save as
+symbol**.
+
+**Wires store pin references, not coordinates.** A net records
+`u1.y -> ff1.d`, and the path is re-routed from the pins on every draw. That
+is what keeps wires attached when a gate moves, and what lets `validate` catch
+a pin that only *looks* connected.
+
+---
+
+# Reference
+
+Everything below is the complete reference.
 
 - [Install and run](#install-and-run)
 - [Command line](#command-line)
@@ -8,9 +79,15 @@ Complete reference. For a quick start, see [README.md](README.md).
 - [The .dlg file](#the-dlg-file)
 - [Symbols](#symbols)
 - [Nets and buses](#nets-and-buses)
+- [Design rules](#design-rules)
 - [Checking a drawing](#checking-a-drawing)
 - [How it is put together](#how-it-is-put-together)
 - [Extending it](#extending-it)
+- [Tests](#tests)
+- [Not built yet](#not-built-yet)
+
+For how to review or verify this project, see [REVIEW.md](REVIEW.md). For
+working on it as a coding agent, see [AGENTS.md](AGENTS.md).
 
 ---
 
@@ -155,9 +232,10 @@ pins on every redraw.
 |---|---|
 | `V` `W` | select tool, wire tool |
 | `L` `B` `P` `T` | line, box, polygon, text |
-| click, shift-click, drag a box | select one, add to selection, marquee |
+| click, `Ctrl`+click, drag a box | select one, add or remove one, marquee |
 | drag | move, snapped to the grid |
 | `Ctrl`+drag | duplicate as you drag |
+| `Ctrl+N` | new drawing |
 | drag a wire | slide that run of it; the wire becomes hand-routed |
 | double-click a wire | hand it back to the router |
 | drag a wire | bend it: the drag point becomes a waypoint |
@@ -174,7 +252,26 @@ pins on every redraw.
 | `Alt`+drag | move without any alignment help |
 | `Ctrl+S`, `Ctrl+E` | save, export SVG |
 | `Ctrl+Shift+E` | copy the drawing as a picture, for pasting into a slide |
-| scroll, `Space`+drag, shift-drag | zoom, pan, pan |
+| scroll, `Space`+drag, `Shift`+drag | zoom, pan, pan |
+
+`Ctrl` adds to the selection, not `Shift`, which is the slide-editor
+convention rather than the browser one. `Shift` is the pan modifier on empty
+canvas, and one key cannot mean both without the two fighting during a drag.
+`Ctrl`+click on something already selected takes it back out; `Ctrl`+drag
+duplicates, and the two are told apart by whether the pointer moved.
+
+Symbols can be dragged from the palette straight onto the sheet. Clicking a
+symbol and then clicking the sheet still works, and is the only route that
+places several of the same part in a row.
+
+The actions -- rotate, flip, group, align, distribute, auto layout, tidy,
+front and back -- are the icon buttons in the second toolbar row. Hover any
+of them for its name.
+
+**Theme** cycles the application's appearance between following the operating
+system, light, and dark, and remembers the choice. The drawing itself never
+changes with it: the sheet is a document, and a document is white. An
+exported file looks the same whichever is picked.
 
 Selecting one member of a group selects all of it, so a group drags and
 resizes as a single object.
@@ -749,6 +846,42 @@ the whole sheet.
 
 ---
 
+## Design rules
+
+The distances that decide whether a drawing is legible live in one file,
+`drawlogic/rules.py`, rather than as numbers scattered through the router,
+the layout pass and the renderer. Tuning how drawings look is editing that
+file; nothing else has to change.
+
+| Rule | Default | What it decides |
+|---|---|---|
+| `WIRE_GAP` | 18 | how far apart two unrelated parallel wires must sit before they read as one line |
+| `WIRE_TO_CELL` | 10 | how far a wire keeps from a block it does not connect to |
+| `CORRIDOR_STEP` | 10 | how far apart the router tries successive corridors when its first choice is taken |
+| `CORRIDOR_TRIES` | 18 | how many corridors either side before giving up and drawing the wire where it wanted to go |
+| `LABEL_CLEARANCE` | 5 | clear space demanded around a net name, so a label touching a wire counts as landing on it |
+| `LABEL_HEADROOM` | 20 | room a layout leaves above a cell for its instance name |
+| `CELL_GAP_X` | 110 | room between one column of cells and the next, where the wires between them run |
+| `CELL_GAP_Y` | 52 | room between two cells stacked in the same column |
+| `CELL_MIN_GAP` | 24 | the least space allowed between any two cells, whichever way they sit |
+| `SHEET_MARGIN` | 90 | space left around everything when a layout decides where the drawing starts |
+| `SHEET_W`, `SHEET_H` | 1200 x 780 | the sheet a new drawing gets |
+
+Distances are in document units, the same units cells and wires use. A small
+logic gate is 40x40, so a unit is roughly a twentieth of a gate.
+
+The browser fetches these from `/api/rules` rather than restating them, the
+same way it fetches the theme, so a drag on the canvas and a file from the
+exporter obey the same rules. `routing.js` keeps a fallback copy for when it
+is loaded on its own; `tests/test_js_parity.py` checks that copy still
+matches `rules.py`, because a stale one would route the canvas differently
+from the file it exports.
+
+Changing a rule will move wires, which means the golden files move too. Look
+at what changed before regenerating them -- see [Tests](#tests).
+
+---
+
 ## Checking a drawing
 
 `validate` reports:
@@ -770,6 +903,7 @@ drawlogic/
   symbols.py      symbol registry, pin resolution
   symbols.json    the cell library -- add entries here, not code
   doc.py          .dlg load, save, normalise, validate, bus names
+  rules.py        the drafting distances, in one place
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
@@ -878,7 +1012,7 @@ The suite is in ten parts:
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | drag-time alignment and Tidy |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
-| `tests/test_layout.py` | auto layout: flow, overlap, settling |
+| `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
 

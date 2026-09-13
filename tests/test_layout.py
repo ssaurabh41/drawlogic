@@ -276,5 +276,64 @@ class TestItActuallyHelps(unittest.TestCase):
                            % (name, straight_after, total))
 
 
+class TestOrderingChoice(unittest.TestCase):
+  """Following a wire through the columns it skips, and picking a winner."""
+
+  def test_a_wire_that_skips_a_column_gets_stand_ins(self):
+    ranks = {"a": 0, "b": 3}
+    linked, extra = layout._span_chain([("a", "b", None, None)], ranks)
+    self.assertEqual(sorted(extra.values()), [1, 2],
+                     "a wire spanning three columns needs a stand-in in each "
+                     "column it passes through")
+    self.assertEqual(len(linked), 3, "the chain should be a -> s1 -> s2 -> b")
+
+  def test_a_wire_to_the_next_column_gets_none(self):
+    linked, extra = layout._span_chain([("a", "b", None, None)], {"a": 0, "b": 1})
+    self.assertEqual(extra, {}, "the sweep already sees an adjacent column")
+    self.assertEqual(linked, [("a", "b")])
+
+  def test_crossings_are_counted(self):
+    # One horizontal and one vertical run of different nets, meeting in the
+    # middle: exactly one crossing. Same net, or parallel runs: none.
+    crossing = [("n1", (0, 10), (20, 10)), ("n2", (10, 0), (10, 20))]
+    self.assertEqual(layout._crossings(crossing), 1)
+    same_net = [("n1", (0, 10), (20, 10)), ("n1", (10, 0), (10, 20))]
+    self.assertEqual(layout._crossings(same_net), 0)
+    parallel = [("n1", (0, 10), (20, 10)), ("n2", (0, 30), (20, 30))]
+    self.assertEqual(layout._crossings(parallel), 0)
+
+  def test_it_keeps_the_better_of_the_two_orderings(self):
+    """Whichever way it goes, it is never worse than both tried alone.
+
+    Stand-ins help some drawings and hurt others, which is why the layout
+    tries both. The guarantee worth testing is that the result is at least as
+    good as the better one, not that either particular one wins.
+    """
+    for name in ("alu_slice", "cdc_fifo", "mac_pipe"):
+      with self.subTest(example=name):
+        path = os.path.join(ROOT, "examples", name + ".dlg")
+        scores = []
+        for spans in (True, False):
+          doc, registry, _ = open_example(path)
+          cells = [c for c in doc.cells if registry.for_cell(c) is not None]
+          layout._face_forward(cells)
+          layout._forget_waypoints(doc)
+          edges, _feedback = layout._edges(doc, cells)
+          ranks = layout._ranks(doc, cells, edges)
+          order = layout._order(cells, edges, ranks, spans=spans)
+          layout._place(doc, registry, cells, edges, ranks, order,
+                        layout.GAP_X, layout.GAP_Y)
+          layout._normalise(doc, registry, cells, layout.MARGIN)
+          scores.append(layout._score(doc, registry))
+
+        doc, registry, _ = open_example(path)
+        layout.arrange(doc, registry)
+        chosen = layout._score(doc, registry)
+        self.assertLessEqual(
+          chosen, min(scores) + 1e-6,
+          "%s: arrange scored %.0f, but one of the orderings scored %.0f"
+          % (name, chosen, min(scores)))
+
+
 if __name__ == "__main__":
   unittest.main()

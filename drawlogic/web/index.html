@@ -4,9 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>drawlogic</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<!-- No web font. IBM Plex would otherwise be fetched from Google's CDN on
+     every page load, which is one outbound request too many for a tool whose
+     one other promise is that it needs no network at all. The font stacks
+     below already name IBM Plex first for the machines that have it
+     installed locally, then fall back to the system sans/mono. -->
 <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>

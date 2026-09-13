@@ -220,6 +220,14 @@ Both work before or after the subcommand: `drawlogic -q export f.dlg` and
 
 ## The editor
 
+Nothing the editor does reaches past the machine it runs on. Every request
+the page makes goes to its own server at `/api/...`; there is no web font, no
+analytics, and no update check. Confirmed by routing every non-loopback
+request through a proxy that aborts it and watching the log stay empty while
+placing, wiring, saving and exporting a drawing. Useful to know on a
+workstation whose network access is restricted -- point it at a folder and it
+has nothing to ask permission for.
+
 ### Placing and wiring
 
 Click a symbol in the palette, then click the canvas. Shift-click the canvas
@@ -782,9 +790,9 @@ and wherever you happened to be scrolled never appear in it.
 If the browser refuses the clipboard write, the PNG is downloaded instead and
 the status bar says so.
 
-One caveat: text in a rasterised SVG uses the fonts the machine has, not the
-web font the page loaded, so a machine without IBM Plex falls back to Arial in
-the PNG. The SVG itself is unaffected.
+One caveat: text in a rasterised SVG uses the fonts the machine has. The
+editor loads no web font -- see below -- so a machine without IBM Plex
+installed falls back to Arial in the PNG. The SVG itself is unaffected.
 
 For PDF, print the drawing from the browser.
 

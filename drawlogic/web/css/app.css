@@ -485,3 +485,31 @@ input.pcolor { padding: 1px; height: 24px; cursor: pointer; width: 42px; }
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none; }
 }
+
+/* ---- toolbar icons ---- */
+/*
+   The actions used to be words in a row and a dropdown called "Arrange", so
+   aligning two cells meant reading a menu. Icons put every one of them on the
+   surface, where the shape says what it does and the hover text says it in
+   words for anyone the shape does not reach.
+*/
+.sprite { display: none; }
+
+.tool.icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  padding: 0;
+}
+.tool.icon .ico {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* The alignment and order icons read better with the moved pieces solid: the
+   rails are the reference, the blocks are what travels. */
+.tool.icon .ico rect { fill: currentColor; fill-opacity: 0.22; }

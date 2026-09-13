@@ -720,11 +720,6 @@ function bindControls() {
                             () => runCommand(button.getAttribute("data-command")));
   }
 
-  ui.arrange.addEventListener("change", () => {
-    if (!ui.arrange.value) return;
-    runCommand(ui.arrange.value);
-    ui.arrange.value = "";
-  });
 }
 
 function bindKeyboard() {
@@ -822,7 +817,6 @@ async function start() {
     undo: $("btn-undo"),
     redo: $("btn-redo"),
     gridSelect: $("grid-select"),
-    arrange: $("arrange-select"),
     zoomSlider: $("zoom-slider"),
     zoomValue: $("zoom-value"),
     fontSlider: $("font-slider"),

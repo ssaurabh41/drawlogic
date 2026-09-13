@@ -14,7 +14,7 @@ SVG. It runs on Python 3.8+ with nothing installed -- no pip packages, no
 Node, no network.
 
 **Size.** About 4,700 lines of Python across 14 modules, 4,400 lines of
-JavaScript across 11 browser modules, 200 tests, 33 built-in symbols, 7 worked
+JavaScript across 11 browser modules, 224 tests, 33 built-in symbols, 7 worked
 examples.
 
 ---
@@ -25,7 +25,7 @@ Five minutes, no install:
 
 ```bash
 git clone <this repo> drawlogic && cd drawlogic
-python3 -m unittest discover            # expect: Ran 200 tests ... OK
+python3 -m unittest discover            # expect: Ran 224 tests ... OK
 python3 -m drawlogic export examples/soc_top.dlg -o /tmp/soc.svg
 python3 -m drawlogic serve examples/dff_slice.dlg   # editor on 127.0.0.1:8080
 ```
@@ -48,7 +48,7 @@ independently. Treat a claim with no check as unverified.
 
 | Claim | Check it | Expected |
 |---|---|---|
-| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 200 pass; nothing is downloaded |
+| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 224 pass; nothing is downloaded |
 | Wires follow their cells | open an example, drag a gate, watch the wires | paths re-route, stay attached |
 | One place to tune the drawing | change `WIRE_GAP` in `drawlogic/rules.py`, re-export | every wire spacing moves; no other file edited |
 | Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 5 tests, incl. that `routing.js`'s fallback rules still match `rules.py` |
@@ -100,21 +100,27 @@ Two things to confirm:
 2. Nothing in any CI config sets `DRAWLOGIC_REGOLD`. A pipeline that
    regenerates its own reference files checks nothing.
 
-**Six tests skip silently without Node, and the run still says OK.** This is
+**Seven tests skip silently without Node, and the run still says OK.** This is
 the sharpest edge in the suite. On a machine without `node`:
 
 ```
-Ran 200 tests ... OK (skipped=6)
+Ran 224 tests ... OK (skipped=7)
 ```
 
-Those 6 are the entire cross-language safety net: 4 parity tests comparing the
-two routers, 1 checking that `routing.js`'s fallback design rules still match
-`rules.py`, and 1 wrapper around 37 editor checks. A reviewer on a Node-less machine sees a green run
+Those 7 are the entire cross-language safety net: 4 parity tests comparing
+the two routers, 1 anchoring arrow direction to the drawing rather than to
+agreement, 1 checking that `routing.js`'s fallback design rules still match
+`rules.py`, and 1 wrapper around 55 editor checks. A reviewer on a Node-less
+machine sees a green run
 with the most important tests absent. Confirm your environment has Node
 (`node --version`) before trusting a pass.
 
-**The one vacuity guard that is already in place**, for reference: the Node
-wrapper asserts its subprocess actually printed results, so a script that
+**The vacuity guards now in place**, for reference: the editor runner counts
+its own checks and prints a completion record the wrapper validates, so
+deleting assertions fails rather than passing quietly. It used to accept any
+zero-exit run containing one "ok" line -- a cold review found that gutting
+the runner to a single console.log kept the suite green. The older wording
+below describes that weaker guard, which is what a script that
 silently did nothing fails rather than passes.
 
 ---
@@ -218,10 +224,10 @@ Ranked by where I would look first, with reasoning rather than a flat list.
 
 Stated plainly so nobody assumes more than exists.
 
-**~3,300 lines of browser JavaScript have no automated tests.** Parity covers
-`routing.js` and `render.js` (1,251 of 4,580 lines). The remaining modules -- `main.js`,
+**~3,400 lines of browser JavaScript have no automated tests.** Parity covers
+`routing.js` and `render.js` (1,251 of 4,686 lines). The remaining modules -- `main.js`,
 `tools.js`, `model.js`, `selection.js`, `panels.js`, `viewport.js`,
-`picture.js` -- are exercised by 37 Node checks (drag alignment, Tidy, net
+`picture.js` -- are exercised by 55 Node checks (drag alignment, Tidy, net
 building) and otherwise verified by hand in a headless browser. Selection,
 resize handles, undo/redo, clipboard, grouping, rotation and the properties
 panel have no standing test. **This is the biggest hole in the project.**
@@ -292,7 +298,44 @@ it does.
 
 ---
 
-## 8. Reporting back
+## 8. What a first cold review already found
+
+A pass of this kind has been run once, by a different model reading the code
+cold. It produced eleven demonstrated defects and two suspected ones, and all
+eleven reproduced. They are fixed; the point of listing them here is that they
+say what kind of thing this codebase gets wrong, which is a better guide to
+where to look than any assurance in this document.
+
+Four were bugs of the same shape: **something was written down as a rule and
+never enforced.** `CELL_MIN_GAP` was documented, served over the API and read
+by nothing. The CLI's export flags overrode the document they were exporting.
+The served-folder boundary held for the path the server was asked to open and
+not for the references inside it. Group validation accepted cells and called
+every grouped shape a missing member.
+
+Three were **stale state**: a save that marked a file clean while the newer
+edit was still in the browser, a layout answer applied to whichever drawing
+happened to be open when it returned, and a New command that decided whether
+a file existed by matching strings against its own dropdown.
+
+Two were **tests that could not fail**: the arrow parity check threw away the
+direction vector on both sides, and the editor wrapper accepted any run that
+printed one "ok" line.
+
+Two were **inputs nobody typed**: a malformed request body crashed the
+connection instead of answering, and concurrent symbol saves lost all but one
+of them -- filed as unconfirmed by that review, and in fact reproducible every
+run, losing 58 of 60.
+
+Worth knowing when reading the rest of this document: several of the things it
+asserted were measured wrong. The test count was stale, the skip count was
+stale, and the untested-JavaScript figure was out of date. They are re-measured
+now, but the lesson stands -- check the numbers here against the code rather
+than quoting them.
+
+---
+
+## 9. Reporting back
 
 Most useful to least:
 

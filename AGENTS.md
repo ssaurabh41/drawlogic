@@ -41,12 +41,12 @@ it and where it is weak.
 
 ## Testing instructions
 
-- Run everything: `python3 -m unittest discover`. Expect 200 tests, ~3 seconds.
+- Run everything: `python3 -m unittest discover`. Expect 224 tests, ~4 seconds.
 - One module: `python3 -m unittest tests.test_routing` (and so on).
-- **Install Node before trusting a green run.** Without it six tests skip and
-  the suite still prints `OK (skipped=6)`. Those six are the entire
-  cross-language safety net -- the parity checks and the editor checks. Check
-  with `node --version` first.
+- **Install Node before trusting a green run.** Without it seven tests skip
+  and the suite still prints `OK (skipped=7)`. Those seven are the entire
+  cross-language safety net -- the parity checks and the wrapper around 55
+  editor checks. Check with `node --version` first.
 - Before relying on the suite, confirm it can fail. Break something on purpose,
   run the suite, watch it go red, revert. For example
   `HOP_RADIUS = 5.0` to `6.0` in `drawlogic/theme.py` produces 5 failures.

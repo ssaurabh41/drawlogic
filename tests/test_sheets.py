@@ -11,6 +11,7 @@ Usage:
     python3 -m unittest tests.test_sheets
 """
 
+import json
 import os
 import shutil
 import tempfile
@@ -225,6 +226,103 @@ class TestTheShippedExample(unittest.TestCase):
     self.assertEqual([(depth, ref) for depth, ref, _ in rows],
                      [(0, "cdc_fifo.dlg")])
     self.assertIsNotNone(rows[0][2])
+
+
+class TestConfinement(unittest.TestCase):
+  """A ref is an ordinary document field, so it is an input, not a promise.
+
+  The HTTP server tells the user nothing outside the folder it serves is
+  reachable. It confined the path it was asked to open and then followed
+  refs out of that folder without checking, so a drawing inside the folder
+  could name one outside it and have its title and pin names read back.
+  """
+
+  def _pair(self, tmp, ref):
+    outside = os.path.join(tmp, "outside")
+    served = os.path.join(tmp, "served")
+    os.makedirs(outside)
+    os.makedirs(served)
+
+    child = new_document("OUTSIDE_TITLE")
+    child.cells.append({"id": "p1", "type": "port_in", "x": 0, "y": 0,
+                        "label": "outside_pin"})
+    child.normalize()
+    child.save(os.path.join(outside, "secret.dlg"))
+
+    top = new_document("top")
+    top.cells.append({"id": "u1", "type": "sheet", "ref": ref, "x": 0, "y": 0})
+    top.normalize()
+    top.save(os.path.join(served, "top.dlg"))
+    return served, os.path.join(served, "top.dlg")
+
+  def test_a_ref_out_of_the_served_folder_is_refused(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      served, top = self._pair(tmp, "../outside/secret.dlg")
+      _doc, registry, issues = sheets.open_document(top, confine=served)
+
+      self.assertTrue(issues, "escaping the served folder must be reported")
+      self.assertIn("outside the folder being served", issues[0].message)
+
+      blob = json.dumps(registry.as_data())
+      self.assertNotIn("OUTSIDE_TITLE", blob,
+                       "the refused drawing's title must not come back")
+      self.assertNotIn("outside_pin", blob,
+                       "nor its pin names")
+
+  def test_the_command_line_still_follows_a_ref_anywhere(self):
+    """No confinement without one asked for: the CLI is not a sandbox.
+
+    Someone running `drawlogic export` already has the filesystem, and a
+    block kept one directory up is a reasonable way to share it.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+      _served, top = self._pair(tmp, "../outside/secret.dlg")
+      _doc, registry, issues = sheets.open_document(top)
+      self.assertEqual([i.message for i in issues], [])
+      self.assertIn("OUTSIDE_TITLE", json.dumps(registry.as_data()))
+
+  def test_a_ref_inside_the_folder_still_resolves_when_confined(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      served = os.path.join(tmp, "served")
+      os.makedirs(os.path.join(served, "sub"))
+
+      child = new_document("INSIDE_TITLE")
+      child.cells.append({"id": "p1", "type": "port_in", "x": 0, "y": 0,
+                          "label": "a"})
+      child.normalize()
+      child.save(os.path.join(served, "sub", "block.dlg"))
+
+      top = new_document("top")
+      top.cells.append({"id": "u1", "type": "sheet", "ref": "sub/block.dlg",
+                        "x": 0, "y": 0})
+      top.normalize()
+      top.save(os.path.join(served, "top.dlg"))
+
+      _doc, registry, issues = sheets.open_document(
+        os.path.join(served, "top.dlg"), confine=served)
+      self.assertEqual([i.message for i in issues], [])
+      self.assertIn("INSIDE_TITLE", json.dumps(registry.as_data()))
+
+  def test_a_symlink_pointing_out_does_not_slip_through(self):
+    """The check resolves links, or a name inside the root is enough."""
+    with tempfile.TemporaryDirectory() as tmp:
+      served, _top = self._pair(tmp, "unused.dlg")
+      link = os.path.join(served, "link.dlg")
+      try:
+        os.symlink(os.path.join(tmp, "outside", "secret.dlg"), link)
+      except (OSError, NotImplementedError):
+        self.skipTest("symlinks are not available here")
+
+      top = new_document("top")
+      top.cells.append({"id": "u1", "type": "sheet", "ref": "link.dlg",
+                        "x": 0, "y": 0})
+      top.normalize()
+      path = os.path.join(served, "viaLink.dlg")
+      top.save(path)
+
+      _doc, registry, issues = sheets.open_document(path, confine=served)
+      self.assertTrue(issues, "a link out of the folder must be refused")
+      self.assertNotIn("OUTSIDE_TITLE", json.dumps(registry.as_data()))
 
 
 if __name__ == "__main__":

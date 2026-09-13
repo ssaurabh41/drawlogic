@@ -202,7 +202,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._fail(404, "no such drawing")
       try:
         document, registry, problems = sheets.open_document(
-          target, self.registry)
+          target, self.registry, confine=self.root)
       except DocumentError as exc:
         return self._fail(422, str(exc))
       except OSError as exc:
@@ -305,7 +305,9 @@ class Handler(BaseHTTPRequestHandler):
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
       registry = self.registry.copy()
-      sheets.resolve(document, registry)
+      # Confined to the served folder: a ref is written by whoever wrote the
+      # document, and this one arrived in a request body.
+      sheets.resolve(document, registry, confine=self.root)
 
     options = payload.get("options") or {}
     try:
@@ -367,7 +369,9 @@ class Handler(BaseHTTPRequestHandler):
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
       registry = self.registry.copy()
-      sheets.resolve(document, registry)
+      # Confined to the served folder: a ref is written by whoever wrote the
+      # document, and this one arrived in a request body.
+      sheets.resolve(document, registry, confine=self.root)
 
     options = payload.get("options") or {}
     try:

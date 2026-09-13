@@ -163,7 +163,20 @@ def child_path(parent_path, ref):
   return os.path.normpath(os.path.join(base, ref))
 
 
-def open_document(path, base=None):
+def inside(path, root):
+  """True if `path` is `root` or sits beneath it.
+
+  Symlinks are resolved on both sides first, or a link inside the root
+  pointing out of it would pass a check on the name alone.
+  """
+  if not root:
+    return True
+  target = os.path.realpath(path)
+  root = os.path.realpath(root)
+  return target == root or target.startswith(root + os.sep)
+
+
+def open_document(path, base=None, confine=None):
   """Open a drawing together with the symbols it needs.
 
   Returns the drawing, a registry holding the standard library plus a block
@@ -173,6 +186,13 @@ def open_document(path, base=None):
   The registry is a copy: a ref is a path relative to the drawing that holds
   it, so the same text names different files in different folders, and
   resolving one drawing must never change what another sees.
+
+  `confine` is a directory no reference may point outside of. The HTTP server
+  passes the folder it serves, because it promises that nothing outside that
+  folder is reachable and a ref is an ordinary document field that anyone
+  who can write a .dlg controls. The command line passes nothing: it is run
+  by someone who already has the filesystem, and a drawing that refers to a
+  block kept one directory up is a reasonable thing to have.
   """
   from .symbols import default_registry, load_folder
 
@@ -182,14 +202,14 @@ def open_document(path, base=None):
   # Save as symbol be seen by `drawlogic export` without a flag.
   load_folder(registry, os.path.dirname(os.path.abspath(path)))
   doc = Document.load(path)
-  issues = resolve(doc, registry)
+  issues = resolve(doc, registry, confine=confine)
   # Only now can a referenced block be given a size: until the reference
   # resolved there was no symbol to take one from.
   doc.normalize(registry)
   return doc, registry, issues
 
 
-def resolve(doc, registry, seen=None, depth=0):
+def resolve(doc, registry, seen=None, depth=0, confine=None):
   """Add a symbol for each drawing `doc` itself references.
 
   Descendants are walked but not registered: they get their own registry when
@@ -228,6 +248,15 @@ def resolve(doc, registry, seen=None, depth=0):
         registry.add(Symbol(sheet_symbol_id(ref), missing(ref, why)),
                      source=target, listed=False)
 
+    if not inside(target, confine):
+      # The served folder is a boundary the server advertises, and a ref is
+      # written by whoever wrote the file. Refused the same way an unreadable
+      # child is: a stand-in box saying why, so it can be seen and clicked.
+      issues.append(Issue("error", where,
+                          "%s is outside the folder being served" % ref))
+      stand_in("outside the served folder")
+      continue
+
     if target in seen:
       issues.append(Issue("error", where,
                           "%s refers back to a drawing already open above it"
@@ -252,7 +281,7 @@ def resolve(doc, registry, seen=None, depth=0):
       registry.add(Symbol(sheet_symbol_id(ref),
                           describe(ref, child.title, ports(child))),
                    source=target, listed=False)
-    issues.extend(resolve(child, registry, seen, depth + 1))
+    issues.extend(resolve(child, registry, seen, depth + 1, confine))
 
   return issues
 

@@ -140,8 +140,13 @@ drawlogic serve --no-browser
 | `--no-browser` | do not open a browser window |
 
 The server binds to loopback and serves exactly one folder; nothing outside
-that directory is reachable. **If the machine is remote, tunnel rather than
-opening it up with `--host`:**
+that directory is reachable. That applies to references too: a drawing served
+here can only stand in for another drawing inside the same folder, and a `ref`
+pointing out of it is refused and drawn as a broken-reference box. The command
+line has no such limit -- it is run by somebody who already has the
+filesystem, so a block kept one directory up resolves normally there.
+
+**If the machine is remote, tunnel rather than opening it up with `--host`:**
 
 ```bash
 ssh -L 8080:localhost:8080 you@workstation

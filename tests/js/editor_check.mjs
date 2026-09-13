@@ -318,6 +318,55 @@ function twoCorners() {
         JSON.stringify(loads.map((l) => l.waypoints.length)));
 }
 
+// ---- stale answers ----
+//
+// Saving and laying out are round trips. Whatever the user does while one is
+// in flight, the answer must not be applied to a document it was not about.
+{
+  const store = new model.Store();
+  store.load({ title: "A" }, "a.dlg");
+
+  const sending = store.stamp();
+  store.mutate("typed something", (doc) => { doc.title = "A, edited"; });
+  check("an edit during a save leaves the file marked unsaved",
+        store.markSaved(sending) === false && store.dirty === true,
+        `dirty=${store.dirty}`);
+
+  const clean = store.stamp();
+  check("and a save with nothing typed since does mark it saved",
+        store.markSaved(clean) === true && store.dirty === false,
+        `dirty=${store.dirty}`);
+
+  // The layout case: ask on one drawing, switch to another, answer arrives.
+  const asked = store.stamp();
+  store.load({ title: "B" }, "b.dlg");
+  check("a layout answer is not applied after switching drawings",
+        store.matches(asked, { edits: false }) === false);
+  check("and the drawing now open is left alone",
+        store.doc.title === "B" && store.path === "b.dlg",
+        `${store.path}: ${store.doc.title}`);
+
+  // Re-opening the same file while a layout for it is in flight. The path is
+  // unchanged, so the path alone cannot tell these apart -- what is open is a
+  // different document object now, holding whatever is on disk, and the
+  // answer in flight is about the copy that was replaced.
+  store.load({ title: "A again" }, "a.dlg");
+  const beforeReopen = store.stamp();
+  store.load({ title: "A reloaded from disk" }, "a.dlg");
+  check("a layout answer is not applied after reopening the same drawing",
+        store.matches(beforeReopen, { edits: false }) === false);
+
+  // Still the same drawing, edited while the layout was computed: the layout
+  // is applied as an edit of its own, so it is allowed.
+  store.load({ title: "C" }, "c.dlg");
+  const onC = store.stamp();
+  store.mutate("nudged a gate", (doc) => { doc.title = "C, nudged"; });
+  check("a layout answer still applies to the drawing that asked for it",
+        store.matches(onC, { edits: false }) === true);
+  check("but a save from before that edit does not mark it clean",
+        store.markSaved(onC) === false);
+}
+
 if (failures) {
   console.log(`${failures} check(s) failed`);
   console.log(`DONE ${ran}/${ran}`);

@@ -434,15 +434,25 @@ async function openDrawing(path) {
 
 async function save() {
   if (!store.doc || !store.path) return;
+  // What is being written, noted before the request goes. A save takes a
+  // moment, and anything typed during that moment is not in the bytes on
+  // their way to disk.
+  const sending = store.stamp();
   try {
-    await api(`/api/doc?path=${encodeURIComponent(store.path)}`, {
+    await api(`/api/doc?path=${encodeURIComponent(sending.path)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ doc: store.doc }),
     });
-    store.markSaved();
+    if (!store.markSaved(sending)) {
+      // Either the user edited while it was in flight, or they switched
+      // drawings. The file on disk is fine; what is on screen is simply
+      // newer than it, so it stays marked unsaved.
+      refreshStatus();
+      return;
+    }
     refreshStatus();
-    say(`saved ${store.path}`, "good");
+    say(`saved ${sending.path}`, "good");
   } catch (error) {
     say(error.message, "bad");
   }
@@ -511,12 +521,19 @@ async function autoLayout() {
     return;
   }
   say("laying out...");
+  // Which drawing asked. The answer is a whole document, and store.mutate
+  // hands the callback whatever is open at the time it runs -- so without
+  // this, a layout for one drawing would overwrite whichever drawing the
+  // user had switched to while it was being computed, and the next save
+  // would write it to that file.
+  const asked = store.stamp();
   try {
     const result = await api("/api/layout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: store.doc, source: store.path }),
+      body: JSON.stringify({ doc: store.doc, source: asked.path }),
     });
+    if (!store.matches(asked, { edits: false })) return;
     store.mutate("auto layout", (doc) => {
       // Replacing the contents rather than the object keeps every other
       // reference to the document valid.
@@ -595,17 +612,27 @@ async function newDrawing() {
 
   try {
     const existing = [...ui.fileSelect.options].map((option) => option.value);
-    if (existing.includes(name)
-        && !window.confirm(`${name} already exists. Overwrite it?`)) {
-      return;
-    }
-
     const blank = model.blankDocument(name.replace(/\.dlg$/i, ""));
-    await api(`/api/doc?path=${encodeURIComponent(name)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: blank }),
-    });
+
+    // `create: true` means "only if it is not there". The server answers 409
+    // if it is, because only the server knows what a name resolves to: this
+    // list holds exact spellings, and "./sheet.dlg" is a different string
+    // from "sheet.dlg" while being the same file. Matching names here let
+    // an equivalent spelling past the warning and overwrite the drawing.
+    const write = (create) => api(
+      `/api/doc?path=${encodeURIComponent(name)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc: blank, create }),
+      });
+
+    try {
+      await write(true);
+    } catch (conflict) {
+      if (!/already exists/i.test(conflict.message)) throw conflict;
+      if (!window.confirm(`${name} already exists. Overwrite it?`)) return;
+      await write(false);
+    }
 
     if (!existing.includes(name)) {
       const option = document.createElement("option");

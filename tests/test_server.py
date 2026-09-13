@@ -183,6 +183,53 @@ class TestEndpoints(unittest.TestCase):
           self.post("/api/doc?path=slice.dlg", payload)
         self.assertEqual(caught.exception.code, expected)
 
+  def test_create_refuses_a_file_that_is_already_there(self):
+    """New must not be able to replace a drawing without being told to.
+
+    The browser used to decide whether a name was taken by matching it
+    against its own list of files, which holds exact spellings. Only the
+    server knows what a path resolves to.
+    """
+    doc = {"format": "drawlogic", "version": 2, "title": "fresh"}
+    # "./slice.dlg" is the spelling that mattered: a different string from
+    # the one in the file list, the same file on disk. A spelling containing
+    # ".." never reaches this check -- the traversal guard refuses it with
+    # 400 first, which is blunter and fine.
+    for spelling, expected in (("slice.dlg", 409),
+                               ("./slice.dlg", 409),
+                               ("sub/../slice.dlg", 400)):
+      with self.subTest(spelling=spelling):
+        with self.assertRaises(HTTPError) as caught:
+          self.post("/api/doc?path=%s" % spelling,
+                    {"doc": doc, "create": True})
+        self.assertEqual(caught.exception.code, expected,
+                         "%s names a file that exists" % spelling)
+
+    with open(os.path.join(self.root, "slice.dlg")) as handle:
+      self.assertNotIn('"title": "fresh"', handle.read(),
+                       "a refused create must not have written anything")
+
+  def test_create_allows_a_name_that_is_free(self):
+    result = self.post("/api/doc?path=brand_new.dlg",
+                       {"doc": {"format": "drawlogic", "version": 2,
+                                "title": "fresh"},
+                        "create": True})
+    self.assertTrue(os.path.isfile(os.path.join(self.root, "brand_new.dlg")))
+    self.assertTrue(result.get("revision"),
+                    "a save reports the version it just wrote")
+
+  def test_saving_without_create_still_overwrites(self):
+    """Ordinary Ctrl+S is not a create, and must keep working."""
+    self.post("/api/doc?path=slice.dlg",
+              {"doc": {"format": "drawlogic", "version": 2, "title": "edited"}})
+    with open(os.path.join(self.root, "slice.dlg")) as handle:
+      self.assertIn('"title": "edited"', handle.read())
+
+  def test_opening_reports_a_revision(self):
+    opened = self.get("/api/doc?path=slice.dlg")
+    self.assertTrue(opened.get("revision"),
+                    "the editor needs to know which version it is holding")
+
   def test_unknown_endpoint_is_a_404(self):
     with self.assertRaises(HTTPError) as caught:
       self.get("/api/nothing")

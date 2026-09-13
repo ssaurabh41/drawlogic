@@ -83,6 +83,20 @@ def _safe_join(root, relative):
   return candidate
 
 
+def _revision(path):
+  """A cheap stand-in for "the version of this file I last saw".
+
+  Size and modification time, which is all the editor needs to notice that a
+  file changed underneath it between opening and saving. Not a hash: this is
+  here to catch two tabs and stale responses, not to defend against anyone.
+  """
+  try:
+    info = os.stat(path)
+  except OSError:
+    return None
+  return "%d-%d" % (info.st_size, info.st_mtime_ns)
+
+
 class Handler(BaseHTTPRequestHandler):
 
   server_version = "drawlogic"
@@ -211,6 +225,7 @@ class Handler(BaseHTTPRequestHandler):
       # to the library, so it travels with it. The editor merges it in on open.
       return self._send_json({
         "path": relative,
+        "revision": _revision(target),
         "doc": document.ordered(),
         "sheets": {type_id: data
                    for type_id, data in registry.as_data().items()
@@ -264,6 +279,16 @@ class Handler(BaseHTTPRequestHandler):
     if not target.endswith(".dlg"):
       return self._fail(400, "drawings must be saved as .dlg")
 
+    # "create" means the caller believes this file does not exist yet. The
+    # browser used to decide that for itself by matching the typed name
+    # against its own file list, which is a list of exact spellings: typing
+    # "./sheet.dlg" for a file listed as "sheet.dlg" looked like a new name,
+    # skipped the overwrite warning, and replaced the drawing. Only the
+    # server knows what the path really resolves to, so only the server can
+    # answer the question.
+    if payload.get("create") and os.path.exists(target):
+      return self._fail(409, "%s already exists" % relative)
+
     try:
       # Round-tripping through Document is what keeps the file canonical:
       # stable key order and filled defaults regardless of what the browser
@@ -282,7 +307,8 @@ class Handler(BaseHTTPRequestHandler):
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
 
-    return self._send_json({"path": relative, "bytes": len(text)})
+    return self._send_json({"path": relative, "bytes": len(text),
+                            "revision": _revision(target)})
 
   def _layout(self, payload):
     """Lay a drawing out and hand it back, without writing anything.

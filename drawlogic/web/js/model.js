@@ -23,9 +23,43 @@ export class Store {
     this.doc = null;
     this.path = null;
     this.dirty = false;
+    // Two counters, because there are two different questions.
+    //
+    // `opening` changes only when a document is loaded -- a different file,
+    // or the same file re-read from disk. `generation` changes on that and
+    // on every edit besides.
+    //
+    // A request that takes a moment notes both before it goes. A layout
+    // answer asks the first question: is this still the same open document?
+    // It may be applied over edits made while it was computed, because it is
+    // applied as an edit of its own. A save asks both: the bytes that went
+    // to disk are only what was there at the time, so anything typed since
+    // is still unsaved.
+    this.opening = 0;
+    this.generation = 0;
     this._undo = [];
     this._redo = [];
     this._listeners = [];
+  }
+
+  // What a pending request has to match to still be about this document.
+  stamp() {
+    return {
+      path: this.path,
+      opening: this.opening,
+      generation: this.generation,
+    };
+  }
+
+  // `edits: false` asks only whether this is still the same open document --
+  // not whether it has been edited since. Checking the path alone is not
+  // enough for that: re-opening the same file gives a different document
+  // under the same name, and an answer about the copy that was replaced must
+  // not be applied to the one that replaced it.
+  matches(stamp, { edits = true } = {}) {
+    if (!stamp || stamp.path !== this.path) return false;
+    if (stamp.opening !== this.opening) return false;
+    return !edits || stamp.generation === this.generation;
   }
 
   subscribe(listener) {
@@ -40,6 +74,8 @@ export class Store {
     this.doc = doc;
     this.path = path;
     this.dirty = false;
+    this.opening += 1;
+    this.generation += 1;
     this._undo = [];
     this._redo = [];
     this.emit("load");
@@ -76,6 +112,7 @@ export class Store {
 
     this._redo = [];
     this.dirty = true;
+    this.generation += 1;
     this.emit("mutate");
     return result;
   }
@@ -104,9 +141,15 @@ export class Store {
     return entry.label;
   }
 
-  markSaved() {
+  // Only the state that was actually written is clean. Clearing the flag
+  // unconditionally told the user their work was safe when an edit made
+  // during the save had never left the browser -- and the flag is what the
+  // close-tab warning reads.
+  markSaved(stamp) {
+    if (stamp && !this.matches(stamp)) return false;
     this.dirty = false;
     this.emit("saved");
+    return true;
   }
 }
 

@@ -10,6 +10,10 @@ code.
 **[Full manual: DOCUMENTATION.md](DOCUMENTATION.md)** -- every command, every
 field, every key.
 
+**[Reviewing this: REVIEW.md](REVIEW.md)** -- for anyone asked to verify or
+critique the tool: how to check each claim, how to prove the tests are not
+vacuous, and what is deliberately not covered.
+
 Status: feature complete for the plan. Format, symbol library, renderer and
 command line all work; the browser editor places, selects, moves, resizes,
 styles, groups, arranges and wires cells, draws autoshapes and text, and

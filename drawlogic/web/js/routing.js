@@ -21,6 +21,8 @@ let rules = {
   corridorTries: 18,
   wireGap: 18,
   labelClearance: 5,
+  sheetW: 1200,
+  sheetH: 780,
 };
 
 export function setRules(data) {

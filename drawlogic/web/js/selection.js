@@ -155,12 +155,22 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     "stroke-dasharray": `${3 / zoom} ${2.5 / zoom}`,
   }));
 
-  const size = 7 / zoom;
+  // Two rectangles per grip. The visible one is small enough not to hide the
+  // corner it sits on; the transparent one behind it is twice the size,
+  // because a 7px square is a target the hand keeps missing. Reported as
+  // "my cursor always misses the corners", and it was right.
+  const size = 9 / zoom;
+  const grab = 20 / zoom;
   for (const [key, [hx, hy]] of Object.entries(handlePoints(x, y, w, h))) {
+    layer.appendChild(el("rect", {
+      class: "dl-grip", "data-handle": key,
+      x: hx - grab / 2, y: hy - grab / 2, width: grab, height: grab,
+    }));
     layer.appendChild(el("rect", {
       class: "dl-handle", "data-handle": key,
       x: hx - size / 2, y: hy - size / 2, width: size, height: size,
-      "stroke-width": 1.2 / zoom,
+      rx: 1.5 / zoom,
+      "stroke-width": 1.4 / zoom,
     }));
   }
   return layer;

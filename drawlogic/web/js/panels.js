@@ -49,8 +49,21 @@ export function buildPalette(root, { onPick }) {
       item.className = "palette-item";
       item.type = "button";
       item.dataset.symbol = id;
-      item.title = `${symbol.name} (${id}) - click, then click the canvas`;
+      item.title = `${symbol.name} (${id}) - drag onto the canvas, or click then click`;
       item.appendChild(symbolThumbnail(symbol));
+
+      // Dragging one out is the gesture people arrive expecting; the
+      // click-then-click path stays because it is the only one that works
+      // from a keyboard and the only one that can place several in a row.
+      item.draggable = true;
+      item.addEventListener("dragstart", (event) => {
+        event.dataTransfer.setData("application/x-drawlogic-symbol", id);
+        event.dataTransfer.setData("text/plain", id);
+        event.dataTransfer.effectAllowed = "copy";
+        item.classList.add("dragging");
+      });
+      item.addEventListener("dragend", () => item.classList.remove("dragging"));
+
       item.addEventListener("click", () => {
         for (const other of root.querySelectorAll(".palette-item")) {
           other.classList.toggle("armed", other === item);

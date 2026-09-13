@@ -17,7 +17,7 @@ import copy
 import random
 import unittest
 
-from drawlogic import layout, routing
+from drawlogic import layout, routing, rules
 from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 
@@ -333,6 +333,30 @@ class TestOrderingChoice(unittest.TestCase):
           chosen, min(scores) + 1e-6,
           "%s: arrange scored %.0f, but one of the orderings scored %.0f"
           % (name, chosen, min(scores)))
+
+
+class TestCellMinGap(unittest.TestCase):
+  """rules.CELL_MIN_GAP is documented as a real floor, so it has to be one."""
+
+  def test_a_larger_minimum_widens_the_actual_gap(self):
+    doc = new_document("gap")
+    doc.cells.extend([
+      {"id": "a", "type": "and2", "x": 0, "y": 0},
+      {"id": "b", "type": "and2", "x": 0, "y": 0},
+    ])
+    doc.normalize()
+
+    old = rules.CELL_MIN_GAP
+    try:
+      rules.CELL_MIN_GAP = 200.0
+      layout.arrange(doc)
+      gap = doc.cells[1]["y"] - doc.cells[0]["y"] - 40  # and2 is 40 tall
+      self.assertGreaterEqual(
+        gap, 200.0,
+        "CELL_MIN_GAP is documented as the least space allowed between any "
+        "two cells; raising it must widen the gap layout actually leaves")
+    finally:
+      rules.CELL_MIN_GAP = old
 
 
 if __name__ == "__main__":

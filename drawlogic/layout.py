@@ -77,6 +77,12 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   if not cells:
     return Result(0, 0, 0)
 
+  # rules.CELL_MIN_GAP is documented as the least space allowed between any
+  # two cells, so it has to hold even when a caller passes a smaller gap_x or
+  # gap_y of its own -- otherwise it is a number nobody reads.
+  gap_x = max(gap_x, rules.CELL_MIN_GAP)
+  gap_y = max(gap_y, rules.CELL_MIN_GAP)
+
   _face_forward(cells)
   _forget_waypoints(doc)
 

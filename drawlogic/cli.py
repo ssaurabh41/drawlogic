@@ -102,7 +102,13 @@ def cmd_export(args):
       doc, registry=sheet_registry, zoom=args.zoom, width=args.width,
       margin=args.margin, background=background,
       show_grid=args.grid, crop=args.crop, title=not args.no_title,
-      arrows=not args.no_arrows, hops=not args.no_hops)
+      # None means "do what the document's own canvas.arrows/hops say" --
+      # passing False here whenever the flag was merely absent overrode that
+      # choice on every export, so a document saved with either turned off
+      # came out through the CLI with both back on, disagreeing with what
+      # the same document exports as through the editor.
+      arrows=False if args.no_arrows else None,
+      hops=False if args.no_hops else None)
 
     if args.output == "-":
       sys.stdout.write(svg)

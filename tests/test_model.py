@@ -233,5 +233,73 @@ class TestPlacement(unittest.TestCase):
     self.assertIsNone(self.and2.pin_position(self._cell(), "nope"))
 
 
+class TestGroupValidation(unittest.TestCase):
+  """Shapes group exactly as cells do, so validate has to accept them."""
+
+  def _grouped(self, members, cells=(), shapes=()):
+    doc = new_document("grouped")
+    doc.cells.extend(cells)
+    doc.shapes.extend(shapes)
+    doc.groups.append({"id": "g1", "members": list(members)})
+    doc.normalize()
+    return [i for i in doc.validate() if i.level == "error"]
+
+  def test_a_group_of_shapes_is_valid(self):
+    errors = self._grouped(
+      ["s1", "s2"],
+      shapes=[{"id": "s1", "kind": "rect", "x": 0, "y": 0, "w": 40, "h": 40},
+              {"id": "s2", "kind": "rect", "x": 60, "y": 0, "w": 40, "h": 40}])
+    self.assertEqual(errors, [],
+                     "the editor groups shapes like cells, so a file it "
+                     "wrote must validate: %s" % [i.message for i in errors])
+
+  def test_a_group_mixing_a_cell_and_a_shape_is_valid(self):
+    errors = self._grouped(
+      ["u1", "s1"],
+      cells=[{"id": "u1", "type": "inv", "x": 0, "y": 0}],
+      shapes=[{"id": "s1", "kind": "rect", "x": 0, "y": 0, "w": 40, "h": 40}])
+    self.assertEqual(errors, [], [i.message for i in errors])
+
+  def test_a_member_that_really_is_missing_is_still_reported(self):
+    errors = self._grouped(
+      ["s1", "ghost"],
+      shapes=[{"id": "s1", "kind": "rect", "x": 0, "y": 0, "w": 40, "h": 40}])
+    self.assertEqual(len(errors), 1, "widening the check must not blind it")
+    self.assertIn("ghost", errors[0].message)
+
+
+class TestMalformedContainers(unittest.TestCase):
+  """A key that is present but holds the wrong type must be refused here.
+
+  setdefault only fills an absent key, so these used to pass normalize()
+  untouched and fail much later -- as a traceback from the command line, and
+  as a dropped connection over HTTP.
+  """
+
+  def test_a_wrong_typed_section_is_named(self):
+    for data, expected in (
+        ({"canvas": None}, "canvas must be an object"),
+        ({"canvas": []}, "canvas must be an object"),
+        ({"canvas": {"grid": 3}}, "canvas.grid must be an object"),
+        ({"canvas": {"font": "big"}}, "canvas.font must be an object"),
+        ({"cells": "nope"}, "cells must be a list"),
+        ({"nets": {}}, "nets must be a list"),
+        ({"shapes": 7}, "shapes must be a list"),
+        ({"groups": "g"}, "groups must be a list"),
+        ({"cells": [1]}, "cells[0] must be an object")):
+      with self.subTest(data=data):
+        payload = {"format": "drawlogic", "version": 2}
+        payload.update(data)
+        with self.assertRaises(DocumentError) as caught:
+          Document.from_data(payload)
+        self.assertIn(expected, str(caught.exception))
+
+  def test_a_document_that_is_not_an_object_is_refused(self):
+    for bad in ([], "text", 3, None):
+      with self.subTest(data=bad):
+        with self.assertRaises(DocumentError):
+          Document.from_data(bad)
+
+
 if __name__ == "__main__":
   unittest.main()

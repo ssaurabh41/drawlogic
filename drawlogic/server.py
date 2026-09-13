@@ -239,6 +239,12 @@ class Handler(BaseHTTPRequestHandler):
     payload = self._body()
     if payload is None:
       return self._fail(400, "expected a JSON body")
+    # Every handler below reads the body with .get(). A JSON array or string
+    # parses happily and then fails on that call, which killed the connection
+    # without ever sending a status line.
+    if not isinstance(payload, dict):
+      return self._fail(400, "expected a JSON object, not %s"
+                        % type(payload).__name__)
 
     if route == "/api/doc":
       return self._save(payload)

@@ -164,6 +164,25 @@ class TestEndpoints(unittest.TestCase):
       self.post("/api/doc?path=slice.dlg", {"doc": {"format": "nope"}})
     self.assertEqual(caught.exception.code, 422)
 
+  def test_malformed_bodies_answer_rather_than_dropping_the_connection(self):
+    """A bad shape must come back as a status code, not a dead socket.
+
+    Every handler reads the body with .get() and the document with
+    .setdefault(). A JSON array, or a null canvas, parses fine and then
+    raises an AttributeError deep inside -- which never reaches the client
+    as anything but a closed connection.
+    """
+    for payload, expected in (
+        ([], 400),
+        ("a string", 400),
+        ({"doc": {"format": "drawlogic", "version": 2, "canvas": None}}, 422),
+        ({"doc": {"format": "drawlogic", "version": 2, "cells": "nope"}}, 422),
+        ({"doc": {"format": "drawlogic", "version": 2, "cells": [1, 2]}}, 422)):
+      with self.subTest(payload=payload):
+        with self.assertRaises(HTTPError) as caught:
+          self.post("/api/doc?path=slice.dlg", payload)
+        self.assertEqual(caught.exception.code, expected)
+
   def test_unknown_endpoint_is_a_404(self):
     with self.assertRaises(HTTPError) as caught:
       self.get("/api/nothing")

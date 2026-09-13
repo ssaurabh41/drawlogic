@@ -203,6 +203,39 @@ class DocumentError(Exception):
   pass
 
 
+def _object(data, key, where=None):
+  """The object at `key`, defaulting to a new one, or a DocumentError.
+
+  setdefault alone is not enough: it leaves a key that is present but holds
+  the wrong type exactly as it found it, and the failure then surfaces
+  somewhere far less useful.
+  """
+  value = data.get(key)
+  if value is None and key not in data:
+    value = {}
+    data[key] = value
+  if not isinstance(value, dict):
+    raise DocumentError("%s must be an object, not %s"
+                        % (where or key, type(value).__name__))
+  return value
+
+
+def _list_of_objects(data, key):
+  """The list at `key`, defaulting to a new one, or a DocumentError."""
+  value = data.get(key)
+  if value is None and key not in data:
+    value = []
+    data[key] = value
+  if not isinstance(value, list):
+    raise DocumentError("%s must be a list, not %s"
+                        % (key, type(value).__name__))
+  for index, item in enumerate(value):
+    if not isinstance(item, dict):
+      raise DocumentError("%s[%d] must be an object, not %s"
+                          % (key, index, type(item).__name__))
+  return value
+
+
 class Issue(object):
   """One problem found by validate(); level is 'error' or 'warning'."""
 
@@ -384,25 +417,35 @@ class Document(object):
   # ---- normalisation ----
 
   def normalize(self, registry=None):
-    """Fill in defaults so the rest of the code never guards for missing keys."""
+    """Fill in defaults so the rest of the code never guards for missing keys.
+
+    Every container is type-checked on the way in. `setdefault` only fills a
+    key that is absent, so a key present but holding the wrong type -- a null
+    canvas, a list where an object belongs -- used to sail through here and
+    fail later as an AttributeError deep in the call stack. Over HTTP that
+    killed the connection without a status code, and on the command line it
+    printed a traceback instead of saying which part of the file was wrong.
+    """
     registry = registry or default_registry()
     data = self.data
+    if not isinstance(data, dict):
+      raise DocumentError("a document must be a JSON object")
 
     data.setdefault("format", FORMAT)
     data.setdefault("version", VERSION)
     data.setdefault("title", "untitled")
 
-    canvas = data.setdefault("canvas", {})
+    canvas = _object(data, "canvas")
     for key in ("width", "height", "background", "symbolScale", "arrows", "hops"):
       canvas.setdefault(key, DEFAULT_CANVAS[key])
-    grid = canvas.setdefault("grid", {})
+    grid = _object(canvas, "grid", "canvas.grid")
     for key, value in DEFAULT_CANVAS["grid"].items():
       grid.setdefault(key, value)
-    font = canvas.setdefault("font", {})
+    font = _object(canvas, "font", "canvas.font")
     for key, value in DEFAULT_CANVAS["font"].items():
       font.setdefault(key, value)
 
-    for cell in data.setdefault("cells", []):
+    for cell in _list_of_objects(data, "cells"):
       symbol = registry.for_cell(cell)
       if symbol is not None:
         cell.setdefault("w", symbol.width)
@@ -413,7 +456,7 @@ class Document(object):
       cell.setdefault("mirror", False)
       cell.setdefault("style", {})
 
-    for net in data.setdefault("nets", []):
+    for net in _list_of_objects(data, "nets"):
       name = net.get("name")
       if name and "width" not in net:
         net["width"] = net_name_width(name)
@@ -424,11 +467,11 @@ class Document(object):
         load.setdefault("waypoints", [])
       net["to"] = loads
 
-    for shape in data.setdefault("shapes", []):
+    for shape in _list_of_objects(data, "shapes"):
       shape.setdefault("style", {})
       shape.setdefault("rotate", 0)
 
-    data.setdefault("groups", [])
+    _list_of_objects(data, "groups")
     return self
 
   # ---- geometry ----
@@ -620,12 +663,18 @@ class Document(object):
           issues.append(Issue("warning", "cell %s" % cell.get("id"),
                               "pin %r is unconnected" % pin["name"]))
 
-    known_cells = set(c.get("id") for c in self.cells)
+    # Shapes group exactly like cells do -- the editor's groupItems() takes
+    # whatever is selected, and a box drawn round a gate is the ordinary
+    # reason to group anything. Checking only cell ids called every grouped
+    # annotation a missing member and failed a file the editor had just
+    # written.
+    known_members = set(c.get("id") for c in self.cells)
+    known_members.update(s.get("id") for s in self.shapes)
     grouped = {}
     for group in self.groups:
       where = "group %s" % group.get("id")
       for member in group.get("members", []):
-        if member not in known_cells:
+        if member not in known_members:
           issues.append(Issue("error", where, "member %r does not exist" % member))
         elif member in grouped:
           issues.append(Issue("error", where,

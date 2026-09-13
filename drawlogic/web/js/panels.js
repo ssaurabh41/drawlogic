@@ -280,11 +280,22 @@ export class Inspector {
       const wrap = element("div", "swatch");
       const picker = input(first[key] || fallback, "color");
       picker.classList.add("pcolor");
-      picker.addEventListener("input", () => {
+      // Listen for both events, because browsers disagree about which one a
+      // colour dialog sends. Some stream "input" as you drag inside the
+      // picker; others stay silent until the dialog closes and then send only
+      // "change". Binding one of them leaves the control doing nothing at all
+      // for whoever is on the other browser, which is what happened here.
+      // The cost is that Chrome sends both, so remember what was applied.
+      let applied = null;
+      const apply = () => {
+        if (picker.value === applied) return;
+        applied = picker.value;
         this.store.mutate("colour",
                           (doc) => model.setStyle(doc, this.selection.ids, key, picker.value));
         this.onChange();
-      });
+      };
+      picker.addEventListener("input", apply);
+      picker.addEventListener("change", apply);
       const reset = element("button", "linkish", "reset");
       reset.addEventListener("click", () => {
         this.store.mutate("colour",

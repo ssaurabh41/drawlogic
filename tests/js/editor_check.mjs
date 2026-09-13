@@ -4,6 +4,13 @@
 // Run by tests/test_js_editor.py. Prints one line per check and exits non-zero
 // on the first failure, so the Python side can just report the output.
 //
+// The last line is a completion record -- "DONE ran/N" -- counted by this
+// script itself rather than written down in two places. The Python wrapper
+// used to accept any zero-exit run containing a single "ok" line, so gutting
+// this file down to one console.log left the whole suite green with every
+// editor assertion gone. A count the script reports about itself cannot go
+// stale the way a number hardcoded in the wrapper would.
+//
 // Usage: node tests/js/editor_check.mjs SYMBOLS.json
 
 import { readFileSync } from "node:fs";
@@ -15,8 +22,10 @@ import * as routing from "../../drawlogic/web/js/routing.js";
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
 let failures = 0;
+let ran = 0;
 
 function check(what, condition, detail = "") {
+  ran += 1;
   if (condition) {
     console.log(`ok   ${what}`);
   } else {
@@ -311,5 +320,10 @@ function twoCorners() {
 
 if (failures) {
   console.log(`${failures} check(s) failed`);
+  console.log(`DONE ${ran}/${ran}`);
   process.exit(1);
 }
+
+// Reaching here means every check above ran to the end. An early exit, a
+// throw, or a file cut down to nothing never prints this.
+console.log(`DONE ${ran}/${ran}`);

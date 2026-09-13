@@ -493,13 +493,20 @@ class Document(object):
       ys = [p[1] for p in points]
       box = union_bbox(box, (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)))
 
-    for net in self.nets:
-      for point in net.get("waypoints", []):
+    # Ask the router where the wires actually go, rather than guessing from
+    # the document. This used to read net["waypoints"] and an x/y off each
+    # endpoint -- version 1's shape. In version 2 a net has a list of loads,
+    # each carrying its own waypoints, and endpoints name a cell and a pin
+    # rather than a coordinate, so none of those keys exist any more and
+    # every wire contributed nothing at all. A cropped export then cut off
+    # whatever the wires did between their two ends.
+    #
+    # routing imports doc, so this import is local rather than at the top.
+    from . import routing
+    for _net_id, start, end in routing.segments_of(
+        routing.route_all(self, registry)):
+      for point in (start, end):
         box = union_bbox(box, (point[0], point[1], 0, 0))
-      for end in ("from", "to"):
-        endpoint = net.get(end) or {}
-        if "x" in endpoint and "y" in endpoint:
-          box = union_bbox(box, (endpoint["x"], endpoint["y"], 0, 0))
 
     for shape in self.shapes:
       if "x" in shape and "y" in shape:

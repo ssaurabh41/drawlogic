@@ -19,6 +19,7 @@ import tempfile
 import unittest
 
 from drawlogic import render_svg, routing, rules, theme
+from drawlogic.doc import new_document
 
 from tests import ROOT, open_example
 
@@ -164,17 +165,53 @@ class TestRouterParity(unittest.TestCase):
         browser = _browser_result(path, registry)
         routes = routing.route_all(doc, registry)
 
+        # Tip and direction both. Comparing tips alone left the direction
+        # vector unowned: reversing every arrow in the browser renderer, so
+        # that each one points back down its own wire without moving, kept
+        # the whole suite green.
         expected = {
-          net["id"]: [[[_round(tip[0]), _round(tip[1])]
-                       for tip, _ in render_svg._arrow_spots(
+          net["id"]: [[[_round(tip[0]), _round(tip[1]),
+                        _round(way[0]), _round(way[1])]
+                       for tip, way in render_svg._arrow_spots(
                          points, theme.ARROW_SIZE)]
                       for points in branches if len(points) >= 2]
           for net, branches in routes if branches}
-        actual = {net_id: [[[_round(tip[0]), _round(tip[1])] for tip, _ in spots]
+        actual = {net_id: [[[_round(tip[0]), _round(tip[1]),
+                             _round(way[0]), _round(way[1])]
+                            for tip, way in spots]
                            for spots in per_branch]
                   for net_id, per_branch in browser["arrows"] if per_branch}
         self.assertEqual(actual, expected,
-                         "%s: direction arrows land in different places" % name)
+                         "%s: direction arrows differ in place or direction"
+                         % name)
+
+  def test_an_arrow_points_the_way_the_signal_travels(self):
+    """Agreement is not correctness: both sides could be reversed together.
+
+    So this one is anchored to the drawing rather than to the other
+    implementation -- a wire running left to right carries an arrow pointing
+    right, whatever either renderer says.
+    """
+    doc = new_document("direction")
+    doc.cells.extend([{"id": "a", "type": "port_out", "x": 10, "y": 100},
+                      {"id": "b", "type": "port_in", "x": 400, "y": 100}])
+    doc.nets.append({"id": "n1", "name": "sig", "width": 1,
+                     "from": {"cell": "a", "pin": "p"},
+                     "to": [{"cell": "b", "pin": "p", "waypoints": []}]})
+    doc.normalize()
+
+    routes = routing.route_all(doc)
+    spots = [spot
+             for _net, branches in routes
+             for points in branches if len(points) >= 2
+             for spot in render_svg._arrow_spots(points, theme.ARROW_SIZE)]
+    self.assertTrue(spots, "a wire this long should carry an arrow")
+    for tip, way in spots:
+      self.assertGreater(
+        way[0], 0,
+        "the signal runs left to right, so its arrow must point right, "
+        "not back at the pin that drives it (tip=%s, direction=%s)"
+        % (tip, way))
 
 
 if __name__ == "__main__":

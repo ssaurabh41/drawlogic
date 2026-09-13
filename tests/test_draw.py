@@ -408,5 +408,49 @@ class TestSymbolPreview(unittest.TestCase):
     self.assertIn("2:1 multiplexer", svg)
 
 
+class TestContentBounds(unittest.TestCase):
+  """A cropped export has to contain the wires, not just the cells.
+
+  content_bbox used to read net["waypoints"] and an x/y off each endpoint --
+  version 1's shape. Version 2 puts waypoints on each load and names a cell
+  and pin instead of a coordinate, so every wire contributed nothing and a
+  crop cut off whatever the wire did between its two ends.
+  """
+
+  def _detour(self):
+    doc = new_document("detour")
+    doc.data["canvas"].update(width=600, height=400)
+    doc.cells.extend([{"id": "a", "type": "port_out", "x": 10, "y": 10},
+                      {"id": "b", "type": "port_in", "x": 500, "y": 10}])
+    doc.nets.append({
+      "id": "n1", "name": "sig", "width": 1,
+      "from": {"cell": "a", "pin": "p"},
+      "to": [{"cell": "b", "pin": "p", "waypoints": [[500, 300], [10, 300]]}],
+    })
+    doc.normalize()
+    return doc
+
+  def test_bounds_reach_the_far_end_of_a_detouring_wire(self):
+    doc = self._detour()
+    box = doc.content_bbox()
+    self.assertGreaterEqual(
+      box[1] + box[3], 300,
+      "the wire runs down to y=300; the bounds stop at %.0f" % (box[1] + box[3]))
+
+  def test_a_cropped_render_keeps_the_whole_wire(self):
+    doc = self._detour()
+    svg = render_svg.render(doc, crop=True)
+    view = [float(v) for v in
+            re.search(r'viewBox="([^"]+)"', svg).group(1).split()]
+    lowest = max(point[1]
+                 for _net, start, end in routing.segments_of(
+                   routing.route_all(doc))
+                 for point in (start, end))
+    self.assertLessEqual(
+      lowest, view[1] + view[3],
+      "crop viewBox ends at y=%.0f but the wire reaches y=%.0f"
+      % (view[1] + view[3], lowest))
+
+
 if __name__ == "__main__":
   unittest.main()

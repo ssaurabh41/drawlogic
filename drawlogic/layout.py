@@ -488,15 +488,11 @@ def _fit(doc, registry, margin):
   Both ways: a layout that leaves half a sheet of white space below it reads
   as a drawing with something missing.
   """
+  # content_bbox routes the wires itself, so it already covers the feedback
+  # path that returns underneath the row it came from. It did not always --
+  # this function used to walk the segments separately to make up for it.
   box = doc.content_bbox(registry)
   if box is None:
     return
-  right = box[0] + box[2]
-  bottom = box[1] + box[3]
-  # Wires can reach past every cell -- a feedback path returning underneath
-  # the row it came from, for one -- so the sheet has to hold them too.
-  for _, _a, b in routing.segments_of(routing.route_all(doc, registry)):
-    right = max(right, b[0])
-    bottom = max(bottom, b[1])
-  doc.canvas["width"] = int(right + margin)
-  doc.canvas["height"] = int(bottom + margin)
+  doc.canvas["width"] = int(box[0] + box[2] + margin)
+  doc.canvas["height"] = int(box[1] + box[3] + margin)

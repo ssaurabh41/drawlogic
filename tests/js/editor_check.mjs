@@ -318,6 +318,75 @@ function twoCorners() {
         JSON.stringify(loads.map((l) => l.waypoints.length)));
 }
 
+// ---- undo through a gesture ----
+//
+// mutate() only keeps the first snapshot of a gesture, so it only takes one.
+// These pin the behaviour that optimisation must not change.
+{
+  const store = new model.Store();
+  store.load({ title: "start", n: 0 }, "a.dlg");
+
+  store.beginGesture("drag");
+  for (let i = 1; i <= 5; i += 1) store.mutate("drag", (d) => { d.n = i; });
+  store.endGesture();
+  check("a drag of five moves undoes as one step",
+        store._undo.length === 1, `${store._undo.length}`);
+  check("back to the state before the drag began",
+        store._undo[0].doc.n === 0, `${store._undo[0].doc.n}`);
+
+  const before = store._undo.length;
+  store.mutate("refused", () => false);
+  check("a refused mutation records nothing",
+        store._undo.length === before);
+
+  store.mutate("one", (d) => { d.n = 10; });
+  store.mutate("two", (d) => { d.n = 20; });
+  check("two edits outside a gesture record two steps",
+        store._undo.length === before + 2);
+  check("each holding what was there before it",
+        store._undo[store._undo.length - 1].doc.n === 10,
+        `${store._undo[store._undo.length - 1].doc.n}`);
+}
+
+// ---- duplicating a group ----
+//
+// Copy, paste and Ctrl+D all go through copyItems/pasteItems, which carried
+// cells, shapes and nets but never groups -- so duplicating a grouped block
+// gave back a pile of loose parts that had to be grouped again by hand.
+{
+  const doc = sketch(0);
+  doc.shapes = [{ id: "s1", kind: "rect", x: 0, y: 0, w: 40, h: 40 }];
+  const ids = new Set([doc.cells[0].id, doc.cells[1].id, "s1"]);
+  model.groupItems(doc, ids);
+
+  const clip = model.copyItems(doc, ids);
+  check("a whole group travels with the things it groups",
+        (clip.groups || []).length === 1,
+        JSON.stringify((clip.groups || []).length));
+
+  const before = doc.groups.length;
+  const added = model.pasteItems(doc, clip, 200, 200);
+  check("pasting it makes a second group",
+        doc.groups.length === before + 1);
+
+  const fresh = doc.groups[doc.groups.length - 1];
+  check("whose members are the copies, not the originals",
+        fresh.members.every((m) => added.includes(m)),
+        JSON.stringify(fresh.members));
+  check("and which groups as many things as the original did",
+        fresh.members.length === ids.size,
+        `${fresh.members.length} vs ${ids.size}`);
+  check("including the shape, not only the cells",
+        fresh.members.some((m) => m.startsWith("s")),
+        JSON.stringify(fresh.members));
+
+  // Half a group is not a group: pasting one would name members that were
+  // never copied.
+  const half = new Set([doc.cells[0].id]);
+  check("copying part of a group carries no group at all",
+        (model.copyItems(doc, half).groups || []).length === 0);
+}
+
 // ---- stale answers ----
 //
 // Saving and laying out are round trips. Whatever the user does while one is

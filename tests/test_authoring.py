@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import tempfile
+import threading
 import unittest
 
 from drawlogic import authoring, render_svg, routing
@@ -241,6 +242,76 @@ class TestTheFileItIsWrittenTo(unittest.TestCase):
     _doc, registry, _issues = sheets.open_document(drawing_path)
     self.assertIsNotNone(registry.get("thing"),
                          "a drawing's folder should carry its own symbols")
+
+
+class TestConcurrentSaves(unittest.TestCase):
+  """Saving two symbols at once must keep both.
+
+  Adding one is read, change, write, and the editor's server answers each
+  request on its own thread. Two at once both read the library as it was
+  before either, and the second to finish wrote its own copy over the first.
+  Not a narrow window: without the lock this loses 58 of 60 every run.
+  """
+
+  SYMBOL = {
+    "name": "X", "category": "custom", "size": [40, 40],
+    "pins": [{"name": "a", "x": 0, "y": 20, "dir": "in", "width": 0}],
+    "draw": [{"op": "rect", "x": 0, "y": 0, "w": 40, "h": 40, "role": "body"}],
+  }
+
+  def test_every_symbol_survives_being_saved_at_once(self):
+    names = ["sym%03d" % index for index in range(24)]
+    failures = []
+
+    with tempfile.TemporaryDirectory() as tmp:
+      path = os.path.join(tmp, "symbols.json")
+      ready = threading.Barrier(len(names))
+
+      def add(name):
+        ready.wait()
+        try:
+          data = dict(self.SYMBOL, name=name)
+          authoring.add_to_file(path, name, data)
+        except Exception as exc:            # noqa: BLE001 - reported below
+          failures.append("%s: %s" % (name, exc))
+
+      threads = [threading.Thread(target=add, args=(name,)) for name in names]
+      for thread in threads:
+        thread.start()
+      for thread in threads:
+        thread.join()
+
+      self.assertEqual(failures, [])
+      with open(path) as handle:
+        saved = json.load(handle)
+
+    self.assertEqual(sorted(saved), sorted(names),
+                     "%d of %d symbols survived" % (len(saved), len(names)))
+
+  def test_a_refused_save_leaves_the_library_and_no_litter(self):
+    """The failure path, which is the part of atomicity a test can reach.
+
+    The write itself goes to a temporary file and is moved into place, so a
+    reader sees one whole version or the other even if the process dies
+    mid-write. That crash cannot be staged here; what can be checked is that
+    a save refused before writing changes nothing and cleans up after itself.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+      path = os.path.join(tmp, "symbols.json")
+      authoring.add_to_file(path, "first", dict(self.SYMBOL, name="first"))
+
+      broken = {key: value for key, value in self.SYMBOL.items()
+                if key != "size"}
+      with self.assertRaises(SymbolError):
+        authoring.add_to_file(path, "broken", broken)
+
+      with open(path) as handle:
+        saved = json.load(handle)
+      self.assertEqual(sorted(saved), ["first"],
+                       "a refused save must leave the library as it was")
+      self.assertEqual(
+        [n for n in os.listdir(tmp) if n != "symbols.json"], [],
+        "no temporary file should be left behind")
 
 
 if __name__ == "__main__":

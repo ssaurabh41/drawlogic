@@ -31,6 +31,8 @@ Usage:
 
 import json
 import os
+import tempfile
+import threading
 
 from .doc import loads_of
 from .symbols import Symbol, SymbolError
@@ -242,6 +244,13 @@ def _op(shape, box, pin_names):
 
 # ---- the file the palette reads ----
 
+# Read, change, write is three steps, and the editor's server answers requests
+# on a thread each. Two symbols saved at once could both read the library as
+# it was before either of them, and whichever wrote second would drop the
+# other. One lock, because one process writes these files.
+_WRITING = threading.Lock()
+
+
 def add_to_file(path, symbol_id, data):
   """Add or replace one symbol in a symbol file, creating it if need be.
 
@@ -250,6 +259,11 @@ def add_to_file(path, symbol_id, data):
   """
   Symbol(symbol_id, data)      # raises SymbolError if the shape is wrong
 
+  with _WRITING:
+    return _add_to_file(path, symbol_id, data)
+
+
+def _add_to_file(path, symbol_id, data):
   library = {}
   if os.path.isfile(path):
     try:
@@ -264,7 +278,23 @@ def add_to_file(path, symbol_id, data):
   parent = os.path.dirname(os.path.abspath(path))
   if parent and not os.path.isdir(parent):
     os.makedirs(parent)
-  with open(path, "w") as handle:
-    json.dump(library, handle, indent=2, sort_keys=True)
-    handle.write("\n")
+
+  # Written beside the target and moved into place, because os.replace is
+  # atomic: a reader either sees the library as it was or as it now is, never
+  # the half of it that had been written when the power went. Opening the
+  # target directly for writing truncates it first, so an interruption there
+  # leaves a file the palette cannot load at all.
+  handle, temporary = tempfile.mkstemp(
+    dir=parent or ".", prefix=".%s." % os.path.basename(path), suffix=".tmp")
+  try:
+    with os.fdopen(handle, "w") as out:
+      json.dump(library, out, indent=2, sort_keys=True)
+      out.write("\n")
+    os.replace(temporary, path)
+  except BaseException:
+    try:
+      os.unlink(temporary)
+    except OSError:
+      pass
+    raise
   return library

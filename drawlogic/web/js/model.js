@@ -99,12 +99,20 @@ export class Store {
 
   mutate(label, change) {
     if (!this.doc) return null;
-    const before = this.snapshot();
+
+    // Only the first mutation of a gesture keeps its snapshot, so only the
+    // first one needs to take it. A drag fires a mutation per pointer move
+    // and every one of them used to serialise and reparse the whole
+    // document -- embedded images included -- to build an undo entry that
+    // was then thrown away.
+    const inGesture = this._gesture !== null && this._gesture !== undefined;
+    const recording = !inGesture || !this._gestureOpen;
+    const before = recording ? this.snapshot() : null;
+
     const result = change(this.doc);
     if (result === false) return null;
 
-    const inGesture = this._gesture !== null && this._gesture !== undefined;
-    if (!inGesture || !this._gestureOpen) {
+    if (recording) {
       this._undo.push({ label, doc: before });
       if (this._undo.length > UNDO_LIMIT) this._undo.shift();
       if (inGesture) this._gestureOpen = true;
@@ -585,7 +593,17 @@ export function copyItems(doc, ids) {
   const nets = doc.nets
     .filter((net) => inside(net.from) && routing.loadsOf(net).some(inside))
     .map((net) => ({ ...net, to: routing.loadsOf(net).filter(inside) }));
-  return JSON.parse(JSON.stringify({ cells, shapes, nets }));
+
+  // Whole groups only. A group half inside the selection would paste as a
+  // group naming members that were never copied, so a partial one is left
+  // behind and its copied members arrive loose. Without this the clipboard
+  // carried no groups at all, and duplicating a grouped block gave you a
+  // pile of separate parts that had to be grouped again by hand.
+  const groups = (doc.groups || [])
+    .filter((group) => group.members.length > 1
+                       && group.members.every((m) => ids.has(m)));
+
+  return JSON.parse(JSON.stringify({ cells, shapes, nets, groups }));
 }
 
 export function pasteItems(doc, clip, dx, dy) {
@@ -606,6 +624,10 @@ export function pasteItems(doc, clip, dx, dy) {
   for (const source of clip.shapes || []) {
     const shape = JSON.parse(JSON.stringify(source));
     shape.id = uniqueId(doc, "s");
+    // Shapes go in the remap too, not because a wire can land on one, but
+    // because a group can contain one -- ids are unique across the document,
+    // so the two kinds share the map safely.
+    remap.set(source.id, shape.id);
     if (shape.points) shape.points = shape.points.map((p) => [p[0] + dx, p[1] + dy]);
     if (shape.x !== undefined) shape.x += dx;
     if (shape.y !== undefined) shape.y += dy;
@@ -626,6 +648,20 @@ export function pasteItems(doc, clip, dx, dy) {
       return load;
     });
     doc.nets.push(net);
+  }
+
+  for (const source of clip.groups || []) {
+    // Every member was remapped above, or the group would not have been
+    // copied. Anything that somehow was not is dropped rather than left
+    // pointing at the original, which would tie the copy to the thing it
+    // was copied from.
+    const members = source.members
+      .map((id) => remap.get(id))
+      .filter((id) => id !== undefined);
+    if (members.length < 2) continue;
+    doc.groups = doc.groups || [];
+    doc.groups.push({ id: uniqueId(doc, "g"), label: source.label || null,
+                      members });
   }
 
   return added;

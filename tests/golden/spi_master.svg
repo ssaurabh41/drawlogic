@@ -83,11 +83,11 @@
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_clk" data-type="port_in" transform="matrix(1,0,0,1,70,755)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="80" y="750" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">clk</text>
 <g class="dl-cell" data-id="p_rstn" data-type="port_in" transform="matrix(1,0,0,1,70,795)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="80" y="790" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rst_n</text>
 <g class="dl-cell" data-id="div" data-type="block" transform="matrix(1,0,0,1,220,735)">
@@ -99,11 +99,11 @@
 <text x="352" y="804" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">tick</text>
 <text x="290" y="730" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">clk_div /8</text>
 <g class="dl-cell" data-id="p_start" data-type="port_in" transform="matrix(1,0,0,1,70,165)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="80" y="160" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">start</text>
 <g class="dl-cell" data-id="p_cpol" data-type="port_in" transform="matrix(1,0,0,1,70,273)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="80" y="268" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">cpol</text>
 <g class="dl-cell" data-id="fsm" data-type="block8" transform="matrix(1,0,0,1,420,144)">
@@ -126,7 +126,7 @@
 <text x="892" y="384" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">last</text>
 <text x="830" y="350" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">bit_cnt</text>
 <g class="dl-cell" data-id="p_tx" data-type="port_in" transform="matrix(1,0,0,1,70,555)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="80" y="550" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">tx_data[7:0]</text>
 <g class="dl-cell" data-id="m1" data-type="mux2w" transform="matrix(1.4,0,0,1.8333,300,532.5)">
@@ -160,19 +160,19 @@
 <text x="852" y="604" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">next[7:0]</text>
 <text x="790" y="530" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">bit select</text>
 <g class="dl-cell" data-id="p_cs" data-type="port_out" transform="matrix(1,0,0,1,1100,241)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="1110" y="236" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">cs_n</text>
 <g class="dl-cell" data-id="p_busy" data-type="port_out" transform="matrix(1,0,0,1,1100,273)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="1110" y="268" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">busy</text>
 <g class="dl-cell" data-id="p_mosi" data-type="port_out" transform="matrix(1,0,0,1,1100,555)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="1110" y="550" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">mosi</text>
 <g class="dl-cell" data-id="p_sck" data-type="port_out" transform="matrix(1,0,0,1,1100,755)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="1110" y="750" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">sck</text>
 </g>

@@ -50,12 +50,21 @@ def _attrs(pairs):
   return " ".join(parts)
 
 
-def _color(spec, cell_style, key):
-  """Resolve a role's colour spec against the element's own style."""
+def _color(spec, cell_style, key, fallback=None):
+  """Resolve a role's colour spec against the element's own style.
+
+  `fallback` is the role's own default, used only when the element sets no
+  colour of its own -- so a port comes out tinted, and a port somebody has
+  recoloured comes out the colour they chose.
+  """
   if spec == "none":
     return "none"
   if spec == "cell":
-    return cell_style.get(key, theme.COLORS[key if key in theme.COLORS else "stroke"])
+    if key in cell_style:
+      return cell_style[key]
+    if fallback:
+      return theme.COLORS.get(fallback, fallback)
+    return theme.COLORS[key if key in theme.COLORS else "stroke"]
   return theme.COLORS.get(spec, spec)
 
 
@@ -64,7 +73,8 @@ def _role_paint(role, cell_style, scale, font_scale):
   spec = theme.ROLE_STYLES.get(role) or theme.ROLE_STYLES["body"]
   paint = {}
 
-  paint["fill"] = _color(spec.get("fill", "none"), cell_style, "fill")
+  paint["fill"] = _color(spec.get("fill", "none"), cell_style, "fill",
+                         spec.get("fillDefault"))
   paint["stroke"] = _color(spec.get("stroke", "none"), cell_style, "stroke")
 
   width_key = spec.get("width")

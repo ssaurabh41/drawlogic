@@ -23,16 +23,23 @@ function el(name, attrs = {}) {
   return node;
 }
 
-function colorFor(spec, style, key) {
+// `fallback` is the role's own default colour, used only when the element
+// sets none of its own -- how a port gets its tint without taking away the
+// user's ability to recolour it. Mirrors _color in render_svg.py.
+function colorFor(spec, style, key, fallback) {
   if (spec === "none") return "none";
-  if (spec === "cell") return style[key] || theme.colors[key] || theme.colors.stroke;
+  if (spec === "cell") {
+    if (style[key]) return style[key];
+    if (fallback) return theme.colors[fallback] || fallback;
+    return theme.colors[key] || theme.colors.stroke;
+  }
   return theme.colors[spec] || spec;
 }
 
 function rolePaint(role, style, scale, fontScale) {
   const spec = theme.roleStyles[role] || theme.roleStyles.body;
   const paint = {
-    fill: colorFor(spec.fill || "none", style, "fill"),
+    fill: colorFor(spec.fill || "none", style, "fill", spec.fillDefault),
     stroke: colorFor(spec.stroke || "none", style, "stroke"),
   };
 

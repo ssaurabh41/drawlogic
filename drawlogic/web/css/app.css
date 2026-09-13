@@ -44,6 +44,26 @@
   }
 }
 
+/* The same tokens again for an explicit choice, so the in-app switch beats
+   the operating system in both directions: a dark OS with Light picked stays
+   light (the :not above), and a light OS with Dark picked goes dark (here). */
+:root[data-theme="dark"] {
+  --bg:        #0e1417;
+  --chrome:    #192126;
+  --chrome-2:  #131a1e;
+  --sunken:    #0c1114;
+  --line:      #2a373d;
+  --line-soft: #212c31;
+  --ink:       #e7eef0;
+  --ink-2:     #a0b1b7;
+  --ink-3:     #6d8087;
+  --accent:    #45b6d2;
+  --accent-on: #08181d;
+  --accent-soft: #10333e;
+  --warm:      #e0913a;
+  --danger:    #f87171;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -428,7 +448,9 @@ input.pcolor { padding: 1px; height: 24px; cursor: pointer; width: 42px; }
    anyone who looks later. */
 .toast {
   position: fixed;
-  top: 54px;
+  /* Below both toolbar rows, over the canvas: high enough to be seen without
+     covering the controls the message is usually about. */
+  top: 104px;
   left: 50%;
   transform: translateX(-50%) translateY(-6px);
   z-index: 40;

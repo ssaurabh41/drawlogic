@@ -548,6 +548,42 @@ function rebuildPalette() {
   });
 }
 
+// ---- appearance ----
+//
+// Three states, not two: "auto" follows the operating system, and the other
+// two override it. The drawing itself never changes -- the sheet is a
+// document and a document is white -- so this is the chrome only, and an
+// exported file looks the same whichever is picked.
+const THEMES = ["auto", "light", "dark"];
+const THEME_KEY = "drawlogic.theme";
+
+function applyTheme(name) {
+  const root = document.documentElement;
+  if (name === "auto") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", name);
+  if (ui.btnTheme) ui.btnTheme.textContent = `Theme: ${name}`;
+  try {
+    window.localStorage.setItem(THEME_KEY, name);
+  } catch (error) {
+    // A browser with storage blocked still gets the theme, just not next time.
+  }
+}
+
+function storedTheme() {
+  try {
+    const saved = window.localStorage.getItem(THEME_KEY);
+    return THEMES.includes(saved) ? saved : "auto";
+  } catch (error) {
+    return "auto";
+  }
+}
+
+function cycleTheme() {
+  const next = THEMES[(THEMES.indexOf(storedTheme()) + 1) % THEMES.length];
+  applyTheme(next);
+  say(`appearance: ${next}`);
+}
+
 // Start a fresh drawing. It needs a name up front because saving writes to a
 // path, and a drawing with nowhere to go is a drawing you lose.
 async function newDrawing() {
@@ -664,6 +700,7 @@ function bindControls() {
   ui.btnExport.addEventListener("click", exportSvg);
   ui.btnPng.addEventListener("click", copyPng);
   ui.btnNew.addEventListener("click", newDrawing);
+  ui.btnTheme.addEventListener("click", cycleTheme);
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
   ui.undo.addEventListener("click", () => stepHistory(true));
   ui.redo.addEventListener("click", () => stepHistory(false));
@@ -798,7 +835,10 @@ async function start() {
     message: $("status-message"),
     toast: $("toast"),
     btnNew: $("btn-new"),
+    btnTheme: $("btn-theme"),
   });
+
+  applyTheme(storedTheme());
 
   viewport = new Viewport(ui.canvas, (view) => {
     const percent = Math.round(view.zoom * 100);

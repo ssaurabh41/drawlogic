@@ -38,6 +38,14 @@ COLORS = {
   "grid": "#b9c7cc",
   "grid_major": "#c3d0d5",
   "ghost": "#84969c",
+
+  # Ports carry a default tint so the edge of a drawing reads at a glance:
+  # what comes in, what goes out, what does both. Tints rather than strong
+  # colour, because a port is punctuation, not the subject. A colour set on
+  # the cell itself still wins over these.
+  "port_in": "#dcecd8",
+  "port_out": "#f7e2cd",
+  "port_inout": "#e4dcf1",
 }
 
 # A symbol's pin stub and the wire that lands on it must be the same weight,
@@ -81,8 +89,17 @@ GHOST_DASH = "4 3"
 
 # How a symbol draw-op role is painted. "fill" and "stroke" name where the
 # colour comes from: "cell" means the cell's own style wins.
+# "fillDefault" names the colour a role falls back to when the cell does not
+# set one of its own, which is how a port gets a tint without taking away the
+# user's ability to recolour it.
 ROLE_STYLES = {
   "body": {"fill": "cell", "stroke": "cell", "width": "stroke"},
+  "port_in": {"fill": "cell", "fillDefault": "port_in",
+              "stroke": "cell", "width": "stroke"},
+  "port_out": {"fill": "cell", "fillDefault": "port_out",
+               "stroke": "cell", "width": "stroke"},
+  "port_inout": {"fill": "cell", "fillDefault": "port_inout",
+                 "stroke": "cell", "width": "stroke"},
   "pin": {"fill": "none", "stroke": "cell", "width": "pin"},
   "bubble": {"fill": "cell", "stroke": "cell", "width": "pin"},
   "decor": {"fill": "none", "stroke": "cell", "width": "decor"},

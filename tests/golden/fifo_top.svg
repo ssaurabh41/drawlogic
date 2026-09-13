@@ -64,43 +64,43 @@
 <text x="602" y="210" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rempty</text>
 <text x="519" y="115" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">U_FIFO</text>
 <g class="dl-cell" data-id="p1" data-type="port_in" transform="matrix(1,0,0,1,80,137)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="132" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wdata[7:0]</text>
 <g class="dl-cell" data-id="p2" data-type="port_in" transform="matrix(1,0,0,1,80,169)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="164" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">winc</text>
 <g class="dl-cell" data-id="p3" data-type="port_in" transform="matrix(1,0,0,1,80,201)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="196" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rinc</text>
 <g class="dl-cell" data-id="p4" data-type="port_in" transform="matrix(1,0,0,1,80,233)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="228" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wrst_n</text>
 <g class="dl-cell" data-id="p5" data-type="port_in" transform="matrix(1,0,0,1,80,265)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="260" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rrst_n</text>
 <g class="dl-cell" data-id="p6" data-type="port_in" transform="matrix(1,0,0,1,80,297)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="292" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wclk</text>
 <g class="dl-cell" data-id="p7" data-type="port_in" transform="matrix(1,0,0,1,80,329)">
-  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="90" y="324" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rclk</text>
 <g class="dl-cell" data-id="p8" data-type="port_out" transform="matrix(1,0,0,1,940,137)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="950" y="132" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rdata[7:0]</text>
 <g class="dl-cell" data-id="p9" data-type="port_out" transform="matrix(1,0,0,1,940,169)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="950" y="164" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">wfull</text>
 <g class="dl-cell" data-id="p10" data-type="port_out" transform="matrix(1,0,0,1,940,201)">
-  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#ffffff" stroke="#16202b" stroke-width="1.6" />
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="950" y="196" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rempty</text>
 </g>

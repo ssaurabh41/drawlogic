@@ -100,15 +100,16 @@ Two things to confirm:
 2. Nothing in any CI config sets `DRAWLOGIC_REGOLD`. A pipeline that
    regenerates its own reference files checks nothing.
 
-**Five tests skip silently without Node, and the run still says OK.** This is
+**Six tests skip silently without Node, and the run still says OK.** This is
 the sharpest edge in the suite. On a machine without `node`:
 
 ```
-Ran 200 tests ... OK (skipped=5)
+Ran 200 tests ... OK (skipped=6)
 ```
 
-Those 5 are the entire cross-language safety net: 4 parity tests and 1 wrapper
-around 37 editor checks. A reviewer on a Node-less machine sees a green run
+Those 6 are the entire cross-language safety net: 4 parity tests comparing the
+two routers, 1 checking that `routing.js`'s fallback design rules still match
+`rules.py`, and 1 wrapper around 37 editor checks. A reviewer on a Node-less machine sees a green run
 with the most important tests absent. Confirm your environment has Node
 (`node --version`) before trusting a pass.
 

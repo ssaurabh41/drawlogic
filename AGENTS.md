@@ -7,9 +7,9 @@ standard library only**, plus a browser editor written as plain ES modules with
 no build step. There is no package manager, no lockfile and no CI pipeline.
 Nothing here is installed; everything runs from a clone.
 
-Start with [DOCUMENTATION.md](DOCUMENTATION.md) for what the tool does, and
-[REVIEW.md](REVIEW.md) -- it is the honest account of what this
-project does, how to verify it, and where it is weak.
+Start with [DOCUMENTATION.md](DOCUMENTATION.md) for what the tool does and how
+to use it, then [REVIEW.md](REVIEW.md) for the honest account of how to verify
+it and where it is weak.
 
 ## Dev environment tips
 
@@ -25,10 +25,15 @@ project does, how to verify it, and where it is weak.
   design rationale, not boilerplate.
 - To find the code for a behaviour, go by module rather than grepping blind:
   `routing.py` orthogonal wire paths and junctions, `layout.py` auto
-  arrangement, `render_svg.py` the only document-to-SVG path, `doc.py` the
-  .dlg format and validation, `symbols.py` the cell library, `sheets.py`
-  hierarchy, `authoring.py` drawing-to-symbol, `theme.py` all visual
+  arrangement (which lays each drawing out twice and keeps the better-scoring
+  result), `render_svg.py` the only document-to-SVG path, `doc.py` the .dlg
+  format and validation, `symbols.py` the cell library, `sheets.py` hierarchy,
+  `authoring.py` drawing-to-symbol, `rules.py` the drafting distances --
+  wire spacing, cell spacing, label clearance -- and `theme.py` all visual
   constants.
+- **Spacing is a rule, not a magic number.** If a drawing looks too cramped or
+  too loose, the value is in `rules.py` and nowhere else. Changing one moves
+  wires, so the golden files move with it.
 - **Symbols are data.** Adding or changing a cell type means editing a
   `symbols.json` entry, not writing code. Do not add Python for a new gate.
 - Node is **not** a dependency. It is used only as a test-time subprocess. Never
@@ -36,11 +41,12 @@ project does, how to verify it, and where it is weak.
 
 ## Testing instructions
 
-- Run everything: `python3 -m unittest discover`. Expect 195 tests, ~3 seconds.
+- Run everything: `python3 -m unittest discover`. Expect 200 tests, ~3 seconds.
 - One module: `python3 -m unittest tests.test_routing` (and so on).
-- **Install Node before trusting a green run.** Without it five tests skip and
-  the suite still prints `OK (skipped=5)`. Those five are the entire
-  cross-language safety net. Check with `node --version` first.
+- **Install Node before trusting a green run.** Without it six tests skip and
+  the suite still prints `OK (skipped=6)`. Those six are the entire
+  cross-language safety net -- the parity checks and the editor checks. Check
+  with `node --version` first.
 - Before relying on the suite, confirm it can fail. Break something on purpose,
   run the suite, watch it go red, revert. For example
   `HOP_RADIUS = 5.0` to `6.0` in `drawlogic/theme.py` produces 5 failures.

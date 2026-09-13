@@ -14,6 +14,14 @@ import * as model from "./model.js";
 import * as routing from "./routing.js";
 import { handlePoints } from "./selection.js";
 
+// Ctrl (Cmd on a Mac) adds to the selection, the way a slide editor does.
+// Shift is deliberately not additive: on empty canvas it is the pan modifier,
+// and one key cannot mean both without the two fighting on a drag.
+export function additive(event) {
+  return event.ctrlKey || event.metaKey;
+}
+
+
 const DRAG_THRESHOLD = 3;
 const PIN_SNAP = 14;
 
@@ -40,6 +48,7 @@ export class SelectTool {
     this.duplicated = false;
     this.moved = false;
     this.waypointNet = null;
+    this.pendingToggle = null;
     this.run = null;
   }
 
@@ -51,9 +60,21 @@ export class SelectTool {
         n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
       }[handle.getAttribute("data-handle")] || "default";
     }
+    // Mid-drag the answer is about the gesture, not about what is under the
+    // pointer -- which on a fast drag is often nothing at all.
+    if (this.mode === "move") return "grabbing";
+    if (this.mode === "resize" && this.handle) {
+      return {
+        nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize",
+        n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
+      }[this.handle] || "default";
+    }
     if (target && target.closest && target.closest(".dl-net, .dl-hit")) return "crosshair";
-    return target && target.closest && target.closest(".dl-cell, .dl-shape")
-      ? "move" : "default";
+    if (!target || !target.closest || !target.closest(".dl-cell, .dl-shape")) return "default";
+    // grab/grabbing rather than move: the hand shape says "you can pick this
+    // up" before the drag and "you are holding it" during, which is the pair
+    // every other canvas tool uses.
+    return "grab";
   }
 
   onPointerDown(event, point) {
@@ -78,8 +99,21 @@ export class SelectTool {
     const node = event.target.closest(".dl-cell, .dl-shape");
     if (node) {
       const id = node.getAttribute("data-id");
-      if (event.shiftKey) selection.toggle(id);
-      else if (!selection.has(id)) selection.set([id]);
+      // Ctrl means two things on an item: add it to the selection, and
+      // duplicate it if you then drag. Which one is meant is only known once
+      // the gesture ends, so the toggle waits for a release that never moved.
+      // Deciding it on press instead would un-select the very item a
+      // Ctrl-drag is about to duplicate.
+      if (additive(event)) {
+        // Add it now so a Ctrl-drag has something to duplicate. Removing it
+        // again is the only case that has to wait for the release, because
+        // until then a press on an already-selected item is ambiguous
+        // between "drop it from the selection" and "drag the whole lot".
+        this.pendingToggle = selection.has(id) ? id : null;
+        if (!selection.has(id)) selection.add([id]);
+      } else if (!selection.has(id)) {
+        selection.set([id]);
+      }
 
       this.mode = "move";
       this.startBoxes = new Map([...selection.ids].map((id2) => {
@@ -88,7 +122,7 @@ export class SelectTool {
       }));
       // Ctrl-drag duplicates, the way it does in a slide editor. The copy is
       // made on the first actual movement, not on the click.
-      this.pendingDuplicate = event.ctrlKey || event.metaKey;
+      this.pendingDuplicate = additive(event);
       this.gestureLabel = this.pendingDuplicate ? "duplicate" : "move";
       return;
     }
@@ -108,7 +142,7 @@ export class SelectTool {
       return;
     }
 
-    if (!event.shiftKey) selection.clear();
+    if (!additive(event)) selection.clear();
     this.mode = "marquee";
   }
 
@@ -267,8 +301,14 @@ export class SelectTool {
           hits.push(item.id);
         }
       }
-      if (event.shiftKey) selection.add(hits);
+      if (additive(event)) selection.add(hits);
       else selection.set(hits);
+    }
+
+    // A Ctrl-click on something already selected, that never moved, means
+    // take it out of the selection. Anything else was an add or a drag.
+    if (this.pendingToggle && !this.moved) {
+      selection.toggle(this.pendingToggle);
     }
 
     const changed = this.moved;

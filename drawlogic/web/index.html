@@ -19,6 +19,7 @@
     <select id="file-select" title="Drawings found under the served folder"></select>
   </label>
 
+  <button id="btn-new" class="action" title="New drawing (Ctrl+N)">New</button>
   <button id="btn-save" class="action" title="Save (Ctrl+S)">Save</button>
   <button id="btn-export" class="action" title="Export SVG (Ctrl+E)">Export SVG</button>
   <button id="btn-symbol" class="action"
@@ -26,6 +27,8 @@
   <button id="btn-png" class="action"
           title="Copy the drawing as a picture, ready to paste into a slide (Ctrl+Shift+E)">Copy PNG</button>
 
+  <span class="divider"></span>
+  <button id="btn-theme" class="action" title="Appearance: follow the system, light, or dark">Theme: auto</button>
   <span class="divider"></span>
   <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
   <button id="btn-redo" class="action" title="Redo (Ctrl+Shift+Z)">Redo</button>
@@ -37,6 +40,28 @@
     <span id="dirty" class="dirty" hidden title="unsaved changes">&#9679;</span>
   </div>
 </div>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="i-rotate"><path d="M13 6a5 5 0 1 0 1.2 3.4"/><path d="M13 2.5V6h-3.5"/></g>
+    <g id="i-flip"><path d="M8 2v12"/><path d="M6 5 2.5 8 6 11z"/><path d="M10 5l3.5 3-3.5 3z"/></g>
+    <g id="i-group"><rect x="2.5" y="2.5" width="6" height="6"/><rect x="7.5" y="7.5" width="6" height="6"/></g>
+    <g id="i-ungroup"><rect x="2.5" y="2.5" width="5" height="5"/><rect x="8.5" y="8.5" width="5" height="5"/><path d="M8.5 5.5h1M5.5 8.5v1"/></g>
+    <g id="i-delete"><path d="M3.5 4.5h9"/><path d="M5.5 4.5V3h5v1.5"/><path d="M4.5 4.5 5 13.5h6l.5-9"/></g>
+    <g id="i-layout"><rect x="1.5" y="3.5" width="4" height="4"/><rect x="10.5" y="8.5" width="4" height="4"/><path d="M5.5 5.5h3v5h2"/></g>
+    <g id="i-tidy"><path d="M2 4.5h12"/><path d="M2 11.5h12"/><path d="M6 4.5v7"/><path d="M10 4.5v7"/></g>
+    <g id="i-align-left"><path d="M2.5 2v12"/><rect x="4.5" y="3.5" width="9" height="3"/><rect x="4.5" y="9.5" width="5.5" height="3"/></g>
+    <g id="i-align-hcenter"><path d="M8 2v12"/><rect x="3.5" y="3.5" width="9" height="3"/><rect x="5.25" y="9.5" width="5.5" height="3"/></g>
+    <g id="i-align-right"><path d="M13.5 2v12"/><rect x="2.5" y="3.5" width="9" height="3"/><rect x="6" y="9.5" width="5.5" height="3"/></g>
+    <g id="i-align-top"><path d="M2 2.5h12"/><rect x="3.5" y="4.5" width="3" height="9"/><rect x="9.5" y="4.5" width="3" height="5.5"/></g>
+    <g id="i-align-vcenter"><path d="M2 8h12"/><rect x="3.5" y="3.5" width="3" height="9"/><rect x="9.5" y="5.25" width="3" height="5.5"/></g>
+    <g id="i-align-bottom"><path d="M2 13.5h12"/><rect x="3.5" y="2.5" width="3" height="9"/><rect x="9.5" y="6" width="3" height="5.5"/></g>
+    <g id="i-dist-h"><path d="M2 2.5v11"/><path d="M14 2.5v11"/><rect x="6.5" y="5.5" width="3" height="5"/></g>
+    <g id="i-dist-v"><path d="M2.5 2h11"/><path d="M2.5 14h11"/><rect x="5.5" y="6.5" width="5" height="3"/></g>
+    <g id="i-front"><rect x="2.5" y="2.5" width="8" height="8"/><path d="M5.5 13.5h8v-8"/></g>
+    <g id="i-back"><rect x="5.5" y="5.5" width="8" height="8"/><path d="M10.5 2.5h-8v8"/></g>
+  </defs>
+</svg>
 
 <div class="toolbar">
   <div class="tgroup">
@@ -52,32 +77,32 @@
   </div>
 
   <div class="tgroup">
-    <button class="tool" data-command="rotate-cw" title="Rotate 90 CW (Ctrl+R)">Rotate</button>
-    <button class="tool" data-command="flip-h" title="Flip horizontal (Ctrl+H)">Flip</button>
-    <button class="tool" data-command="group" title="Group (Ctrl+G)">Group</button>
-    <button class="tool" data-command="ungroup" title="Ungroup (Ctrl+Shift+G)">Ungroup</button>
-    <button class="tool" data-command="delete" title="Delete (Del)">Delete</button>
+    <button class="tool icon" data-command="rotate-cw" title="Rotate 90 clockwise (Ctrl+R)" aria-label="Rotate 90 clockwise"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rotate"/></svg></button>
+    <button class="tool icon" data-command="flip-h" title="Flip horizontal (Ctrl+H)" aria-label="Flip horizontal"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-flip"/></svg></button>
+    <button class="tool icon" data-command="group" title="Group (Ctrl+G)" aria-label="Group"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg></button>
+    <button class="tool icon" data-command="ungroup" title="Ungroup (Ctrl+Shift+G)" aria-label="Ungroup"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg></button>
+    <button class="tool icon" data-command="delete" title="Delete (Del)" aria-label="Delete"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-delete"/></svg></button>
   </div>
 
   <div class="tgroup">
-    <label class="field">
-      <span>Arrange</span>
-      <select id="arrange-select">
-        <option value="">Choose...</option>
-        <option value="layout">Auto layout (rearrange everything)</option>
-        <option value="tidy">Tidy up (straighten wires)</option>
-        <option value="align-left">Align left</option>
-        <option value="align-hcenter">Align centre</option>
-        <option value="align-right">Align right</option>
-        <option value="align-top">Align top</option>
-        <option value="align-vcenter">Align middle</option>
-        <option value="align-bottom">Align bottom</option>
-        <option value="distribute-h">Distribute across</option>
-        <option value="distribute-v">Distribute down</option>
-        <option value="front">Bring to front</option>
-        <option value="back">Send to back</option>
-      </select>
-    </label>
+    <button class="tool icon" data-command="layout" title="Auto layout - rearrange everything from what it is wired to" aria-label="Auto layout"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-layout"/></svg></button>
+    <button class="tool icon" data-command="tidy" title="Tidy up - straighten wires" aria-label="Tidy up"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tidy"/></svg></button>
+  </div>
+
+  <div class="tgroup">
+    <button class="tool icon" data-command="align-left" title="Align left" aria-label="Align left"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-left"/></svg></button>
+    <button class="tool icon" data-command="align-hcenter" title="Align centre" aria-label="Align centre"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-hcenter"/></svg></button>
+    <button class="tool icon" data-command="align-right" title="Align right" aria-label="Align right"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-right"/></svg></button>
+    <button class="tool icon" data-command="align-top" title="Align top" aria-label="Align top"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-top"/></svg></button>
+    <button class="tool icon" data-command="align-vcenter" title="Align middle" aria-label="Align middle"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-vcenter"/></svg></button>
+    <button class="tool icon" data-command="align-bottom" title="Align bottom" aria-label="Align bottom"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-bottom"/></svg></button>
+  </div>
+
+  <div class="tgroup">
+    <button class="tool icon" data-command="distribute-h" title="Distribute across" aria-label="Distribute across"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-h"/></svg></button>
+    <button class="tool icon" data-command="distribute-v" title="Distribute down" aria-label="Distribute down"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-v"/></svg></button>
+    <button class="tool icon" data-command="front" title="Bring to front (Ctrl+])" aria-label="Bring to front"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-front"/></svg></button>
+    <button class="tool icon" data-command="back" title="Send to back (Ctrl+[)" aria-label="Send to back"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-back"/></svg></button>
   </div>
 
   <label class="field">
@@ -136,6 +161,8 @@
   <span id="status-cursor">x &mdash; y &mdash;</span>
   <span class="push" id="status-message">Shift-drag or hold Space to pan &middot; scroll to zoom</span>
 </div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <script type="module" src="/js/main.js"></script>
 </body>

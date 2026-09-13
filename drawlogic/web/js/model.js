@@ -156,6 +156,31 @@ export function items(doc) {
   return [...doc.cells, ...(doc.shapes || [])];
 }
 
+// A fresh drawing, in the shape doc.py normalises to. The sheet size comes
+// from the rules the server sent, so a new drawing here is the same size as
+// one made by `drawlogic` on the command line.
+export function blankDocument(title) {
+  const size = routing.currentRules();
+  return {
+    format: "drawlogic",
+    version: 2,
+    title: title || "untitled",
+    canvas: {
+      width: size.sheetW,
+      height: size.sheetH,
+      grid: { style: "dots", size: 10 },
+      font: { family: "IBM Plex Sans", scale: 1 },
+      symbolScale: 1,
+      arrows: true,
+      hops: true,
+    },
+    cells: [],
+    nets: [],
+    shapes: [],
+    groups: [],
+  };
+}
+
 export function itemById(doc, id) {
   return doc.cells.find((c) => c.id === id)
     || (doc.shapes || []).find((s) => s.id === id)

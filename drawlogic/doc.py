@@ -29,6 +29,7 @@ This module also owns bus naming: net_name_width("d[7:0]") is 8.
 import json
 import re
 
+from . import rules
 from . import theme
 from .geometry import corners, union_bbox
 from .symbols import default_registry
@@ -53,8 +54,11 @@ GROUP_KEYS = ["id", "label", "members"]
 SHAPE_KINDS = ("rect", "ellipse", "line", "polygon", "polyline", "text")
 
 DEFAULT_CANVAS = {
-  "width": 1600,
-  "height": 1000,
+  # One sheet size for every new drawing, so a folder of them prints and
+  # pastes at a consistent scale. Change it per drawing in the properties
+  # panel when one needs more room; the number itself lives in rules.py.
+  "width": rules.SHEET_W,
+  "height": rules.SHEET_H,
   "background": theme.PAPER,
   "grid": {"style": "dots", "size": 10, "color": theme.COLORS["grid"]},
   "font": {"family": "IBM Plex Sans", "scale": 1.0},

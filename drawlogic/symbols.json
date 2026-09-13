@@ -1858,7 +1858,7 @@
       {
         "op": "path",
         "d": "M0 0 H15 L20 5 L15 10 H0 Z",
-        "role": "body"
+        "role": "port_in"
       }
     ]
   },
@@ -1882,7 +1882,7 @@
       {
         "op": "path",
         "d": "M20 0 H5 L0 5 L5 10 H20 Z",
-        "role": "body"
+        "role": "port_out"
       }
     ]
   },
@@ -1906,7 +1906,7 @@
       {
         "op": "path",
         "d": "M5 0 H19 L24 5 L19 10 H5 L0 5 Z",
-        "role": "body"
+        "role": "port_inout"
       }
     ]
   },

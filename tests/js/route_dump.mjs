@@ -11,7 +11,7 @@
 // here while routing properly there, and the comparison would pass on two
 // empty answers.
 //
-// Usage: node tests/js/route_dump.mjs SYMBOLS.json DRAWING.dlg THEME.json
+// Usage: node tests/js/route_dump.mjs SYMBOLS.json DRAWING.dlg THEME.json RULES.json
 
 import { readFileSync } from "node:fs";
 import * as geometry from "../../drawlogic/web/js/geometry.js";
@@ -22,8 +22,6 @@ const [symbolsPath, drawingPath] = process.argv.slice(2);
 geometry.setLibrary(JSON.parse(readFileSync(symbolsPath, "utf8")));
 const doc = JSON.parse(readFileSync(drawingPath, "utf8"));
 
-const routes = routing.routeAll(doc);
-const hops = routing.hopPoints(routes);
 const canvas = doc.canvas || {};
 const fontScale = Number((canvas.font || {}).scale) || 1;
 
@@ -32,6 +30,13 @@ const fontScale = Number((canvas.font || {}).scale) || 1;
 // language, and both are easy to let drift.
 const theme = JSON.parse(readFileSync(process.argv[4], "utf8"));
 render.setTheme(theme);
+// The drafting rules come from Python too, so a change to rules.py that the
+// browser router has not picked up shows here as a routing difference.
+const designRules = JSON.parse(readFileSync(process.argv[5], "utf8"));
+routing.setRules(designRules);
+
+const routes = routing.routeAll(doc);
+const hops = routing.hopPoints(routes);
 const labels = render.labelSpots(routes, render.cellBoxes(doc),
                                  [canvas.width, canvas.height], fontScale);
 

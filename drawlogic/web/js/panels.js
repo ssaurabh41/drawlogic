@@ -49,8 +49,21 @@ export function buildPalette(root, { onPick }) {
       item.className = "palette-item";
       item.type = "button";
       item.dataset.symbol = id;
-      item.title = `${symbol.name} (${id}) - click, then click the canvas`;
+      item.title = `${symbol.name} (${id}) - drag onto the canvas, or click then click`;
       item.appendChild(symbolThumbnail(symbol));
+
+      // Dragging one out is the gesture people arrive expecting; the
+      // click-then-click path stays because it is the only one that works
+      // from a keyboard and the only one that can place several in a row.
+      item.draggable = true;
+      item.addEventListener("dragstart", (event) => {
+        event.dataTransfer.setData("application/x-drawlogic-symbol", id);
+        event.dataTransfer.setData("text/plain", id);
+        event.dataTransfer.effectAllowed = "copy";
+        item.classList.add("dragging");
+      });
+      item.addEventListener("dragend", () => item.classList.remove("dragging"));
+
       item.addEventListener("click", () => {
         for (const other of root.querySelectorAll(".palette-item")) {
           other.classList.toggle("armed", other === item);
@@ -280,11 +293,22 @@ export class Inspector {
       const wrap = element("div", "swatch");
       const picker = input(first[key] || fallback, "color");
       picker.classList.add("pcolor");
-      picker.addEventListener("input", () => {
+      // Listen for both events, because browsers disagree about which one a
+      // colour dialog sends. Some stream "input" as you drag inside the
+      // picker; others stay silent until the dialog closes and then send only
+      // "change". Binding one of them leaves the control doing nothing at all
+      // for whoever is on the other browser, which is what happened here.
+      // The cost is that Chrome sends both, so remember what was applied.
+      let applied = null;
+      const apply = () => {
+        if (picker.value === applied) return;
+        applied = picker.value;
         this.store.mutate("colour",
                           (doc) => model.setStyle(doc, this.selection.ids, key, picker.value));
         this.onChange();
-      });
+      };
+      picker.addEventListener("input", apply);
+      picker.addEventListener("change", apply);
       const reset = element("button", "linkish", "reset");
       reset.addEventListener("click", () => {
         this.store.mutate("colour",

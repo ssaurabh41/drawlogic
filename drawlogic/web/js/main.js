@@ -8,6 +8,7 @@ import * as model from "./model.js";
 import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
 import * as picture from "./picture.js";
 import * as render from "./render.js";
+import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
 import { makeTools } from "./tools.js";
 import { Viewport } from "./viewport.js";
@@ -37,9 +38,26 @@ async function api(url, options) {
   return payload;
 }
 
+let toastTimer = null;
+
+// Two places, on purpose. The status bar keeps the last thing that happened
+// for anyone who looks later; the toast puts it where the eye already is,
+// because a message in the bottom-right corner after a click in the top-left
+// is a message nobody reads. Reported as "after clicking save, display a
+// message if successful or not" -- it did, just invisibly.
 function say(message, kind) {
   ui.message.textContent = message;
   ui.message.className = "push" + (kind ? ` ${kind}` : "");
+
+  if (!ui.toast) return;
+  ui.toast.textContent = message;
+  ui.toast.className = "toast shown" + (kind ? ` ${kind}` : "");
+  ui.toast.hidden = false;
+  window.clearTimeout(toastTimer);
+  // Failures stay up longer: they are the ones worth reading twice.
+  toastTimer = window.setTimeout(() => {
+    ui.toast.classList.remove("shown");
+  }, kind === "bad" ? 6000 : 2800);
 }
 
 // ---- drawing ----
@@ -109,7 +127,9 @@ function bindCanvas() {
     if (event.button !== 0 || viewport.spaceHeld) return;
     if (event.shiftKey && activeTool === "select"
         && !event.target.closest(".dl-cell, .dl-shape, .dl-net, [data-handle]")) {
-      return; // shift-drag on empty space pans, handled by the viewport
+      // Shift-drag on empty space pans, handled by the viewport. Shift is
+      // free for that because adding to a selection is Ctrl, not Shift.
+      return;
     }
 
     const now = performance.now();
@@ -135,8 +155,42 @@ function bindCanvas() {
     const tool = tools[activeTool];
     if (tool && tool.onPointerMove && tool.onPointerMove(event, point)) redraw();
     if (activeTool === "select" && tool.cursorFor) {
-      ui.canvas.style.cursor = viewport.spaceHeld ? "grab" : tool.cursorFor(event.target);
+      // While a drag is in flight the pointer often outruns the thing it is
+      // holding, so the element under it is no longer the cell. Ask the tool
+      // what it is doing rather than what the pointer happens to be over.
+      const holding = tool.mode === "move" || tool.mode === "resize";
+      ui.canvas.style.cursor = viewport.spaceHeld ? "grab"
+        : holding ? tool.cursorFor(event.target === ui.canvas ? null : event.target)
+        : tool.cursorFor(event.target);
     }
+  });
+
+  // Dropping a symbol from the palette. The drag gives a position the
+  // click-then-click path never had, so the cell lands where it was let go
+  // rather than where the next click happens to be.
+  ui.canvas.addEventListener("dragover", (event) => {
+    if (![...event.dataTransfer.types].includes("application/x-drawlogic-symbol")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+
+  ui.canvas.addEventListener("drop", (event) => {
+    const type = event.dataTransfer.getData("application/x-drawlogic-symbol");
+    if (!type) return;
+    event.preventDefault();
+    const point = viewport.toDoc(event.clientX, event.clientY);
+    const cell = store.mutate("place",
+                              (doc) => model.addCell(doc, type, point[0], point[1]));
+    if (!cell) {
+      say(`could not place ${type}`, "bad");
+      return;
+    }
+    selection.set([cell.id]);
+    clearPaletteSelection(ui.paletteBody);
+    setTool("select");
+    redraw();
+    inspector.render();
+    say(`placed ${cell.label || cell.type}`, "good");
   });
 
   window.addEventListener("mouseup", (event) => {
@@ -494,6 +548,79 @@ function rebuildPalette() {
   });
 }
 
+// ---- appearance ----
+//
+// Three states, not two: "auto" follows the operating system, and the other
+// two override it. The drawing itself never changes -- the sheet is a
+// document and a document is white -- so this is the chrome only, and an
+// exported file looks the same whichever is picked.
+const THEMES = ["auto", "light", "dark"];
+const THEME_KEY = "drawlogic.theme";
+
+function applyTheme(name) {
+  const root = document.documentElement;
+  if (name === "auto") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", name);
+  if (ui.btnTheme) ui.btnTheme.textContent = `Theme: ${name}`;
+  try {
+    window.localStorage.setItem(THEME_KEY, name);
+  } catch (error) {
+    // A browser with storage blocked still gets the theme, just not next time.
+  }
+}
+
+function storedTheme() {
+  try {
+    const saved = window.localStorage.getItem(THEME_KEY);
+    return THEMES.includes(saved) ? saved : "auto";
+  } catch (error) {
+    return "auto";
+  }
+}
+
+function cycleTheme() {
+  const next = THEMES[(THEMES.indexOf(storedTheme()) + 1) % THEMES.length];
+  applyTheme(next);
+  say(`appearance: ${next}`);
+}
+
+// Start a fresh drawing. It needs a name up front because saving writes to a
+// path, and a drawing with nowhere to go is a drawing you lose.
+async function newDrawing() {
+  if (store.dirty && !window.confirm("Discard unsaved changes?")) return;
+
+  const raw = window.prompt("Name for the new drawing:", "untitled.dlg");
+  if (!raw) return;
+  const name = raw.trim().replace(/\.dlg$/i, "") + ".dlg";
+
+  try {
+    const existing = [...ui.fileSelect.options].map((option) => option.value);
+    if (existing.includes(name)
+        && !window.confirm(`${name} already exists. Overwrite it?`)) {
+      return;
+    }
+
+    const blank = model.blankDocument(name.replace(/\.dlg$/i, ""));
+    await api(`/api/doc?path=${encodeURIComponent(name)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc: blank }),
+    });
+
+    if (!existing.includes(name)) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      ui.fileSelect.appendChild(option);
+    }
+    ui.fileSelect.value = name;
+    await openDrawing(name);
+    say(`created ${name}`, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
 // Turn the open drawing into a symbol the palette offers.
 //
 // There is no separate symbol editor, because a symbol is very nearly a
@@ -572,6 +699,8 @@ function bindControls() {
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
   ui.btnPng.addEventListener("click", copyPng);
+  ui.btnNew.addEventListener("click", newDrawing);
+  ui.btnTheme.addEventListener("click", cycleTheme);
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
   ui.undo.addEventListener("click", () => stepHistory(true));
   ui.redo.addEventListener("click", () => stepHistory(false));
@@ -591,11 +720,6 @@ function bindControls() {
                             () => runCommand(button.getAttribute("data-command")));
   }
 
-  ui.arrange.addEventListener("change", () => {
-    if (!ui.arrange.value) return;
-    runCommand(ui.arrange.value);
-    ui.arrange.value = "";
-  });
 }
 
 function bindKeyboard() {
@@ -609,6 +733,7 @@ function bindKeyboard() {
         // Shift makes it a picture. Ctrl+P is left alone: printing to PDF
         // from the browser is the way to get a PDF out of drawlogic.
         e: () => (event.shiftKey ? copyPng() : exportSvg()),
+        n: () => newDrawing(),
         z: () => stepHistory(!event.shiftKey),
         y: () => stepHistory(false),
         a: () => { selection.selectAll(); redraw(); inspector.render(); },
@@ -692,7 +817,6 @@ async function start() {
     undo: $("btn-undo"),
     redo: $("btn-redo"),
     gridSelect: $("grid-select"),
-    arrange: $("arrange-select"),
     zoomSlider: $("zoom-slider"),
     zoomValue: $("zoom-value"),
     fontSlider: $("font-slider"),
@@ -703,7 +827,12 @@ async function start() {
     counts: $("status-counts"),
     cursor: $("status-cursor"),
     message: $("status-message"),
+    toast: $("toast"),
+    btnNew: $("btn-new"),
+    btnTheme: $("btn-theme"),
   });
+
+  applyTheme(storedTheme());
 
   viewport = new Viewport(ui.canvas, (view) => {
     const percent = Math.round(view.zoom * 100);
@@ -718,10 +847,12 @@ async function start() {
   selection.subscribe(() => refreshStatus());
 
   try {
-    const [theme, library, listing] = await Promise.all([
+    const [theme, library, listing, designRules] = await Promise.all([
       api("/api/theme"), api("/api/symbols"), api("/api/files"),
+      api("/api/rules"),
     ]);
     render.setTheme(theme);
+    routing.setRules(designRules);
     geometry.setLibrary(library);
     rebuildPalette();
 

@@ -34,15 +34,17 @@ Usage:
     print(note)          # "6 columns, 14 cells, 2 feedback wires"
 """
 
+from . import rules
 from . import routing
 from .doc import loads_of
 from .geometry import corners
 from .symbols import default_registry
 
-# Room between columns, and between cells stacked in one column.
-GAP_X = 100.0
-GAP_Y = 40.0
-MARGIN = 90.0
+# Room between columns, and between cells stacked in one column. The numbers
+# themselves are drafting rules, so they live in rules.py with the rest.
+GAP_X = rules.CELL_GAP_X
+GAP_Y = rules.CELL_GAP_Y
+MARGIN = rules.SHEET_MARGIN
 
 # How many back-and-forth passes the ordering gets. Past about four it stops
 # finding anything.
@@ -80,12 +82,60 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
 
   edges, feedback = _edges(doc, cells)
   ranks = _ranks(doc, cells, edges)
-  order = _order(cells, edges, ranks)
-  _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y)
-  _normalise(doc, registry, cells, margin)
+
+  # Two orderings, and the drawing itself decides. Following a wire through
+  # the columns it skips (see _span_chain) helps some drawings a great deal
+  # and makes others worse, which is not something the algorithm can know in
+  # advance -- so lay the drawing out both ways and keep the one that
+  # measures better. Layout is not a gesture; it can afford to be tried twice.
+  best = None
+  for spans in (True, False):
+    order = _order(cells, edges, ranks, spans=spans)
+    _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y)
+    _normalise(doc, registry, cells, margin)
+    score = _score(doc, registry)
+    if best is None or score < best[0]:
+      best = (score, order, {cell["id"]: (cell["x"], cell["y"]) for cell in cells})
+
+  for cell in cells:
+    cell["x"], cell["y"] = best[2][cell["id"]]
   _fit(doc, registry, margin)
 
-  return Result(len(order), len(cells), feedback)
+  return Result(len(best[1]), len(cells), feedback)
+
+
+# A crossing costs about as much legibility as this much wire. Roughly the
+# width of a small gate: a drawing is better for losing one crossing even if
+# the wires grow by a gate's worth to do it, and not much more than that.
+CROSSING_COST = 200.0
+
+
+def _score(doc, registry):
+  """How hard the laid-out drawing is to read. Lower is better.
+
+  Crossings and total wire length, which are the two things a reader pays
+  for: every crossing is a moment of doubt about which line is which, and
+  every extra unit of wire is distance the eye has to travel.
+  """
+  segments = list(routing.segments_of(routing.route_all(doc, registry)))
+  length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, a, b in segments)
+  return _crossings(segments) * CROSSING_COST + length
+
+
+def _crossings(segments):
+  """How many times one wire crosses another it is not connected to."""
+  total = 0
+  for index, (net_a, a0, a1) in enumerate(segments):
+    a_flat = abs(a0[1] - a1[1]) < 1e-6
+    for net_b, b0, b1 in segments[index + 1:]:
+      if net_a == net_b or (abs(b0[1] - b1[1]) < 1e-6) == a_flat:
+        continue
+      flat, upright = ((a0, a1), (b0, b1)) if a_flat else ((b0, b1), (a0, a1))
+      if (min(flat[0][0], flat[1][0]) < upright[0][0] < max(flat[0][0], flat[1][0])
+          and min(upright[0][1], upright[1][1]) < flat[0][1]
+          < max(upright[0][1], upright[1][1])):
+        total += 1
+  return total
 
 
 def _face_forward(cells):
@@ -217,22 +267,66 @@ def _ranks(doc, cells, edges):
   return rank
 
 
-def _order(cells, edges, ranks):
+def _span_chain(edges, ranks):
+  """Stand-ins for wires that skip a column, and the edges linking them.
+
+  A wire from column 0 to column 2 is invisible to the ordering sweep: the
+  sweep only ever compares a column with the one beside it, so neither end
+  sees the other and both keep whatever place they started in. That is why an
+  input port feeding something two columns along used to be left at the
+  bottom of the sheet while the cell it drives sat at the top.
+
+  The fix is the standard one: give the wire a stand-in in each column it
+  passes through, so it becomes a chain of single-column steps the sweep can
+  follow. The stand-ins are ordering fiction -- they are dropped before
+  anything is placed -- but while they exist they pull both real ends into
+  line with the path between them.
+  """
+  linked = []
+  extra = {}
+  for index, (source, target, _, _) in enumerate(edges):
+    low, high = ranks[source], ranks[target]
+    step = 1 if high >= low else -1
+    if abs(high - low) <= 1:
+      linked.append((source, target))
+      continue
+    previous = source
+    for rank in range(low + step, high, step):
+      stand_in = "\x00span%d@%d" % (index, rank)
+      extra[stand_in] = rank
+      linked.append((previous, stand_in))
+      previous = stand_in
+    linked.append((previous, target))
+  return linked, extra
+
+
+def _order(cells, edges, ranks, spans=True):
   """The cells in each column, top to bottom, ordered to cut wire crossings.
 
   Two wires cross when the order of their ends disagrees between one column
   and the next. Taking the median position of a cell's neighbours and sorting
   by it makes the two agree, and repeating it back and forth settles.
+
+  Wires that skip a column are followed through stand-ins -- see _span_chain
+  -- so a cell is pulled into line with everything it reaches, not only with
+  whatever happens to sit in the column next door.
   """
+  linked, extra = (_span_chain(edges, ranks) if spans
+                   else ([(s, t) for s, t, _, _ in edges], {}))
+  spread = dict(ranks)
+  spread.update(extra)
+
   columns = {}
   for cell in cells:
     columns.setdefault(ranks[cell["id"]], []).append(cell["id"])
+  for stand_in, rank in extra.items():
+    columns.setdefault(rank, []).append(stand_in)
   # Document order to start with, so a layout is the same every time.
   order = [columns.get(index, []) for index in range(max(columns) + 1)]
 
-  neighbours_left = {cell["id"]: [] for cell in cells}
-  neighbours_right = {cell["id"]: [] for cell in cells}
-  for source, target, _, _ in edges:
+  neighbours_left = {key: [] for key in spread}
+  neighbours_right = {key: [] for key in spread}
+  for source, target in linked:
     neighbours_left[target].append(source)
     neighbours_right[source].append(target)
 
@@ -244,7 +338,10 @@ def _order(cells, edges, ranks):
       other = order[index - 1] if forward else order[index + 1]
       position = {cell_id: place for place, cell_id in enumerate(other)}
       order[index] = _by_median(order[index], side, position)
-  return order
+
+  # The stand-ins have done their work; only real cells get placed.
+  return [[cell_id for cell_id in column if not cell_id.startswith("\x00")]
+          for column in order]
 
 
 def _by_median(column, side, position):
@@ -271,7 +368,7 @@ def _headroom(cell):
   Without it a column packs cells tight enough that each name lands on the one
   above, which is a tidy-looking layout that cannot be read.
   """
-  return 20.0 if cell.get("label") else 0.0
+  return rules.LABEL_HEADROOM if cell.get("label") else 0.0
 
 
 def _box(registry, doc, cell):

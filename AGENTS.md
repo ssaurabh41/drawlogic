@@ -76,3 +76,10 @@ project does, how to verify it, and where it is weak.
 - Update `DOCUMENTATION.md` when you change behaviour a user can see. It is
   the only user-facing document: there is no README, on purpose, because two
   documents describing the same tool drift apart.
+
+## Agent tool usage
+
+All wait_agent tool calls MUST use at least 10 minutes timeout. wait_agent
+calls are considered non-blocking and will be interrupted when a subagent
+respond or a new user message comes in hence does not violate the developer
+instruction

@@ -335,6 +335,166 @@ class TestOrderingChoice(unittest.TestCase):
           % (name, chosen, min(scores)))
 
 
+class TestRefinement(unittest.TestCase):
+  """Swapping neighbours in a column and measuring the result.
+
+  Ordering by median neighbour position answers "which cell is roughly where".
+  It does not answer "is this the best arrangement", and a user reported
+  exactly the gap: columns that look tidy with wires running much further than
+  they need to.
+  """
+
+  def crossbar(self, width=4):
+    """Two columns wired straight across, then scrambled within a column.
+
+    Every wire wants its two ends level. The median pass has nothing to pull
+    them into line with, because every cell in a column has exactly one
+    neighbour and they all disagree -- so only trying a swap fixes it.
+    """
+    doc = new_document("crossbar", 900, 700)
+    for index in range(width):
+      doc.cells.append({"id": "a%d" % index, "type": "buf",
+                        "x": 100, "y": 60 + index * 90})
+      doc.cells.append({"id": "b%d" % index, "type": "buf",
+                        "x": 500, "y": 60 + index * 90})
+      doc.nets.append({"id": "n%d" % index,
+                       "from": {"cell": "a%d" % index, "pin": "y"},
+                       "to": [{"cell": "b%d" % index, "pin": "a"}]})
+    return doc
+
+  def test_refining_never_makes_a_drawing_worse(self):
+    """The one thing the pass must guarantee: it keeps a swap only when the
+    measurement says so, so its answer is never worse than what it was given.
+    """
+    for width in (3, 4, 5):
+      with self.subTest(width=width):
+        doc = self.crossbar(width)
+        registry = default_registry()
+        layout.arrange(doc, registry)
+        after = layout._score(doc, registry)
+
+        # The same drawing, laid out with the refinement switched off.
+        plain = self.crossbar(width)
+        sweeps = layout.REFINE_SWEEPS
+        try:
+          layout.REFINE_SWEEPS = 0
+          layout.arrange(plain, registry)
+          before = layout._score(plain, registry)
+        finally:
+          layout.REFINE_SWEEPS = sweeps
+
+        self.assertLessEqual(after, before + 1e-6,
+                             "refining made the drawing score worse")
+
+  def test_it_earns_its_place_on_a_real_drawing(self):
+    """The pass has to actually find something, or it is cost with no gain.
+
+    Asked of the shipped examples rather than a made-up drawing, because the
+    constructions where the median ordering is obviously wrong are exactly the
+    ones it already gets right: every cell has one neighbour and the median is
+    the answer. Where swapping pays is a drawing messy enough to have no
+    obvious answer, which is what the examples are.
+
+    Over the whole set rather than one file, so improving a single drawing
+    cannot break this -- but the pass going quiet everywhere does.
+    """
+    improved = []
+    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
+      if not name.endswith(".dlg"):
+        continue
+      scores = {}
+      for sweeps in (0, layout.REFINE_SWEEPS):
+        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+        was = layout.REFINE_SWEEPS
+        try:
+          layout.REFINE_SWEEPS = sweeps
+          layout.arrange(doc, registry)
+          scores[sweeps] = layout._score(doc, registry)
+        finally:
+          layout.REFINE_SWEEPS = was
+      if scores[layout.REFINE_SWEEPS] < scores[0] - 1.0:
+        improved.append(name)
+    self.assertTrue(improved,
+                    "refining improved none of the examples, so it is only "
+                    "costing time")
+
+  def test_it_is_still_the_same_answer_every_time(self):
+    """A layout that shuffles means nobody can tell whether the button did
+    anything. Trying swaps must not make the result depend on luck."""
+    registry = default_registry()
+    runs = []
+    for _ in range(3):
+      doc = self.crossbar(4)
+      layout.arrange(doc, registry)
+      runs.append([(c["id"], c["x"], c["y"]) for c in doc.cells])
+    self.assertEqual(runs[0], runs[1])
+    self.assertEqual(runs[1], runs[2])
+
+  def test_refining_stops_when_it_finds_nothing(self):
+    """The sweep count is a ceiling, not a target -- otherwise raising it for
+    quality would cost time on every drawing that settled in one pass."""
+    doc = self.crossbar(3)
+    registry = default_registry()
+    calls = []
+    real = layout._score
+
+    def counted(*args, **kwargs):
+      calls.append(1)
+      return real(*args, **kwargs)
+
+    layout._score = counted
+    try:
+      layout.arrange(doc, registry)
+    finally:
+      layout._score = real
+    # Two candidate orderings, plus the refinement. Far fewer than the cap
+    # would allow if every sweep always ran.
+    ceiling = 2 + layout.REFINE_SWEEPS * (len(doc.cells) + 2) + 4
+    self.assertLess(len(calls), ceiling, "the sweeps did not stop early")
+
+
+class TestWhatTheScoreCountsFor(unittest.TestCase):
+  """The score is what decides between two arrangements, so what it counts
+  for is the whole of the layout's taste. These are judgements, not
+  measurements -- the point of testing them is that each one has an effect at
+  all, not that the number is right."""
+
+  def two_cells(self, gap):
+    doc = new_document("spread", 1400, 900)
+    doc.cells.extend([
+      {"id": "u1", "type": "buf", "x": 100, "y": 100},
+      {"id": "u2", "type": "buf", "x": 100 + gap, "y": 100},
+    ])
+    doc.nets.append({"id": "n", "from": {"cell": "u1", "pin": "y"},
+                     "to": [{"cell": "u2", "pin": "a"}]})
+    return doc
+
+  def test_a_tighter_drawing_scores_better(self):
+    registry = default_registry()
+    self.assertLess(layout._score(self.two_cells(200), registry),
+                    layout._score(self.two_cells(600), registry))
+
+  def test_spread_counts_for_something_beyond_the_wire_it_adds(self):
+    """Otherwise SPREAD_COST is a constant nothing reads, which is the shape
+    of bug this project has had before."""
+    registry = default_registry()
+    tight, wide = self.two_cells(200), self.two_cells(600)
+    difference = layout._score(wide, registry) - layout._score(tight, registry)
+
+    was = layout.SPREAD_COST
+    try:
+      layout.SPREAD_COST = 0.0
+      without = layout._score(wide, registry) - layout._score(tight, registry)
+    finally:
+      layout.SPREAD_COST = was
+    self.assertGreater(difference, without)
+
+  def test_a_crossing_costs_more_than_the_wire_it_saves(self):
+    """The whole reason crossings are priced at all: a drawing should accept
+    a longer wire to lose one."""
+    self.assertGreater(layout.CROSSING_COST, drc.CELL_GAP_X)
+
+
 class TestCellMinGap(unittest.TestCase):
   """drc.CELL_MIN_GAP is documented as a real floor, so it has to be one."""
 

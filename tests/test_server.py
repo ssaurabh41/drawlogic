@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import sys
 import tempfile
 import threading
 import unittest
@@ -150,6 +151,43 @@ class TestEndpoints(unittest.TestCase):
     with self.assertRaises(HTTPError) as caught:
       self.post("/api/check", {"doc": {"format": "nope"}})
     self.assertEqual(caught.exception.code, 422)
+
+  def test_a_handler_that_raises_still_answers(self):
+    """Without this the socket closes with nothing written and the browser
+    can only say "Failed to fetch" -- which does not say what went wrong, or
+    even which end went wrong. A user hit exactly that on the Check button.
+    """
+    import io
+    from drawlogic import drc
+
+    def boom(_doc, _registry=None):
+      raise RuntimeError("pretend the checker has a bug")
+
+    payload = self.get("/api/doc?path=slice.dlg")
+    real = drc.check
+    noise = io.StringIO()
+    drc.check = boom
+    real_stderr = sys.stderr
+    sys.stderr = noise
+    try:
+      with self.assertRaises(HTTPError) as caught:
+        self.post("/api/check", {"doc": payload["doc"]})
+    finally:
+      drc.check = real
+      sys.stderr = real_stderr
+
+    self.assertEqual(caught.exception.code, 500)
+    body = json.loads(caught.exception.read().decode("utf-8"))
+    self.assertIn("pretend the checker has a bug", body["error"])
+    self.assertIn("RuntimeError", body["error"])
+    # And the whole traceback goes where a person can act on it.
+    self.assertIn("Traceback", noise.getvalue())
+
+  def test_the_net_does_not_swallow_ordinary_failures(self):
+    """A 404 must stay a 404, not become a 500 with a stack trace."""
+    with self.assertRaises(HTTPError) as caught:
+      self.post("/api/nope", {"doc": {}})
+    self.assertEqual(caught.exception.code, 404)
 
   def test_lists_drawings(self):
     payload = self.get("/api/files")

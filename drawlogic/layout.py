@@ -101,31 +101,111 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
     _normalise(doc, registry, cells, margin)
     score = _score(doc, registry)
     if best is None or score < best[0]:
-      best = (score, order, {cell["id"]: (cell["x"], cell["y"]) for cell in cells})
+      best = (score, order)
 
-  for cell in cells:
-    cell["x"], cell["y"] = best[2][cell["id"]]
+  # Then improve the winner by hand, so to speak: the median ordering is a
+  # good guess at which cell goes where in a column, and a good guess is not
+  # the same as the best arrangement. Swapping two neighbours and measuring is.
+  order = _refine(doc, registry, cells, edges, ranks, best[1],
+                  gap_x, gap_y, margin)
   _fit(doc, registry, margin)
 
-  return Result(len(best[1]), len(cells), feedback)
+  return Result(len(order), len(cells), feedback)
 
 
-# A crossing costs about as much legibility as this much wire. Roughly the
-# width of a small gate: a drawing is better for losing one crossing even if
-# the wires grow by a gate's worth to do it, and not much more than that.
-CROSSING_COST = 200.0
+# A ceiling on how many times to sweep every column looking for a swap worth
+# making, not a target: the loop stops as soon as a sweep finds nothing, so on
+# a drawing that settles in one pass the rest cost nothing at all.
+#
+# Four is where the examples stop improving -- six and eight give byte-for-byte
+# the same drawings. Each sweep re-routes once per candidate swap, which puts
+# the slowest example at about half a second for the whole button.
+REFINE_SWEEPS = 4
+
+
+def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin):
+  """Swap neighbours within a column while that makes the drawing better.
+
+  Ordering by median neighbour position settles quickly and reads well, but it
+  is answering "which cell is roughly where" rather than "is this the best
+  arrangement". Two cells in one column can often be exchanged for shorter
+  wires, and nothing in the median pass would ever try it -- reported as
+  columns that look tidy with wires running much further than they need to.
+
+  Every candidate is measured by actually routing it, so the answer is about
+  the drawing rather than about a proxy for it. Leaves the document holding
+  the arrangement it returns.
+  """
+  def lay_out(candidate):
+    _place(doc, registry, cells, edges, ranks, candidate, gap_x, gap_y)
+    _normalise(doc, registry, cells, margin)
+    return _score(doc, registry)
+
+  best = lay_out(order)
+  for _sweep in range(REFINE_SWEEPS):
+    improved = False
+    for column in range(len(order)):
+      for index in range(len(order[column]) - 1):
+        candidate = [list(group) for group in order]
+        candidate[column][index], candidate[column][index + 1] = (
+          candidate[column][index + 1], candidate[column][index])
+        score = lay_out(candidate)
+        if score < best - EPSILON:
+          best, order, improved = score, candidate, True
+    if not improved:
+      break
+
+  lay_out(order)
+  return order
+
+
+# What a layout is trying to make small, priced against each other in units of
+# wire. These are judgements about reading a drawing, not measurements, and
+# they are here rather than in drc.py because nothing outside the layout obeys
+# them: they decide between two arrangements, they do not rule any drawing out.
+
+# A crossing costs about as much legibility as this much wire. Roughly a small
+# gate and a half: the drawing is better for losing a crossing even if the
+# wires grow by that much to do it.
+#
+# This is also the price of a crossing bridge, because they are the same
+# thing. A bridge is what a crossing is drawn as -- measured across the seven
+# examples, crossings and drawn bridges track each other closely (37 and 37 on
+# soc_top, 27 and 26 on spi_master). Costing both would be counting one fault
+# twice and calling it two rules.
+CROSSING_COST = 320.0
+
+# How much a drawing pays for the room it takes, per unit of width plus
+# height. Small on purpose: a sprawling drawing is worth tightening, but not
+# at the price of the crossings and detours that cramming it would cost. At
+# this weight a drawing has to save about two gates' worth of spread to be
+# worth one extra crossing.
+SPREAD_COST = 0.35
+
+EPSILON = 1e-9
 
 
 def _score(doc, registry):
   """How hard the laid-out drawing is to read. Lower is better.
 
-  Crossings and total wire length, which are the two things a reader pays
-  for: every crossing is a moment of doubt about which line is which, and
-  every extra unit of wire is distance the eye has to travel.
+  Three things a reader pays for. Every crossing is a moment of doubt about
+  which line is which, and a bridge drawn over it is the same doubt with a
+  bump on it. Every extra unit of wire is distance the eye has to travel. And
+  every extra unit of sheet is drawing that has to be scrolled or shrunk to be
+  seen at all.
+
+  Measured by routing the drawing, not by a proxy for it, so what is scored is
+  what would be exported.
   """
   segments = list(routing.segments_of(routing.route_all(doc, registry)))
   length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, a, b in segments)
-  return _crossings(segments) * CROSSING_COST + length
+
+  box = doc.content_bbox(registry)
+  spread = (box[2] + box[3]) if box else 0.0
+
+  return (_crossings(segments) * CROSSING_COST
+          + length
+          + spread * SPREAD_COST)
 
 
 def _crossings(segments):

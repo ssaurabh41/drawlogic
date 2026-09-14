@@ -37,7 +37,9 @@ escape it.
 import json
 import os
 import re
+import sys
 import threading
+import traceback
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
@@ -112,6 +114,7 @@ class Handler(BaseHTTPRequestHandler):
   # ---- plumbing ----
 
   def _send(self, status, content_type, body):
+    self._started = True
     if isinstance(body, str):
       body = body.encode("utf-8")
     self.send_response(status)
@@ -147,9 +150,45 @@ class Handler(BaseHTTPRequestHandler):
     values = self._query().get(name)
     return values[0] if values else None
 
+  # ---- answering every request ----
+
+  def _guard(self, handler):
+    """Run a handler, and answer even when it goes wrong.
+
+    Without this, an exception in a handler propagates out of the request,
+    the socket is closed with nothing written, and the browser reports
+    "Failed to fetch" -- which says only that the request did not finish, not
+    what went wrong or even which end was at fault. A user hit exactly that on
+    the Check button and there was nothing to go on from either side.
+
+    So: the reason goes back as a 500 the editor can show, and the whole
+    traceback goes to the terminal running the server, where the file and line
+    are. The response is deliberately short on detail; the terminal is where
+    you look, and it is the same machine.
+    """
+    self._started = False
+    try:
+      handler()
+    except Exception as exc:
+      sys.stderr.write("\n%s while handling %s %s\n%s\n"
+                       % (type(exc).__name__, self.command, self.path,
+                          traceback.format_exc()))
+      if self._started:
+        # The status line is already out, so there is nothing left to say
+        # with. Closing the connection is all that is left.
+        return
+      self._fail(500, "%s: %s -- the terminal running drawlogic has the "
+                      "traceback" % (type(exc).__name__, exc))
+
   # ---- GET ----
 
   def do_GET(self):
+    self._guard(self._get)
+
+  def do_POST(self):
+    self._guard(self._post)
+
+  def _get(self):
     route = urlparse(self.path).path
 
     if route.startswith("/api/"):
@@ -250,7 +289,7 @@ class Handler(BaseHTTPRequestHandler):
 
   # ---- POST ----
 
-  def do_POST(self):
+  def _post(self):
     route = urlparse(self.path).path
     payload = self._body()
     if payload is None:

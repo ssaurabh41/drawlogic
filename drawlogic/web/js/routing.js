@@ -20,6 +20,7 @@ let limits = {
   corridorStep: 10,
   corridorTries: 18,
   wireGap: 18,
+  touching: 0.5,
   labelClearance: 5,
   labelHeadroom: 20,
   sheetW: 1200,
@@ -167,7 +168,10 @@ export class Sheet {
   // to end included -- is always worth avoiding. Crossing one is only worth
   // avoiding if there is somewhere better to go, since in a busy drawing every
   // route crosses something; `crossings: false` asks the milder question.
-  free(horizontal, fixed, v0, v1, crossings = true) {
+  // `gap` lowers the bar further: the last pass asks only that the wire not be
+  // drawn on top of another, which is a different question from being far
+  // enough from it to read as separate.
+  free(horizontal, fixed, v0, v1, crossings = true, gap = limits.wireGap) {
     const lo = Math.min(v0, v1);
     const hi = Math.max(v0, v1);
     return !this.runs.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
@@ -176,7 +180,7 @@ export class Sheet {
       if (netId !== null && netId === this.net) return false;
       for (const key of keys) if (this.keys.has(key)) return false;
       if (runH === horizontal) {
-        if (Math.abs(runFixed - fixed) >= limits.wireGap) return false;
+        if (Math.abs(runFixed - fixed) >= gap) return false;
         return !(hi + EPSILON < runLo || lo - EPSILON > runHi);
       }
       return crossings && runLo + EPSILON < fixed && fixed < runHi - EPSILON
@@ -193,16 +197,24 @@ function endpointKeys(net) {
   return keys;
 }
 
-// Corridor tests to try in turn, from fussiest to bare. The middle pass
-// matters more than it looks: without it a wire that can find no crossing-free
-// corridor falls straight back to its preferred one, and since every wire
-// between the same two columns prefers the same corridor they would all pile
-// onto it and be drawn on top of each other.
+// Corridor tests to try in turn, from fussiest to bare. The middle passes
+// matter more than they look: without them a wire that can find no
+// crossing-free corridor falls straight back to its preferred one, and since
+// every wire between the same two columns prefers the same corridor they would
+// all pile onto it and be drawn on top of each other.
+//
+// The third pass is the one that matters in a drawing with no room left. It
+// asks only that the wire not be drawn on top of another, which is a much
+// weaker question than being far enough away to read as separate -- and the
+// difference between the two is the difference between a drawing that is
+// crowded and a drawing that claims a connection nobody made.
 function corridorTests(pathIsClear, isFree) {
   if (!isFree) return [pathIsClear];
+  const gap = limits.wireGap;
   return [
-    (v) => pathIsClear(v) && isFree(v, true),
-    (v) => pathIsClear(v) && isFree(v, false),
+    (v) => pathIsClear(v) && isFree(v, true, gap),
+    (v) => pathIsClear(v) && isFree(v, false, gap),
+    (v) => pathIsClear(v) && isFree(v, false, limits.touching),
     pathIsClear,
   ];
 }
@@ -287,14 +299,14 @@ function sidestep(a, b, sheet, vertical) {
       (m) => verticalClear(m, a[1], b[1], boxes)
         && horizontalClear(a[1], a[0], m, boxes)
         && horizontalClear(b[1], m, b[0], boxes),
-      (m, cross) => sheet.free(false, m, a[1], b[1], cross));
+      (m, cross, gap) => sheet.free(false, m, a[1], b[1], cross, gap));
     return [a, [x, a[1]], [x, b[1]], b];
   }
   const y = pickCorridor(a[1], -Infinity, Infinity,
     (m) => horizontalClear(m, a[0], b[0], boxes)
       && verticalClear(a[0], a[1], m, boxes)
       && verticalClear(b[0], m, b[1], boxes),
-    (m, cross) => sheet.free(true, m, a[0], b[0], cross));
+    (m, cross, gap) => sheet.free(true, m, a[0], b[0], cross, gap));
   return [a, [a[0], y], [b[0], y], b];
 }
 
@@ -304,7 +316,7 @@ function routeHH(a, b, aDir, bDir, sheet) {
   const clearAt = (m) => verticalClear(m, a[1], b[1], boxes)
     && horizontalClear(a[1], a[0], m, boxes)
     && horizontalClear(b[1], m, b[0], boxes);
-  const freeAt = (m, cross) => sheet.free(false, m, a[1], b[1], cross);
+  const freeAt = (m, cross, gap) => sheet.free(false, m, a[1], b[1], cross, gap);
 
   const facing = (b[0] - a[0]) * aDir[0] > EPSILON && (a[0] - b[0]) * bDir[0] > EPSILON;
   if (facing) {
@@ -325,7 +337,7 @@ function routeHH(a, b, aDir, bDir, sheet) {
     (m) => horizontalClear(m, a[0], b[0], boxes)
       && verticalClear(a[0], a[1], m, boxes)
       && verticalClear(b[0], m, b[1], boxes),
-    (m, cross) => sheet.free(true, m, a[0], b[0], cross));
+    (m, cross, gap) => sheet.free(true, m, a[0], b[0], cross, gap));
   return [a, [a[0], y], [b[0], y], b];
 }
 
@@ -335,7 +347,7 @@ function routeVV(a, b, aDir, bDir, sheet) {
   const clearAt = (m) => horizontalClear(m, a[0], b[0], boxes)
     && verticalClear(a[0], a[1], m, boxes)
     && verticalClear(b[0], m, b[1], boxes);
-  const freeAt = (m, cross) => sheet.free(true, m, a[0], b[0], cross);
+  const freeAt = (m, cross, gap) => sheet.free(true, m, a[0], b[0], cross, gap);
 
   const facing = (b[1] - a[1]) * aDir[1] > EPSILON && (a[1] - b[1]) * bDir[1] > EPSILON;
   if (facing) {
@@ -354,7 +366,7 @@ function routeVV(a, b, aDir, bDir, sheet) {
     (m) => verticalClear(m, a[1], b[1], boxes)
       && horizontalClear(a[1], a[0], m, boxes)
       && horizontalClear(b[1], m, b[0], boxes),
-    (m, cross) => sheet.free(false, m, a[1], b[1], cross));
+    (m, cross, gap) => sheet.free(false, m, a[1], b[1], cross, gap));
   return [a, [x, a[1]], [x, b[1]], b];
 }
 

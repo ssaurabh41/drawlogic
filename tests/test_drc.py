@@ -17,7 +17,7 @@ Usage:
 
 import unittest
 
-from drawlogic import drc
+from drawlogic import drc, routing
 from drawlogic.doc import Document, new_document
 from drawlogic.symbols import default_registry
 
@@ -365,6 +365,67 @@ class TestViolations(unittest.TestCase):
        wire("n2", "in1", "p", "U1", "b", "s2")])
     pairs = [v.where for v in drc.check(doc) if v.rule == "wire-short"]
     self.assertEqual(len(pairs), len(set(pairs)))
+
+
+class TestRouterUnderPressure(unittest.TestCase):
+  """What the router does when it runs out of room.
+
+  Measured with the DRCs rather than by naming coordinates: the claim is about
+  the drawing being readable, not about any particular set of corridors.
+  """
+
+  def crossover(self, count, gate_x=220):
+    """Every port crossing to the block at the opposite end.
+
+    This is the shape that fills a corridor band: every vertical run overlaps
+    every other one, so no two of them may share a corridor.
+    """
+    doc = new_document("crossover", 1000, 900)
+    for index in range(count):
+      doc.cells.append({"id": "in%d" % index, "type": "port_in", "x": 60,
+                        "y": 100 + 60 * index, "label": "in%d" % index})
+      doc.cells.append({"id": "U%d" % index, "type": "buf", "x": gate_x,
+                        "y": 100 + 60 * (count - 1 - index)})
+      doc.nets.append({"id": "n%d" % index, "name": "s%d" % index,
+                       "from": {"cell": "in%d" % index, "pin": "p"},
+                       "to": [{"cell": "U%d" % index, "pin": "a"}]})
+    return doc
+
+  def test_a_full_band_crowds_wires_rather_than_merging_them(self):
+    """Eight wires through a band with room for five.
+
+    The router used to fall straight back to the corridor it wanted once no
+    well-separated one was left, which put wire after wire on the same line:
+    six pairs of unrelated nets drawn as one. Crowded is a judgement about
+    spacing; merged is the drawing claiming a connection nobody made, and the
+    two are not the same failure.
+    """
+    for count in (4, 6, 8):
+      with self.subTest(wires=count):
+        found = drc.check(self.crossover(count))
+        self.assertEqual(
+          [str(v) for v in found if v.rule == "wire-short"], [],
+          "%d wires through one band were drawn on top of each other" % count)
+
+  def test_wires_still_spread_out_when_there_is_room(self):
+    """The last resort must stay a last resort.
+
+    With space to spare the corridors should be properly apart, not merely
+    not-touching -- otherwise the new pass has quietly become the only one.
+    Measured on the corridors themselves, since the runs into the pins sit at
+    whatever the pins are and the router has no say in those.
+    """
+    doc = self.crossover(4, gate_x=520)
+    corridors = sorted({round(point[0], 3)
+                        for _net, branches in routing.route_all(doc)
+                        for points in branches for point in points
+                        if 80 < point[0] < 520})
+    self.assertTrue(len(corridors) >= 2, "expected a corridor per wire")
+    for first, second in zip(corridors, corridors[1:]):
+      self.assertGreaterEqual(
+        second - first, drc.WIRE_GAP,
+        "corridors %g and %g are closer than two wires may sit with room "
+        "to spare" % (first, second))
 
 
 class TestExamples(unittest.TestCase):

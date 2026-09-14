@@ -35,8 +35,10 @@ CORRIDOR_STEP = drc.CORRIDOR_STEP
 CORRIDOR_TRIES = drc.CORRIDOR_TRIES
 
 # How far apart two wires that have nothing to do with each other must sit
-# before they read as two wires rather than one.
+# before they read as two wires rather than one, and the much smaller distance
+# that only asks them not to be drawn on top of each other.
 WIRE_GAP = drc.WIRE_GAP
+TOUCHING = drc.TOUCHING
 
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")
@@ -223,7 +225,7 @@ class Sheet:
     view._net = net_id
     return view
 
-  def free(self, horizontal, fixed, v0, v1, crossings=True):
+  def free(self, horizontal, fixed, v0, v1, crossings=True, gap=None):
     """True if this line stays clear of the wires already placed.
 
     Two faults, of very different weight. Shadowing -- running alongside
@@ -232,8 +234,12 @@ class Sheet:
     better to go, since in a busy drawing every route crosses something.
 
     `crossings=False` asks the milder question, which is what the second pass
-    of a corridor search uses.
+    of a corridor search uses. `gap` lowers the bar further: the last pass
+    asks only that the wire not be drawn on top of another, which is a
+    different question from being far enough from it to read as separate.
     """
+    if gap is None:
+      gap = WIRE_GAP
     lo, hi = min(v0, v1), max(v0, v1)
     for net_id, keys, run_h, run_fixed, run_lo, run_hi in self._runs:
       # A net never crowds itself, and neither does anything sharing a pin
@@ -241,7 +247,7 @@ class Sheet:
       if (net_id is not None and net_id == self._net) or (keys & self._keys):
         continue
       if run_h == horizontal:
-        if abs(run_fixed - fixed) >= WIRE_GAP:
+        if abs(run_fixed - fixed) >= gap:
           continue
         # Meeting end to end counts: two unrelated wires that share a single
         # point are drawn with a junction dot, which says they are connected.
@@ -318,17 +324,25 @@ def _pick_outward(preferred, direction, path_is_clear, is_free=None):
 def _tests(path_is_clear, is_free):
   """Corridor tests to try in turn, from fussiest to bare.
 
-  The middle pass matters more than it looks. Without it, a wire that can
+  The middle passes matter more than they look. Without them, a wire that can
   find no crossing-free corridor falls straight back to its preferred one --
   and since every wire between the same two columns prefers the same corridor,
   they would all pile onto it and be drawn on top of each other. Giving up on
-  crossings first, and only then on everything, keeps them apart.
+  crossings first, then on separation, and only then on everything, keeps them
+  apart.
+
+  The third pass is the one that matters in a drawing with no room left. It
+  asks only that the wire not be drawn on top of another, which is a much
+  weaker question than being far enough away to read as separate -- and the
+  difference between the two is the difference between a drawing that is
+  crowded and a drawing that claims a connection nobody made.
   """
   if is_free is None:
     return [path_is_clear]
   return [
-    lambda value: path_is_clear(value) and is_free(value, True),
-    lambda value: path_is_clear(value) and is_free(value, False),
+    lambda value: path_is_clear(value) and is_free(value, True, WIRE_GAP),
+    lambda value: path_is_clear(value) and is_free(value, False, WIRE_GAP),
+    lambda value: path_is_clear(value) and is_free(value, False, TOUCHING),
     path_is_clear,
   ]
 
@@ -355,7 +369,8 @@ def _sidestep(a, b, sheet, vertical):
               and _horizontal_clear(a[1], a[0], x, boxes)
               and _horizontal_clear(b[1], x, b[0], boxes))
     x = _pick_corridor(a[0], NEG_SPAN, POS_SPAN, clear_at,
-                       lambda x, cross: sheet.free(False, x, a[1], b[1], cross))
+                       lambda x, cross, gap:
+                       sheet.free(False, x, a[1], b[1], cross, gap))
     return [a, (x, a[1]), (x, b[1]), b]
 
   def clear_at(y):
@@ -363,7 +378,8 @@ def _sidestep(a, b, sheet, vertical):
             and _vertical_clear(a[0], a[1], y, boxes)
             and _vertical_clear(b[0], y, b[1], boxes))
   y = _pick_corridor(a[1], NEG_SPAN, POS_SPAN, clear_at,
-                     lambda y, cross: sheet.free(True, y, a[0], b[0], cross))
+                     lambda y, cross, gap:
+                     sheet.free(True, y, a[0], b[0], cross, gap))
   return [a, (a[0], y), (b[0], y), b]
 
 
@@ -376,8 +392,8 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
             and _horizontal_clear(a[1], a[0], x, boxes)
             and _horizontal_clear(b[1], x, b[0], boxes))
 
-  def free_at(x, crossings):
-    return sheet.free(False, x, a[1], b[1], crossings)
+  def free_at(x, crossings, gap):
+    return sheet.free(False, x, a[1], b[1], crossings, gap)
 
   facing = ((b[0] - a[0]) * a_dir[0] > EPSILON
             and (a[0] - b[0]) * b_dir[0] > EPSILON)
@@ -399,7 +415,8 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
             and _vertical_clear(a[0], a[1], y, boxes)
             and _vertical_clear(b[0], y, b[1], boxes))
   y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, row_clear,
-                     lambda y, cross: sheet.free(True, y, a[0], b[0], cross))
+                     lambda y, cross, gap:
+                     sheet.free(True, y, a[0], b[0], cross, gap))
   return [a, (a[0], y), (b[0], y), b]
 
 
@@ -412,8 +429,8 @@ def _route_vv(a, b, a_dir, b_dir, sheet):
             and _vertical_clear(a[0], a[1], y, boxes)
             and _vertical_clear(b[0], y, b[1], boxes))
 
-  def free_at(y, crossings):
-    return sheet.free(True, y, a[0], b[0], crossings)
+  def free_at(y, crossings, gap):
+    return sheet.free(True, y, a[0], b[0], crossings, gap)
 
   facing = ((b[1] - a[1]) * a_dir[1] > EPSILON
             and (a[1] - b[1]) * b_dir[1] > EPSILON)
@@ -433,7 +450,8 @@ def _route_vv(a, b, a_dir, b_dir, sheet):
             and _horizontal_clear(a[1], a[0], x, boxes)
             and _horizontal_clear(b[1], x, b[0], boxes))
   x = _pick_corridor((a[0] + b[0]) / 2.0, NEG_SPAN, POS_SPAN, column_clear,
-                     lambda x, cross: sheet.free(False, x, a[1], b[1], cross))
+                     lambda x, cross, gap:
+                     sheet.free(False, x, a[1], b[1], cross, gap))
   return [a, (x, a[1]), (x, b[1]), b]
 
 

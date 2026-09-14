@@ -53,6 +53,12 @@ CORRIDOR_STEP = 10.0
 # when the router does give up, `check` reports the wire it drew on top of.
 CORRIDOR_TRIES = 18
 
+# Two runs at the same coordinate to within this are drawn as one line. Not a
+# floating-point epsilon: half a unit of separation is invisible on paper, so
+# this is the distance below which two wires have become one. The router's last
+# resort asks only for this much, and the DRCs call anything closer a short.
+TOUCHING = 0.5
+
 # The shortest jog worth drawing. A run this short between two turns reads as
 # a wobble in a straight wire rather than as a deliberate step around
 # something, so the drawing is clearer with the wire moved to avoid it.
@@ -145,6 +151,7 @@ def as_data():
     "corridorStep": CORRIDOR_STEP,
     "corridorTries": CORRIDOR_TRIES,
     "wireMinJog": WIRE_MIN_JOG,
+    "touching": TOUCHING,
     "labelClearance": LABEL_CLEARANCE,
     "labelHeadroom": LABEL_HEADROOM,
     "textToWire": TEXT_TO_WIRE,
@@ -168,10 +175,6 @@ def as_data():
 
 
 # ---- what a failure looks like --------------------------------------------
-
-# Two runs at the same coordinate to within this are drawn as one line. Not a
-# floating-point epsilon: half a unit of separation is invisible on paper.
-TOUCHING = 0.5
 
 # Cell types that stand for the edge of the sheet rather than for a part.
 PORT_CATEGORY = "ports"

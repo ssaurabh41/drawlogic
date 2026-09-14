@@ -16,6 +16,7 @@ Run with nothing, or with --help, for the same overview.
 """
 
 import argparse
+import hashlib
 import os
 import re
 import sys
@@ -247,6 +248,13 @@ def cmd_doctor(args):
   Deliberately not a checksum against a manifest. A manifest goes stale, and
   it fails on a line ending as loudly as on a missing function.
   """
+  if getattr(args, "write_manifest", False):
+    target = os.path.join(_repo_root(), MANIFEST_NAME)
+    with open(target, "w") as handle:
+      handle.write(manifest_text())
+    print("wrote %s (%d files)" % (target, len(manifest_files())))
+    return 0
+
   problems = []
 
   def report(what, detail=None):
@@ -303,6 +311,18 @@ def cmd_doctor(args):
     print("%s  %d browser modules, %d import mismatches"
           % ("ok   " if not mismatches else "FAIL ", modules, len(mismatches)))
 
+  # ---- the files themselves, against the manifest ----
+  listed, counted = _check_manifest()
+  if counted is None:
+    print("--    no %s here, so file contents were not checked"
+          % MANIFEST_NAME)
+  else:
+    for line in listed:
+      report("files", line)
+    print("%s  %d files against %s, %d differ"
+          % ("ok   " if not listed else "FAIL ", counted, MANIFEST_NAME,
+             len(listed)))
+
   print("")
   if not problems:
     print("this copy is consistent with itself")
@@ -316,6 +336,109 @@ def cmd_doctor(args):
   print("  git clone https://github.com/ssaurabh41/drawlogic")
   print("or download and unzip .../drawlogic/archive/refs/heads/main.zip")
   return 1
+
+
+# Files whose contents have to be right for drawlogic to work: the package
+# itself, the symbol library and everything the browser is served. Not the
+# examples or the tests -- a broken example announces itself the moment you
+# open it, and a broken test announces itself when you run the suite.
+MANIFEST_NAME = "manifest.txt"
+
+
+def _package_root():
+  return os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+  return os.path.dirname(_package_root())
+
+
+def content_hash(path):
+  """A file's SHA-256, taken after line endings are made uniform.
+
+  Not the hash of the bytes on disk. Git rewrites line endings on checkout by
+  default on Windows, so a byte-for-byte manifest reports every single file as
+  wrong on a perfectly good clone -- which is exactly what happened when one
+  was handed over: all 28 files "mismatched", none of them actually different.
+
+  A checker that cries wolf is worse than none, because the next real
+  mismatch gets ignored too. So CRLF and LF hash the same, and what is left is
+  a difference in what the file actually says.
+  """
+  with open(path, "rb") as handle:
+    raw = handle.read()
+  text = raw.decode("utf-8-sig")
+  text = text.replace("\r\n", "\n").replace("\r", "\n")
+  return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def manifest_files(root=None):
+  """Every file the manifest covers, as repo-relative paths with / separators."""
+  root = root or _repo_root()
+  package = os.path.join(root, "drawlogic")
+  found = []
+  for folder, dirs, names in os.walk(package):
+    dirs[:] = sorted(d for d in dirs if d not in ("__pycache__", ".git"))
+    for name in sorted(names):
+      if name.endswith((".pyc", ".pyo")):
+        continue
+      full = os.path.join(folder, name)
+      found.append(os.path.relpath(full, root).replace(os.sep, "/"))
+  return sorted(found)
+
+
+def manifest_text(root=None):
+  """The manifest as it should be on disk."""
+  root = root or _repo_root()
+  lines = []
+  for relative in manifest_files(root):
+    full = os.path.join(root, relative.replace("/", os.sep))
+    lines.append("%s  %s" % (content_hash(full), relative))
+  return "\n".join(lines) + "\n"
+
+
+def _check_manifest(root=None):
+  """Compare the tree against the committed manifest.
+
+  Returns (problems, checked). `problems` is empty when every file is present
+  and says what the manifest says; `checked` is None when there is no manifest
+  to check against, which is not itself a fault.
+  """
+  root = root or _repo_root()
+  path = os.path.join(root, MANIFEST_NAME)
+  if not os.path.isfile(path):
+    return [], None
+
+  problems = []
+  listed = set()
+  count = 0
+  with open(path) as handle:
+    for line in handle:
+      line = line.strip()
+      if not line or line.startswith("#"):
+        continue
+      parts = line.split(None, 1)
+      if len(parts) != 2:
+        continue
+      expected, relative = parts[0], parts[1].strip()
+      listed.add(relative)
+      count += 1
+      full = os.path.join(root, relative.replace("/", os.sep))
+      if not os.path.isfile(full):
+        problems.append("%s is missing" % relative)
+        continue
+      try:
+        actual = content_hash(full)
+      except (OSError, UnicodeDecodeError) as exc:
+        problems.append("%s cannot be read: %s" % (relative, exc))
+        continue
+      if actual != expected:
+        problems.append("%s does not match the manifest" % relative)
+
+  for relative in manifest_files(root):
+    if relative not in listed:
+      problems.append("%s is not in the manifest" % relative)
+  return problems, count
 
 
 def _js_imports(folder):
@@ -563,6 +686,8 @@ def build_parser():
 
   doctor = subs.add_parser("doctor", parents=[common],
                            help="check this copy of drawlogic is consistent")
+  doctor.add_argument("--write-manifest", action="store_true",
+                      help="rewrite manifest.txt from the files as they are")
   doctor.set_defaults(func=cmd_doctor)
 
   validate = subs.add_parser("validate", parents=[common],

@@ -49,7 +49,7 @@ work:
 
 ```bash
 python3 -m drawlogic export mydrawing.dlg -o mydrawing.svg
-python3 -m drawlogic validate mydrawing.dlg    # catches pins that only look connected
+python3 -m drawlogic validate mydrawing.dlg    # pins that only look connected, wires that only look separate
 ```
 
 ## Two things worth knowing up front
@@ -79,7 +79,7 @@ Everything below is the complete reference.
 - [The .dlg file](#the-dlg-file)
 - [Symbols](#symbols)
 - [Nets and buses](#nets-and-buses)
-- [Design rules](#design-rules)
+- [Design rule checks (DRCs)](#design-rule-checks-drcs)
 - [Checking a drawing](#checking-a-drawing)
 - [How it is put together](#how-it-is-put-together)
 - [Extending it](#extending-it)
@@ -187,8 +187,13 @@ of quality, and it is the identical mechanism the editor's zoom control uses.
 
 ```bash
 drawlogic info alu_ctrl.dlg       # counts, canvas, bounding box, cells by type
-drawlogic validate alu_ctrl.dlg   # schema errors, unconnected pins, bus widths
+drawlogic validate alu_ctrl.dlg   # references and design rule checks
 ```
+
+Two kinds of problem: references that do not resolve, and drawings that read
+as saying something they do not -- see
+[Checking a drawing](#checking-a-drawing). `--no-drc` asks only the first
+question.
 
 `validate` exits non-zero when it finds errors, so it drops into a pre-commit
 hook or a CI job unchanged.
@@ -227,6 +232,12 @@ request through a proxy that aborts it and watching the log stay empty while
 placing, wiring, saving and exporting a drawing. Useful to know on a
 workstation whose network access is restricted -- point it at a folder and it
 has nothing to ask permission for.
+
+### Checking what you drew
+
+Press **Check** for the design rule checks: wires lying on other wires, parts
+too close to tell apart, names sitting on wires. Click a violation and the
+view walks to it. See [Design rule checks](#design-rule-checks-drcs).
 
 ### Placing and wiring
 
@@ -858,52 +869,132 @@ the whole sheet.
 
 ---
 
-## Design rules
+## Design rule checks (DRCs)
 
-The distances that decide whether a drawing is legible live in one file,
-`drawlogic/rules.py`, rather than as numbers scattered through the router,
-the layout pass and the renderer. Tuning how drawings look is editing that
-file; nothing else has to change.
+A schematic can be correct and still unreadable. Two wires a hair apart read
+as one thick line. A gate pressed against its neighbour reads as one part. A
+name sitting on a wire is unreadable even though every coordinate is right.
+Worst of all, two unrelated wires drawn on top of each other read as a short
+that nothing in the file says is there.
 
-| Rule | Default | What it decides |
+Those are drafting conventions, and they live in one file,
+`drawlogic/drc.py`: the distances at the top, and the checks that enforce them
+below. Tuning how drawings look is editing that file; nothing else has to
+change.
+
+### The distances
+
+| Limit | Default | What it decides |
 |---|---|---|
 | `WIRE_GAP` | 18 | how far apart two unrelated parallel wires must sit before they read as one line |
 | `WIRE_TO_CELL` | 10 | how far a wire keeps from a block it does not connect to |
+| `TOUCHING` | 0.5 | below this two wires have become one line; the router's last resort asks for this much and the DRCs call anything closer a short |
 | `CORRIDOR_STEP` | 10 | how far apart the router tries successive corridors when its first choice is taken |
-| `CORRIDOR_TRIES` | 18 | how many corridors either side before giving up and drawing the wire where it wanted to go |
+| `CORRIDOR_TRIES` | 18 | how many corridors either side before giving up |
+| `WIRE_MIN_JOG` | 8 | the shortest step that reads as going round something rather than as a wobble |
 | `LABEL_CLEARANCE` | 5 | clear space demanded around a net name, so a label touching a wire counts as landing on it |
-| `LABEL_HEADROOM` | 20 | room a layout leaves above a cell for its instance name |
+| `LABEL_HEADROOM` | 20 | room left above a cell for its instance name |
+| `TEXT_TO_WIRE` | 6 | air an instance name needs from a wire |
+| `TEXT_TO_CELL` | 6 | air an instance name needs from a neighbouring body |
+| `TEXT_TO_TEXT` | 8 | air two names need from each other |
 | `CELL_GAP_X` | 110 | room between one column of cells and the next, where the wires between them run |
 | `CELL_GAP_Y` | 52 | room between two cells stacked in the same column |
 | `CELL_MIN_GAP` | 24 | the least space allowed between any two cells, whichever way they sit |
+| `PORT_GAP` | 20 | the least space between two ports, which are smaller than gates and get their own rule |
+| `PORT_TO_CELL` | 30 | how far a port keeps from a block, so it reads as the edge of the sheet rather than part of the block |
+| `PORT_TO_WIRE` | 12 | how close a wire may pass a port it does not connect to |
+| `HOP_GAP` | 16 | how far apart two crossing bridges must sit before they merge into one squiggle |
+| `HOP_TO_CORNER` | 12 | how far a bridge keeps from a corner, since a deformed corner is a junction the reader stops trusting |
+| `HOP_TO_CELL` | 8 | how far a bridge keeps from a body, which it would otherwise have nothing to be seen against |
+| `HOP_TO_TEXT` | 6 | how far a bridge keeps from a name it would otherwise break up |
 | `SHEET_MARGIN` | 90 | space left around everything when a layout decides where the drawing starts |
+| `SHEET_EDGE` | 20 | the least clearance from the sheet edge before a printer's own margin eats into the drawing |
 | `SHEET_W`, `SHEET_H` | 1200 x 780 | the sheet a new drawing gets |
 
 Distances are in document units, the same units cells and wires use. A small
 logic gate is 40x40, so a unit is roughly a twentieth of a gate.
 
-The browser fetches these from `/api/rules` rather than restating them, the
-same way it fetches the theme, so a drag on the canvas and a file from the
-exporter obey the same rules. `routing.js` keeps a fallback copy for when it
-is loaded on its own; `tests/test_js_parity.py` checks that copy still
-matches `rules.py`, because a stale one would route the canvas differently
-from the file it exports.
+The browser fetches these from `/api/drc` rather than restating them, the same
+way it fetches the theme, so a drag on the canvas and a file from the exporter
+obey the same DRCs. `routing.js` keeps a fallback copy for when it is loaded
+on its own; `tests/test_js_parity.py` checks that copy still matches
+`drc.py`, because a stale one would route the canvas differently from the file
+it exports.
 
-Changing a rule will move wires, which means the golden files move too. Look
+Changing a limit will move wires, which means the golden files move too. Look
 at what changed before regenerating them -- see [Tests](#tests).
+
+### The checks
+
+`drc.check(doc, registry)` returns what failed, worst first. Each violation
+names the rule, how bad it is, what it is about, the reason in words, and a
+point to look at.
+
+**Errors** are the drawing saying something untrue:
+
+| Rule | What it catches |
+|---|---|
+| `wire-short` | two different nets drawn as one -- lying on top of each other, or one ending on the middle of the other where a junction dot is then drawn |
+| `wire-crossing` | a crossing the renderer left unbridged, so it reads as a connection |
+| `wire-over-cell` | a wire drawn across a body it does not connect to, which reads either as stopping there or as passing behind it |
+| `cell-overlap` | two bodies in the same place |
+| `off-sheet` | drawing outside the sheet, which the exporter crops away |
+
+**Warnings** are the drawing being harder to read than it needs to be:
+
+| Rule | What it catches |
+|---|---|
+| `wire-spacing` | parallel runs closer than `WIRE_GAP` |
+| `wire-to-cell` | a wire passing close enough to a body to suggest a joint |
+| `wire-jog` | a step shorter than `WIRE_MIN_JOG` |
+| `cell-spacing` | two parts closer than `CELL_MIN_GAP` |
+| `port-spacing`, `port-to-cell`, `port-to-wire` | the same questions for ports, at their own distances |
+| `text-to-wire`, `text-to-cell`, `text-to-text` | an instance name against a wire, a body, or another name |
+| `net-label` | a net name with nowhere clear to go, so it sits on something |
+| `hop-spacing`, `hop-to-corner`, `hop-to-cell`, `hop-to-text` | crossing bridges against each other, the corners, the bodies and the text |
+| `sheet-edge` | drawing inside a printer's own margin |
+
+Each pair of things is reported once, at its tightest point, rather than once
+per segment: one crowded wire is one line to read and one thing to fix.
+
+Two nets that share a pin are one electrical node, so they are allowed to lie
+on top of each other -- that is a rail, and the junction dots on it are the
+point. The router relies on the same exemption.
 
 ---
 
 ## Checking a drawing
 
-`validate` reports:
+```bash
+drawlogic validate alu_ctrl.dlg            # references and DRCs
+drawlogic validate alu_ctrl.dlg --no-drc   # references only
+```
 
-**Errors** (exit code 1): unknown cell type, duplicate id, a net pointing at a
-missing cell or a pin that does not exist, a bus width that disagrees with the
-net name, a bus on a single-bit pin, a group member that does not exist.
+Two kinds of problem come out of one command, because they are two halves of
+one question -- is this drawing fit to hand to someone else.
 
-**Warnings** (exit code 0): unconnected pins, a rotation that is not a
-multiple of 90, a net name that is not a legal identifier.
+**Reference faults.** Errors: unknown cell type, duplicate id, a net pointing
+at a missing cell or a pin that does not exist, a bus width that disagrees
+with the net name, a bus on a single-bit pin, a group member that does not
+exist. Warnings: unconnected pins, a rotation that is not a multiple of 90, a
+net name that is not a legal identifier.
+
+**Rule failures**, from [the DRCs](#design-rule-checks-drcs). Each line names
+the rule that found it, which is the heading to look up in `drc.py` where the
+distance and the reason for it are written down.
+
+Any error exits 1; warnings on their own exit 0.
+
+### In the editor
+
+Press **Check**. The DRC pane under Properties lists what failed, red for
+errors and amber for warnings. Click one and the view walks to it and rings
+the spot. Editing the drawing clears the list, because a stale clean bill is
+worse than none -- it says the thing you just broke is fine.
+
+The editor sends what is on the canvas rather than the file on disk, so
+unsaved edits are checked too. It is the same `drc.py` the command line uses,
+so a drawing that passes in one place passes in the other.
 
 ---
 
@@ -915,7 +1006,7 @@ drawlogic/
   symbols.py      symbol registry, pin resolution
   symbols.json    the cell library -- add entries here, not code
   doc.py          .dlg load, save, normalise, validate, bus names
-  rules.py        the drafting distances, in one place
+  drc.py          the DRC limits and the checks that enforce them
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
@@ -1093,7 +1184,13 @@ the install path would be the way to fix it.
   hierarchy is a folder of them tied together by `ref`. Pages in one file,
   with off-sheet connectors, would be a different thing.
 - **Netlist export** (Verilog, SPICE) and electrical rule checks. The net
-  model supports it; `validate` is where it would grow.
+  model supports it; `validate` is where it would grow. The DRCs check how a
+  drawing reads, which is a different question from whether the circuit is
+  right: a drawing can pass every rule here and still drive two outputs onto
+  one net.
+- **Automatic fixing.** The DRCs say what is wrong and where; moving the cell
+  or rerouting the wire is still yours to do. The router avoids what it can
+  see, but a drawing with no room left needs more room, not a cleverer router.
 - **Sheet border and title block.** Today there is just a title name at the
   bottom left.
 - **PDF export.** Out of scope; print to PDF from the browser.

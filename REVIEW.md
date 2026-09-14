@@ -13,8 +13,8 @@ pin**, so moving a cell carries its wires. Drawings are plain JSON. Output is
 SVG. It runs on Python 3.8+ with nothing installed -- no pip packages, no
 Node, no network.
 
-**Size.** About 4,700 lines of Python across 14 modules, 4,400 lines of
-JavaScript across 11 browser modules, 224 tests, 33 built-in symbols, 7 worked
+**Size.** About 5,800 lines of Python across 14 modules, 4,900 lines of
+JavaScript across 11 browser modules, 261 tests, 33 built-in symbols, 7 worked
 examples.
 
 ---
@@ -25,7 +25,7 @@ Five minutes, no install:
 
 ```bash
 git clone <this repo> drawlogic && cd drawlogic
-python3 -m unittest discover            # expect: Ran 224 tests ... OK
+python3 -m unittest discover            # expect: Ran 261 tests ... OK
 python3 -m drawlogic export examples/soc_top.dlg -o /tmp/soc.svg
 python3 -m drawlogic serve examples/dff_slice.dlg   # editor on 127.0.0.1:8080
 ```
@@ -48,10 +48,10 @@ independently. Treat a claim with no check as unverified.
 
 | Claim | Check it | Expected |
 |---|---|---|
-| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 224 pass; nothing is downloaded |
+| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 261 pass; nothing is downloaded |
 | Wires follow their cells | open an example, drag a gate, watch the wires | paths re-route, stay attached |
-| One place to tune the drawing | change `WIRE_GAP` in `drawlogic/rules.py`, re-export | every wire spacing moves; no other file edited |
-| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 5 tests, incl. that `routing.js`'s fallback rules still match `rules.py` |
+| One place to tune the drawing | change `WIRE_GAP` in `drawlogic/drc.py`, re-export | every wire spacing moves; no other file edited |
+| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 5 tests, incl. that `routing.js`'s fallback limits still match `drc.py` |
 | Wires store pins, not coordinates | open `examples/dff_slice.dlg`, read `nets[0].from` and `nets[0].to` | endpoints name `cell` and `pin`; no x/y anywhere |
 | One renderer for every export | `tests/test_server.py::test_export_writes_svg_through_the_python_renderer` | browser export goes through Python, not a canvas screenshot |
 | The browser and Python route identically | `python3 -m unittest tests.test_js_parity` (needs node) | 4 tests pass -- but read section 4, this is narrower than it sounds |
@@ -60,10 +60,24 @@ independently. Treat a claim with no check as unverified.
 | The server refuses paths outside its root | `python3 -m unittest tests.test_server` | 5 tests on the path helper (incl. a prefix-match case) plus 2 end-to-end refusals |
 | Drawings diff as text | `python3 -m drawlogic info examples/soc_top.dlg`, then edit and re-save | stable key order; diffs read as "moved U1" |
 | Format v1 files still load | `python3 -m unittest tests.test_nets` | upgrade path tested, including that it is idempotent |
+| The DRCs find a real fault | `python3 -m unittest tests.test_drc` | 30 tests; the first is the reported case -- two nets into one gate drawn as one wire |
+| The DRCs are not vacuous | delete a `_check_*` call from `drc.check()`, re-run `tests.test_drc` | red, for every one of the nine |
+| The DRCs do not cry wolf | `for f in examples/*.dlg; do drawlogic validate $f; done` | warnings, none of them errors; each one findable in the picture |
 
 Warnings are expected, not a defect: `validate` reports unconnected pins, and
-every example has a few (`soc_top.dlg` has 2). Errors are the thing to care
-about; all seven examples have zero.
+every example has a few (`soc_top.dlg` has 2). It also reports design rule
+warnings -- wires closer than `WIRE_GAP`, names against bodies -- which are
+judgements about spacing rather than faults. Errors are the thing to care
+about; all seven examples have zero of both kinds.
+
+The DRCs are worth a sceptical look in particular, because a checker that
+fires on everything is as useless as one that fires on nothing. Every rule in
+`tests/test_drc.py` is tested twice: once on a drawing built to break it, and
+once on a drawing that does not, so a rule that always fires fails its second
+test. The numbers themselves are judgements, not measurements -- `PORT_GAP`
+started at 30 and came down to 20 after rendering `fifo_top.dlg` and looking
+at a port stack 22 apart, which was perfectly readable. Read `drc.py`'s
+comments as arguments to disagree with rather than as findings.
 
 ---
 
@@ -104,13 +118,13 @@ Two things to confirm:
 the sharpest edge in the suite. On a machine without `node`:
 
 ```
-Ran 224 tests ... OK (skipped=7)
+Ran 261 tests ... OK (skipped=7)
 ```
 
 Those 7 are the entire cross-language safety net: 4 parity tests comparing
 the two routers, 1 anchoring arrow direction to the drawing rather than to
-agreement, 1 checking that `routing.js`'s fallback design rules still match
-`rules.py`, and 1 wrapper around 55 editor checks. A reviewer on a Node-less
+agreement, 1 checking that `routing.js`'s fallback DRC limits still match
+`drc.py`, and 1 wrapper around 55 editor checks. A reviewer on a Node-less
 machine sees a green run
 with the most important tests absent. Confirm your environment has Node
 (`node --version`) before trusting a pass.
@@ -180,11 +194,20 @@ the server being reachable, in a tool that otherwise degrades gracefully.
 
 Ranked by where I would look first, with reasoning rather than a flat list.
 
-1. **`routing.py` (694 lines) and its JS twin.** The most geometry per line in
-   the project: corridor reservation, branch overlap near a driver, junction
-   detection, crossing bridges. Edge cases to try: two loads whose branches
-   overlap for most of their length; a wire that must leave a pin facing into
-   the cell it came from; nets on a sheet too small for a corridor.
+1. **`routing.py` (~720 lines) and its JS twin.** The most geometry per line
+   in the project: corridor reservation, branch overlap near a driver,
+   junction detection, crossing bridges. Edge cases to try: two loads whose
+   branches overlap for most of their length; a wire that must leave a pin
+   facing into the cell it came from; nets on a sheet too small for a
+   corridor.
+
+   The corridor search is a ladder of four passes, each giving up something
+   the one before insisted on, ending in a pass that gives up everything and
+   draws the wire where it wanted to go. Two of the four were added because a
+   drawing with no room left came out claiming connections nobody made. Worth
+   asking: does each pass actually bite, or is one of them unreachable? The
+   DRCs are the measuring instrument -- build a crowded drawing, delete a
+   pass, and see whether `wire-short` appears.
 
 2. **The v1 -> v2 net upgrade (`doc.py`).** v1 had one driver and one load;
    v2 has one driver and many, each with its own waypoints. The upgrade merges
@@ -216,7 +239,21 @@ Ranked by where I would look first, with reasoning rather than a flat list.
    weighted terms (off-sheet, cell overlap, wire overlap, label overlap,
    vertical, far side, distance from midpoint). Hand-tuned constants. It will
    have inputs where it picks a poor spot; the question is whether it ever
-   picks an *illegible* one.
+   picks an *illegible* one. The `net-label` DRC answers that question for a
+   given drawing, which is a better test than reading the weights.
+
+7. **`drc.py`'s limits.** Every number is a judgement about what the eye
+   separates at normal zoom, and none of them is measured. Too strict and the
+   checker buries a good drawing in warnings; too loose and it misses what a
+   reader trips over. Run it over your own drawings and argue with the ones
+   that fire. The checks themselves are the sounder half: they measure
+   distances, and the distances are either right or not.
+
+   The pair-level parts are worth reading closely: `same_node`, which exempts
+   two nets that share a pin from the shorting rule, and `_pair_key`, which
+   collapses several complaints about one pair into the worst of them. A bug
+   in either would hide real faults rather than invent false ones, which is
+   the failure that does not announce itself.
 
 ---
 
@@ -224,8 +261,8 @@ Ranked by where I would look first, with reasoning rather than a flat list.
 
 Stated plainly so nobody assumes more than exists.
 
-**~3,400 lines of browser JavaScript have no automated tests.** Parity covers
-`routing.js` and `render.js` (1,251 of 4,686 lines). The remaining modules -- `main.js`,
+**~3,560 lines of browser JavaScript have no automated tests.** Parity covers
+`routing.js` and `render.js` (1,291 of 4,855 lines). The remaining modules -- `main.js`,
 `tools.js`, `model.js`, `selection.js`, `panels.js`, `viewport.js`,
 `picture.js` -- are exercised by 55 Node checks (drag alignment, Tidy, net
 building) and otherwise verified by hand in a headless browser. Selection,
@@ -308,7 +345,9 @@ where to look than any assurance in this document.
 
 Four were bugs of the same shape: **something was written down as a rule and
 never enforced.** `CELL_MIN_GAP` was documented, served over the API and read
-by nothing. The CLI's export flags overrode the document they were exporting.
+by nothing. That shape is why the design rules became DRCs: the distances had
+no checker, so the only thing keeping a drawing to them was the router trying
+its best and giving up quietly when it could not. The CLI's export flags overrode the document they were exporting.
 The served-folder boundary held for the path the server was asked to open and
 not for the references inside it. Group validation accepted cells and called
 every grouped shape a missing member.

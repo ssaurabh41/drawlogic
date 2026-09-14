@@ -45,9 +45,12 @@ process.stdout.write(JSON.stringify({
   junctions: routing.junctions(routes),
   hops: [...hops.entries()],
   labels: [...labels.entries()],
+  // Junctions are passed in because arrows give way to them; leaving them out
+  // here would compare a set of arrows neither renderer actually draws.
   arrows: routes.map(({ net, branches }) => [
     net.id,
     branches.filter((points) => points.length >= 2)
-      .map((points) => render.arrowSpots(points, theme.arrowSize || 7)),
+      .map((points) => render.arrowSpots(points, theme.arrowSize || 7, null,
+                                         routing.junctions(routes))),
   ]),
 }));

@@ -9,6 +9,9 @@ import * as geometry from "./geometry.js";
 const STUB = 12;
 const EPSILON = 1e-6;
 
+// Cell types that stand for the edge of the sheet rather than for a part.
+const PORT_CATEGORY = "ports";
+
 // The DRC limits, mirrored from drawlogic/drc.py. The editor overwrites these
 // from /api/drc at startup so a drag obeys the same distances the exporter
 // does; the defaults are here only so this module still routes when it is
@@ -22,6 +25,8 @@ let limits = {
   corridorTries: 18,
   wireGap: 18,
   touching: 0.5,
+  arrowToJunction: 12,
+  portStub: 26,
   labelClearance: 5,
   labelHeadroom: 20,
   sheetW: 1200,
@@ -268,8 +273,21 @@ function freeDirection(point, other) {
   return [0, dy >= 0 ? 1 : -1];
 }
 
-function stubEnd(point, direction) {
-  return [point[0] + direction[0] * STUB, point[1] + direction[1] * STUB];
+function stubEnd(point, direction, length = STUB) {
+  return [point[0] + direction[0] * length, point[1] + direction[1] * length];
+}
+
+// How long a straight run this endpoint's pin is entitled to. A port gets more
+// than an ordinary pin: it is the edge of the sheet, with no body between the
+// connector and the first turn, so a wire that bends immediately reads as a
+// line stuck to the port rather than as a signal leaving it.
+export function stubFor(doc, endpoint) {
+  if (!endpoint || endpoint.cell === undefined) return STUB;
+  const cell = cellOf(doc, endpoint.cell);
+  if (!cell) return STUB;
+  const symbol = geometry.forCell(cell);
+  if (!symbol || symbol.category !== PORT_CATEGORY) return STUB;
+  return limits.portStub;
 }
 
 export function clean(points) {
@@ -420,11 +438,12 @@ function middleRoute(a, b, aDir, bDir, sheet) {
 // allowed to turn. That short stub is what makes the joint at, say, a
 // flip-flop clock pin read as a continuation of the wire instead of a line
 // that arrived from the wrong side.
-function directRoute(start, end, startDir, endDir, sheet) {
+function directRoute(start, end, startDir, endDir, sheet,
+                     startStub = STUB, endStub = STUB) {
   const aDir = startDir || freeDirection(start, end);
   const bDir = endDir || freeDirection(end, start);
-  const a = startDir ? stubEnd(start, aDir) : start;
-  const b = endDir ? stubEnd(end, bDir) : end;
+  const a = startDir ? stubEnd(start, aDir, startStub) : start;
+  const b = endDir ? stubEnd(end, bDir, endStub) : end;
   return [start, ...middleRoute(a, b, aDir, bDir, sheet), end];
 }
 
@@ -469,7 +488,8 @@ function branchTo(doc, net, load, start, startDir, sheet, keys) {
     }
     const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id);
     return clean(directRoute(start, end, startDir,
-                             endpointDirection(doc, load), view));
+                             endpointDirection(doc, load), view,
+                             stubFor(doc, net.from), stubFor(doc, load)));
   }
 
   const points = [start, ...waypoints, end];

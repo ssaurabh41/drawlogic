@@ -267,7 +267,11 @@ function pathLength(points) {
 // the wire, so more are spaced along it -- close enough that the direction
 // reads wherever the eye lands, far enough apart that the wire does not turn
 // into a dotted line. Arrows are kept off corners.
-export function arrowSpots(points, size, spacing) {
+// Arrows are kept off junction dots as well as off corners. Both are small
+// solid marks in the same ink, so an arrow on a dot reads as one slightly
+// fatter arrow and the connection the dot announced is lost. The dot is the
+// more important of the two, so the arrow is the one that gives way.
+export function arrowSpots(points, size, spacing, junctions = []) {
   if (points.length < 2) return [];
   const step = spacing || theme.arrowSpacing || 240;
   const total = pathLength(points);
@@ -308,7 +312,12 @@ export function arrowSpots(points, size, spacing) {
     const [spot, direction, fromCorner] = found;
     if (fromCorner >= size * 2) extra.push([spot, direction]);
   }
-  return extra.concat(spots);
+  const found = extra.concat(spots);
+  if (!junctions.length) return found;
+  const limit = routing.currentLimits().arrowToJunction;
+  return found.filter(([tip]) => junctions.every(
+    (dot) => Math.abs(tip[0] - dot[0]) >= limit
+          || Math.abs(tip[1] - dot[1]) >= limit));
 }
 
 function arrowElement(tip, direction, size, color) {
@@ -492,10 +501,15 @@ function netPath(points, hops, radius) {
   return parts.join(" ");
 }
 
+// Draws every wire and hands back the junction dots for the caller to draw.
+// The dots come back rather than going down here because they have to be drawn
+// after the cells: a junction dot says two wires are connected, and a dot
+// painted over by the gate beside it says nothing at all.
 function renderNets(doc, fontScale, into) {
   const routes = routing.routeAll(doc);
   const hops = (doc.canvas || {}).hops === false
     ? new Map() : routing.hopPoints(routes);
+  const junctions = routing.junctions(routes);
 
   for (const { net, branches } of routes) {
     if (!branches.length) continue;
@@ -547,7 +561,8 @@ function renderNets(doc, fontScale, into) {
       // Per branch: every load wants to know which way the signal reaches it.
       for (const points of branches) {
         if (points.length < 2) continue;
-        for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7)) {
+        for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7,
+                                                  null, junctions)) {
           into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                         (net.style || {}).stroke || theme.colors.net));
         }
@@ -555,12 +570,7 @@ function renderNets(doc, fontScale, into) {
     }
   }
 
-  for (const point of routing.junctions(routes)) {
-    into.appendChild(el("circle", {
-      cx: geometry.fmt(point[0]), cy: geometry.fmt(point[1]),
-      r: geometry.fmt(theme.junctionRadius), fill: theme.colors.junction,
-    }));
-  }
+  return junctions;
 }
 
 function renderShape(shape, fontScale, parent) {
@@ -655,7 +665,7 @@ export function render(svg, doc) {
   content.appendChild(shapes);
 
   const nets = el("g", { class: "dl-nets" });
-  renderNets(doc, fontScale, nets);
+  const junctions = renderNets(doc, fontScale, nets);
   content.appendChild(nets);
 
   const cells = el("g", { class: "dl-cells" });
@@ -664,6 +674,18 @@ export function render(svg, doc) {
     if (symbol) renderCell(symbol, cell, fontScale, scale, cells);
   }
   content.appendChild(cells);
+
+  // Last, so nothing can paint over them: a junction dot is the only mark that
+  // says two wires are connected, and one hidden behind a gate is a connection
+  // the drawing has stopped claiming.
+  const dots = el("g", { class: "dl-junctions" });
+  for (const point of junctions) {
+    dots.appendChild(el("circle", {
+      cx: geometry.fmt(point[0]), cy: geometry.fmt(point[1]),
+      r: geometry.fmt(theme.junctionRadius), fill: theme.colors.junction,
+    }));
+  }
+  content.appendChild(dots);
 
   if (doc.title) {
     const text = el("text", {

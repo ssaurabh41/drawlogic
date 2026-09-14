@@ -62,7 +62,6 @@
 <polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
 <polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
 <polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
-<polygon points="730,880 723,883.15 723,876.85" fill="#16202b" />
 <polygon points="841.2,795 848.2,791.85 848.2,798.15" fill="#16202b" />
 <polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
 <polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
@@ -81,7 +80,6 @@
 <polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
 <polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
 <polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
-<polygon points="1070,880 1077,876.85 1077,883.15" fill="#16202b" />
 <polygon points="958.8,795 951.8,798.15 951.8,791.85" fill="#16202b" />
 <polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
 <polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
@@ -105,12 +103,6 @@
 <polygon points="521.2,765 528.2,761.85 528.2,768.15" fill="#16202b" />
 <polygon points="151.2,725 158.2,721.85 158.2,728.15" fill="#16202b" />
 <polygon points="1648.8,725 1641.8,728.15 1641.8,721.85" fill="#16202b" />
-<circle cx="210" cy="510" r="3.2" fill="#16202b" />
-<circle cx="542" cy="510" r="3.2" fill="#16202b" />
-<circle cx="735" cy="880" r="3.2" fill="#16202b" />
-<circle cx="1065" cy="880" r="3.2" fill="#16202b" />
-<circle cx="1258" cy="510" r="3.2" fill="#16202b" />
-<circle cx="1590" cy="510" r="3.2" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="mem" data-type="ram_dp" transform="matrix(1,0,0,1,790,150)">
@@ -241,6 +233,14 @@
 <text x="1111" y="799" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
 <text x="1146" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
 <text x="1125" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">w2r_2</text>
+</g>
+<g class="dl-junctions">
+<circle cx="210" cy="510" r="3.2" fill="#16202b" />
+<circle cx="542" cy="510" r="3.2" fill="#16202b" />
+<circle cx="735" cy="880" r="3.2" fill="#16202b" />
+<circle cx="1065" cy="880" r="3.2" fill="#16202b" />
+<circle cx="1258" cy="510" r="3.2" fill="#16202b" />
+<circle cx="1590" cy="510" r="3.2" fill="#16202b" />
 </g>
 <text x="14" y="986" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">cdc_fifo</text>
 </svg>

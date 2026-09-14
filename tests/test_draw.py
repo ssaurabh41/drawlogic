@@ -3,7 +3,7 @@
 import re
 import unittest
 
-from drawlogic import render_svg, routing, theme
+from drawlogic import drc, render_svg, routing, theme
 from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE
@@ -148,6 +148,150 @@ class TestJunctions(unittest.TestCase):
                      "to": {"cell": "b2", "pin": "p"}})
     doc.normalize()
     self.assertEqual(routing.junctions(routing.route_all(doc)), [])
+
+
+class TestJunctionsAreNeverHidden(unittest.TestCase):
+  """A junction dot is the only mark saying two wires are connected.
+
+  Losing one is not a cosmetic problem: the drawing stops claiming a
+  connection that the file still has. Both ways of losing one were reported by
+  a user as "the dot disappears when it is close to a cell, or close to an
+  arrow".
+  """
+
+  def fanout(self, load_x=200, dy=40):
+    """A driver fanning out to two loads, so the split lands near its body.
+
+    The defaults are a case where an arrow would otherwise be drawn on the
+    junction dot, which is what makes the arrow rule testable at all -- with
+    the loads further away the two never collide and the rule does nothing.
+    """
+    doc = new_document("dot", 700, 420)
+    doc.cells.extend([
+      {"id": "a", "type": "port_in", "x": 40, "y": 200, "label": "a"},
+      {"id": "U1", "type": "and2", "x": 120, "y": 180, "label": "U1"},
+      {"id": "U2", "type": "buf", "x": load_x, "y": 200 - dy, "label": "U2"},
+      {"id": "U3", "type": "buf", "x": load_x, "y": 200 + dy, "label": "U3"},
+    ])
+    doc.nets.extend([
+      {"id": "n0", "from": {"cell": "a", "pin": "p"},
+       "to": [{"cell": "U1", "pin": "a"}]},
+      {"id": "n1", "name": "q", "from": {"cell": "U1", "pin": "y"},
+       "to": [{"cell": "U2", "pin": "a"}, {"cell": "U3", "pin": "a"}]},
+    ])
+    return doc
+
+  def test_dots_are_drawn_after_the_cells(self):
+    """Cells used to be drawn after the nets, so a dot beside a gate was
+    painted over by it."""
+    svg = render_svg.render(self.fanout())
+    self.assertIn('class="dl-junctions"', svg)
+    self.assertLess(svg.index('class="dl-cells"'),
+                    svg.index('class="dl-junctions"'),
+                    "cells are drawn over the junction dots")
+
+  def test_a_dot_survives_a_split_beside_a_body(self):
+    doc = self.fanout()
+    routes = routing.route_all(doc, default_registry())
+    self.assertTrue(routing.junctions(routes), "expected a junction to test")
+    svg = render_svg.render(doc)
+    self.assertIn("<circle", svg.split('class="dl-junctions"')[1])
+
+  def test_an_arrow_gives_way_to_a_dot(self):
+    """Both are small solid marks in the same ink, so one on the other reads
+    as a single fatter arrow and the connection is lost."""
+    doc = self.fanout()
+    routes = routing.route_all(doc, default_registry())
+    dots = routing.junctions(routes)
+    self.assertTrue(dots)
+
+    for _net, branches in routes:
+      for points in branches:
+        if len(points) < 2:
+          continue
+        for tip, _way in render_svg._arrow_spots(points, theme.ARROW_SIZE,
+                                                 junctions=dots):
+          for dot in dots:
+            self.assertFalse(
+              abs(tip[0] - dot[0]) < drc.ARROW_TO_JUNCTION
+              and abs(tip[1] - dot[1]) < drc.ARROW_TO_JUNCTION,
+              "an arrow at %r sits on the junction at %r" % (tip, dot))
+
+  def test_the_arrow_rule_actually_drops_something(self):
+    """Otherwise the test above passes on a drawing where no arrow was ever
+    near a dot, and would keep passing with the rule deleted."""
+    doc = self.fanout()
+    routes = routing.route_all(doc, default_registry())
+    dots = routing.junctions(routes)
+
+    def count(**kwargs):
+      total = 0
+      for _net, branches in routes:
+        for points in branches:
+          if len(points) >= 2:
+            total += len(render_svg._arrow_spots(points, theme.ARROW_SIZE,
+                                                 **kwargs))
+      return total
+
+    kept = count(junctions=dots)
+    self.assertLess(kept, count(), "the rule dropped no arrow here")
+    self.assertGreater(kept, 0, "every arrow was dropped")
+
+
+class TestPortStubs(unittest.TestCase):
+  """A wire leaving an IO port runs straight before it may turn.
+
+  A port is the edge of the sheet with no body between the connector and the
+  first corner, so a wire that bends immediately reads as a vertical line
+  stuck to the port rather than as a signal going somewhere.
+  """
+
+  def run_out_of_port(self, gate_x):
+    doc = new_document("stub", 520, 340)
+    doc.cells.extend([
+      {"id": "a", "type": "port_in", "x": 40, "y": 100, "label": "a"},
+      {"id": "U1", "type": "and2", "x": gate_x, "y": 200, "label": "U1"},
+    ])
+    doc.nets.append({"id": "n", "from": {"cell": "a", "pin": "p"},
+                     "to": [{"cell": "U1", "pin": "a"}]})
+    points = routing.route_all(doc, default_registry())[0][1][0]
+    return abs(points[1][0] - points[0][0])
+
+  def test_a_port_always_gets_its_straight_run(self):
+    for gate_x in (85, 100, 130, 200, 320):
+      with self.subTest(gate_x=gate_x):
+        self.assertGreaterEqual(
+          self.run_out_of_port(gate_x), drc.PORT_STUB - 1e-6,
+          "the wire turned before clearing the port connector")
+
+  def test_the_longer_stub_is_only_for_ports(self):
+    """A gate has a body doing the same job as a port's straight run, and
+    giving every pin a port's stub would push every corner outwards.
+
+    Asked of the rule rather than of a route, because how far a wire actually
+    runs before turning is mostly the corridor search's answer -- the stub is
+    the floor under it, and the floor is what differs.
+    """
+    doc = new_document("stub", 600, 400)
+    doc.cells.extend([
+      {"id": "a", "type": "port_in", "x": 60, "y": 100, "label": "a"},
+      {"id": "U1", "type": "and2", "x": 200, "y": 220, "label": "U1"},
+    ])
+    registry = default_registry()
+    self.assertEqual(
+      routing.stub_for(doc, {"cell": "a", "pin": "p"}, registry),
+      drc.PORT_STUB)
+    self.assertEqual(
+      routing.stub_for(doc, {"cell": "U1", "pin": "a"}, registry),
+      routing.STUB)
+    self.assertLess(routing.STUB, drc.PORT_STUB)
+
+  def test_a_free_endpoint_needs_no_stub(self):
+    """A wire end dragged into empty space faces nowhere in particular."""
+    doc = new_document("stub", 600, 400)
+    self.assertEqual(routing.stub_for(doc, {"x": 10, "y": 10}), routing.STUB)
+    self.assertEqual(routing.stub_for(doc, {"cell": "nope", "pin": "p"}),
+                     routing.STUB)
 
 
 class TestBusWidth(unittest.TestCase):

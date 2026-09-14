@@ -77,9 +77,6 @@
 <polygon points="550,690 557,686.85 557,693.15" fill="#16202b" />
 <polygon points="310,690 317,686.85 317,693.15" fill="#16202b" />
 <polygon points="288.8,615 281.8,618.15 281.8,611.85" fill="#16202b" />
-<circle cx="200" cy="278" r="3.2" fill="#16202b" />
-<circle cx="390" cy="800" r="3.2" fill="#16202b" />
-<circle cx="440" cy="760" r="3.2" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_clk" data-type="port_in" transform="matrix(1,0,0,1,70,755)">
@@ -175,6 +172,11 @@
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="1110" y="750" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">sck</text>
+</g>
+<g class="dl-junctions">
+<circle cx="200" cy="278" r="3.2" fill="#16202b" />
+<circle cx="390" cy="800" r="3.2" fill="#16202b" />
+<circle cx="440" cy="760" r="3.2" fill="#16202b" />
 </g>
 <text x="14" y="866" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">spi_master</text>
 </svg>

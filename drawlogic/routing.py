@@ -133,9 +133,29 @@ def _clean(points):
   return merged
 
 
-def _stub_end(point, direction):
+def _stub_end(point, direction, length=STUB):
   """The point a wire reaches after leaving a pin along the side it faces."""
-  return (point[0] + direction[0] * STUB, point[1] + direction[1] * STUB)
+  return (point[0] + direction[0] * length, point[1] + direction[1] * length)
+
+
+def stub_for(doc, endpoint, registry=None):
+  """How long a straight run this endpoint's pin is entitled to.
+
+  A port gets more than an ordinary pin: it is the edge of the sheet, with no
+  body between the connector and the first turn, so a wire that bends
+  immediately reads as a line stuck to the port rather than as a signal
+  leaving it.
+  """
+  if not isinstance(endpoint, dict) or "cell" not in endpoint:
+    return STUB
+  registry = registry or default_registry()
+  cell = doc.cell(endpoint["cell"])
+  if cell is None:
+    return STUB
+  symbol = registry.for_cell(cell)
+  if symbol is None or symbol.category != drc.PORT_CATEGORY:
+    return STUB
+  return drc.PORT_STUB
 
 
 def _elbow(a, b, horizontal_first):
@@ -513,19 +533,21 @@ def _middle_route(a, b, a_dir, b_dir, sheet):
   return _route_corner(a, b, sheet, a_horizontal)
 
 
-def _direct_route(start, end, start_dir, end_dir, sheet):
+def _direct_route(start, end, start_dir, end_dir, sheet,
+                  start_stub=STUB, end_stub=STUB):
   """Route between two pins with no waypoints to honour.
 
   The wire leaves each pin along the side that pin faces and only then is
   allowed to turn. That short stub is what makes the joint at, say, a
   flip-flop clock pin read as a continuation of the wire instead of a line
   that arrived from the wrong side, and it keeps the first and last leg clear
-  of the cells the net belongs to.
+  of the cells the net belongs to. How long the stub is depends on the pin --
+  see stub_for.
   """
   a_dir = start_dir or _free_direction(start, end)
   b_dir = end_dir or _free_direction(end, start)
-  a = _stub_end(start, a_dir) if start_dir else start
-  b = _stub_end(end, b_dir) if end_dir else end
+  a = _stub_end(start, a_dir, start_stub) if start_dir else start
+  b = _stub_end(end, b_dir, end_stub) if end_dir else end
   return [start] + _middle_route(a, b, a_dir, b_dir, sheet) + [end]
 
 
@@ -573,7 +595,10 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys):
         exclude.add(endpoint["cell"])
     boxes = obstacle_boxes(doc, registry, exclude)
     view = sheet.for_net(boxes, keys, net.get("id"))
-    return _clean(_direct_route(start, end, start_dir, end_dir, view))
+    return _clean(_direct_route(
+      start, end, start_dir, end_dir, view,
+      stub_for(doc, net.get("from"), registry),
+      stub_for(doc, load, registry)))
 
   points = [start] + waypoints + [end]
   chain = [points[0]]

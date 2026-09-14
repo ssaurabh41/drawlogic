@@ -173,7 +173,8 @@ class TestRouterParity(unittest.TestCase):
           net["id"]: [[[_round(tip[0]), _round(tip[1]),
                         _round(way[0]), _round(way[1])]
                        for tip, way in render_svg._arrow_spots(
-                         points, theme.ARROW_SIZE)]
+                         points, theme.ARROW_SIZE,
+                         junctions=routing.junctions(routes))]
                       for points in branches if len(points) >= 2]
           for net, branches in routes if branches}
         actual = {net_id: [[[_round(tip[0]), _round(tip[1]),

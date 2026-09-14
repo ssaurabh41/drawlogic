@@ -62,10 +62,6 @@
 <polygon points="680,540 673,543.15 673,536.85" fill="#16202b" />
 <polygon points="920,540 913,543.15 913,536.85" fill="#16202b" />
 <polygon points="1188.8,210 1181.8,213.15 1181.8,206.85" fill="#16202b" />
-<circle cx="285" cy="290" r="3.2" fill="#16202b" />
-<circle cx="285" cy="540" r="3.2" fill="#16202b" />
-<circle cx="750" cy="540" r="3.2" fill="#16202b" />
-<circle cx="1330" cy="180" r="3.2" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_clk" data-type="port_in" transform="matrix(1,0,0,1,40,535)">
@@ -163,6 +159,12 @@
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
 <text x="1430" y="250" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">overflow</text>
+</g>
+<g class="dl-junctions">
+<circle cx="285" cy="290" r="3.2" fill="#16202b" />
+<circle cx="285" cy="540" r="3.2" fill="#16202b" />
+<circle cx="750" cy="540" r="3.2" fill="#16202b" />
+<circle cx="1330" cy="180" r="3.2" fill="#16202b" />
 </g>
 <text x="14" y="686" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">mac_pipe</text>
 </svg>

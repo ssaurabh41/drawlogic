@@ -64,6 +64,11 @@ TOUCHING = 0.5
 # something, so the drawing is clearer with the wire moved to avoid it.
 WIRE_MIN_JOG = 8.0
 
+# How far a direction arrow keeps from a junction dot. Both are small solid
+# marks in the same ink, so one drawn on the other reads as a single slightly
+# fatter arrow -- and the connection the dot was there to announce is gone.
+ARROW_TO_JUNCTION = 12.0
+
 # ---- text -----------------------------------------------------------------
 
 # Clear space demanded around a net name. A label touching a wire is as bad as
@@ -93,6 +98,14 @@ CELL_GAP_Y = 52.0
 # The least space allowed between any two cells, whichever way they sit.
 # Closer than this and two parts read as one.
 CELL_MIN_GAP = 24.0
+
+# How far a wire must run straight out of an IO port before it may turn. A
+# port is the edge of the sheet, and the eye reads it as a label with a wire
+# leaving it -- so a wire that turns the moment it clears the connector reads
+# as a vertical line stuck to the port rather than as a signal going somewhere.
+# Longer than the stub an ordinary pin gets, because a port has no body to
+# separate the connector from the turn.
+PORT_STUB = 26.0
 
 # ---- ports ----------------------------------------------------------------
 
@@ -152,6 +165,7 @@ def as_data():
     "corridorTries": CORRIDOR_TRIES,
     "wireMinJog": WIRE_MIN_JOG,
     "touching": TOUCHING,
+    "arrowToJunction": ARROW_TO_JUNCTION,
     "labelClearance": LABEL_CLEARANCE,
     "labelHeadroom": LABEL_HEADROOM,
     "textToWire": TEXT_TO_WIRE,
@@ -160,6 +174,7 @@ def as_data():
     "cellGapX": CELL_GAP_X,
     "cellGapY": CELL_GAP_Y,
     "cellMinGap": CELL_MIN_GAP,
+    "portStub": PORT_STUB,
     "portGap": PORT_GAP,
     "portToCell": PORT_TO_CELL,
     "portToWire": PORT_TO_WIRE,

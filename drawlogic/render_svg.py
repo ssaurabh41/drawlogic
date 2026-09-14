@@ -316,7 +316,7 @@ def _path_length(points):
              for i in range(len(points) - 1))
 
 
-def _arrow_spots(points, size, spacing=None):
+def _arrow_spots(points, size, spacing=None, junctions=()):
   """Where a wire's direction arrows go, and which way each one points.
 
   One always sits near the receiving end, which is where a reader looks to ask
@@ -325,6 +325,12 @@ def _arrow_spots(points, size, spacing=None):
   wherever the eye lands, far enough apart that the wire does not turn into a
   dotted line. Arrows are kept off corners, where a head pointing into the
   bend is worse than no head at all.
+
+  They are kept off junction dots too. Both are small solid marks in the same
+  ink, so an arrow on a dot reads as one slightly fatter arrow, and the
+  connection the dot announced is lost. The dot is the more important of the
+  two -- it is the only thing saying these wires are joined -- so the arrow is
+  the one that gives way.
   """
   if len(points) < 2:
     return []
@@ -369,7 +375,20 @@ def _arrow_spots(points, size, spacing=None):
         extra.append((spot, direction))
     distance += spacing
 
-  return extra + spots
+  found = extra + spots
+  if not junctions:
+    return found
+  return [(tip, direction) for tip, direction in found
+          if _clear_of(tip, junctions, drc.ARROW_TO_JUNCTION)]
+
+
+def _clear_of(point, others, distance):
+  """True if a point keeps its distance from every one of `others`."""
+  for other in others:
+    if (abs(point[0] - other[0]) < distance
+        and abs(point[1] - other[1]) < distance):
+      return False
+  return True
 
 
 def _net_path(points, hops, radius):
@@ -612,8 +631,17 @@ def _render_arrow(tip, direction, size, color, out):
 
 
 def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
+  """Draw every wire, and hand back the junction dots for the caller to draw.
+
+  The dots come back rather than going down here because they have to be drawn
+  after the cells. A junction dot says two wires are connected, and a dot
+  painted over by the gate it sits beside says nothing at all -- which is how
+  a connection quietly disappeared from drawings where a fan-out happened to
+  split close to a body.
+  """
   routes = routing.route_all(doc, registry)
   hop_map = routing.hop_points(routes) if hops else {}
+  junctions = routing.junctions(routes)
 
   for net, branches in routes:
     if not branches:
@@ -661,15 +689,12 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
       for points in branches:
         if len(points) < 2:
           continue
-        for tip, direction in _arrow_spots(points, theme.ARROW_SIZE):
+        for tip, direction in _arrow_spots(points, theme.ARROW_SIZE,
+                                           junctions=junctions):
           _render_arrow(tip, direction, theme.ARROW_SIZE,
                         style.get("stroke", theme.COLORS["net"]), out)
 
-  for point in routing.junctions(routes):
-    out.append("<circle %s />" % _attrs([
-      ("cx", fmt(point[0])), ("cy", fmt(point[1])),
-      ("r", fmt(theme.JUNCTION_RADIUS)),
-      ("fill", theme.COLORS["junction"])]))
+  return junctions
 
 
 def _render_shape(shape, font_scale, out):
@@ -787,7 +812,8 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
   show_arrows = canvas.get("arrows", True) if arrows is None else arrows
   show_hops = canvas.get("hops", True) if hops is None else hops
   out.append('<g class="dl-nets">')
-  _render_nets(doc, registry, font_scale, out, show_arrows, show_hops)
+  junctions = _render_nets(doc, registry, font_scale, out,
+                           show_arrows, show_hops)
   out.append("</g>")
 
   out.append('<g class="dl-cells">')
@@ -796,6 +822,17 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
     if symbol is None:
       continue
     _render_cell(symbol, cell, font_scale, out, doc.symbol_scale)
+  out.append("</g>")
+
+  # Last, so nothing can paint over them: a junction dot is the only mark that
+  # says two wires are connected, and one hidden behind a gate is a connection
+  # the drawing has stopped claiming.
+  out.append('<g class="dl-junctions">')
+  for point in junctions:
+    out.append("<circle %s />" % _attrs([
+      ("cx", fmt(point[0])), ("cy", fmt(point[1])),
+      ("r", fmt(theme.JUNCTION_RADIUS)),
+      ("fill", theme.COLORS["junction"])]))
   out.append("</g>")
 
   if title and doc.title:

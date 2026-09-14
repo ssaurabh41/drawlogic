@@ -30,7 +30,154 @@ function input(value, type = "text") {
   node.type = type;
   node.className = "pinput";
   node.value = value === null || value === undefined ? "" : value;
+  if (type !== "color" && type !== "file") editable(node);
   return node;
+}
+
+// What a field has to do to be worth typing in.
+//
+// Reported as: "I have to click in the Name box, drag the cursor to select the
+// text, and type the new name while still holding the mouse down." Three
+// separate things were missing.
+//
+// One click selects what is there, so typing replaces it. Without this a click
+// only puts a caret somewhere in the middle of the old name, and the only way
+// to replace the whole thing is to drag across it.
+//
+// Escape commits and hands focus back to the canvas. Escape conventionally
+// cancels, but in a properties panel there is nothing to cancel back to that
+// the user can see, and every value here is one undo away anyway -- so the key
+// that means "I am done with this box" should mean it.
+//
+// Enter does the same, and clicking anywhere else already did: the browser
+// fires `change` on blur. That part was working and is left alone.
+function editable(node) {
+  node.addEventListener("focus", () => node.select());
+  // A click inside an unfocused field would otherwise put a caret down and
+  // undo the select() above; this keeps the selection and lets a second click
+  // place a caret as usual.
+  node.addEventListener("mouseup", (event) => {
+    if (node.dataset.caret) return;
+    node.dataset.caret = "1";
+    event.preventDefault();
+  });
+  node.addEventListener("blur", () => { delete node.dataset.caret; });
+  node.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" || event.key === "Enter") {
+      event.preventDefault();
+      // Committed here rather than left to the `change` the browser fires on
+      // blur, because that one only fires for a value the browser considers
+      // user-edited -- which is a heuristic, and not one worth resting "did
+      // my edit take effect" on. bind() ignores a value it has already
+      // applied, so the browser's own change afterwards costs nothing.
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+      node.blur();
+    }
+  });
+  return node;
+}
+
+// ---- the colour palette ----
+
+// Colours worth reaching for on a schematic, as a grid. Greys first, because
+// most of a drawing is ink on paper and the useful choice is usually how dark
+// rather than which hue. Then two rows of hues, a pale one for filling a body
+// and a strong one for drawing a line with, so a fill and the line around it
+// can be picked from the same column and look related.
+//
+// Not in theme.py with the drawing colours: nothing here is ever rendered, and
+// nothing else has to agree with it. It is a list of suggestions for a person
+// clicking, which is why "Custom" is right beside it.
+const SWATCHES = [
+  "#ffffff", "#f1f5f6", "#d7e0e3", "#9fb0b6", "#5b6b71", "#16202b", "#000000",
+  "#fde2e2", "#fde9cf", "#fbf3c9", "#dcf0d8", "#d3ecf3", "#dfe0f6", "#f6dcec",
+  "#c0392b", "#b45309", "#a98307", "#3f7d3a", "#0d7490", "#4b4fa6", "#9b3d77",
+];
+
+let openPopup = null;
+
+function closePalette() {
+  if (!openPopup) return;
+  openPopup.remove();
+  openPopup = null;
+  document.removeEventListener("mousedown", onOutside, true);
+  document.removeEventListener("keydown", onEscape, true);
+}
+
+function onOutside(event) {
+  if (openPopup && !openPopup.contains(event.target)) closePalette();
+}
+
+function onEscape(event) {
+  if (event.key === "Escape") {
+    event.stopPropagation();
+    closePalette();
+  }
+}
+
+// Anchored to the button rather than placed inside the panel, so it can spill
+// out over the canvas instead of being clipped by the panel's own scrollbox.
+function openPalette(anchor, current, apply) {
+  closePalette();
+
+  const popup = element("div", "cpop");
+  const grid = element("div", "cgrid");
+  for (const colour of SWATCHES) {
+    const cell = element("button", "cswatch");
+    cell.type = "button";
+    cell.style.background = colour;
+    cell.title = colour;
+    if (colour.toLowerCase() === String(current).toLowerCase()) {
+      cell.classList.add("current");
+    }
+    cell.addEventListener("click", () => {
+      closePalette();
+      apply(colour);
+    });
+    grid.appendChild(cell);
+  }
+  popup.appendChild(grid);
+
+  // The native dialog, for the colour that is not on the grid. Hidden rather
+  // than removed: clicking a label is how an <input type="color"> is opened
+  // without showing its own swatch, which would be a second swatch saying the
+  // same thing as the button that opened this.
+  const more = element("label", "cmore", "Custom");
+  const native = document.createElement("input");
+  native.type = "color";
+  native.value = current;
+  // Browsers disagree about which event a colour dialog sends: some stream
+  // "input" as you drag inside it, others stay silent until it closes and
+  // then send only "change". Binding one leaves the control dead for whoever
+  // is on the other browser, so both are bound and the value is remembered.
+  let applied = null;
+  const fromDialog = () => {
+    if (native.value === applied) return;
+    applied = native.value;
+    apply(native.value);
+  };
+  native.addEventListener("input", fromDialog);
+  native.addEventListener("change", fromDialog);
+  more.appendChild(native);
+  popup.appendChild(more);
+
+  document.body.appendChild(popup);
+  // Measured after it is in the document, then kept on screen: the fill
+  // swatch sits low in a tall properties panel, so below the button is often
+  // off the bottom of the window.
+  const box = anchor.getBoundingClientRect();
+  const width = popup.offsetWidth;
+  const height = popup.offsetHeight;
+  const below = box.bottom + 4;
+  popup.style.left = `${Math.max(8, Math.min(box.left,
+    window.innerWidth - width - 8))}px`;
+  popup.style.top = below + height + 8 <= window.innerHeight
+    ? `${below}px`
+    : `${Math.max(8, box.top - height - 4)}px`;
+
+  openPopup = popup;
+  document.addEventListener("mousedown", onOutside, true);
+  document.addEventListener("keydown", onEscape, true);
 }
 
 // ---- palette ----
@@ -123,7 +270,14 @@ export class Inspector {
   }
 
   bind(field, apply, label) {
+    // What was last written to the document through this field. A field can
+    // report `change` twice for one edit -- once because Escape asked it to,
+    // once because the browser does it on blur -- and applying the same value
+    // twice would put two steps in the undo history for one rename.
+    let committed = field.value;
     field.addEventListener("change", () => {
+      if (field.value === committed) return;
+      committed = field.value;
       this.store.mutate(label, (doc) => apply(doc, field.value));
       this.onChange();
     });
@@ -290,35 +444,7 @@ export class Inspector {
       ["fill", "Fill", "#ffffff"],
       ["stroke", "Line", "#16202b"],
     ]) {
-      const wrap = element("div", "swatch");
-      const picker = input(first[key] || fallback, "color");
-      picker.classList.add("pcolor");
-      // Listen for both events, because browsers disagree about which one a
-      // colour dialog sends. Some stream "input" as you drag inside the
-      // picker; others stay silent until the dialog closes and then send only
-      // "change". Binding one of them leaves the control doing nothing at all
-      // for whoever is on the other browser, which is what happened here.
-      // The cost is that Chrome sends both, so remember what was applied.
-      let applied = null;
-      const apply = () => {
-        if (picker.value === applied) return;
-        applied = picker.value;
-        this.store.mutate("colour",
-                          (doc) => model.setStyle(doc, this.selection.ids, key, picker.value));
-        this.onChange();
-      };
-      picker.addEventListener("input", apply);
-      picker.addEventListener("change", apply);
-      const reset = element("button", "linkish", "reset");
-      reset.addEventListener("click", () => {
-        this.store.mutate("colour",
-                          (doc) => model.setStyle(doc, this.selection.ids, key, null));
-        this.onChange();
-        this.render();
-      });
-      wrap.appendChild(picker);
-      wrap.appendChild(reset);
-      root.appendChild(row(label, wrap));
+      root.appendChild(row(label, this.colourControl(key, first[key], fallback)));
     }
 
     const weight = input(first.strokeWidth || 1.6, "number");
@@ -327,6 +453,41 @@ export class Inspector {
     this.bind(weight, (doc, value) =>
       model.setStyle(doc, this.selection.ids, "strokeWidth", Number(value)), "weight");
     root.appendChild(row("Weight", weight));
+  }
+
+  // Clicking the swatch opens a grid to pick from, the way a slide editor
+  // does. The native colour dialog is still there behind "Custom", because a
+  // grid of two dozen colours is the fast path and not the only one.
+  colourControl(key, current, fallback) {
+    const wrap = element("div", "swatch");
+    const shown = current || fallback;
+
+    const button = element("button", "pswatch");
+    button.type = "button";
+    button.style.background = shown;
+    button.title = current ? shown : `${shown} (default)`;
+    button.setAttribute("aria-label", `${key} colour`);
+
+    const apply = (value) => {
+      this.store.mutate("colour",
+                        (doc) => model.setStyle(doc, this.selection.ids, key, value));
+      this.onChange();
+      this.render();
+    };
+
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openPalette(button, shown, apply);
+    });
+
+    const reset = element("button", "linkish", "reset");
+    reset.type = "button";
+    reset.title = "back to the colour the symbol came with";
+    reset.addEventListener("click", () => apply(null));
+
+    wrap.appendChild(button);
+    wrap.appendChild(reset);
+    return wrap;
   }
 
   renderDocument() {

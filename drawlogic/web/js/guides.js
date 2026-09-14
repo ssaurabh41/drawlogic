@@ -106,6 +106,9 @@ export function endsToAlign(from, to, moving) {
   return fromMoves ? [from, to] : [to, from];
 }
 
+// Cell types that stand for the edge of the sheet rather than for a part.
+const PORT_CATEGORY = "ports";
+
 function boxAlignments(doc, moving, offer) {
   const scale = routing.symbolScale(doc);
   const movers = [];
@@ -113,13 +116,23 @@ function boxAlignments(doc, moving, offer) {
   for (const cell of doc.cells || []) {
     const symbol = geometry.forCell(cell);
     if (!symbol) continue;
-    const box = geometry.cellBounds(symbol, cell, scale);
-    (moving.has(cell.id) ? movers : anchors).push(box);
+    const entry = {
+      box: geometry.cellBounds(symbol, cell, scale),
+      port: symbol.category === PORT_CATEGORY,
+    };
+    (moving.has(cell.id) ? movers : anchors).push(entry);
   }
   if (!movers.length || !anchors.length) return;
 
-  for (const mover of movers) {
-    for (const anchor of anchors) {
+  for (const { box: mover, port: moverIsPort } of movers) {
+    for (const { box: anchor, port: anchorIsPort } of anchors) {
+      // A port is a 20x10 connector at the edge of the sheet; a gate is a
+      // body in the middle of it. Lining one up with the other means nothing
+      // to a reader, so the snap only got in the way of placing the gate. Two
+      // ports still line up with each other, and so do two cells -- and a
+      // wire between a cell and a port is still straightened, because that
+      // one is about the wire rather than about the boxes.
+      if (moverIsPort !== anchorIsPort) continue;
       for (const [axis, i, size] of [["x", 0, 2], ["y", 1, 3]]) {
         const other = axis === "x" ? 1 : 0;
         const otherSize = axis === "x" ? 3 : 2;

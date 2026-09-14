@@ -93,6 +93,57 @@ function sketch(flopY) {
   check("lining up a pin beats lining up an edge", fix.dy === 2, `dy=${fix.dy}`);
 }
 
+{
+  // A gate dragged near a port used to snap its edge to the port's, which is
+  // a 20x10 connector at the edge of the sheet: lining a gate up with one
+  // means nothing to a reader and only got in the way of placing the gate.
+  // Here nothing is wired to the port, so only a box match could fire.
+  const doc = {
+    canvas: { width: 700, height: 400, symbolScale: 1 },
+    cells: [
+      { id: "u1", type: "and2", x: 200, y: 203, w: 60, h: 40, rotate: 0, mirror: false },
+      { id: "p1", type: "port_in", x: 40, y: 200, w: 20, h: 10, rotate: 0, mirror: false },
+    ],
+    nets: [],
+  };
+  const fix = guides.suggest(doc, ["u1"], 20);
+  check("a gate does not snap to an unrelated port",
+        fix.dy === 0, `dy=${fix.dy}`);
+}
+
+{
+  // Two ports still line up with each other: a column of ports down the edge
+  // of a sheet is exactly the thing that should be flush.
+  const doc = {
+    canvas: { width: 700, height: 400, symbolScale: 1 },
+    cells: [
+      { id: "p1", type: "port_in", x: 40, y: 200, w: 20, h: 10, rotate: 0, mirror: false },
+      { id: "p2", type: "port_in", x: 43, y: 260, w: 20, h: 10, rotate: 0, mirror: false },
+    ],
+    nets: [],
+  };
+  const fix = guides.suggest(doc, ["p2"], 20);
+  check("two ports still line up with each other",
+        fix.dx === -3, `dx=${fix.dx}`);
+}
+
+{
+  // And a wire between a cell and a port is still straightened, because that
+  // one is about the wire rather than about the boxes.
+  const doc = {
+    canvas: { width: 700, height: 400, symbolScale: 1 },
+    cells: [
+      { id: "u1", type: "and2", x: 200, y: 203, w: 60, h: 40, rotate: 0, mirror: false },
+      { id: "p1", type: "port_in", x: 40, y: 200, w: 20, h: 10, rotate: 0, mirror: false },
+    ],
+    nets: [{ id: "n1", from: { cell: "p1", pin: "p" },
+             to: [{ cell: "u1", pin: "a" }] }],
+  };
+  const fix = guides.suggest(doc, ["u1"], 20);
+  check("a wire to a port is still straightened",
+        fix.dy !== 0, `dy=${fix.dy}`);
+}
+
 // ---- the Tidy command ----
 
 {

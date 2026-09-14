@@ -734,7 +734,7 @@ drawing from what it is wired to. It is the difference between a correct
 drawing and a readable one, and it is the thing hand-placing cells cannot
 give you.
 
-Four passes:
+Five passes:
 
 1. **Rank.** Each cell goes one column right of everything that drives it.
    Feedback loops make that impossible, so the edges that close a loop are
@@ -750,7 +750,28 @@ Four passes:
    rather than the average of several, because one wire dead straight beats
    two half-straight -- then cells are pushed apart where two want the same
    room.
-4. **Fit.** The sheet is resized to what is actually drawn, wires included.
+4. **Refine.** The whole place-and-route is run twice -- once following wires
+   through the columns they skip, once not -- and the better result is kept.
+   Then the winner is improved by trial: swap two neighbours in a column,
+   re-route, measure, and keep the swap if the drawing got better. The median
+   in pass 2 answers "which cell is roughly where"; only trying a swap answers
+   "is this the best arrangement", and on the shipped examples this pass alone
+   takes the crossings from 72 down to 63.
+5. **Fit.** The sheet is resized to what is actually drawn, wires included.
+
+**What "better" means** is one function, `_score` in `layout.py`, and it is the
+whole of the layout's taste:
+
+| Term | Weight | Why |
+|---|---|---|
+| wire length | 1 per unit | distance the eye has to travel |
+| crossings | `CROSSING_COST`, 320 | a moment of doubt about which line is which. This is also the price of a crossing bridge, because a bridge is what a crossing is *drawn as* -- costing both would be counting one fault twice |
+| spread | `SPREAD_COST`, 0.35 per unit of width plus height | drawing that has to be scrolled or shrunk to be seen |
+
+Every candidate is judged by actually routing it, so what is scored is what
+would be exported. The weights are judgements rather than measurements; on the
+shipped examples they happen not to change the outcome, which is worth knowing
+before tuning them.
 
 It also turns every cell to face forward and drops every waypoint. A mirrored
 block has its inputs on the east, so in a left-to-right layout every wire into
@@ -892,6 +913,7 @@ change.
 | `CORRIDOR_STEP` | 10 | how far apart the router tries successive corridors when its first choice is taken |
 | `CORRIDOR_TRIES` | 18 | how many corridors either side before giving up |
 | `WIRE_MIN_JOG` | 8 | the shortest step that reads as going round something rather than as a wobble |
+| `ARROW_TO_JUNCTION` | 12 | how far a direction arrow keeps from a junction dot, since both are small solid marks in the same ink |
 | `LABEL_CLEARANCE` | 5 | clear space demanded around a net name, so a label touching a wire counts as landing on it |
 | `LABEL_HEADROOM` | 20 | room left above a cell for its instance name |
 | `TEXT_TO_WIRE` | 6 | air an instance name needs from a wire |
@@ -900,6 +922,7 @@ change.
 | `CELL_GAP_X` | 110 | room between one column of cells and the next, where the wires between them run |
 | `CELL_GAP_Y` | 52 | room between two cells stacked in the same column |
 | `CELL_MIN_GAP` | 24 | the least space allowed between any two cells, whichever way they sit |
+| `PORT_STUB` | 26 | how far a wire runs straight out of an IO port before it may turn |
 | `PORT_GAP` | 20 | the least space between two ports, which are smaller than gates and get their own rule |
 | `PORT_TO_CELL` | 30 | how far a port keeps from a block, so it reads as the edge of the sheet rather than part of the block |
 | `PORT_TO_WIRE` | 12 | how close a wire may pass a port it does not connect to |

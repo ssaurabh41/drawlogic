@@ -229,11 +229,16 @@ Ranked by where I would look first, with reasoning rather than a flat list.
    the port is inside the body. Try pathological placements: a port at a
    corner, two ports on the same edge at the same spot, a port dead centre.
 
-5. **The two-ordering choice in `layout.py`.** Auto layout runs the whole
-   place-and-route twice and keeps the better result. Worth checking: that
-   the losing attempt leaves nothing behind in the document, that the score
-   is stable rather than flipping between runs, and that a drawing where both
-   orderings tie comes out the same every time.
+5. **The two-ordering choice in `layout.py`, and the refinement after it.**
+   Auto layout runs the whole place-and-route twice, keeps the better result,
+   then tries swapping neighbours within each column and keeps a swap when the
+   score improves. Worth checking: that a losing attempt leaves nothing behind
+   in the document, that the score is stable rather than flipping between
+   runs, that a drawing where two arrangements tie comes out the same every
+   time, and that the sweep loop really does stop early rather than always
+   running to its ceiling. The refinement calls `_score` -- a full re-route --
+   once per candidate swap, so a pathological drawing is where the Layout
+   button gets slow.
 
 6. **Label placement (`render_svg.py`).** A scoring function with seven
    weighted terms (off-sheet, cell overlap, wire overlap, label overlap,
@@ -295,7 +300,9 @@ print to PDF from the browser.
 ways and keeps whichever scores better on crossings and wire length
 (`layout._score`). Across the seven examples that is 118 crossings against 129
 for the previous single-pass version. The score is two numbers and one
-weighting constant, `CROSSING_COST`, set by judgement rather than experiment;
+weighting constants -- `CROSSING_COST` and `SPREAD_COST` -- set by judgement
+rather than experiment (and measured to change nothing on the shipped
+examples, where the refinement pass does all the work);
 whether a crossing really is worth about a gate's width of wire is a fair
 thing to challenge.
 

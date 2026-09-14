@@ -8,6 +8,7 @@ Usage:
     drawlogic serve alu_ctrl.dlg        # open the browser editor
     drawlogic export alu_ctrl.dlg -o alu_ctrl.svg --zoom 2
     drawlogic validate alu_ctrl.dlg     # references and DRCs; non-zero on errors
+    drawlogic doctor                    # is this copy of drawlogic consistent?
     drawlogic info alu_ctrl.dlg
     drawlogic symbols list
 
@@ -16,6 +17,7 @@ Run with nothing, or with --help, for the same overview.
 
 import argparse
 import os
+import re
 import sys
 
 from . import drc
@@ -227,6 +229,143 @@ def _issue_line(issue):
   return "%s: %s" % (issue.where, issue.message)
 
 
+def cmd_doctor(args):
+  """Check that this copy of drawlogic is internally consistent.
+
+  Three separate bug reports in a row turned out to be one thing: files copied
+  across one at a time, so the Python and the JavaScript were from different
+  versions of the project and called into functions the other half no longer
+  had. Every one of them surfaced as something that looked like a real bug --
+  a browser that would not draw, a Check that crashed, a colour picker that
+  was not there.
+
+  None of that is visible by reading a file. It is visible by asking whether
+  the pieces still fit each other, which is what this does: run the Python end
+  to end on a drawing built here, then read every browser module and check
+  that each thing it imports is really exported by the file it names.
+
+  Deliberately not a checksum against a manifest. A manifest goes stale, and
+  it fails on a line ending as loudly as on a missing function.
+  """
+  problems = []
+
+  def report(what, detail=None):
+    problems.append(what if detail is None else "%s: %s" % (what, detail))
+
+  print("drawlogic %s" % VERSION)
+  print("python    %s" % sys.version.split()[0])
+  print("here      %s" % os.path.dirname(os.path.abspath(__file__)))
+  print("")
+
+  # ---- the Python half, exercised rather than inspected ----
+  try:
+    from . import doc as doc_module
+    from . import drc, layout, routing, symbols
+    registry = symbols.default_registry()
+    sheet = doc_module.new_document("doctor", 600, 400)
+    sheet.cells.extend([
+      {"id": "p", "type": "port_in", "x": 60, "y": 180, "label": "p"},
+      {"id": "u", "type": "and2", "x": 300, "y": 160, "label": "u"},
+    ])
+    sheet.nets.append({"id": "n", "name": "w",
+                       "from": {"cell": "p", "pin": "p"},
+                       "to": [{"cell": "u", "pin": "a"}]})
+    sheet.normalize()
+
+    steps = [
+      ("route a wire", lambda: routing.route_all(sheet, registry)),
+      ("check the rules", lambda: drc.check(sheet, registry)),
+      ("lay it out", lambda: layout.arrange(sheet, registry)),
+      ("render to SVG", lambda: render_svg.render(sheet, registry)),
+    ]
+    for what, run in steps:
+      try:
+        run()
+        print("ok    %s" % what)
+      except Exception as exc:
+        print("FAIL  %s" % what)
+        report(what, "%s: %s" % (type(exc).__name__, exc))
+  except Exception as exc:
+    print("FAIL  load the python modules")
+    report("importing drawlogic", "%s: %s" % (type(exc).__name__, exc))
+
+  print("%d built-in symbols" % len(_registry(args).ids()))
+
+  # ---- the browser half, read rather than run ----
+  web = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "js")
+  mismatches, modules = _js_imports(web)
+  if modules is None:
+    print("FAIL  read %s" % web)
+    report("browser modules", "cannot read %s" % web)
+  else:
+    for line in mismatches:
+      report("browser modules", line)
+    print("%s  %d browser modules, %d import mismatches"
+          % ("ok   " if not mismatches else "FAIL ", modules, len(mismatches)))
+
+  print("")
+  if not problems:
+    print("this copy is consistent with itself")
+    return 0
+  print("%d problem(s):" % len(problems))
+  for line in problems:
+    print("  %s" % line)
+  print("")
+  print("Files from different versions of the project cannot work together.")
+  print("Take the whole repository at once rather than file by file:")
+  print("  git clone https://github.com/ssaurabh41/drawlogic")
+  print("or download and unzip .../drawlogic/archive/refs/heads/main.zip")
+  return 1
+
+
+def _js_imports(folder):
+  """Every named import in the browser modules that nothing exports.
+
+  Reads the files rather than running them, because there is no browser here
+  -- but a name imported from a module that does not export it is a hard
+  failure in the browser, and it is exactly what a half-copied install looks
+  like.
+  """
+  try:
+    names = sorted(n for n in os.listdir(folder) if n.endswith(".js"))
+  except OSError:
+    return [], None
+
+  exported = {}
+  source = {}
+  for name in names:
+    try:
+      with open(os.path.join(folder, name)) as handle:
+        text = handle.read()
+    except OSError:
+      continue
+    source[name] = text
+    found = set(re.findall(r"^export\s+(?:async\s+)?"
+                           r"(?:function|class|const|let|var)\s+(\w+)",
+                           text, re.M))
+    for group in re.findall(r"^export\s*\{([^}]*)\}", text, re.M):
+      for piece in group.split(","):
+        piece = piece.strip().split(" as ")[0].strip()
+        if piece:
+          found.add(piece)
+    exported[name] = found
+
+  problems = []
+  pattern = re.compile(
+    r'import\s*\{([^}]*)\}\s*from\s*[\"\']\./([\w.]+\.js)[\"\']')
+  for name, text in sorted(source.items()):
+    for group, target in pattern.findall(text):
+      if target not in exported:
+        problems.append("%s imports from %s, which is not here" % (name, target))
+        continue
+      for piece in group.split(","):
+        piece = piece.strip().split(" as ")[0].strip()
+        if piece and piece not in exported[target]:
+          problems.append("%s imports '%s' from %s, which does not export it"
+                          % (name, piece, target))
+  return problems, len(source)
+
+
 def cmd_validate(args):
   registry = _registry(args)
   doc, registry, problems = _open(args.file, registry)
@@ -421,6 +560,10 @@ def build_parser():
   arrange.add_argument("--gap-y", type=float, default=layout.GAP_Y,
                        metavar="N", help="room between cells in a column")
   arrange.set_defaults(func=cmd_layout)
+
+  doctor = subs.add_parser("doctor", parents=[common],
+                           help="check this copy of drawlogic is consistent")
+  doctor.set_defaults(func=cmd_doctor)
 
   validate = subs.add_parser("validate", parents=[common],
                              help="check a drawing for problems")

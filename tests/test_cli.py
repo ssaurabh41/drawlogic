@@ -160,5 +160,70 @@ class TestValidateRunsTheDrcs(unittest.TestCase):
     self.assertEqual(code, 0)
 
 
+class TestDoctor(unittest.TestCase):
+  """`doctor` answers "do the pieces of this copy still fit each other".
+
+  Three bug reports in a row were one thing: files copied over one at a time,
+  leaving the Python and the JavaScript from different versions of the project
+  calling into functions the other half no longer had. Each looked like a real
+  bug -- a browser that would not draw, a Check that crashed, a colour picker
+  that was not there -- and none of them was visible by reading a file.
+  """
+
+  def run_doctor(self):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+      code = cli.main(["doctor"])
+    return code, out.getvalue()
+
+  def test_a_healthy_copy_passes(self):
+    code, output = self.run_doctor()
+    self.assertEqual(code, 0, output)
+    self.assertIn("consistent with itself", output)
+
+  def test_it_exercises_the_python_rather_than_inspecting_it(self):
+    code, output = self.run_doctor()
+    self.assertEqual(code, 0)
+    for step in ("route a wire", "check the rules", "lay it out",
+                 "render to SVG"):
+      self.assertIn(step, output)
+
+  def test_it_notices_a_module_missing_a_function_another_calls(self):
+    """The Check crash: drc asks render_svg for cell_label_box, and an older
+    render_svg does not have one."""
+    real = render_svg.cell_label_box
+    del render_svg.cell_label_box
+    try:
+      code, output = self.run_doctor()
+    finally:
+      render_svg.cell_label_box = real
+    self.assertEqual(code, 1)
+    self.assertIn("cell_label_box", output)
+
+  def test_it_notices_a_browser_import_nothing_exports(self):
+    """The blank editor: tools.js imported handlePoints from a selection.js
+    that had not been updated to export it."""
+    from drawlogic import cli as cli_module
+    problems, count = cli_module._js_imports(
+      os.path.join(os.path.dirname(os.path.abspath(cli_module.__file__)),
+                   "web", "js"))
+    self.assertGreater(count, 0, "found no browser modules to check")
+    self.assertEqual(problems, [])
+
+  def test_the_browser_check_can_actually_fail(self):
+    """Otherwise it reports a clean bill on anything, which is the shape of
+    bug it exists to catch."""
+    from drawlogic import cli as cli_module
+    with tempfile.TemporaryDirectory() as tmp:
+      with open(os.path.join(tmp, "one.js"), "w") as handle:
+        handle.write('import { missing } from "./two.js";\n')
+      with open(os.path.join(tmp, "two.js"), "w") as handle:
+        handle.write("export function present() {}\n")
+      problems, count = cli_module._js_imports(tmp)
+    self.assertEqual(count, 2)
+    self.assertEqual(len(problems), 1)
+    self.assertIn("missing", problems[0])
+
+
 if __name__ == "__main__":
   unittest.main()

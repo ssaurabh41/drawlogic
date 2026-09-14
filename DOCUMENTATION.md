@@ -198,6 +198,30 @@ question.
 `validate` exits non-zero when it finds errors, so it drops into a pre-commit
 hook or a CI job unchanged.
 
+### doctor
+
+```bash
+drawlogic doctor
+```
+
+Answers one question: do the pieces of this copy of drawlogic still fit each
+other? It runs the Python end to end on a drawing it builds itself -- route,
+check, lay out, render -- and then reads every browser module and confirms
+that each thing it imports really is exported by the file it names. Exits
+non-zero and says what to do if not.
+
+Worth running first whenever something looks broken in a way that makes no
+sense: a browser that will not draw, a Check that crashes, a control that is
+not there. Those are what a half-updated copy looks like from the outside, and
+none of it is visible by reading a file. Files from different versions of the
+project cannot work together, so take the whole repository at once -- `git
+clone`, or download and unzip
+`https://github.com/ssaurabh41/drawlogic/archive/refs/heads/main.zip` --
+rather than copying files across one at a time.
+
+Deliberately not a checksum against a manifest: a manifest goes stale, and it
+fails on a changed line ending as loudly as on a missing function.
+
 ### symbols
 
 ```bash

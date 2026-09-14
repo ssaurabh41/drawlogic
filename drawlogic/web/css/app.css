@@ -594,6 +594,8 @@ select {
   justify-content: space-between;
 }
 
+.drc-right { display: flex; align-items: center; gap: 7px; }
+
 .drc-count {
   font-size: 10px;
   letter-spacing: 0;
@@ -602,6 +604,29 @@ select {
 }
 .drc-count.bad { color: var(--danger); }
 .drc-count.good { color: var(--accent); }
+/* A count waiting on a fresh answer. Greyed rather than blanked: the old
+   number is still the best guess, it just cannot be trusted for a moment. */
+.drc-count.stale { opacity: 0.45; }
+
+/* Live or manual. Small and quiet -- it is a preference, not a command. */
+.drc-toggle {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.drc-toggle:hover { color: var(--ink); border-color: var(--ink-3); }
+.drc-toggle[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.drc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .drc-body { padding: 0 12px 16px; }
 
@@ -633,13 +658,34 @@ select {
 
 .drc-where { color: var(--ink-3); }
 
-/* Where the view lands after clicking a violation. Nothing else on the canvas
-   is a dashed ring, so it reads as "here" rather than as part of the drawing;
-   it goes on the next redraw, which is the moment it has done its job. */
+/* One ring per violation, drawn where it is. Nothing else on the canvas is a
+   dashed ring, so it reads as "look here" rather than as part of the drawing.
+   Faint by default: these are meant to be noticed while you work, not to
+   compete with the schematic. The one whose row you are pointing at comes
+   forward. */
 .dl-drc-mark {
   fill: none;
-  stroke: var(--danger);
-  stroke-width: 2;
-  stroke-dasharray: 5 4;
   pointer-events: none;
+  opacity: 0.45;
 }
+.dl-drc-mark.error { stroke: var(--danger); }
+.dl-drc-mark.warning { stroke: var(--warm); }
+.dl-drc-mark.active { opacity: 1; }
+
+/* The DRC count in the status bar as well as in the panel.
+   The panel is the place to read the list, but it is at the bottom of a
+   column that scrolls, so on a short window it is out of sight -- and a
+   verdict you cannot see is no use at all when the whole point is that it
+   keeps itself up to date while you draw. The status bar is always there. */
+.status-drc {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  color: var(--ink-3);
+}
+.status-drc:hover { text-decoration: underline; }
+.status-drc.bad { color: var(--danger); }
+.status-drc.good { color: var(--accent); }
+.status-drc.stale { opacity: 0.45; }

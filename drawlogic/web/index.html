@@ -162,7 +162,11 @@
     <div class="pane-head drc-head"
          title="Design rule checks: the distances in drc.py that decide whether a drawing reads well">
       DRC
-      <span id="drc-count" class="drc-count"></span>
+      <span class="drc-right">
+        <span id="drc-count" class="drc-count"></span>
+        <button id="drc-live" class="drc-toggle" type="button"
+                aria-pressed="true">live</button>
+      </span>
     </div>
     <!-- Filled by main.js, which owns the wording in one place. -->
     <div id="drc-body" class="drc-body"></div>
@@ -172,6 +176,8 @@
 <div class="status">
   <span id="status-counts">&mdash;</span>
   <span id="status-cursor">x &mdash; y &mdash;</span>
+  <button id="status-drc" class="status-drc" type="button" hidden
+          title="Design rule checks - click to show the list"></button>
   <span class="push" id="status-message">Shift-drag or hold Space to pan &middot; scroll to zoom</span>
 </div>
 

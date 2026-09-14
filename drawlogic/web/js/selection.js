@@ -132,6 +132,20 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     }
   }
 
+  // Every DRC violation, marked where it is. The list in the panel says what
+  // is wrong; this says where, which is the half you cannot get from a list --
+  // and it is drawn in the overlay rather than poked into the canvas so it
+  // survives a redraw and scales with the zoom like everything else here.
+  for (const mark of options.drc || []) {
+    layer.appendChild(el("circle", {
+      class: `dl-drc-mark ${mark.level === "error" ? "error" : "warning"}`
+             + (mark.active ? " active" : ""),
+      cx: mark.at[0], cy: mark.at[1], r: 13 / zoom,
+      "stroke-width": 2 / zoom,
+      "stroke-dasharray": `${5 / zoom} ${4 / zoom}`,
+    }));
+  }
+
   if (options.wirePreview && options.wirePreview.length > 1) {
     layer.appendChild(el("path", {
       class: "dl-wire-preview",

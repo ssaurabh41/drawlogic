@@ -65,7 +65,11 @@ function say(message, kind) {
 function drawOverlay(options) {
   overlayOptions = options || {};
   if (!store.doc) return;
-  drawHandles(ui.canvas, selection, viewport.zoom, overlayOptions);
+  // The DRC marks are merged in rather than passed by the caller: a tool
+  // mid-drag sets its own overlay options, and the marks should not blink out
+  // every time it does.
+  drawHandles(ui.canvas, selection, viewport.zoom,
+              { ...overlayOptions, drc: liveMarks });
 }
 
 function redraw() {
@@ -473,29 +477,152 @@ async function save() {
 // use, so a drawing that passes here passes `drawlogic validate` too. The
 // canvas is sent rather than the file on disk: the point is to check the
 // drawing being worked on, unsaved edits included.
-async function runCheck() {
+// How long to wait after the last edit before checking. Long enough that
+// typing a name or dragging a gate is one check rather than twenty; short
+// enough that it still feels like the drawing is answering back.
+const LIVE_DELAY = 400;
+
+// A check that takes longer than this has stopped being free. The checker is
+// quadratic in wire segments -- 4ms on a ten-cell drawing, 17ms on twenty-two
+// -- so somewhere above that it turns into a stutter every time you pause.
+// Rather than let the editor feel sticky and leave the reason to be guessed
+// at, live checking switches itself off and says so.
+const LIVE_BUDGET = 250;
+
+let liveOn = true;
+let liveTimer = null;
+let liveBusy = false;
+let liveMarks = [];
+
+// Checked by Python, from the same drc.py the exporter and the command line
+// use, so a drawing that passes here passes `drawlogic validate` too. The
+// canvas is sent rather than the file on disk: the point is to check the
+// drawing being worked on, unsaved edits included.
+//
+// `quiet` is the live pass: it updates the panel and the canvas but says
+// nothing in the status bar, because a message every time you stop typing is
+// noise. Pressing Check is never quiet -- you asked, so you get an answer
+// even when the answer is "nothing changed".
+async function runCheck({ quiet = false } = {}) {
   if (!store.doc) return;
-  ui.btnCheck.disabled = true;
+  if (liveBusy) {
+    // One check at a time, but the drawing has moved on since this one went
+    // out -- so come back rather than dropping the request. Without this the
+    // last edit before a pause could be the one that never gets checked,
+    // which is the one that matters.
+    if (quiet) {
+      window.clearTimeout(liveTimer);
+      liveTimer = window.setTimeout(() => runCheck({ quiet: true }), LIVE_DELAY);
+    }
+    return;
+  }
+  liveBusy = true;
+  if (!quiet) ui.btnCheck.disabled = true;
+  // What the document looked like when this request went out. The answer is
+  // only about that version, so if anything has changed by the time it comes
+  // back it is thrown away rather than shown against a drawing it never saw.
+  const asked = store.stamp();
+  const started = Date.now();
   try {
     const result = await api("/api/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ doc: store.doc, source: store.path }),
     });
+    if (!store.matches(asked)) return;
     showViolations(result);
+
     const { errors, warnings } = result;
-    if (!errors && !warnings) say("no design rule violations", "good");
-    else say(`${errors} error(s), ${warnings} warning(s)`,
-             errors ? "bad" : "warn");
+    if (!quiet) {
+      if (!errors && !warnings) say("no design rule violations", "good");
+      else say(`${errors} error(s), ${warnings} warning(s)`,
+               errors ? "bad" : "warn");
+    }
+
+    const took = Date.now() - started;
+    if (quiet && took > LIVE_BUDGET) {
+      setLive(false);
+      say(`this drawing takes ${took}ms to check, so live checking is off; `
+          + "press Check when you want one", "warn");
+    }
   } catch (error) {
+    // A live check that fails says so once and stops trying. Retrying on a
+    // timer against a server that is not answering would bury the reason
+    // under a message every 400ms.
+    if (quiet) setLive(false);
     say(error.message, "bad");
   } finally {
+    liveBusy = false;
     ui.btnCheck.disabled = false;
   }
 }
 
+// An edit makes the last answer stale. Which way it goes stale depends: with
+// live checking on the answer is replaced, and with it off the answer is
+// withdrawn, because a stale clean bill is worse than none -- it says the
+// thing you just broke is fine.
+function afterEdit() {
+  window.clearTimeout(liveTimer);
+  if (!liveOn) {
+    clearViolations();
+    return;
+  }
+  markStale();
+  liveTimer = window.setTimeout(() => runCheck({ quiet: true }), LIVE_DELAY);
+}
+
+function setLive(on) {
+  liveOn = Boolean(on);
+  window.clearTimeout(liveTimer);
+  if (ui.drcLive) {
+    ui.drcLive.setAttribute("aria-pressed", String(liveOn));
+    ui.drcLive.textContent = liveOn ? "live" : "manual";
+    ui.drcLive.title = liveOn
+      ? "checking as you draw; click to check only when you press Check"
+      : "checking only when you press Check; click to check as you draw";
+  }
+  try {
+    window.localStorage.setItem("drawlogic.live", liveOn ? "1" : "0");
+  } catch (error) {
+    // A browser with storage turned off still gets the toggle, just not the
+    // memory of it.
+  }
+  if (liveOn) afterEdit();
+}
+
+function storedLive() {
+  try {
+    return window.localStorage.getItem("drawlogic.live") !== "0";
+  } catch (error) {
+    return true;
+  }
+}
+
+// The count goes grey while a fresh answer is on its way, so a number on
+// screen is never quietly describing a drawing that has moved on.
+function markStale() {
+  for (const node of [ui.drcCount, ui.statusDrc]) {
+    if (node && node.textContent) node.classList.add("stale");
+  }
+}
+
+function showStatusCount(errors, warnings) {
+  const node = ui.statusDrc;
+  if (!node) return;
+  node.hidden = false;
+  node.className = "status-drc " + (errors ? "bad" : (warnings ? "" : "good"));
+  node.textContent = errors || warnings
+    ? `DRC ${count(errors, "error")}, ${count(warnings, "warning")}`
+    : "DRC clean";
+}
+
 function showViolations(result) {
   const { violations, errors, warnings } = result;
+  liveMarks = violations.filter((v) => v.at)
+    .map((v) => ({ level: v.level, at: v.at }));
+  drawOverlay(overlayOptions);
+  ui.drcCount.classList.remove("stale");
+  showStatusCount(errors, warnings);
   ui.drcCount.textContent = violations.length
     ? `${count(errors, "error")}, ${count(warnings, "warning")}`
     : "clean";
@@ -526,6 +653,8 @@ function showViolations(result) {
 
     if (violation.at) {
       button.addEventListener("click", () => goTo(violation));
+      button.addEventListener("mouseenter", () => highlight(violation));
+      button.addEventListener("mouseleave", () => highlight(null));
     } else {
       button.disabled = true;
     }
@@ -542,21 +671,32 @@ function goTo(violation) {
   const [x, y] = violation.at;
   viewport.centreOn(x, y);
   say(violation.message, violation.level === "error" ? "bad" : "warn");
+  highlight(violation);
+}
 
-  const previous = ui.canvas.querySelector(".dl-drc-mark");
-  if (previous) previous.remove();
-  const mark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  mark.setAttribute("class", "dl-drc-mark");
-  mark.setAttribute("cx", x);
-  mark.setAttribute("cy", y);
-  mark.setAttribute("r", 16 / viewport.zoom);
-  ui.canvas.append(mark);
+// Bring one violation's ring forward and leave the rest faint. Every mark is
+// already on the canvas, so this is a change of emphasis rather than
+// something drawn and cleared -- which is what it used to be, and why it
+// disappeared on the next redraw.
+function highlight(violation) {
+  const key = violation && violation.at
+    ? `${violation.at[0]},${violation.at[1]}` : null;
+  for (const mark of liveMarks) {
+    mark.active = key !== null && `${mark.at[0]},${mark.at[1]}` === key;
+  }
+  drawOverlay(overlayOptions);
 }
 
 // A drawing that has changed is a drawing whose last check no longer applies,
 // and a stale clean bill is worse than none: it says the thing you just broke
 // is fine. So an edit clears the list rather than leaving it to be misread.
 function clearViolations() {
+  liveMarks = [];
+  drawOverlay(overlayOptions);
+  if (ui.statusDrc) {
+    ui.statusDrc.hidden = true;
+    ui.statusDrc.textContent = "";
+  }
   ui.drcCount.textContent = "";
   ui.drcCount.className = "drc-count";
   ui.drcBody.replaceChildren(drcNote(
@@ -843,7 +983,11 @@ function bindControls() {
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
   ui.btnPng.addEventListener("click", copyPng);
-  ui.btnCheck.addEventListener("click", runCheck);
+  ui.btnCheck.addEventListener("click", () => runCheck());
+  ui.drcLive.addEventListener("click", () => setLive(!liveOn));
+  ui.statusDrc.addEventListener("click", () => {
+    ui.drcBody.scrollIntoView({ block: "nearest" });
+  });
   ui.btnNew.addEventListener("click", newDrawing);
   ui.btnTheme.addEventListener("click", cycleTheme);
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
@@ -978,6 +1122,8 @@ async function start() {
     btnCheck: $("btn-check"),
     drcBody: $("drc-body"),
     drcCount: $("drc-count"),
+    drcLive: $("drc-live"),
+    statusDrc: $("status-drc"),
   });
 
   applyTheme(storedTheme());
@@ -997,7 +1143,7 @@ async function start() {
   // clean bill is worse than none: it says the thing just broken is fine.
   // Saving is the one thing that changes nothing on the canvas.
   store.subscribe((_store, reason) => {
-    if (reason !== "saved") clearViolations();
+    if (reason !== "saved") afterEdit();
   });
 
   try {
@@ -1018,6 +1164,7 @@ async function start() {
     }
 
     clearViolations();
+    setLive(storedLive());
     bindControls();
     bindCanvas();
     bindKeyboard();

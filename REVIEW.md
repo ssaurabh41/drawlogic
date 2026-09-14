@@ -13,8 +13,8 @@ pin**, so moving a cell carries its wires. Drawings are plain JSON. Output is
 SVG. It runs on Python 3.8+ with nothing installed -- no pip packages, no
 Node, no network.
 
-**Size.** About 5,800 lines of Python across 14 modules, 4,900 lines of
-JavaScript across 11 browser modules, 261 tests, 33 built-in symbols, 7 worked
+**Size.** About 6,400 lines of Python across 14 modules, 5,250 lines of
+JavaScript across 11 browser modules, 312 tests, 33 built-in symbols, 7 worked
 examples.
 
 ---
@@ -25,7 +25,8 @@ Five minutes, no install:
 
 ```bash
 git clone <this repo> drawlogic && cd drawlogic
-python3 -m unittest discover            # expect: Ran 261 tests ... OK
+python3 -m unittest discover            # expect: Ran 312 tests ... OK
+python3 -m drawlogic doctor             # expect: this copy is consistent with itself
 python3 -m drawlogic export examples/soc_top.dlg -o /tmp/soc.svg
 python3 -m drawlogic serve examples/dff_slice.dlg   # editor on 127.0.0.1:8080
 ```
@@ -39,6 +40,15 @@ The server binds loopback and serves exactly one folder. If you are reviewing
 on a remote machine, tunnel (`ssh -L 8080:localhost:8080 host`) rather than
 passing `--host` -- see section 6 for what that flag gives up.
 
+`doctor` is the second line above because a copy assembled file by file is the
+single most common way this has broken for a real user, and its symptoms
+(blank canvas, empty icons, `Check` answering "failed to fetch") look like
+product bugs rather than a bad copy. It exercises Python end to end, checks
+every browser import resolves, and hashes all 28 files against `manifest.txt`.
+On Windows, `verify.ps1` does the manifest half without needing Python to run
+at all. If either reports a mismatch, stop and re-take the repository whole --
+nothing found after that point is trustworthy.
+
 ---
 
 ## 2. Verify the claims
@@ -48,21 +58,25 @@ independently. Treat a claim with no check as unverified.
 
 | Claim | Check it | Expected |
 |---|---|---|
-| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 261 pass; nothing is downloaded |
+| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 312 pass; nothing is downloaded |
 | Wires follow their cells | open an example, drag a gate, watch the wires | paths re-route, stay attached |
 | One place to tune the drawing | change `WIRE_GAP` in `drawlogic/drc.py`, re-export | every wire spacing moves; no other file edited |
-| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 5 tests, incl. that `routing.js`'s fallback limits still match `drc.py` |
+| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 6 tests, incl. that `routing.js`'s fallback limits still match `drc.py` |
 | Wires store pins, not coordinates | open `examples/dff_slice.dlg`, read `nets[0].from` and `nets[0].to` | endpoints name `cell` and `pin`; no x/y anywhere |
 | One renderer for every export | `tests/test_server.py::test_export_writes_svg_through_the_python_renderer` | browser export goes through Python, not a canvas screenshot |
-| The browser and Python route identically | `python3 -m unittest tests.test_js_parity` (needs node) | 4 tests pass -- but read section 4, this is narrower than it sounds |
+| The browser and Python route identically | `python3 -m unittest tests.test_js_parity` (needs node) | 6 tests pass -- but read section 4, this is narrower than it sounds |
 | Adding a symbol needs no code | add an entry to a `symbols.json`, run `symbols list` | new id appears; no `.py` touched |
 | Symbols are shared, not drifting | `tests/test_server.py::test_symbols_match_the_python_registry` | the browser is served the same library the CLI uses |
 | The server refuses paths outside its root | `python3 -m unittest tests.test_server` | 5 tests on the path helper (incl. a prefix-match case) plus 2 end-to-end refusals |
 | Drawings diff as text | `python3 -m drawlogic info examples/soc_top.dlg`, then edit and re-save | stable key order; diffs read as "moved U1" |
 | Format v1 files still load | `python3 -m unittest tests.test_nets` | upgrade path tested, including that it is idempotent |
-| The DRCs find a real fault | `python3 -m unittest tests.test_drc` | 30 tests; the first is the reported case -- two nets into one gate drawn as one wire |
+| The DRCs find a real fault | `python3 -m unittest tests.test_drc` | 34 tests; the first is the reported case -- two nets into one gate drawn as one wire |
 | The DRCs are not vacuous | delete a `_check_*` call from `drc.check()`, re-run `tests.test_drc` | red, for every one of the nine |
 | The DRCs do not cry wolf | `for f in examples/*.dlg; do drawlogic validate $f; done` | warnings, none of them errors; each one findable in the picture |
+| Checking keeps up while you draw | serve an example, drag a gate onto another, stop | a ring appears within about half a second; the status-bar count matches the pane |
+| The live count is never stale | drag something and watch the count during the drag | it greys out on the first move and only goes solid again with a fresh answer |
+| This copy is the copy | `python3 -m drawlogic doctor`, or `verify.ps1` on Windows | 28 files against `manifest.txt`, 0 differ |
+| The manifest cannot rot | append a blank line to any file under `drawlogic/`, `python3 -m unittest tests.test_manifest` | red, naming the command that regenerates it |
 
 Warnings are expected, not a defect: `validate` reports unconnected pins, and
 every example has a few (`soc_top.dlg` has 2). It also reports design rule
@@ -260,19 +274,70 @@ Ranked by where I would look first, with reasoning rather than a flat list.
    in either would hide real faults rather than invent false ones, which is
    the failure that does not announce itself.
 
+8. **Live DRC's scheduling, in `main.js`.** The checking itself is `drc.py`
+   and is tested; what is new and untested is *when* it runs. Three pieces of
+   state -- a debounce timer, a "one check at a time" flag, and a stamp of the
+   document that was sent -- decide whether an answer is shown or thrown away.
+   Every bug in that shape looks the same from outside: a count that is right
+   for a drawing you no longer have.
+
+   Specific things to try. Edit continuously for longer than a check takes,
+   then stop: the last edit must be the one that gets checked. (It was not,
+   in the first version -- an edit arriving mid-check was dropped rather than
+   re-arming the timer, so the pane was stalest exactly when someone would
+   read it.) Undo past the edit that caused a violation and confirm the ring
+   goes with it. Change the drawing while a check is in flight and confirm the
+   late answer is discarded rather than painted. Turn **live** off with
+   failures showing, edit, and confirm nothing silently updates.
+
+   The time budget is the other half: the feature switches itself off after a
+   check that takes longer than 250ms, on the reasoning that a delay felt
+   under the cursor is worse than not checking. That threshold is a guess, and
+   the graceful-degradation path is the one a reviewer should try to make
+   misbehave -- back-to-back slow checks, a check that throws, a check
+   outstanding when the document is replaced wholesale by opening another
+   file.
+
+9. **`manifest.txt` and the two things that hash.** `cli.content_hash` and
+   `verify.ps1` have to agree exactly, in two languages, and nothing fails
+   loudly if they drift -- one side just starts calling good files bad. The
+   agreement is: read as UTF-8, drop a byte order mark, fold CRLF and lone CR
+   to LF, SHA-256 the result. `tests/test_manifest.py` checks the shapes
+   around it (every path parses with the script's own regular expression, no
+   path needs escaping, the script still names both replacements) but cannot
+   run PowerShell, so the two implementations are checked by reading, not by
+   execution. If you have Windows, the highest-value thing you can do in ten
+   minutes is run `verify.ps1` on a fresh `git clone` and confirm it says all
+   28 files are fine. A byte-for-byte version of this manifest reported every
+   file in a healthy clone as broken; that is the failure mode to re-check,
+   not a missed mismatch.
+
 ---
 
 ## 6. What is not covered
 
 Stated plainly so nobody assumes more than exists.
 
-**~3,560 lines of browser JavaScript have no automated tests.** Parity covers
-`routing.js` and `render.js` (1,291 of 4,855 lines). The remaining modules -- `main.js`,
-`tools.js`, `model.js`, `selection.js`, `panels.js`, `viewport.js`,
-`picture.js` -- are exercised by 55 Node checks (drag alignment, Tidy, net
+**~3,900 lines of browser JavaScript have no automated tests.** Parity covers
+`routing.js` and `render.js` (1,333 of 5,250 lines). The remaining modules --
+`main.js`, `tools.js`, `model.js`, `selection.js`, `panels.js`, `viewport.js`,
+`picture.js` -- are exercised by 58 Node checks (drag alignment, Tidy, net
 building) and otherwise verified by hand in a headless browser. Selection,
 resize handles, undo/redo, clipboard, grouping, rotation and the properties
 panel have no standing test. **This is the biggest hole in the project.**
+
+Live DRC is the newest thing in that hole, and the most worth pointing at.
+Everything it decides -- when to run, what to discard, when to give up -- lives
+in `main.js` and is DOM behaviour: a debounce timer, a stamp comparison
+against the document that was checked, a time budget that switches the feature
+off. None of it is unit-tested. It was verified by driving a real headless
+Chromium over CDP with trusted input events, which is worth one specific
+warning: an earlier round of that verification used synthetic
+`new MouseEvent()` calls, which fire no default actions, and so passed against
+an editor that was visibly broken in the browser. If you test this area, use
+`Input.dispatchMouseEvent`. A standing test would need a browser in the suite,
+which would cost the "runs on a bare machine" property the rest of this
+section defends -- so it is recorded here instead of quietly assumed.
 
 The deliberate reason is that adding a JS toolchain would cost the
 zero-dependency property that makes this installable on a locked-down machine.
@@ -296,15 +361,53 @@ but a workstation, that is a finding.
 border and title block, multiple sheets in one file. PDF is out of scope --
 print to PDF from the browser.
 
-**Auto layout is measured, not merely asserted.** It lays each drawing out two
-ways and keeps whichever scores better on crossings and wire length
-(`layout._score`). Across the seven examples that is 118 crossings against 129
-for the previous single-pass version. The score is two numbers and one
-weighting constants -- `CROSSING_COST` and `SPREAD_COST` -- set by judgement
-rather than experiment (and measured to change nothing on the shipped
-examples, where the refinement pass does all the work);
-whether a crossing really is worth about a gate's width of wire is a fair
-thing to challenge.
+**Auto layout is measured, not merely asserted.** It lays each drawing out
+four ways -- every combination of two ordering choices -- keeps the best, then
+refines it by swapping neighbours within a column while that helps
+(`layout._score`). Across the seven examples that is 118 crossings, 11 DRC
+errors and 49 warnings; the previous single-pass version scored 129 crossings.
+
+Those 11 errors are worth being clear about: they are what auto layout
+*produces* when it re-arranges the examples, not what the examples ship with.
+As committed all seven validate with zero errors. Auto layout scores DRC
+failures rather than being forbidden them, so it will accept one when the
+alternative costs more elsewhere -- which is a design choice to challenge, not
+a bug to report.
+
+Reproduce it -- no command prints this, so it is a few lines:
+
+```python
+import glob
+from tests import open_example
+from drawlogic import layout, drc, routing
+
+crossings = errors = warnings = 0
+for path in sorted(glob.glob("examples/*.dlg")):
+    doc, registry, _ = open_example(path)
+    layout.arrange(doc, registry)
+    segments = list(routing.segments_of(routing.route_all(doc, registry)))
+    crossings += layout._crossings(segments)
+    for violation in drc.check(doc, registry):
+        if violation.level == "error":
+            errors += 1
+        else:
+            warnings += 1
+print(crossings, errors, warnings)     # 118 11 49
+```
+
+`open_example` rather than `Document.load` matters: plain loading leaves a
+`ref` block unresolved, which reads as an unknown cell type and quietly
+undercounts every hierarchical drawing.
+
+The score has five weighted terms: crossings, total wire length, bounding-box
+spread, DRC errors and DRC warnings. Four of the five weights are judgement,
+not measurement. `ERROR_COST` and `WARNING_COST` were the exception -- they
+were swept, and the sweep is worth knowing about because it is a useful
+warning: raising `ERROR_COST` to 4000 did cut errors to 10, and took warnings
+to 75 and crossings to 134. Optimising hard on one term of a hand-weighted
+score buys it from the others. The shipped 1000/150 was the best of what was
+tried, which is not the same as right; whether a crossing really is worth
+about a gate's width of wire is still a fair thing to challenge.
 
 **A known inconsistency:** `export` accepts many files (`export *.dlg
 --outdir svg/`) but `validate` takes exactly one and errors on a glob.
@@ -334,6 +437,14 @@ Things to note as you go: what you reached for and did not find; where the
 keyboard shortcut was not what your hands expected; whether the properties
 panel told you what you needed; whether anything was lost when you saved.
 Saving is manual and there is no autosave -- notice whether that bit you.
+
+One thing to judge rather than test, because no assertion can: the live DRC
+count sitting in the corner while you work. It is meant to be the difference
+between finding a short as you make it and finding it ten minutes later. The
+honest failure mode is the opposite -- a number that nags at something you
+have not finished drawing yet, so you learn to stop reading it. If it becomes
+wallpaper within thirty minutes, that is the finding, and it is a more useful
+one than any bug in this section.
 
 The manual is [DOCUMENTATION.md](DOCUMENTATION.md) -- the only user-facing
 document, there is deliberately no README. Every module also

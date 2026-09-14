@@ -109,6 +109,19 @@ alias drawlogic='python3 -m drawlogic'
 
 With pip available, `pip install -e .` gives the same short command.
 
+On Windows, in PowerShell:
+
+```powershell
+$env:PYTHONPATH = "$PWD;$env:PYTHONPATH"
+function drawlogic { python -m drawlogic @args }
+```
+
+`python3` is often not a command there; `python` is. Take the repository whole
+rather than file by file -- if you have had to copy files across one at a
+time, run `verify.ps1` before anything else, because a mixed copy fails in
+ways that look like bugs. See
+[Checking the files themselves](#checking-the-files-themselves).
+
 Every command is discoverable from the tool itself:
 
 ```bash
@@ -201,7 +214,8 @@ hook or a CI job unchanged.
 ### doctor
 
 ```bash
-drawlogic doctor
+drawlogic doctor                   # is this copy sound?
+drawlogic doctor --write-manifest  # record what it should be
 ```
 
 Answers one question: do the pieces of this copy of drawlogic still fit each
@@ -219,8 +233,29 @@ clone`, or download and unzip
 `https://github.com/ssaurabh41/drawlogic/archive/refs/heads/main.zip` --
 rather than copying files across one at a time.
 
-Deliberately not a checksum against a manifest: a manifest goes stale, and it
-fails on a changed line ending as loudly as on a missing function.
+It also checks this copy against `manifest.txt`, which is the one thing
+reading the code cannot tell you: whether a file is the version the rest of
+the project was written against.
+
+```
+ok    route a wire
+ok    check the rules
+ok    lay it out
+ok    render to SVG
+33 built-in symbols
+ok     11 browser modules, 0 import mismatches
+ok     28 files against manifest.txt, 0 differ
+
+this copy is consistent with itself
+```
+
+`--write-manifest` regenerates `manifest.txt` and does nothing else. Run it
+after changing anything under `drawlogic/` -- the test suite fails until you
+do, so this is not something to remember.
+
+A manifest is usually a bad idea for two good reasons, and both had to be
+answered before this one earned its place. See
+[Checking the files themselves](#checking-the-files-themselves).
 
 ### symbols
 
@@ -259,9 +294,15 @@ has nothing to ask permission for.
 
 ### Checking what you drew
 
-Press **Check** for the design rule checks: wires lying on other wires, parts
-too close to tell apart, names sitting on wires. Click a violation and the
-view walks to it. See [Design rule checks](#design-rule-checks-drcs).
+The design rule checks run as you draw -- wires lying on other wires, parts
+too close to tell apart, names sitting on wires. A moment after you stop
+moving something, anything wrong with it is ringed on the canvas and listed
+under Properties, with the count also in the status bar. Click a line in the
+list and the view walks to it.
+
+**live** in the DRC header turns that off; **Check** then runs it only when
+you ask. See [Design rule checks](#design-rule-checks-drcs) and
+[Live checking](#live-checking).
 
 ### Placing and wiring
 
@@ -1034,14 +1075,134 @@ Any error exits 1; warnings on their own exit 0.
 
 ### In the editor
 
-Press **Check**. The DRC pane under Properties lists what failed, red for
-errors and amber for warnings. Click one and the view walks to it and rings
-the spot. Editing the drawing clears the list, because a stale clean bill is
-worse than none -- it says the thing you just broke is fine.
+The DRC pane under Properties lists what failed, red for errors and amber for
+warnings. Click one and the view walks to it and rings the spot.
 
 The editor sends what is on the canvas rather than the file on disk, so
 unsaved edits are checked too. It is the same `drc.py` the command line uses,
 so a drawing that passes in one place passes in the other.
+
+### Live checking
+
+The list keeps itself up to date while you draw. Move a cell, and about
+four-tenths of a second after you stop, the drawing is checked and the
+failures are ringed on the canvas -- a dashed red circle for an error, amber
+for a warning. Click a line in the pane and its ring fills in.
+
+That delay is the point. Checking on every mouse move would check forty
+half-finished versions of a drag; checking only when you ask means you find
+out about a short ten minutes after you drew it, when it is no longer obvious
+which move caused it. Waiting for you to pause is the difference between the
+two: one check per thing you did.
+
+The count sits in two places, because the pane can be scrolled out of sight
+and a warning nobody can see is not a warning. `3 / 1` in the DRC header is
+errors and warnings; the same figure appears in the status bar at the bottom,
+which is always on screen. Both grey out the instant you change something and
+come back solid when the new answer arrives, so the number in front of you is
+never a stale one presented as current.
+
+**live** in the DRC header turns it off, and the choice is remembered. Off,
+the pane goes back to whatever **Check** last found, and **Check** still works
+exactly as before.
+
+It also turns itself off. A check that takes longer than a quarter of a second
+would be felt as the editor hesitating under the cursor, so on the first one
+that does, live mode stops and says so -- once, in the status bar, rather than
+degrading quietly. Very large drawings are the case this is for; **live** puts
+it back if you would rather have the lag. A check that fails outright does the
+same thing rather than filling the status bar with the same error at every
+pause.
+
+Only one check runs at a time. An edit that lands while one is in flight
+re-arms the timer instead of being dropped, so the last thing you did before
+stopping is always the thing that gets checked -- an earlier version dropped
+it, which made the pane wrong in exactly the situation it is most likely to be
+read. Answers that arrive for a drawing you have since changed are discarded
+rather than displayed.
+
+---
+
+## Checking the files themselves
+
+Everything above checks a drawing. This checks the program: are the files in
+this folder all from the same version of it?
+
+That sounds like a strange question until it has cost you an afternoon. A copy
+taken file by file -- which is what people do when they cannot clone -- ends up
+with Python from today and browser modules from last week, and the symptoms
+look nothing like the cause: a canvas that never appears, empty icons,
+**Check** answering "failed to fetch", shapes that turn black when you move
+them. Every file reads correctly on its own. Nothing in the code can tell you,
+because the code is not what is wrong.
+
+`manifest.txt` at the top of the repository is a hash of every file that has
+to be right, 28 of them:
+
+```
+<64 hex digits>  drawlogic/__init__.py
+<64 hex digits>  drawlogic/web/js/main.js
+```
+
+Three ways to check a copy against it:
+
+```bash
+drawlogic doctor                    # part of what doctor already reports
+python3 -m drawlogic doctor         # same, without the alias
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File verify.ps1
+```
+
+`verify.ps1` is for Windows, where the trouble usually is, and needs nothing
+installed -- not even a working Python, which matters because a copy too
+broken to run is exactly the copy you want to check. It reports `MISSING`,
+`MISMATCH`, `EXTRA` or `UNREADABLE` per file, exits 0 when the copy is sound,
+1 when it is not and 2 when it cannot find a manifest to read. It takes
+`-Root` if you run it from somewhere else. Tested on PowerShell 7.4 and
+written to the subset Windows PowerShell 5.1 also accepts.
+
+`EXTRA` is worth as much as the other three. A file the manifest has never
+heard of is usually left over from an older version, and Python will import it
+in preference to nothing at all.
+
+### The two reasons not to do this, and what answers them
+
+An earlier version of this document said a manifest was deliberately absent,
+for two reasons. Both were right. Neither is a reason to go without one; they
+are the two things a manifest has to get past first.
+
+**It fails on line endings.** Git rewrites them on checkout on Windows by
+default, so a byte-for-byte manifest calls every file in a perfectly healthy
+clone broken. This is not hypothetical -- the first one handed over did exactly
+that, all 28 files "mismatched" and not one of them actually different. A
+checker that cries wolf is worse than none, because the next real mismatch is
+ignored along with the noise. So the hash is not of the bytes on disk: the text
+is read as UTF-8, any byte order mark dropped, CRLF and lone CR folded to LF,
+and *that* is hashed. `verify.ps1` does the same thing in the same order.
+Whitespace inside a line still counts; only the invisible differences are
+forgiven.
+
+**It goes stale.** A manifest is only maintained until the first person who
+forgets, after which it is a liar. So it is not maintained. It is generated:
+
+```bash
+drawlogic doctor --write-manifest
+```
+
+and `tests/test_manifest.py` fails the moment the committed one stops
+describing the tree. Change a file in `drawlogic/` without regenerating, and
+the suite goes red and tells you the command to run. Forgetting is not
+available.
+
+That test is also what lets `verify.ps1` be trusted without running it here:
+the suite checks that every path it will parse matches the regular expression
+the script parses with, that no path needs quoting or escaping, and that the
+script still normalises the same way. The script itself was run against
+PowerShell 7.4 on a clean tree, on a copy with every file rewritten CRLF and a
+byte order mark added, and on trees with a changed file, a deleted file and a
+leftover file.
 
 ---
 
@@ -1077,6 +1238,8 @@ drawlogic/
     js/main.js       bootstrap and controls
 tests/            unittest, a golden-file regression suite, a JS parity check
 examples/         worked schematics, including a CDC FIFO
+manifest.txt      a hash of every file above; generated, never hand-edited
+verify.ps1        checks a copy against it on Windows, without Python
 ```
 
 ### One renderer for every exported file
@@ -1151,13 +1314,15 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-The suite is in ten parts:
+312 tests, in thirteen parts:
 
 | File | Covers |
 |---|---|
 | `tests/test_model.py` | document format, symbol library, bus naming |
 | `tests/test_draw.py` | routing and SVG rendering |
+| `tests/test_drc.py` | every DRC, and what each one is supposed to miss |
 | `tests/test_server.py` | HTTP endpoints, path-traversal refusal |
+| `tests/test_cli.py` | the commands, including validate and doctor |
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | drag-time alignment and Tidy |
@@ -1165,6 +1330,12 @@ The suite is in ten parts:
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
+| `tests/test_manifest.py` | `manifest.txt` still describes the files here |
+
+They need nothing installed: no network, no browser, no third-party package.
+That is a property worth keeping, and it is the
+reason one or two things are checked by hand instead -- REVIEW.md, section 6,
+says which and why.
 
 ### The regression suite
 

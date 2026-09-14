@@ -108,6 +108,49 @@ class TestEndpoints(unittest.TestCase):
     self.assertIn("roleStyles", payload)
     self.assertIn("body", payload["roleStyles"])
 
+  def test_drc_limits_are_served_so_the_browser_need_not_restate_them(self):
+    payload = self.get("/api/drc")
+    for key in ("wireGap", "wireToCell", "cellMinGap", "portGap", "hopGap"):
+      self.assertIn(key, payload)
+
+  def test_check_reports_the_drcs_for_the_drawing_in_the_body(self):
+    """The editor checks what is on the canvas, unsaved edits included, so
+    the drawing is sent rather than named."""
+    payload = self.get("/api/doc?path=slice.dlg")
+    result = self.post("/api/check",
+                       {"doc": payload["doc"], "source": "slice.dlg"})
+    self.assertEqual(set(result), {"violations", "errors", "warnings"})
+    self.assertEqual(result["errors"] + result["warnings"],
+                     len(result["violations"]))
+    for violation in result["violations"]:
+      self.assertEqual(set(violation),
+                       {"rule", "level", "where", "message", "at"})
+
+  def test_check_finds_a_short_the_editor_would_have_to_show(self):
+    payload = self.get("/api/doc?path=slice.dlg")
+    doc = payload["doc"]
+    # Two ports squeezed against a gate with no room for two corridors: the
+    # router has to put both wires on one line, which reads as a short.
+    doc["cells"].extend([
+      {"id": "z1", "type": "port_in", "x": 60, "y": 620, "label": "z1"},
+      {"id": "z2", "type": "port_in", "x": 60, "y": 680, "label": "z2"},
+      {"id": "ZU", "type": "and2", "x": 105, "y": 620},
+    ])
+    doc["nets"].extend([
+      {"id": "z_a", "name": "za", "from": {"cell": "z2", "pin": "p"},
+       "to": [{"cell": "ZU", "pin": "a"}]},
+      {"id": "z_b", "name": "zb", "from": {"cell": "z1", "pin": "p"},
+       "to": [{"cell": "ZU", "pin": "b"}]},
+    ])
+    result = self.post("/api/check", {"doc": doc, "source": "slice.dlg"})
+    rules = [v["rule"] for v in result["violations"] if v["level"] == "error"]
+    self.assertIn("wire-short", rules)
+
+  def test_check_refuses_a_document_it_cannot_parse(self):
+    with self.assertRaises(HTTPError) as caught:
+      self.post("/api/check", {"doc": {"format": "nope"}})
+    self.assertEqual(caught.exception.code, 422)
+
   def test_lists_drawings(self):
     payload = self.get("/api/files")
     self.assertIn("slice.dlg", payload["files"])

@@ -15,11 +15,12 @@ Usage:
 Endpoints:
 
     GET  /                 the editor page
-    GET  /api/rules        drafting distances from rules.py
+    GET  /api/drc          the DRC limits from drc.py
     GET  /api/theme        colours, weights and role painting from theme.py
     GET  /api/symbols      the symbol library, registry overrides included
     GET  /api/files        .dlg files under the served root
     GET  /api/doc?path=    one drawing
+    POST /api/check        the DRC failures in the drawing in the body
     POST /api/doc?path=    save a drawing, re-emitted canonically
     POST /api/export       render to SVG, optionally writing it to disk
     POST /api/layout       rearrange a drawing and hand it back unwritten
@@ -42,7 +43,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 from . import render_svg
-from . import rules
+from . import drc
 from . import theme
 from . import authoring
 from . import layout
@@ -177,11 +178,11 @@ class Handler(BaseHTTPRequestHandler):
     if route == "/api/symbols":
       return self._send_json(self.registry.as_data())
 
-    if route == "/api/rules":
+    if route == "/api/drc":
       # The drafting distances -- wire separation, cell spacing, label
       # clearance. Served for the same reason the theme is: a drag on the
-      # canvas and a file from the exporter must obey one set of rules.
-      return self._send_json(rules.as_data())
+      # canvas and a file from the exporter must obey one set of DRCs.
+      return self._send_json(drc.as_data())
 
     if route == "/api/theme":
       # Served rather than restated in JS, so the canvas and the exporter
@@ -267,6 +268,8 @@ class Handler(BaseHTTPRequestHandler):
       return self._export(payload)
     if route == "/api/layout":
       return self._layout(payload)
+    if route == "/api/check":
+      return self._check(payload)
     if route == "/api/symbol":
       return self._save_symbol(payload)
     return self._fail(404, "no such endpoint")
@@ -346,6 +349,37 @@ class Handler(BaseHTTPRequestHandler):
 
     return self._send_json({"doc": document.ordered(), "note": str(result),
                             "shapes": len(document.shapes)})
+
+
+  def _check(self, payload):
+    """Run the DRCs over the drawing in the request and report what failed.
+
+    The editor sends what is on the canvas rather than what is on disk, so the
+    answer is about the drawing being worked on -- and it comes from the same
+    drc.py the exporter and the command line use, so a drawing that passes
+    here passes everywhere.
+    """
+    try:
+      document = Document.from_data(payload.get("doc") or {})
+    except (DocumentError, TypeError, ValueError) as exc:
+      return self._fail(422, "document is not valid: %s" % exc)
+
+    registry = self.registry
+    source = payload.get("source")
+    if source:
+      resolved = _safe_join(self.root, source)
+      if resolved is None:
+        return self._fail(400, "source is outside the served directory")
+      document.path = resolved
+      registry = self.registry.copy()
+      sheets.resolve(document, registry, confine=self.root)
+
+    found = drc.check(document, registry)
+    return self._send_json({
+      "violations": [violation.as_data() for violation in found],
+      "errors": len([v for v in found if v.level == "error"]),
+      "warnings": len([v for v in found if v.level != "error"]),
+    })
 
 
   def _save_symbol(self, payload):

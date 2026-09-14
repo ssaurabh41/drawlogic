@@ -30,10 +30,10 @@ const fontScale = Number((canvas.font || {}).scale) || 1;
 // language, and both are easy to let drift.
 const theme = JSON.parse(readFileSync(process.argv[4], "utf8"));
 render.setTheme(theme);
-// The drafting rules come from Python too, so a change to rules.py that the
+// The DRC limits come from Python too, so a change to drc.py that the
 // browser router has not picked up shows here as a routing difference.
 const designRules = JSON.parse(readFileSync(process.argv[5], "utf8"));
-routing.setRules(designRules);
+routing.setLimits(designRules);
 
 const routes = routing.routeAll(doc);
 const hops = routing.hopPoints(routes);

@@ -29,7 +29,7 @@ This module also owns bus naming: net_name_width("d[7:0]") is 8.
 import json
 import re
 
-from . import rules
+from . import drc
 from . import theme
 from .geometry import corners, union_bbox
 from .symbols import default_registry
@@ -56,9 +56,9 @@ SHAPE_KINDS = ("rect", "ellipse", "line", "polygon", "polyline", "text")
 DEFAULT_CANVAS = {
   # One sheet size for every new drawing, so a folder of them prints and
   # pastes at a consistent scale. Change it per drawing in the properties
-  # panel when one needs more room; the number itself lives in rules.py.
-  "width": rules.SHEET_W,
-  "height": rules.SHEET_H,
+  # panel when one needs more room; the number itself lives in drc.py.
+  "width": drc.SHEET_W,
+  "height": drc.SHEET_H,
   "background": theme.PAPER,
   "grid": {"style": "dots", "size": 10, "color": theme.COLORS["grid"]},
   "font": {"family": "IBM Plex Sans", "scale": 1.0},
@@ -237,14 +237,21 @@ def _list_of_objects(data, key):
 
 
 class Issue(object):
-  """One problem found by validate(); level is 'error' or 'warning'."""
+  """One problem found by validate(); level is 'error' or 'warning'.
 
-  __slots__ = ("level", "where", "message")
+  `rule` names a design rule check when the problem came from one, and is None
+  for the reference faults found here. Both kinds are printed by one loop in
+  cli.py, so both carry the field rather than the printer having to ask what
+  it is holding.
+  """
 
-  def __init__(self, level, where, message):
+  __slots__ = ("level", "where", "message", "rule")
+
+  def __init__(self, level, where, message, rule=None):
     self.level = level
     self.where = where
     self.message = message
+    self.rule = rule
 
   def __str__(self):
     return "%s: %s: %s" % (self.level, self.where, self.message)

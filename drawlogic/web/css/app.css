@@ -513,3 +513,66 @@ input.pcolor { padding: 1px; height: 24px; cursor: pointer; width: 42px; }
 /* The alignment and order icons read better with the moved pieces solid: the
    rails are the reference, the blocks are what travels. */
 .tool.icon .ico rect { fill: currentColor; fill-opacity: 0.22; }
+
+/* ---- design rule checks ---- */
+
+/* The list lives under the properties panel because both answer "what is
+   wrong with the thing I am looking at", and a reader glancing right should
+   find both without hunting for a second place to look. */
+
+.drc-head {
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drc-count {
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.drc-count.bad { color: var(--danger); }
+.drc-count.good { color: var(--accent); }
+
+.drc-body { padding: 0 12px 16px; }
+
+.drc-note { margin: 0; font-size: 11px; color: var(--ink-3); }
+
+.drc-list { list-style: none; margin: 0; padding: 0; }
+
+.drc-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 5px 6px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.35;
+  display: block;
+}
+.drc-item:hover { background: var(--sunken); color: var(--ink); }
+.drc-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* The rule name first, in the colour of its severity, so a list of twenty
+   sorts itself by eye before anything is read. */
+.drc-rule { font-weight: 600; }
+.drc-item.error .drc-rule { color: var(--danger); }
+.drc-item.warning .drc-rule { color: var(--warm); }
+
+.drc-where { color: var(--ink-3); }
+
+/* Where the view lands after clicking a violation. Nothing else on the canvas
+   is a dashed ring, so it reads as "here" rather than as part of the drawing;
+   it goes on the next redraw, which is the moment it has done its job. */
+.dl-drc-mark {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}

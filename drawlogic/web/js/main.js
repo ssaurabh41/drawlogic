@@ -458,6 +458,114 @@ async function save() {
   }
 }
 
+// ---- design rule checks ----
+
+// Checked by Python, from the same drc.py the exporter and the command line
+// use, so a drawing that passes here passes `drawlogic validate` too. The
+// canvas is sent rather than the file on disk: the point is to check the
+// drawing being worked on, unsaved edits included.
+async function runCheck() {
+  if (!store.doc) return;
+  ui.btnCheck.disabled = true;
+  try {
+    const result = await api("/api/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc: store.doc, source: store.path }),
+    });
+    showViolations(result);
+    const { errors, warnings } = result;
+    if (!errors && !warnings) say("no design rule violations", "good");
+    else say(`${errors} error(s), ${warnings} warning(s)`,
+             errors ? "bad" : "warn");
+  } catch (error) {
+    say(error.message, "bad");
+  } finally {
+    ui.btnCheck.disabled = false;
+  }
+}
+
+function showViolations(result) {
+  const { violations, errors, warnings } = result;
+  ui.drcCount.textContent = violations.length
+    ? `${count(errors, "error")}, ${count(warnings, "warning")}`
+    : "clean";
+  ui.drcCount.className = "drc-count " + (errors ? "bad" : "good");
+
+  ui.drcBody.replaceChildren();
+  if (!violations.length) {
+    ui.drcBody.append(drcNote("Nothing to fix: every rule in drc.py passes."));
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "drc-list";
+  for (const violation of violations) {
+    const row = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `drc-item ${violation.level}`;
+    button.title = violation.message;
+
+    const rule = document.createElement("span");
+    rule.className = "drc-rule";
+    rule.textContent = violation.rule;
+    const where = document.createElement("span");
+    where.className = "drc-where";
+    where.textContent = ` ${violation.where}`;
+    button.append(rule, where);
+
+    if (violation.at) {
+      button.addEventListener("click", () => goTo(violation));
+    } else {
+      button.disabled = true;
+    }
+    row.append(button);
+    list.append(row);
+  }
+  ui.drcBody.append(list);
+}
+
+// Walk to a violation and ring it. The ring is drawn straight into the canvas
+// rather than through the renderer: it is not part of the drawing, and the
+// next redraw is exactly when it should stop being shown.
+function goTo(violation) {
+  const [x, y] = violation.at;
+  viewport.centreOn(x, y);
+  say(violation.message, violation.level === "error" ? "bad" : "warn");
+
+  const previous = ui.canvas.querySelector(".dl-drc-mark");
+  if (previous) previous.remove();
+  const mark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  mark.setAttribute("class", "dl-drc-mark");
+  mark.setAttribute("cx", x);
+  mark.setAttribute("cy", y);
+  mark.setAttribute("r", 16 / viewport.zoom);
+  ui.canvas.append(mark);
+}
+
+// A drawing that has changed is a drawing whose last check no longer applies,
+// and a stale clean bill is worse than none: it says the thing you just broke
+// is fine. So an edit clears the list rather than leaving it to be misread.
+function clearViolations() {
+  ui.drcCount.textContent = "";
+  ui.drcCount.className = "drc-count";
+  ui.drcBody.replaceChildren(drcNote(
+    "Press Check to read the drawing back the way a reader will: wires lying "
+    + "on other wires, parts too close to tell apart, names sitting on wires."));
+}
+
+function count(n, word) {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+function drcNote(text) {
+  const note = document.createElement("p");
+  note.className = "drc-note";
+  note.textContent = text;
+  return note;
+}
+
 async function exportSvg() {
   if (!store.doc || !store.path) return;
   const target = window.prompt("Export SVG to (relative to the served folder):",
@@ -726,6 +834,7 @@ function bindControls() {
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
   ui.btnPng.addEventListener("click", copyPng);
+  ui.btnCheck.addEventListener("click", runCheck);
   ui.btnNew.addEventListener("click", newDrawing);
   ui.btnTheme.addEventListener("click", cycleTheme);
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
@@ -857,6 +966,9 @@ async function start() {
     toast: $("toast"),
     btnNew: $("btn-new"),
     btnTheme: $("btn-theme"),
+    btnCheck: $("btn-check"),
+    drcBody: $("drc-body"),
+    drcCount: $("drc-count"),
   });
 
   applyTheme(storedTheme());
@@ -872,14 +984,20 @@ async function start() {
   inspector = new Inspector($("properties-body"), store, selection, () => redraw());
   inspector.onOpenRef = (cell) => drillInto(cell);
   selection.subscribe(() => refreshStatus());
+  // Anything that changes the drawing makes the last check stale, and a stale
+  // clean bill is worse than none: it says the thing just broken is fine.
+  // Saving is the one thing that changes nothing on the canvas.
+  store.subscribe((_store, reason) => {
+    if (reason !== "saved") clearViolations();
+  });
 
   try {
-    const [theme, library, listing, designRules] = await Promise.all([
+    const [theme, library, listing, drcLimits] = await Promise.all([
       api("/api/theme"), api("/api/symbols"), api("/api/files"),
-      api("/api/rules"),
+      api("/api/drc"),
     ]);
     render.setTheme(theme);
-    routing.setRules(designRules);
+    routing.setLimits(drcLimits);
     geometry.setLibrary(library);
     rebuildPalette();
 
@@ -890,6 +1008,7 @@ async function start() {
       ui.fileSelect.appendChild(option);
     }
 
+    clearViolations();
     bindControls();
     bindCanvas();
     bindKeyboard();

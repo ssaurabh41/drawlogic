@@ -34,17 +34,17 @@ Usage:
     print(note)          # "6 columns, 14 cells, 2 feedback wires"
 """
 
-from . import rules
+from . import drc
 from . import routing
 from .doc import loads_of
 from .geometry import corners
 from .symbols import default_registry
 
 # Room between columns, and between cells stacked in one column. The numbers
-# themselves are drafting rules, so they live in rules.py with the rest.
-GAP_X = rules.CELL_GAP_X
-GAP_Y = rules.CELL_GAP_Y
-MARGIN = rules.SHEET_MARGIN
+# themselves are drawing rules, so they live in drc.py with the rest.
+GAP_X = drc.CELL_GAP_X
+GAP_Y = drc.CELL_GAP_Y
+MARGIN = drc.SHEET_MARGIN
 
 # How many back-and-forth passes the ordering gets. Past about four it stops
 # finding anything.
@@ -77,11 +77,11 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   if not cells:
     return Result(0, 0, 0)
 
-  # rules.CELL_MIN_GAP is documented as the least space allowed between any
+  # drc.CELL_MIN_GAP is documented as the least space allowed between any
   # two cells, so it has to hold even when a caller passes a smaller gap_x or
   # gap_y of its own -- otherwise it is a number nobody reads.
-  gap_x = max(gap_x, rules.CELL_MIN_GAP)
-  gap_y = max(gap_y, rules.CELL_MIN_GAP)
+  gap_x = max(gap_x, drc.CELL_MIN_GAP)
+  gap_y = max(gap_y, drc.CELL_MIN_GAP)
 
   _face_forward(cells)
   _forget_waypoints(doc)
@@ -374,7 +374,7 @@ def _headroom(cell):
   Without it a column packs cells tight enough that each name lands on the one
   above, which is a tidy-looking layout that cannot be read.
   """
-  return rules.LABEL_HEADROOM if cell.get("label") else 0.0
+  return drc.LABEL_HEADROOM if cell.get("label") else 0.0
 
 
 def _box(registry, doc, cell):

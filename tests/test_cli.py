@@ -6,6 +6,8 @@ a bug can live entirely in how it translates flags into arguments -- which is
 exactly what happened here.
 """
 
+import contextlib
+import io
 import os
 import tempfile
 import unittest
@@ -98,6 +100,64 @@ class TestExportRespectsTheDocument(unittest.TestCase):
                          "CLI export must match what the document itself "
                          "renders to, the same claim the manual makes about "
                          "editor and CLI export agreeing byte for byte")
+
+
+def _shorted_document():
+  """Two nets forced onto one corridor: the drawing says they are joined."""
+  doc = new_document("shorted", 600, 420)
+  doc.cells.extend([
+    {"id": "in1", "type": "port_in", "x": 60, "y": 100, "label": "in1"},
+    {"id": "in2", "type": "port_in", "x": 60, "y": 160, "label": "in2"},
+    {"id": "U1", "type": "and2", "x": 105, "y": 100},
+  ])
+  doc.nets.extend([
+    {"id": "n1", "name": "s1", "from": {"cell": "in2", "pin": "p"},
+     "to": [{"cell": "U1", "pin": "a"}]},
+    {"id": "n2", "name": "s2", "from": {"cell": "in1", "pin": "p"},
+     "to": [{"cell": "U1", "pin": "b"}]},
+  ])
+  doc.normalize()
+  return doc
+
+
+def _validate(doc, *flags):
+  """Run `validate` over a document and hand back (exit code, output)."""
+  out = io.StringIO()
+  with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "d.dlg")
+    doc.save(path)
+    with contextlib.redirect_stdout(out):
+      code = cli.main(["validate", path] + list(flags))
+  return code, out.getvalue()
+
+
+class TestValidateRunsTheDrcs(unittest.TestCase):
+  """`validate` checks how a drawing reads, not only what it references.
+
+  Reference faults and rule failures are two halves of one question -- is
+  this drawing fit to hand to someone else -- so they come out of one command
+  and one exit code rather than needing two runs to find out.
+  """
+
+  def test_a_drc_error_fails_the_command(self):
+    code, output = _validate(_shorted_document())
+    self.assertEqual(code, 1, "a drawing with a hidden short exited 0")
+    self.assertIn("on top of each other", output)
+    self.assertIn("wire-short", output,
+                  "the rule that found it is the heading to look up, so the "
+                  "message has to name it")
+
+  def test_no_drc_skips_them(self):
+    """The escape hatch has to actually let a drawing through, or it is not
+    an escape hatch."""
+    code, output = _validate(_shorted_document(), "--no-drc")
+    self.assertEqual(code, 0)
+    self.assertNotIn("on top of each other", output)
+
+  def test_a_clean_drawing_still_passes(self):
+    doc = _wired_document("clean")
+    code, _ = _validate(doc)
+    self.assertEqual(code, 0)
 
 
 if __name__ == "__main__":

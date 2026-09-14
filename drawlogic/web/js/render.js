@@ -413,7 +413,7 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
     for (const [spot, anchor, horizontal, length, stop, farSide]
          of labelCandidates(branches, size)) {
       const box = labelBox(spot, anchor, net.name, size);
-      const near = grown(box, routing.currentRules().labelClearance);
+      const near = grown(box, routing.currentLimits().labelClearance);
 
       let score = 0;
       if (sheet && (box[0] < 2 || box[1] < 2
@@ -440,15 +440,23 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
   return spots;
 }
 
-// Every cell's footprint, with room above it for the instance name.
+// A whisker of air around a cell before a name counts as landing on it.
+const CELL_BOX_PAD = 2;
+
+// Every cell's footprint, with room above a labelled one for its instance
+// name. An unlabelled cell gets no headroom: reserving space for text that is
+// not there pushes net names further away than they need to go.
 export function cellBoxes(doc) {
   const scale = routing.symbolScale(doc);
+  const limits = routing.currentLimits();
   const boxes = [];
   for (const cell of doc.cells || []) {
     const symbol = geometry.forCell(cell);
     if (!symbol) continue;
     const [x, y, w, h] = geometry.cellBounds(symbol, cell, scale);
-    boxes.push([x - 2, y - 18, x + w + 2, y + h + 2]);
+    const headroom = cell.label ? limits.labelHeadroom : 0;
+    boxes.push([x - CELL_BOX_PAD, y - headroom,
+                x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD]);
   }
   return boxes;
 }

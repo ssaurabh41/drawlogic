@@ -208,10 +208,10 @@ export function items(doc) {
 }
 
 // A fresh drawing, in the shape doc.py normalises to. The sheet size comes
-// from the rules the server sent, so a new drawing here is the same size as
-// one made by `drawlogic` on the command line.
+// from the DRC limits the server sent, so a new drawing here is the same
+// size as one made by `drawlogic` on the command line.
 export function blankDocument(title) {
-  const size = routing.currentRules();
+  const size = routing.currentLimits();
   return {
     format: "drawlogic",
     version: 2,

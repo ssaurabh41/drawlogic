@@ -24,7 +24,7 @@ width/height attributes, so output stays vector-perfect at any size.
 """
 
 from . import routing
-from . import rules
+from . import drc
 from . import theme
 from .geometry import corners, fmt
 from .symbols import default_registry
@@ -407,11 +407,17 @@ def _net_path(points, hops, radius):
   return " ".join(parts)
 
 
+# A whisker of air around a cell before a name counts as landing on it.
+CELL_BOX_PAD = 2.0
+
+
 def _cell_boxes(doc, registry):
   """Every cell's footprint, as (x0, y0, x1, y1), with room for its name.
 
-  The instance name is drawn above the cell, so the box is taller than the
-  cell to keep a net's name from landing on it.
+  The instance name is drawn above the cell, so a labelled cell's box is
+  taller than the cell to keep a net's name from landing on it. An unlabelled
+  cell gets no headroom -- reserving space for text that is not there pushes
+  net names further away than they need to go.
   """
   boxes = []
   for cell in doc.cells:
@@ -419,8 +425,41 @@ def _cell_boxes(doc, registry):
     if symbol is None:
       continue
     x, y, w, h = _cell_bbox(symbol, cell, doc.symbol_scale)
-    boxes.append((x - 2, y - 18, x + w + 2, y + h + 2))
+    headroom = drc.LABEL_HEADROOM if cell.get("label") else 0.0
+    boxes.append((x - CELL_BOX_PAD, y - headroom,
+                  x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD))
   return boxes
+
+
+def cell_label_box(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+  """The rectangle a cell's instance name occupies, or None if it has none.
+
+  The DRCs need the same rectangle the renderer will draw into, so both come
+  from here rather than from two guesses that can drift apart.
+  """
+  label = cell.get("label")
+  if not label:
+    return None
+  box = _cell_bbox(symbol, cell, symbol_scale)
+  size = theme.FONT_SIZES["label"] * font_scale
+  return _label_box((box[0] + box[2] / 2.0, box[1] - 5), "middle", label, size)
+
+
+def net_label_boxes(doc, registry=None, routes=None):
+  """The rectangle every net name lands in, as {net id: box}.
+
+  The placer takes the least bad spot it can find, which in a crowded drawing
+  still lands on something. Handing the chosen rectangles out lets the DRCs
+  say so rather than letting a name quietly sit on a wire.
+  """
+  registry = registry or default_registry()
+  if routes is None:
+    routes = routing.route_all(doc, registry)
+  placed = _label_spots(routes, _cell_boxes(doc, registry),
+                        (doc.canvas.get("width"), doc.canvas.get("height")),
+                        doc.font_scale)
+  return dict((net_id, box)
+              for net_id, (_spot, _anchor, box, _score) in placed.items())
 
 
 # Where along a run a name may sit, as a fraction of the run.
@@ -497,7 +536,7 @@ def _candidates_on(points, size):
 
 
 def _label_spots(routes, cell_boxes, sheet, font_scale):
-  """Where every net's name goes, keyed by net id.
+  """Where every net's name goes, as {net id: (spot, anchor, box, score)}.
 
   A name that lands on a wire it has nothing to do with is worse than no name
   at all -- and picking the middle of the longest run, which is all this used
@@ -523,7 +562,7 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
     for spot, anchor, horizontal, length, stop, far_side in _label_candidates(
         branches, text, size):
       box = _label_box(spot, anchor, text, size)
-      near = _grown(box, rules.LABEL_CLEARANCE)
+      near = _grown(box, drc.LABEL_CLEARANCE)
 
       score = 0.0
       if sheet and (box[0] < 2 or box[1] < 2
@@ -550,7 +589,7 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
         best = (score, spot, anchor, box)
 
     if best is not None:
-      spots[net_id] = (best[1], best[2])
+      spots[net_id] = (best[1], best[2], best[3], best[0])
       placed.append(best[3])
   return spots
 
@@ -602,7 +641,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
     name = net.get("name")
     if not name or net.get("id") not in spots:
       continue
-    (x, y), anchor = spots[net["id"]]
+    (x, y), anchor = spots[net["id"]][:2]
     out.append("<text %s>%s</text>" % (
       _attrs([
         ("x", fmt(x)),

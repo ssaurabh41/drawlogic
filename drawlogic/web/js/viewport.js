@@ -59,6 +59,16 @@ export class Viewport {
     ];
   }
 
+  // Put one document point in the middle of the window, leaving the zoom
+  // alone. Used to walk to a DRC violation: changing the scale as well would
+  // lose the reader's place in the drawing they were just looking at.
+  centreOn(x, y) {
+    const [w, h] = this.size();
+    this.panX = x - w / this.zoom / 2;
+    this.panY = y - h / this.zoom / 2;
+    this.apply();
+  }
+
   fit(canvasWidth, canvasHeight, margin = 40) {
     const [w, h] = this.size();
     this.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(

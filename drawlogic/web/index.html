@@ -30,6 +30,10 @@
           title="Copy the drawing as a picture, ready to paste into a slide (Ctrl+Shift+E)">Copy PNG</button>
 
   <span class="divider"></span>
+  <button id="btn-check" class="action"
+          title="Check the drawing against the DRCs: wires on wires, parts too close, names on wires">Check</button>
+
+  <span class="divider"></span>
   <button id="btn-theme" class="action" title="Appearance: follow the system, light, or dark">Theme: auto</button>
   <span class="divider"></span>
   <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
@@ -155,6 +159,13 @@
   <aside class="inspector">
     <div class="pane-head">Properties</div>
     <div id="properties-body"></div>
+    <div class="pane-head drc-head"
+         title="Design rule checks: the distances in drc.py that decide whether a drawing reads well">
+      DRC
+      <span id="drc-count" class="drc-count"></span>
+    </div>
+    <!-- Filled by main.js, which owns the wording in one place. -->
+    <div id="drc-body" class="drc-body"></div>
   </aside>
 </div>
 

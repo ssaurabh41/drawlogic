@@ -7,7 +7,7 @@ Usage:
 
     drawlogic serve alu_ctrl.dlg        # open the browser editor
     drawlogic export alu_ctrl.dlg -o alu_ctrl.svg --zoom 2
-    drawlogic validate alu_ctrl.dlg     # non-zero exit on errors
+    drawlogic validate alu_ctrl.dlg     # references and DRCs; non-zero on errors
     drawlogic info alu_ctrl.dlg
     drawlogic symbols list
 
@@ -18,6 +18,7 @@ import argparse
 import os
 import sys
 
+from . import drc
 from . import render_svg
 from .doc import Document, DocumentError
 from . import layout
@@ -214,21 +215,38 @@ def cmd_layout(args):
   return 0
 
 
+def _issue_line(issue):
+  """One problem, with the rule that found it when there was one.
+
+  Naming the rule is what makes the message actionable: it is the heading to
+  look up in drc.py, where the distance and the reason for it are written
+  down. Reference faults have no rule to name, so they simply have none.
+  """
+  if issue.rule:
+    return "%s  %s: %s" % (issue.rule, issue.where, issue.message)
+  return "%s: %s" % (issue.where, issue.message)
+
+
 def cmd_validate(args):
   registry = _registry(args)
   doc, registry, problems = _open(args.file, registry)
   # A reference that will not resolve is a fault in this drawing, so it is
   # reported alongside everything else rather than shouted about separately.
   issues = problems + doc.validate(registry)
+  if not args.no_drc:
+    # The DRCs read the drawing as drawn rather than as stated, which is where
+    # the faults a reader actually trips over live: a wire lying on another
+    # net, a name on a wire, two parts in one place. So they run by default.
+    issues = issues + drc.check(doc, registry)
 
   errors = [i for i in issues if i.level == "error"]
   warnings = [i for i in issues if i.level == "warning"]
 
   for issue in errors:
-    print("error   %s: %s" % (issue.where, issue.message))
+    print("error   %s" % _issue_line(issue))
   if not _quiet(args):
     for issue in warnings:
-      print("warning %s: %s" % (issue.where, issue.message))
+      print("warning %s" % _issue_line(issue))
 
   if errors:
     print("")
@@ -296,7 +314,7 @@ examples:
   drawlogic export *.dlg --outdir svg/
   drawlogic export alu_ctrl.dlg -o -    write SVG to stdout
 
-  drawlogic validate alu_ctrl.dlg       exits non-zero if there are errors
+  drawlogic validate alu_ctrl.dlg       references and DRCs; non-zero on errors
   drawlogic info alu_ctrl.dlg
   drawlogic symbols list
   drawlogic symbols show and2
@@ -407,6 +425,8 @@ def build_parser():
   validate = subs.add_parser("validate", parents=[common],
                              help="check a drawing for problems")
   validate.add_argument("file", metavar="FILE")
+  validate.add_argument("--no-drc", action="store_true",
+                        help="check references only, not how it reads")
   validate.set_defaults(func=cmd_validate)
 
   symbols = subs.add_parser("symbols", parents=[common],

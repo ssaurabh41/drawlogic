@@ -31,6 +31,10 @@ EPSILON = 1e-6
 # How far a wire keeps away from a cell it is not connected to, and how far
 # apart the candidate corridors are when the first choice is blocked.
 CLEARANCE = drc.WIRE_TO_CELL
+
+# How far a wire keeps above a cell that has an instance name: the room the
+# name takes, plus the air text needs to stay readable.
+TEXT_HEADROOM = drc.LABEL_HEADROOM + drc.TEXT_TO_WIRE
 CORRIDOR_STEP = drc.CORRIDOR_STEP
 CORRIDOR_TRIES = drc.CORRIDOR_TRIES
 
@@ -148,6 +152,12 @@ def obstacle_boxes(doc, registry=None, exclude=()):
 
   The cells at each end of the net are excluded -- a wire is expected to
   touch the thing it connects to.
+
+  A labelled cell reaches higher than its body, because its instance name is
+  drawn above it and a wire through a name is worse than a wire through a
+  body: a body can still be read around the wire, a word cannot. Only the top
+  grows, and only over the cell's own width -- a name wider than the cell it
+  belongs to still sticks out past this, which the text-to-wire DRC reports.
   """
   registry = registry or default_registry()
   boxes = []
@@ -162,7 +172,8 @@ def obstacle_boxes(doc, registry=None, exclude=()):
               for px, py in corners(0, 0, symbol.width, symbol.height)]
     xs = [p[0] for p in points]
     ys = [p[1] for p in points]
-    boxes.append((min(xs) - CLEARANCE, min(ys) - CLEARANCE,
+    headroom = TEXT_HEADROOM if cell.get("label") else CLEARANCE
+    boxes.append((min(xs) - CLEARANCE, min(ys) - headroom,
                   max(xs) + CLEARANCE, max(ys) + CLEARANCE))
   return boxes
 
@@ -395,12 +406,23 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
   def free_at(x, crossings, gap):
     return sheet.free(False, x, a[1], b[1], crossings, gap)
 
+  # Both pins face each other, so a column between them carries the crossover
+  # -- unless a block sits on one of the two rows, which no choice of column
+  # can dodge, because those rows are the pins' own. Then the wire has to
+  # leave the rows entirely and cross on a row of its own.
+  def row_clear(y):
+    return (_horizontal_clear(y, a[0], b[0], boxes)
+            and _vertical_clear(a[0], a[1], y, boxes)
+            and _vertical_clear(b[0], y, b[1], boxes))
+
   facing = ((b[0] - a[0]) * a_dir[0] > EPSILON
             and (a[0] - b[0]) * b_dir[0] > EPSILON)
   if facing:
     lo, hi = sorted((a[0], b[0]))
     x = _pick_corridor((a[0] + b[0]) / 2.0, lo, hi, clear_at, free_at)
-    return [a, (x, a[1]), (x, b[1]), b]
+    if clear_at(x):
+      return [a, (x, a[1]), (x, b[1]), b]
+    return _row_crossover(a, b, sheet, row_clear)
 
   if a_dir[0] * b_dir[0] > 0:
     direction = a_dir[0]
@@ -408,12 +430,17 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
     x = _pick_outward(base, direction, clear_at, free_at)
     return [a, (x, a[1]), (x, b[1]), b]
 
-  # Back to back, so no column between them can be used: go out of each pin
-  # and across on a shared row instead.
-  def row_clear(y):
-    return (_horizontal_clear(y, a[0], b[0], boxes)
-            and _vertical_clear(a[0], a[1], y, boxes)
-            and _vertical_clear(b[0], y, b[1], boxes))
+  # Back to back, so no column between them can be used either way.
+  return _row_crossover(a, b, sheet, row_clear)
+
+
+def _row_crossover(a, b, sheet, row_clear):
+  """Out of each pin and across on a shared row.
+
+  The answer both when no column between the pins can be used and when every
+  one of them is blocked: the wire leaves the pins' own rows, which is the
+  only way past a block standing on one.
+  """
   y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, row_clear,
                      lambda y, cross, gap:
                      sheet.free(True, y, a[0], b[0], cross, gap))

@@ -407,6 +407,37 @@ class TestRouterUnderPressure(unittest.TestCase):
           [str(v) for v in found if v.rule == "wire-short"], [],
           "%d wires through one band were drawn on top of each other" % count)
 
+  def test_a_blocked_row_makes_the_wire_go_round_not_through(self):
+    """A wire from a port to a block four columns away, with blocks standing
+    on both pins' rows.
+
+    No choice of crossover column helps, because those rows are the pins' own
+    -- so the router used to draw the wire straight through the blocks, which
+    reads as connecting to every one of them.
+    """
+    doc = build(
+      [port("a", 60, 100), gate("U1", 200, 100, "xor2", "U1"),
+       gate("U2", 340, 100, "buf", "U2"), gate("U3", 470, 100, "nand2", "U3"),
+       gate("U4", 610, 100, "and2", "U4")],
+      [wire("n", "a", "p", "U4", "b", "w")], width=900, height=500)
+
+    crossed = [v for v in drc.check(doc) if v.rule == "wire-over-cell"]
+    self.assertEqual([str(v) for v in crossed], [],
+                     "the wire was drawn through the blocks in its way")
+
+  def test_a_wire_keeps_off_an_instance_name(self):
+    """A name is worse to cross than a body: a body can still be read around
+    the wire, a word cannot. So the room a name takes is part of what the
+    router steers round, not only something the DRCs complain about after."""
+    doc = build(
+      [port("a", 60, 120), gate("U1", 260, 140, "xor2", "U1"),
+       gate("U2", 560, 140, "and2", "U2")],
+      [wire("n", "a", "p", "U2", "b", "w")], width=900, height=500)
+
+    self.assertEqual([str(v) for v in drc.check(doc)
+                      if v.rule == "text-to-wire"], [],
+                     "the wire was drawn through an instance name")
+
   def test_wires_still_spread_out_when_there_is_room(self):
     """The last resort must stay a last resort.
 

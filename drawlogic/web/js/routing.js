@@ -17,6 +17,7 @@ const EPSILON = 1e-6;
 // route the canvas differently from the file it exports.
 let limits = {
   wireToCell: 10,
+  textToWire: 6,
   corridorStep: 10,
   corridorTries: 18,
   wireGap: 18,
@@ -94,6 +95,10 @@ export function endpointDirection(doc, endpoint) {
   return [0, dy > 0 ? 1 : -1];
 }
 
+// Cell footprints a wire should avoid, with clearance. A labelled cell reaches
+// higher than its body, because its instance name is drawn above it and a wire
+// through a name is worse than a wire through a body: a body can still be read
+// around the wire, a word cannot.
 export function obstacleBoxes(doc, exclude = new Set()) {
   const scale = symbolScale(doc);
   const boxes = [];
@@ -107,7 +112,9 @@ export function obstacleBoxes(doc, exclude = new Set()) {
     const xs = points.map((p) => p[0]);
     const ys = points.map((p) => p[1]);
     boxes.push([
-      Math.min(...xs) - limits.wireToCell, Math.min(...ys) - limits.wireToCell,
+      Math.min(...xs) - limits.wireToCell,
+      Math.min(...ys) - (cell.label ? limits.labelHeadroom + limits.textToWire
+                                    : limits.wireToCell),
       Math.max(...xs) + limits.wireToCell, Math.max(...ys) + limits.wireToCell,
     ]);
   }
@@ -318,12 +325,21 @@ function routeHH(a, b, aDir, bDir, sheet) {
     && horizontalClear(b[1], m, b[0], boxes);
   const freeAt = (m, cross, gap) => sheet.free(false, m, a[1], b[1], cross, gap);
 
+  const rowClear = (m) => horizontalClear(m, a[0], b[0], boxes)
+    && verticalClear(a[0], a[1], m, boxes)
+    && verticalClear(b[0], m, b[1], boxes);
+
+  // Both pins face each other, so a column between them carries the crossover
+  // -- unless a block sits on one of the two rows, which no choice of column
+  // can dodge, because those rows are the pins' own. Then the wire has to
+  // leave the rows entirely and cross on a row of its own.
   const facing = (b[0] - a[0]) * aDir[0] > EPSILON && (a[0] - b[0]) * bDir[0] > EPSILON;
   if (facing) {
     const lo = Math.min(a[0], b[0]);
     const hi = Math.max(a[0], b[0]);
     const x = pickCorridor((a[0] + b[0]) / 2, lo, hi, clearAt, freeAt);
-    return [a, [x, a[1]], [x, b[1]], b];
+    if (clearAt(x)) return [a, [x, a[1]], [x, b[1]], b];
+    return rowCrossover(a, b, sheet, rowClear);
   }
   if (aDir[0] * bDir[0] > 0) {
     const direction = aDir[0];
@@ -331,12 +347,15 @@ function routeHH(a, b, aDir, bDir, sheet) {
     const x = pickOutward(base, direction, clearAt, freeAt);
     return [a, [x, a[1]], [x, b[1]], b];
   }
-  // Back to back, so no column between them can be used: go out of each pin
-  // and across on a shared row instead.
-  const y = pickCorridor((a[1] + b[1]) / 2, -Infinity, Infinity,
-    (m) => horizontalClear(m, a[0], b[0], boxes)
-      && verticalClear(a[0], a[1], m, boxes)
-      && verticalClear(b[0], m, b[1], boxes),
+  // Back to back, so no column between them can be used either way.
+  return rowCrossover(a, b, sheet, rowClear);
+}
+
+// Out of each pin and across on a shared row: the answer both when no column
+// between the pins can be used and when every one of them is blocked, since
+// leaving the pins' own rows is the only way past a block standing on one.
+function rowCrossover(a, b, sheet, rowClear) {
+  const y = pickCorridor((a[1] + b[1]) / 2, -Infinity, Infinity, rowClear,
     (m, cross, gap) => sheet.free(true, m, a[0], b[0], cross, gap));
   return [a, [a[0], y], [b[0], y], b];
 }

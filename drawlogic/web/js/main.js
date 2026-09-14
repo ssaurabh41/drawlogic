@@ -193,15 +193,24 @@ function bindCanvas() {
     say(`placed ${cell.label || cell.type}`, "good");
   });
 
+  // Every mouse release anywhere in the window, because a drag that started
+  // on the canvas has to finish even if the pointer left it -- but a release
+  // that lands on a control was never part of a canvas gesture, and rebuilding
+  // the properties panel underneath one destroys whatever is being typed into
+  // it. That is what "the name I clicked gets deselected when I let go of the
+  // mouse" was: the field was not losing its selection, it was being replaced.
   window.addEventListener("mouseup", (event) => {
     const tool = tools[activeTool];
-    if (tool && tool.onPointerUp) {
-      if (tool.onPointerUp(event, viewport.toDoc(event.clientX, event.clientY))) {
-        redraw();
-      }
-      inspector.render();
-      refreshStatus();
+    if (!tool || !tool.onPointerUp) return;
+    if (event.target instanceof Element
+        && event.target.closest("input, select, textarea, button, label")) {
+      return;
     }
+    if (tool.onPointerUp(event, viewport.toDoc(event.clientX, event.clientY))) {
+      redraw();
+    }
+    inspector.render();
+    refreshStatus();
   });
 }
 

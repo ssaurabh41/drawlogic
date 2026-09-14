@@ -1,12 +1,13 @@
 """Wire routing and SVG rendering."""
 
+import os
 import re
 import unittest
 
 from drawlogic import drc, render_svg, routing, theme
 from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
-from tests import EXAMPLE
+from tests import EXAMPLE, ROOT, open_example
 
 
 def _flat(routes):
@@ -150,6 +151,26 @@ class TestJunctions(unittest.TestCase):
     self.assertEqual(routing.junctions(routing.route_all(doc)), [])
 
 
+def build(cells, nets, width=600, height=420, title="draw"):
+  doc = new_document(title, width, height)
+  doc.cells.extend(cells)
+  doc.nets.extend(nets)
+  return doc
+
+
+def port(cell_id, x, y, label=None, kind="port_in"):
+  return {"id": cell_id, "type": kind, "x": x, "y": y,
+          "label": label if label is not None else cell_id}
+
+
+def wire(net_id, source, source_pin, target, target_pin, name=None):
+  net = {"id": net_id, "from": {"cell": source, "pin": source_pin},
+         "to": [{"cell": target, "pin": target_pin}]}
+  if name:
+    net["name"] = name
+  return net
+
+
 class TestJunctionsAreNeverHidden(unittest.TestCase):
   """A junction dot is the only mark saying two wires are connected.
 
@@ -216,6 +237,65 @@ class TestJunctionsAreNeverHidden(unittest.TestCase):
               abs(tip[0] - dot[0]) < drc.ARROW_TO_JUNCTION
               and abs(tip[1] - dot[1]) < drc.ARROW_TO_JUNCTION,
               "an arrow at %r sits on the junction at %r" % (tip, dot))
+
+  def test_an_arrow_gives_way_to_a_crossing_bridge_too(self):
+    """A bridge is the same problem as a dot in the other direction: the arrow
+    sits in the bulge, and the reader cannot see whether the wire hopped or
+    stopped. Reported as arrows overlapping hops.
+    """
+    doc = build(
+      [port("a", 40, 200), port("y", 620, 200, kind="port_out"),
+       port("b", 300, 40), port("c", 300, 420, kind="port_out")],
+      [wire("h", "a", "p", "y", "p", "h"),
+       wire("v", "b", "p", "c", "p", "v")], width=700, height=500)
+
+    routes = routing.route_all(doc, default_registry())
+    hops = [spot for spots in routing.hop_points(routes).values()
+            for spot in spots]
+    self.assertTrue(hops, "expected a crossing bridge to test")
+    marks = list(routing.junctions(routes)) + hops
+
+    for _net, branches in routes:
+      for points in branches:
+        if len(points) < 2:
+          continue
+        for tip, _way in render_svg._arrow_spots(points, theme.ARROW_SIZE,
+                                                 junctions=marks):
+          for hop in hops:
+            self.assertFalse(
+              abs(tip[0] - hop[0]) < drc.ARROW_TO_MARK
+              and abs(tip[1] - hop[1]) < drc.ARROW_TO_MARK,
+              "an arrow at %r sits on the bridge at %r" % (tip, hop))
+
+  def test_no_drawn_arrow_sits_on_a_bridge_in_any_example(self):
+    """The rule above is only worth anything if render() passes the bridges
+    in -- which it did not at first, so every drawn arrow ignored them.
+
+    Asked of the shipped drawings rather than a made-up one, because a
+    collision needs a long wire crossing several others at the right spacing.
+    soc_top had an arrow drawn exactly on a bridge, which is what was
+    reported; a constructed two-wire case never gets near one.
+    """
+    import re
+    for name in ("soc_top", "spi_master", "cdc_fifo", "alu_slice"):
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(
+          os.path.join(ROOT, "examples", name + ".dlg"))
+        routes = routing.route_all(doc, registry)
+        hops = [spot for spots in routing.hop_points(routes).values()
+                for spot in spots]
+        svg = render_svg.render(doc, registry)
+        tips = [(float(m.group(1)), float(m.group(2)))
+                for m in re.finditer(r'<polygon points="([-\d.]+),([-\d.]+)',
+                                     svg)]
+        self.assertTrue(tips, "no arrows were drawn at all")
+        for tip in tips:
+          for hop in hops:
+            self.assertFalse(
+              abs(tip[0] - hop[0]) < drc.ARROW_TO_MARK
+              and abs(tip[1] - hop[1]) < drc.ARROW_TO_MARK,
+              "%s: a drawn arrow at %r sits on the bridge at %r"
+              % (name, tip, hop))
 
   def test_the_arrow_rule_actually_drops_something(self):
     """Otherwise the test above passes on a drawing where no arrow was ever

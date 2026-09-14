@@ -642,6 +642,8 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   routes = routing.route_all(doc, registry)
   hop_map = routing.hop_points(routes) if hops else {}
   junctions = routing.junctions(routes)
+  # Arrows give way to both kinds of mark, so they are asked about together.
+  marks = list(junctions) + [spot for spots in hop_map.values() for spot in spots]
 
   for net, branches in routes:
     if not branches:
@@ -690,7 +692,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
         if len(points) < 2:
           continue
         for tip, direction in _arrow_spots(points, theme.ARROW_SIZE,
-                                           junctions=junctions):
+                                           junctions=marks):
           _render_arrow(tip, direction, theme.ARROW_SIZE,
                         style.get("stroke", theme.COLORS["net"]), out)
 

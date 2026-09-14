@@ -94,20 +94,34 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   # and makes others worse, which is not something the algorithm can know in
   # advance -- so lay the drawing out both ways and keep the one that
   # measures better. Layout is not a gesture; it can afford to be tried twice.
+  # Four candidates, and the drawing itself decides between them.
+  #
+  # `spans` is whether to follow a wire through the columns it skips, which
+  # helps some drawings a great deal and makes others worse. `settle` is
+  # whether to place a cell with nothing arriving by the wire that leaves it
+  # instead -- which straightens the wire out of every input port, and is
+  # worth a lot on a flat drawing of gates and close to nothing on a sheet of
+  # big hierarchy blocks, where dragging a port to line up with one pin of a
+  # twelve-pin block spreads its whole column out.
+  #
+  # Neither is something the algorithm can know in advance, so it lays the
+  # drawing out each way and keeps the one that measures better. Layout is not
+  # a gesture; it can afford to be tried four times.
   best = None
   for spans in (True, False):
-    order = _order(cells, edges, ranks, spans=spans)
-    _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y)
-    _normalise(doc, registry, cells, margin)
-    score = _score(doc, registry)
-    if best is None or score < best[0]:
-      best = (score, order)
+    for settle in (True, False):
+      order = _order(cells, edges, ranks, spans=spans)
+      _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y, settle)
+      _normalise(doc, registry, cells, margin)
+      score = _score(doc, registry)
+      if best is None or score < best[0]:
+        best = (score, order, settle)
 
   # Then improve the winner by hand, so to speak: the median ordering is a
   # good guess at which cell goes where in a column, and a good guess is not
   # the same as the best arrangement. Swapping two neighbours and measuring is.
   order = _refine(doc, registry, cells, edges, ranks, best[1],
-                  gap_x, gap_y, margin)
+                  gap_x, gap_y, margin, best[2])
   _fit(doc, registry, margin)
 
   return Result(len(order), len(cells), feedback)
@@ -123,7 +137,8 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
 REFINE_SWEEPS = 4
 
 
-def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin):
+def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
+            settle=True):
   """Swap neighbours within a column while that makes the drawing better.
 
   Ordering by median neighbour position settles quickly and reads well, but it
@@ -137,7 +152,7 @@ def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin):
   the arrangement it returns.
   """
   def lay_out(candidate):
-    _place(doc, registry, cells, edges, ranks, candidate, gap_x, gap_y)
+    _place(doc, registry, cells, edges, ranks, candidate, gap_x, gap_y, settle)
     _normalise(doc, registry, cells, margin)
     return _score(doc, registry)
 
@@ -182,20 +197,53 @@ CROSSING_COST = 320.0
 # worth one extra crossing.
 SPREAD_COST = 0.35
 
+# What a DRC failure costs the arrangement that produced it.
+#
+# The score used to measure crossings, length and spread and nothing else --
+# scoring a drawing by a proxy for legibility while the project already had a
+# checker that measures legibility directly. It shipped arrangements holding
+# wire-shorts quite happily, because two nets lying on top of each other cross
+# nothing, add no length and take no room.
+#
+# An error is the drawing saying something untrue, so it outranks a warning,
+# which is a judgement about spacing. A warning is priced near a crossing:
+# both are one thing a reader has to work past.
+#
+# Measured over all seven examples, against the same layout with no DRC term:
+#
+#     errors     13 -> 11
+#     warnings   63 -> 49
+#     crossings 112 -> 118
+#     length     +2%
+#
+# Two things worth knowing before tuning these. First, it is the *warning*
+# weight doing that work: anywhere from 120 to 320 gives identical drawings,
+# and so does dropping ERROR_COST to zero. The error weight is here because an
+# untrue drawing should outrank an ugly one on principle, not because these
+# examples demonstrate it. Second, pricing errors very high backfires -- at
+# 4000 the layout chases shorts it cannot remove (they come from the router
+# running out of corridor, not from cell order) and pays for the chase
+# elsewhere: 10 errors but 75 warnings and 134 crossings, a worse drawing by
+# every other measure.
+ERROR_COST = 1000.0
+WARNING_COST = 150.0
+
 EPSILON = 1e-9
 
 
 def _score(doc, registry):
   """How hard the laid-out drawing is to read. Lower is better.
 
-  Three things a reader pays for. Every crossing is a moment of doubt about
+  Four things a reader pays for. Every crossing is a moment of doubt about
   which line is which, and a bridge drawn over it is the same doubt with a
-  bump on it. Every extra unit of wire is distance the eye has to travel. And
-  every extra unit of sheet is drawing that has to be scrolled or shrunk to be
-  seen at all.
+  bump on it. Every extra unit of wire is distance the eye has to travel.
+  Every extra unit of sheet is drawing that has to be scrolled or shrunk to be
+  seen at all. And every DRC failure is the drawing either saying something
+  untrue or being harder to read than it needs to be -- which is the question
+  this score is asking, so there is no reason to ask it a second, weaker way.
 
-  Measured by routing the drawing, not by a proxy for it, so what is scored is
-  what would be exported.
+  Measured by routing and checking the drawing, not by a proxy for it, so what
+  is scored is what would be exported.
   """
   segments = list(routing.segments_of(routing.route_all(doc, registry)))
   length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, a, b in segments)
@@ -203,9 +251,18 @@ def _score(doc, registry):
   box = doc.content_bbox(registry)
   spread = (box[2] + box[3]) if box else 0.0
 
+  errors = warnings = 0
+  for violation in drc.check(doc, registry):
+    if violation.level == "error":
+      errors += 1
+    else:
+      warnings += 1
+
   return (_crossings(segments) * CROSSING_COST
           + length
-          + spread * SPREAD_COST)
+          + spread * SPREAD_COST
+          + errors * ERROR_COST
+          + warnings * WARNING_COST)
 
 
 def _crossings(segments):
@@ -481,7 +538,8 @@ def _pin_offset(registry, doc, cell, pin_name):
   return (spot[0] - cell["x"], spot[1] - cell["y"])
 
 
-def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y):
+def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y,
+           settle=True):
   by_id = {cell["id"]: cell for cell in cells}
   boxes = {cell["id"]: _box(registry, doc, cell) for cell in cells}
 
@@ -521,6 +579,63 @@ def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y):
       if best is not None:
         desired[cell_id] = best[1]
     _stack(by_id, boxes, column, desired, gap_y)
+
+  if settle:
+    # Fresh boxes: the pass above moved every cell, and _box reports absolute
+    # coordinates, so the ones measured at the top of this function describe
+    # where the cells used to be.
+    _settle_followers(doc, registry, by_id,
+                      {c["id"]: _box(registry, doc, c) for c in by_id.values()},
+                      order, ranks, edges, gap_y)
+
+
+def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y):
+  """Place the cells that had nothing arriving by what leaves them instead.
+
+  The pass above puts each cell where its incoming wire wants it, which says
+  nothing at all about a cell with no incoming wire -- an input port, almost
+  always. Those kept whatever height the ordering pass happened to give them,
+  so a port would be packed neatly against its neighbours while the wire to
+  the gate it feeds bent twice to get there. Reported as exactly that: a port
+  placed to save room, at the cost of a long wire.
+
+  A port drives something, so there is a straight line to aim for; it is just
+  in the other direction. Left to right, because by the time a column is
+  reconsidered the column it feeds has already been placed.
+  """
+  leaving = {cell_id: [] for cell_id in by_id}
+  for source, target, source_pin, target_pin in edges:
+    if ranks[source] < ranks[target]:
+      leaving[source].append((ranks[target] - ranks[source], target,
+                              source_pin, target_pin))
+
+  for column in order:
+    desired = {}
+    settling = False
+    for cell_id in column:
+      cell = by_id[cell_id]
+      arrived = any(ranks[s] < ranks[cell_id]
+                    for s, t, _sp, _tp in edges if t == cell_id)
+      if arrived:
+        # Already placed by what feeds it; leave that alone.
+        desired[cell_id] = cell["y"]
+        continue
+      best = None
+      for gap, target, source_pin, target_pin in leaving[cell_id]:
+        if best is not None and gap >= best[0]:
+          continue
+        load = by_id.get(target)
+        if load is None:
+          continue
+        load_y = load["y"] + _pin_offset(registry, doc, load, target_pin)[1]
+        best = (gap, load_y - _pin_offset(registry, doc, cell, source_pin)[1])
+      if best is None:
+        desired[cell_id] = cell["y"]
+      else:
+        desired[cell_id] = best[1]
+        settling = True
+    if settling:
+      _stack(by_id, boxes, column, desired, gap_y)
 
 
 def _stack(by_id, boxes, column, desired, gap_y):

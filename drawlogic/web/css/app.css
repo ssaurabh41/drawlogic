@@ -558,15 +558,19 @@ select {
 */
 .sprite { display: none; }
 
+/* Square, and the same height as the tool buttons beside them. They were
+   30x18 against the text buttons' 27.5 tall, which read as a different, lesser
+   row of controls rather than as part of the same toolbar. */
 .tool.icon {
   display: inline-grid;
   place-items: center;
-  width: 30px;
+  width: 28px;
+  height: 28px;
   padding: 0;
 }
 .tool.icon .ico {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.3;

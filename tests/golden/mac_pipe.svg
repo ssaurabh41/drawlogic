@@ -37,7 +37,6 @@
 <text x="1115" y="426" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">acc[31:0]</text>
 <text x="475" y="536" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">gclk</text>
 <polygon points="288.8,180 281.8,183.15 281.8,176.85" fill="#16202b" />
-<polygon points="288.8,260 281.8,263.15 281.8,256.85" fill="#16202b" />
 <polygon points="508.8,180 501.8,183.15 501.8,176.85" fill="#16202b" />
 <polygon points="508.8,260 501.8,263.15 501.8,256.85" fill="#16202b" />
 <polygon points="768.8,180 761.8,183.15 761.8,176.85" fill="#16202b" />
@@ -46,7 +45,6 @@
 <polygon points="1408.8,180 1401.8,183.15 1401.8,176.85" fill="#16202b" />
 <polygon points="1408.8,260 1401.8,263.15 1401.8,256.85" fill="#16202b" />
 <polygon points="1330,360 1326.85,353 1333.15,353" fill="#16202b" />
-<polygon points="1160,430 1167,426.85 1167,433.15" fill="#16202b" />
 <polygon points="920,430 927,426.85 927,433.15" fill="#16202b" />
 <polygon points="928.8,260 921.8,263.15 921.8,256.85" fill="#16202b" />
 <polygon points="88.8,540 81.8,543.15 81.8,536.85" fill="#16202b" />

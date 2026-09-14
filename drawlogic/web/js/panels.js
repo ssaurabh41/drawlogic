@@ -53,15 +53,24 @@ function input(value, type = "text") {
 // fires `change` on blur. That part was working and is left alone.
 function editable(node) {
   node.addEventListener("focus", () => node.select());
-  // A click inside an unfocused field would otherwise put a caret down and
-  // undo the select() above; this keeps the selection and lets a second click
-  // place a caret as usual.
-  node.addEventListener("mouseup", (event) => {
-    if (node.dataset.caret) return;
-    node.dataset.caret = "1";
+  // The click that focuses the field is taken here rather than let through.
+  //
+  // A browser places the caret as the default action of *mousedown*, not
+  // mouseup -- so the first attempt at this, which called preventDefault on
+  // mouseup, was already too late: the selection went in on focus and the
+  // caret collapsed it again a moment later. Reported as "it selects the
+  // name, but the selection disappears when I let go of the mouse", which is
+  // exactly what that looks like.
+  //
+  // So the first click is intercepted before the caret is placed, and focus
+  // is asked for by hand, which selects. Once the field has focus this does
+  // nothing, so a second click places a caret and a drag selects a range, the
+  // way they should.
+  node.addEventListener("mousedown", (event) => {
+    if (document.activeElement === node) return;
     event.preventDefault();
+    node.focus();
   });
-  node.addEventListener("blur", () => { delete node.dataset.caret; });
   node.addEventListener("keydown", (event) => {
     if (event.key === "Escape" || event.key === "Enter") {
       event.preventDefault();

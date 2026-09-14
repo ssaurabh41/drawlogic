@@ -459,6 +459,44 @@ class TestRouterUnderPressure(unittest.TestCase):
         "to spare" % (first, second))
 
 
+class TestOddDocuments(unittest.TestCase):
+  """The checker runs on whatever the editor sends, not on tidy input.
+
+  A properties panel does not type-check what was typed and a .dlg is a JSON
+  file anyone may have edited, so a label can arrive as a number. The checker
+  measuring how wide that text is called len() on an int and brought the whole
+  Check down -- reported as an AttributeError from cell_label_box.
+  """
+
+  def labelled(self, label):
+    doc = new_document("odd", 500, 350)
+    doc.cells.append({"id": "U1", "type": "and2", "x": 80, "y": 80,
+                      "label": label})
+    doc.normalize()
+    return doc
+
+  def test_a_label_that_is_not_text_does_not_stop_the_check(self):
+    for label in (123, 4.5, True, {"a": 1}, ["x"], None):
+      with self.subTest(label=label):
+        drc.check(self.labelled(label))
+
+  def test_a_number_typed_as_a_name_is_kept_as_text(self):
+    """Coerced rather than refused: `1` typed into the Name box is a name the
+    user meant, and a drawing that will not open is the worse answer."""
+    self.assertEqual(self.labelled(123).cells[0]["label"], "123")
+
+  def test_something_with_no_sensible_text_is_dropped(self):
+    self.assertIsNone(self.labelled({"a": 1}).cells[0].get("label"))
+
+  def test_shape_text_gets_the_same_treatment(self):
+    doc = new_document("odd", 500, 350)
+    doc.shapes.append({"id": "s1", "kind": "text", "x": 20, "y": 20,
+                       "text": 42})
+    doc.normalize()
+    self.assertEqual(doc.shapes[0]["text"], "42")
+    drc.check(doc)
+
+
 class TestExamples(unittest.TestCase):
   """The drawings shipped with the project are the drawings people copy."""
 

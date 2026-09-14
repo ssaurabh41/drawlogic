@@ -220,6 +220,28 @@ def _object(data, key, where=None):
   return value
 
 
+def _text_field(item, key):
+  """Make sure a field meant to be written on the drawing really is text.
+
+  A label reaches here from a JSON file anyone may have edited and from a
+  properties panel that does not type-check what was typed, so it can arrive
+  as a number, a boolean, or something stranger. Every reader downstream then
+  gets to discover that for itself: the DRC checker measuring how wide the
+  text is called len() on an int and brought the whole check down.
+
+  Coerced rather than refused. `U1` typed as `1` is a label the user meant,
+  and a drawing that will not open is a worse answer than one that draws it.
+  """
+  value = item.get(key)
+  if value is None or isinstance(value, str):
+    return
+  if isinstance(value, (dict, list)):
+    # Not a mistyped name -- nothing sensible to write on the drawing.
+    del item[key]
+    return
+  item[key] = str(value)
+
+
 def _list_of_objects(data, key):
   """The list at `key`, defaulting to a new one, or a DocumentError."""
   value = data.get(key)
@@ -462,6 +484,7 @@ class Document(object):
       cell.setdefault("rotate", 0)
       cell.setdefault("mirror", False)
       cell.setdefault("style", {})
+      _text_field(cell, "label")
 
     for net in _list_of_objects(data, "nets"):
       name = net.get("name")
@@ -477,6 +500,7 @@ class Document(object):
     for shape in _list_of_objects(data, "shapes"):
       shape.setdefault("style", {})
       shape.setdefault("rotate", 0)
+      _text_field(shape, "text")
 
     _list_of_objects(data, "groups")
     return self

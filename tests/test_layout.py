@@ -453,6 +453,99 @@ class TestRefinement(unittest.TestCase):
     self.assertLess(len(calls), ceiling, "the sweeps did not stop early")
 
 
+class TestPortsFollowTheirWire(unittest.TestCase):
+  """A cell with nothing arriving is placed by what leaves it.
+
+  Reported as: a port placed neatly against its neighbours to save room, with
+  a long bent wire to the gate it feeds. The placement pass puts each cell
+  where its *incoming* wire wants it, which says nothing at all about an input
+  port -- so a port kept whatever height the ordering pass happened to give
+  it.
+  """
+
+  def fan(self, count=3):
+    """One port per gate, with the gates spread far apart vertically."""
+    doc = new_document("fan", 900, 800)
+    for index in range(count):
+      doc.cells.append({"id": "p%d" % index, "type": "port_in",
+                        "x": 60, "y": 60 + index * 30, "label": "p%d" % index})
+      doc.cells.append({"id": "u%d" % index, "type": "and2",
+                        "x": 400, "y": 60 + index * 190})
+      doc.nets.append({"id": "n%d" % index,
+                       "from": {"cell": "p%d" % index, "pin": "p"},
+                       "to": [{"cell": "u%d" % index, "pin": "a"}]})
+    return doc
+
+  def pin_y(self, doc, registry, cell_id, pin):
+    cell = doc.cell(cell_id)
+    return registry.for_cell(cell).pin_position(cell, pin, doc.symbol_scale)[1]
+
+  def test_a_port_lands_level_with_the_pin_it_feeds(self):
+    doc = self.fan()
+    registry = default_registry()
+    layout.arrange(doc, registry)
+    for index in range(3):
+      with self.subTest(port=index):
+        self.assertAlmostEqual(
+          self.pin_y(doc, registry, "p%d" % index, "p"),
+          self.pin_y(doc, registry, "u%d" % index, "a"),
+          places=3, msg="the wire out of this port is not straight")
+
+  def test_ports_are_still_pushed_apart(self):
+    """Following a wire must not let two ports land on top of each other --
+    which is exactly what happened the first time this was tried, because the
+    boxes it measured were from before the cells moved.
+    """
+    doc = self.fan()
+    registry = default_registry()
+    layout.arrange(doc, registry)
+    overlaps = [v for v in drc.check(doc, registry) if v.rule == "cell-overlap"]
+    self.assertEqual([str(v) for v in overlaps], [])
+
+  def test_settling_is_a_choice_the_drawing_makes(self):
+    """It is not always right, so it is not always done.
+
+    Straightening the wire out of every port is worth a great deal on a flat
+    drawing of gates and close to nothing on a sheet of hierarchy blocks,
+    where dragging a port to line up with one pin of a twelve-pin block
+    spreads its whole column out. So it is one of the arrangements laid out
+    and measured rather than something applied unconditionally -- and the
+    proof that it is a real choice is that the examples do not all make it the
+    same way.
+    """
+    chosen = set()
+    real = layout._place
+
+    def watched(*args, **kwargs):
+      if len(args) > 8:
+        chosen.add(args[8])
+      else:
+        chosen.add(kwargs.get("settle", True))
+      return real(*args, **kwargs)
+
+    layout._place = watched
+    try:
+      for name in ("alu_slice.dlg", "soc_top.dlg"):
+        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+        layout.arrange(doc, registry)
+    finally:
+      layout._place = real
+    self.assertEqual(chosen, {True, False},
+                     "both settings have to be tried for it to be a choice")
+
+  def test_settling_straightens_a_port_that_would_otherwise_bend(self):
+    """The case it exists for, asked directly."""
+    doc = self.fan()
+    registry = default_registry()
+    layout.arrange(doc, registry)
+    bends = 0
+    for index in range(3):
+      if abs(self.pin_y(doc, registry, "p%d" % index, "p")
+             - self.pin_y(doc, registry, "u%d" % index, "a")) > 1e-3:
+        bends += 1
+    self.assertEqual(bends, 0, "%d of 3 port wires still bend" % bends)
+
+
 class TestWhatTheScoreCountsFor(unittest.TestCase):
   """The score is what decides between two arrangements, so what it counts
   for is the whole of the layout's taste. These are judgements, not
@@ -488,6 +581,34 @@ class TestWhatTheScoreCountsFor(unittest.TestCase):
     finally:
       layout.SPREAD_COST = was
     self.assertGreater(difference, without)
+
+  def test_a_drc_error_outweighs_a_handful_of_crossings(self):
+    """The score used to measure crossings, length and spread and nothing
+    else, so it shipped arrangements holding wire-shorts quite happily: two
+    nets lying on top of each other cross nothing, add no length, and take no
+    room. An error is the drawing saying something untrue, so it has to cost
+    more than the legibility it could buy by lying.
+    """
+    self.assertGreater(layout.ERROR_COST, layout.CROSSING_COST * 3)
+
+  def test_the_score_counts_what_the_checker_finds(self):
+    """Otherwise ERROR_COST is a constant nothing reads."""
+    registry = default_registry()
+    doc = self.two_cells(200)
+    was = layout.ERROR_COST
+    seen = []
+    real = drc.check
+    try:
+      def counted(*args, **kwargs):
+        found = real(*args, **kwargs)
+        seen.append(len(found))
+        return found
+      drc.check = counted
+      layout._score(doc, registry)
+    finally:
+      drc.check = real
+      layout.ERROR_COST = was
+    self.assertTrue(seen, "_score never asked the checker anything")
 
   def test_a_crossing_costs_more_than_the_wire_it_saves(self):
     """The whole reason crossings are priced at all: a drawing should accept

@@ -28,16 +28,25 @@ from tests import ROOT
 
 MANIFEST = os.path.join(ROOT, cli.MANIFEST_NAME)
 
+# sample.txt is a fixture for exercising verify.ps1 by hand -- it lives
+# outside the package tree that cli.manifest_files() walks, so it's tracked
+# here by hand instead of being picked up by `doctor --write-manifest`.
+HAND_TRACKED = ("sample.txt",)
+
 
 class TestTheManifestIsCurrent(unittest.TestCase):
 
   def test_the_committed_manifest_matches_the_tree(self):
     with open(MANIFEST) as handle:
       committed = handle.read()
+    generated = cli.manifest_text(ROOT)
+    for relative in HAND_TRACKED:
+      generated += "%s  %s\n" % (cli.content_hash(os.path.join(ROOT, relative)), relative)
     self.assertEqual(
-      committed, cli.manifest_text(ROOT),
+      committed, generated,
       "manifest.txt no longer describes the files here. Regenerate it with "
-      "`python3 -m drawlogic doctor --write-manifest` and commit the result.")
+      "`python3 -m drawlogic doctor --write-manifest` and commit the result "
+      "(re-adding the hand-tracked lines for %s)." % ", ".join(HAND_TRACKED))
 
   def test_it_covers_every_file_that_has_to_be_right(self):
     listed = set()
@@ -46,7 +55,7 @@ class TestTheManifestIsCurrent(unittest.TestCase):
         parts = line.split(None, 1)
         if len(parts) == 2:
           listed.add(parts[1].strip())
-    self.assertEqual(listed, set(cli.manifest_files(ROOT)))
+    self.assertEqual(listed, set(cli.manifest_files(ROOT)) | set(HAND_TRACKED))
 
   def test_doctor_is_happy_with_this_copy(self):
     problems, counted = cli._check_manifest(ROOT)
@@ -110,6 +119,8 @@ class TestCheckingFindsWhatItShould(unittest.TestCase):
                     os.path.join(tmp, "drawlogic"),
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     shutil.copy(MANIFEST, os.path.join(tmp, cli.MANIFEST_NAME))
+    for relative in HAND_TRACKED:
+      shutil.copy(os.path.join(ROOT, relative), os.path.join(tmp, relative))
     return tmp
 
   def test_a_clean_copy_has_nothing_to_report(self):

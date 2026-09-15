@@ -6,13 +6,15 @@
 # or point it anywhere with -Root. It reads manifest.txt, hashes each file it
 # names, and reports OK, MISMATCH, MISSING or EXTRA.
 #
-# Line endings are made uniform before hashing, exactly as drawlogic/cli.py
-# does it, so a file is only "wrong" when what it says is different. Git
-# rewrites line endings on checkout by default on Windows, and a byte-for-byte
-# check reports every file in a perfectly good clone as broken -- which is
-# what happened the first time one of these was handed over: all 28 files
-# "mismatched" and not one of them actually different. A checker that cries
-# wolf is worse than none, because the next real mismatch gets ignored too.
+# Line endings and trailing blank lines are made uniform before hashing,
+# exactly as drawlogic/cli.py does it, so a file is only "wrong" when what it
+# says is different. Git rewrites line endings on checkout by default on
+# Windows, and a byte-for-byte check reports every file in a perfectly good
+# clone as broken -- which is what happened the first time one of these was
+# handed over: all 28 files "mismatched" and not one of them actually
+# different. Copying a file by hand from a browser has the same effect on the
+# newline at the end of the file. A checker that cries wolf is worse than
+# none, because the next real mismatch gets ignored too.
 #
 # Works on Windows PowerShell 5.1 and on PowerShell 7+.
 
@@ -48,6 +50,12 @@ function Get-ContentHash([string]$Path) {
     $text = [System.IO.File]::ReadAllText($Path, $utf8)
     $text = $text -replace "`r`n", "`n"
     $text = $text -replace "`r", "`n"
+    # A file pasted by hand from a browser routinely gains or loses the
+    # newline at the very end without anything else having changed, so one
+    # trailing newline hashes the same as none or several -- exactly as
+    # drawlogic/cli.py does it.
+    $text = $text.TrimEnd("`n")
+    if ($text.Length -gt 0) { $text = $text + "`n" }
     $bytes = $utf8.GetBytes($text)
     return ([System.BitConverter]::ToString($sha.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
 }

@@ -367,21 +367,30 @@ def _repo_root():
 
 
 def content_hash(path):
-  """A file's SHA-256, taken after line endings are made uniform.
+  """A file's SHA-256, taken after line endings and trailing blank lines are
+  made uniform.
 
   Not the hash of the bytes on disk. Git rewrites line endings on checkout by
   default on Windows, so a byte-for-byte manifest reports every single file as
   wrong on a perfectly good clone -- which is exactly what happened when one
   was handed over: all 28 files "mismatched", none of them actually different.
+  Copying a file by hand -- viewing it on GitHub, selecting the text, pasting
+  it into Notepad, because that's the only way it can be moved -- has the same
+  effect: it almost never changes a byte in the middle, but it routinely adds
+  or drops the newline at the very end.
 
   A checker that cries wolf is worse than none, because the next real
-  mismatch gets ignored too. So CRLF and LF hash the same, and what is left is
-  a difference in what the file actually says.
+  mismatch gets ignored too. So CRLF and LF hash the same, one trailing
+  newline hashes the same as none or several, and what is left is a
+  difference in what the file actually says.
   """
   with open(path, "rb") as handle:
     raw = handle.read()
   text = raw.decode("utf-8-sig")
   text = text.replace("\r\n", "\n").replace("\r", "\n")
+  text = text.rstrip("\n")
+  if text:
+    text += "\n"
   return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 

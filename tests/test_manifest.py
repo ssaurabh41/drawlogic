@@ -115,6 +115,27 @@ class TestHashingIgnoresLineEndings(unittest.TestCase):
       loose = self.write(tmp, "loose.py", b"x  =  1\n")
       self.assertNotEqual(cli.content_hash(tight), cli.content_hash(loose))
 
+  def test_a_missing_trailing_newline_hashes_the_same(self):
+    """Pasting a file by hand -- viewing it on GitHub, selecting the text,
+    dropping it into Notepad -- routinely loses the newline at the end
+    without anything else having changed."""
+    with tempfile.TemporaryDirectory() as tmp:
+      with_nl = self.write(tmp, "with_nl.py", b"one\ntwo\n")
+      without_nl = self.write(tmp, "without_nl.py", b"one\ntwo")
+      self.assertEqual(cli.content_hash(with_nl), cli.content_hash(without_nl))
+
+  def test_extra_trailing_blank_lines_hash_the_same(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      one = self.write(tmp, "one.py", b"one\ntwo\n")
+      several = self.write(tmp, "several.py", b"one\ntwo\n\n\n")
+      self.assertEqual(cli.content_hash(one), cli.content_hash(several))
+
+  def test_a_blank_line_in_the_middle_still_counts(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      tight = self.write(tmp, "tight.py", b"one\ntwo\n")
+      spaced = self.write(tmp, "spaced.py", b"one\n\ntwo\n")
+      self.assertNotEqual(cli.content_hash(tight), cli.content_hash(spaced))
+
 
 class TestCheckingFindsWhatItShould(unittest.TestCase):
 
@@ -190,6 +211,10 @@ class TestTheWindowsScriptAgrees(unittest.TestCase):
     text = self.script()
     self.assertIn('-replace "`r`n", "`n"', text)
     self.assertIn('-replace "`r", "`n"', text)
+
+  def test_it_normalises_trailing_newlines_before_hashing(self):
+    text = self.script()
+    self.assertIn('TrimEnd("`n")', text)
 
   def test_it_hashes_with_sha256(self):
     self.assertIn("SHA256", self.script())

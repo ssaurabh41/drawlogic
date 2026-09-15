@@ -21,7 +21,7 @@ binary blob, and a reviewer can read the change the same way they read code.
 
 ## Using it, in one minute
 
-Nothing to install. You need Python 3.8 or newer and nothing else -- no pip
+Nothing to install. You need Python 3.9 or newer and nothing else -- no pip
 packages, no Node, no network.
 
 ```bash
@@ -92,7 +92,21 @@ For how to review or verify this project, see [REVIEW.md](REVIEW.md).
 
 ## Install and run
 
-Python 3.8 or newer. No pip packages, no Node, no network access.
+Python 3.9 or newer. No pip packages, no Node, no network access.
+
+3.9 is the floor because it is the oldest version the tests are actually run
+on, not the oldest one the code might happen to work on. It said 3.8 for a
+while and no 3.8 interpreter had ever run the suite -- a supported version
+nobody exercises is a guess with a version number on it. Every push runs the
+suite on 3.9 (`.github/workflows/tests.yml`), and `drawlogic.MIN_PYTHON` is
+the one place the number lives: the sentence you are reading is checked
+against it by `tests/test_python_floor.py`.
+
+Newer versions are fine. 3.10, 3.11, 3.12 and 3.13 have all had the full
+suite run on them, and nothing here imports a module that later versions
+removed. If you are on something older than 3.9, it may well work -- nothing
+in the code needs 3.9 specifically -- but nobody has checked, so do not
+assume it.
 
 ```bash
 git clone <repo-url> drawlogic
@@ -1259,6 +1273,7 @@ tests/            unittest, a golden-file regression suite, a JS parity check
                   routing.js and render.js produce for parity to compare
 examples/         worked schematics, including a CDC FIFO
 manifest.txt      a hash of every file above; generated, never hand-edited
+.github/          one CI workflow: the suite on the oldest supported Python
 sample.txt        a plain file to edit when trying verify.ps1 out by hand
 verify.ps1        checks a copy against it on Windows, without Python
 ```
@@ -1335,7 +1350,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-312 tests, in thirteen parts:
+339 tests, in fourteen parts:
 
 | File | Covers |
 |---|---|
@@ -1352,6 +1367,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
 | `tests/test_manifest.py` | `manifest.txt` still describes the files here |
+| `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
 
 Two of these are worth knowing about because of what they guard rather than
 what they test. `tests.test_drc.TestEveryCheckerIsReachable` replaces each

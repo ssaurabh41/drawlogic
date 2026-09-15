@@ -1,0 +1,60 @@
+# The suite, on the oldest Python drawlogic claims to support.
+#
+# One version on purpose. drawlogic imports nothing outside the standard
+# library and nothing that a later Python removed, so the usual reason to test
+# the newest version -- catching removals and deprecations -- barely applies.
+# The risk that is left is the opposite one: using syntax or a call newer than
+# the floor, which is invisible on a new interpreter and fatal on an old one.
+# Only an old interpreter catches that, so that is the one that runs here.
+#
+# The version is drawlogic.MIN_PYTHON, and tests/test_python_floor.py fails if
+# the documentation stops agreeing with it. Change it in the package first.
+#
+# Node is installed because ten tests skip silently without it, and those ten
+# are the entire cross-language safety net: a green run without Node is a run
+# with the most important tests absent.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the floor from the package
+        id: floor
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          source = open("drawlogic/__init__.py").read()
+          major, minor = re.search(r"MIN_PYTHON = \((\d+), (\d+)\)", source).groups()
+          print("version=%s.%s" % (major, minor))
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.floor.outputs.version }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Confirm the interpreter is the floor
+        run: python -c "import sys; print(sys.version)"
+
+      # Nothing is installed: no pip step here on purpose. If one ever becomes
+      # necessary, the "runs on a bare machine" claim in REVIEW.md has stopped
+      # being true and should be changed in the same commit.
+      - name: Tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Doctor
+        run: python -m drawlogic doctor

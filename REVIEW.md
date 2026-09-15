@@ -12,17 +12,31 @@ Gates, flops, muxes, blocks and ports are placed on a sheet and wired **pin to
 pin**, so moving a cell carries its wires. Drawings are plain JSON. Output is
 SVG. It needs nothing installed -- no pip packages, no Node, no network.
 
-The floor is stated as Python 3.8 and that number has never been run. What
-has: 3.10, 3.11, 3.12 and 3.13, all green, plus a check that every source
-file parses under 3.8 rules and uses no standard-library call newer than 3.8.
-That is evidence, not proof -- parsing is not running -- so treat 3.8 and 3.9
-as untested rather than supported, and if you have either, running the suite
-on it is a genuinely useful ten minutes. The same goes for the "bare machine"
-row in section 2: it has been run in this environment, not in an empty
+The floor is Python 3.9, and it is the version CI runs the suite on. It said
+3.8 for a while on no evidence at all -- no 3.8 interpreter had ever run the
+suite, here or anywhere -- so the floor was moved down to the oldest version
+actually exercised rather than the oldest one someone hoped would work.
+
+One version in CI is deliberate. Nothing here imports outside the standard
+library, and nothing it does import was removed by a later Python, so the
+usual argument for testing the newest version barely applies. The risk that
+remains is the other direction: syntax or a call newer than the floor, which
+is invisible on a new interpreter and fatal on an old one. 3.10, 3.11, 3.12
+and 3.13 have all had the full suite run on them by hand and were green.
+
+The number lives in `drawlogic.MIN_PYTHON`. The workflow reads it from there,
+and `tests/test_python_floor.py` fails if any source file uses newer syntax or
+a newer standard-library name, or if the manual stops quoting the same
+version. That last one is the guard that matters: this document and the manual
+have each been caught with a stale number, and a version claim in a sentence
+is not something that can go red on its own.
+
+Still unverified, and worth your ten minutes if you can: the "bare machine"
+row in section 2 has been run in a developer environment, not an empty
 container.
 
 **Size.** About 6,500 lines of Python across 14 modules, 5,250 lines of
-JavaScript across 11 browser modules, 334 tests, 33 built-in symbols, 7 worked
+JavaScript across 11 browser modules, 339 tests, 33 built-in symbols, 7 worked
 examples.
 
 ---
@@ -33,7 +47,7 @@ Five minutes, no install:
 
 ```bash
 git clone <this repo> drawlogic && cd drawlogic
-python3 -m unittest discover            # expect: Ran 334 tests ... OK
+python3 -m unittest discover            # expect: Ran 339 tests ... OK
 python3 -m drawlogic doctor             # expect: this copy is consistent with itself
 python3 -m drawlogic export examples/soc_top.dlg -o /tmp/soc.svg
 python3 -m drawlogic serve examples/dff_slice.dlg   # editor on 127.0.0.1:8080
@@ -66,7 +80,7 @@ independently. Treat a claim with no check as unverified.
 
 | Claim | Check it | Expected |
 |---|---|---|
-| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 334 pass; nothing is downloaded |
+| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 339 pass; nothing is downloaded |
 | Wires follow their cells | open an example, drag a gate, watch the wires | paths re-route, stay attached |
 | One place to tune the drawing | change `WIRE_GAP` in `drawlogic/drc.py`, re-export | every wire spacing moves; no other file edited |
 | Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 9 tests: routes, marks, fallback limits, and what each renderer actually draws |
@@ -141,7 +155,7 @@ Two things to confirm:
 the sharpest edge in the suite. On a machine without `node`:
 
 ```
-Ran 334 tests ... OK (skipped=10)
+Ran 339 tests ... OK (skipped=10)
 ```
 
 Those 10 are the entire cross-language safety net: parity tests comparing the

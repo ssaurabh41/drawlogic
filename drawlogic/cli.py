@@ -27,6 +27,7 @@ from .doc import Document, DocumentError
 from . import layout
 from . import sheets
 from .symbols import SymbolError, load_registry
+from . import MIN_PYTHON
 
 PROG = "drawlogic"
 VERSION = "0.1.0"
@@ -245,8 +246,12 @@ def cmd_doctor(args):
   to end on a drawing built here, then read every browser module and check
   that each thing it imports is really exported by the file it names.
 
-  Deliberately not a checksum against a manifest. A manifest goes stale, and
-  it fails on a line ending as loudly as on a missing function.
+  It also hashes this copy against manifest.txt. That used to say "deliberately
+  not a checksum against a manifest", for two good reasons -- a manifest goes
+  stale, and a byte-for-byte one fails on a changed line ending as loudly as on
+  a missing function. Both are answered rather than ignored: the hash is of
+  normalised text, and the manifest is generated with --write-manifest and
+  guarded by tests/test_manifest.py, so a stale one turns the suite red.
   """
   if getattr(args, "write_manifest", False):
     target = os.path.join(_repo_root(), MANIFEST_NAME)
@@ -261,7 +266,15 @@ def cmd_doctor(args):
     problems.append(what if detail is None else "%s: %s" % (what, detail))
 
   print("drawlogic %s" % VERSION)
-  print("python    %s" % sys.version.split()[0])
+  running = sys.version_info[:2]
+  if running < MIN_PYTHON:
+    # Not an error -- it may well work, and saying so is more useful than
+    # refusing to run. It is simply untested below the floor, and anything
+    # odd that follows should be read in that light.
+    print("python    %s (below the tested floor of %d.%d -- untested here)"
+          % (sys.version.split()[0], MIN_PYTHON[0], MIN_PYTHON[1]))
+  else:
+    print("python    %s" % sys.version.split()[0])
   print("here      %s" % os.path.dirname(os.path.abspath(__file__)))
   print("")
 

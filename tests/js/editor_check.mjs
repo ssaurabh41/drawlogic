@@ -4,12 +4,21 @@
 // Run by tests/test_js_editor.py. Prints one line per check and exits non-zero
 // on the first failure, so the Python side can just report the output.
 //
-// The last line is a completion record -- "DONE ran/N" -- counted by this
-// script itself rather than written down in two places. The Python wrapper
-// used to accept any zero-exit run containing a single "ok" line, so gutting
-// this file down to one console.log left the whole suite green with every
-// editor assertion gone. A count the script reports about itself cannot go
-// stale the way a number hardcoded in the wrapper would.
+// What has to be covered is written down in EXPECTED below, area by area,
+// and the run fails if any area is missing or has a different number of
+// checks than it says.
+//
+// Two earlier attempts at this guard were not enough. The first accepted any
+// zero-exit run containing one "ok" line, so cutting this file down to a
+// single console.log kept the suite green. The second printed "DONE ran/N"
+// with the script's own count on both sides of the slash -- which cannot
+// disagree with itself, so deleting a whole section just printed a smaller
+// number and still passed. A count taken from the checks that ran can never
+// notice the ones that did not.
+//
+// So the expected figures come from somewhere the checks cannot move: this
+// table, and a list of area names in tests/test_js_editor.py. Deleting a
+// section fails here; deleting the section and its row fails in Python.
 //
 // Usage: node tests/js/editor_check.mjs SYMBOLS.json
 
@@ -21,11 +30,37 @@ import * as routing from "../../drawlogic/web/js/routing.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
+// Area -> how many checks it must run. Written down on purpose: this is the
+// half of the comparison that does not come from running the checks.
+const EXPECTED = [
+  ["drag-time alignment", 8],
+  ["the Tidy command", 9],
+  ["nets with more than one load", 10],
+  ["dragging a wire by one of its runs", 13],
+  ["undo through a gesture", 5],
+  ["duplicating a group", 6],
+  ["stale answers", 8],
+];
+const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
+
 let failures = 0;
 let ran = 0;
+let area = null;
+const counted = new Map();
+
+function section(name) {
+  area = name;
+  counted.set(name, 0);
+}
 
 function check(what, condition, detail = "") {
   ran += 1;
+  if (area === null) {
+    failures += 1;
+    console.log(`FAIL ${what} -- check outside any section`);
+    return;
+  }
+  counted.set(area, counted.get(area) + 1);
   if (condition) {
     console.log(`ok   ${what}`);
   } else {
@@ -57,6 +92,7 @@ function sketch(flopY) {
 // u1.y sits at (260, 100); ff1.d sits at (380, flopY + 15).
 
 // ---- drag-time alignment ----
+section("drag-time alignment");
 
 {
   const fix = guides.suggest(sketch(87), ["ff1"], 8);
@@ -145,6 +181,7 @@ function sketch(flopY) {
 }
 
 // ---- the Tidy command ----
+section("the Tidy command");
 
 {
   const doc = sketch(137);
@@ -195,6 +232,7 @@ function sketch(flopY) {
 }
 
 // ---- nets with more than one load ----
+section("nets with more than one load");
 
 function wired() {
   const doc = {
@@ -265,6 +303,7 @@ function wired() {
 }
 
 // ---- dragging a wire by one of its runs ----
+section("dragging a wire by one of its runs");
 
 function twoCorners() {
   // A gate driving a flop that sits lower: the wire leaves, drops, arrives.
@@ -370,6 +409,7 @@ function twoCorners() {
 }
 
 // ---- undo through a gesture ----
+section("undo through a gesture");
 //
 // mutate() only keeps the first snapshot of a gesture, so it only takes one.
 // These pin the behaviour that optimisation must not change.
@@ -400,6 +440,7 @@ function twoCorners() {
 }
 
 // ---- duplicating a group ----
+section("duplicating a group");
 //
 // Copy, paste and Ctrl+D all go through copyItems/pasteItems, which carried
 // cells, shapes and nets but never groups -- so duplicating a grouped block
@@ -439,6 +480,7 @@ function twoCorners() {
 }
 
 // ---- stale answers ----
+section("stale answers");
 //
 // Saving and laying out are round trips. Whatever the user does while one is
 // in flight, the answer must not be applied to a document it was not about.
@@ -476,23 +518,48 @@ function twoCorners() {
   check("a layout answer is not applied after reopening the same drawing",
         store.matches(beforeReopen, { edits: false }) === false);
 
-  // Still the same drawing, edited while the layout was computed: the layout
-  // is applied as an edit of its own, so it is allowed.
+  // Still the same drawing, edited while the layout was computed. This used
+  // to be allowed, on the reasoning that the layout was just another edit --
+  // but a layout answer replaces the whole document, so whatever was done in
+  // the meantime went with it. main.js now requires both: the same drawing,
+  // and the same version of it.
   store.load({ title: "C" }, "c.dlg");
   const onC = store.stamp();
   store.mutate("nudged a gate", (doc) => { doc.title = "C, nudged"; });
-  check("a layout answer still applies to the drawing that asked for it",
+  check("a layout answer is still about the drawing that asked for it",
         store.matches(onC, { edits: false }) === true);
-  check("but a save from before that edit does not mark it clean",
+  check("but an edit since means the answer no longer describes it",
+        store.matches(onC) === false);
+  check("and a save from before that edit does not mark it clean",
         store.markSaved(onC) === false);
+}
+
+// Every area has to have run, and to have run the number of checks it says.
+// This is where deleting a section is caught: its row is still here, and its
+// count comes back zero.
+for (const [name, expected] of EXPECTED) {
+  const actual = counted.has(name) ? counted.get(name) : 0;
+  console.log(`area ${name} ${actual}/${expected}`);
+  if (actual !== expected) {
+    failures += 1;
+    console.log(`FAIL area "${name}" ran ${actual} checks, expected ${expected}`
+                + " -- add its row to EXPECTED if this was deliberate");
+  }
+}
+for (const name of counted.keys()) {
+  if (!EXPECTED.some(([known]) => known === name)) {
+    failures += 1;
+    console.log(`FAIL area "${name}" is not listed in EXPECTED`);
+  }
 }
 
 if (failures) {
   console.log(`${failures} check(s) failed`);
-  console.log(`DONE ${ran}/${ran}`);
+  console.log(`DONE ${ran}/${TOTAL}`);
   process.exit(1);
 }
 
 // Reaching here means every check above ran to the end. An early exit, a
-// throw, or a file cut down to nothing never prints this.
-console.log(`DONE ${ran}/${ran}`);
+// throw, or a file cut down to nothing never prints this. The denominator is
+// the table's total, not the tally -- so the two sides can disagree.
+console.log(`DONE ${ran}/${TOTAL}`);

@@ -49,6 +49,53 @@ class TestSafeJoin(unittest.TestCase):
     self.assertIsNone(server._safe_join(self.root, "../%s/x.dlg"
                                         % os.path.basename(sibling)))
 
+  def _link_out(self, name="link"):
+    """A directory link inside the root pointing at somewhere outside it."""
+    outside = tempfile.mkdtemp()
+    self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
+    with open(os.path.join(outside, "private.dlg"), "w") as handle:
+      handle.write("{}")
+    link = os.path.join(self.root, name)
+    try:
+      os.symlink(outside, link)
+    except (OSError, NotImplementedError, AttributeError):
+      self.skipTest("symlinks are not available here")
+    return outside
+
+  def test_a_directory_link_does_not_lead_out_of_the_root(self):
+    """The check is on where a path lands, not on how it is spelled.
+
+    `abspath` tidies a path up as text, so a link inside the served folder
+    reads as an ordinary child: every segment is a plain name and there is no
+    `..` anywhere. Following it walked straight out of the root, for reading
+    and for saving over what it found. A junction does the same on Windows,
+    which is where this was first demonstrated.
+    """
+    self._link_out()
+    self.assertIsNone(server._safe_join(self.root, "link/private.dlg"))
+
+  def test_a_file_that_does_not_exist_yet_is_judged_by_its_parent(self):
+    """Saving creates the file, so there is nothing to resolve but the folder.
+
+    This is the half that a fix could easily miss: refuse the read and still
+    let the first save through, which is the more damaging direction.
+    """
+    self._link_out()
+    self.assertIsNone(server._safe_join(self.root, "link/brand_new.dlg"))
+
+  def test_a_link_that_stays_inside_the_root_is_still_fine(self):
+    """Confinement, not a ban on links -- otherwise this would be a fix that
+    breaks a reasonable way to arrange a folder."""
+    inner = os.path.join(self.root, "real")
+    os.mkdir(inner)
+    with open(os.path.join(inner, "a.dlg"), "w") as handle:
+      handle.write("{}")
+    try:
+      os.symlink(inner, os.path.join(self.root, "alias"))
+    except (OSError, NotImplementedError, AttributeError):
+      self.skipTest("symlinks are not available here")
+    self.assertIsNotNone(server._safe_join(self.root, "alias/a.dlg"))
+
 
 class TestEndpoints(unittest.TestCase):
 
@@ -146,6 +193,39 @@ class TestEndpoints(unittest.TestCase):
     result = self.post("/api/check", {"doc": doc, "source": "slice.dlg"})
     rules = [v["rule"] for v in result["violations"] if v["level"] == "error"]
     self.assertIn("wire-short", rules)
+
+  def test_check_reports_what_validate_would_reject(self):
+    """Check and `drawlogic validate` have to agree on whether a drawing is
+    fit to use.
+
+    Check ran the geometric DRCs alone, so an unknown cell type came back
+    clean here and failed on the command line moments later. The clean bill
+    was the damage: it is what stops you looking any further.
+    """
+    payload = self.get("/api/doc?path=slice.dlg")
+    doc = payload["doc"]
+    doc["cells"].append({"id": "bad", "type": "no_such_symbol",
+                         "x": 300, "y": 300})
+    result = self.post("/api/check", {"doc": doc, "source": "slice.dlg"})
+    self.assertGreaterEqual(result["errors"], 1)
+    messages = [v["message"] for v in result["violations"]]
+    self.assertTrue(any("no_such_symbol" in m for m in messages), messages)
+
+  def test_a_reference_fault_still_arrives_in_the_shape_the_pane_draws(self):
+    """It lists beside rule failures, so it has to carry the same fields --
+    and no `at`, because an unknown cell type is not a place on the sheet."""
+    payload = self.get("/api/doc?path=slice.dlg")
+    doc = payload["doc"]
+    doc["cells"].append({"id": "bad", "type": "no_such_symbol",
+                         "x": 300, "y": 300})
+    result = self.post("/api/check", {"doc": doc, "source": "slice.dlg"})
+    fault = [v for v in result["violations"]
+             if "no_such_symbol" in v["message"]][0]
+    self.assertEqual(set(fault), {"rule", "level", "where", "message", "at"})
+    self.assertIsNotNone(fault["rule"])
+    self.assertIsNone(fault["at"])
+    self.assertEqual(result["errors"] + result["warnings"],
+                     len(result["violations"]))
 
   def test_check_refuses_a_document_it_cannot_parse(self):
     with self.assertRaises(HTTPError) as caught:

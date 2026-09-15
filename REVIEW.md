@@ -10,11 +10,19 @@ uncertain or likely to be wrong, this document says so and points at it.
 **What the tool is.** A schematic editor and renderer for logic circuits.
 Gates, flops, muxes, blocks and ports are placed on a sheet and wired **pin to
 pin**, so moving a cell carries its wires. Drawings are plain JSON. Output is
-SVG. It runs on Python 3.8+ with nothing installed -- no pip packages, no
-Node, no network.
+SVG. It needs nothing installed -- no pip packages, no Node, no network.
 
-**Size.** About 6,400 lines of Python across 14 modules, 5,250 lines of
-JavaScript across 11 browser modules, 312 tests, 33 built-in symbols, 7 worked
+The floor is stated as Python 3.8 and that number has never been run. What
+has: 3.10, 3.11, 3.12 and 3.13, all green, plus a check that every source
+file parses under 3.8 rules and uses no standard-library call newer than 3.8.
+That is evidence, not proof -- parsing is not running -- so treat 3.8 and 3.9
+as untested rather than supported, and if you have either, running the suite
+on it is a genuinely useful ten minutes. The same goes for the "bare machine"
+row in section 2: it has been run in this environment, not in an empty
+container.
+
+**Size.** About 6,500 lines of Python across 14 modules, 5,250 lines of
+JavaScript across 11 browser modules, 334 tests, 33 built-in symbols, 7 worked
 examples.
 
 ---
@@ -25,7 +33,7 @@ Five minutes, no install:
 
 ```bash
 git clone <this repo> drawlogic && cd drawlogic
-python3 -m unittest discover            # expect: Ran 312 tests ... OK
+python3 -m unittest discover            # expect: Ran 334 tests ... OK
 python3 -m drawlogic doctor             # expect: this copy is consistent with itself
 python3 -m drawlogic export examples/soc_top.dlg -o /tmp/soc.svg
 python3 -m drawlogic serve examples/dff_slice.dlg   # editor on 127.0.0.1:8080
@@ -58,20 +66,20 @@ independently. Treat a claim with no check as unverified.
 
 | Claim | Check it | Expected |
 |---|---|---|
-| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 312 pass; nothing is downloaded |
+| Runs on a bare machine | `python3 -m unittest discover` in a container with no pip cache | 334 pass; nothing is downloaded |
 | Wires follow their cells | open an example, drag a gate, watch the wires | paths re-route, stay attached |
 | One place to tune the drawing | change `WIRE_GAP` in `drawlogic/drc.py`, re-export | every wire spacing moves; no other file edited |
-| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 6 tests, incl. that `routing.js`'s fallback limits still match `drc.py` |
+| Canvas and exporter obey one rule set | `python3 -m unittest tests.test_js_parity` | 9 tests: routes, marks, fallback limits, and what each renderer actually draws |
 | Wires store pins, not coordinates | open `examples/dff_slice.dlg`, read `nets[0].from` and `nets[0].to` | endpoints name `cell` and `pin`; no x/y anywhere |
 | One renderer for every export | `tests/test_server.py::test_export_writes_svg_through_the_python_renderer` | browser export goes through Python, not a canvas screenshot |
-| The browser and Python route identically | `python3 -m unittest tests.test_js_parity` (needs node) | 6 tests pass -- but read section 4, this is narrower than it sounds |
+| The browser and Python route identically | `python3 -m unittest tests.test_js_parity` (needs node) | 9 pass. Helper comparisons plus three that call both renderers -- read section 4, and see section 8 for what helper-only parity missed |
 | Adding a symbol needs no code | add an entry to a `symbols.json`, run `symbols list` | new id appears; no `.py` touched |
 | Symbols are shared, not drifting | `tests/test_server.py::test_symbols_match_the_python_registry` | the browser is served the same library the CLI uses |
 | The server refuses paths outside its root | `python3 -m unittest tests.test_server` | 5 tests on the path helper (incl. a prefix-match case) plus 2 end-to-end refusals |
 | Drawings diff as text | `python3 -m drawlogic info examples/soc_top.dlg`, then edit and re-save | stable key order; diffs read as "moved U1" |
 | Format v1 files still load | `python3 -m unittest tests.test_nets` | upgrade path tested, including that it is idempotent |
-| The DRCs find a real fault | `python3 -m unittest tests.test_drc` | 34 tests; the first is the reported case -- two nets into one gate drawn as one wire |
-| The DRCs are not vacuous | delete a `_check_*` call from `drc.check()`, re-run `tests.test_drc` | red, for every one of the nine |
+| The DRCs find a real fault | `python3 -m unittest tests.test_drc` | 39 tests; the first is the reported case -- two nets into one gate drawn as one wire |
+| The DRCs are not vacuous | `tests.test_drc.TestEveryCheckerIsReachable` does the deletion itself, for every checker | red if any one of them could be removed unnoticed. Asserted rather than claimed, because the hand-checked version of this claim was false for one of the nine |
 | The DRCs do not cry wolf | `for f in examples/*.dlg; do drawlogic validate $f; done` | warnings, none of them errors; each one findable in the picture |
 | Checking keeps up while you draw | serve an example, drag a gate onto another, stop | a ring appears within about half a second; the status-bar count matches the pane |
 | The live count is never stale | drag something and watch the count during the drag | it greys out on the first move and only goes solid again with a fresh answer |
@@ -79,7 +87,8 @@ independently. Treat a claim with no check as unverified.
 | The manifest cannot rot | append a blank line to any file under `drawlogic/`, `python3 -m unittest tests.test_manifest` | red, naming the command that regenerates it |
 
 Warnings are expected, not a defect: `validate` reports unconnected pins, and
-every example has a few (`soc_top.dlg` has 2). It also reports design rule
+most examples have a few (`soc_top.dlg` has 2; `fifo_top.dlg` has none at
+all). It also reports design rule
 warnings -- wires closer than `WIRE_GAP`, names against bodies -- which are
 judgements about spacing rather than faults. Errors are the thing to care
 about; all seven examples have zero of both kinds.
@@ -132,14 +141,14 @@ Two things to confirm:
 the sharpest edge in the suite. On a machine without `node`:
 
 ```
-Ran 261 tests ... OK (skipped=7)
+Ran 334 tests ... OK (skipped=10)
 ```
 
-Those 7 are the entire cross-language safety net: 4 parity tests comparing
-the two routers, 1 anchoring arrow direction to the drawing rather than to
-agreement, 1 checking that `routing.js`'s fallback DRC limits still match
-`drc.py`, and 1 wrapper around 55 editor checks. A reviewer on a Node-less
-machine sees a green run
+Those 10 are the entire cross-language safety net: parity tests comparing the
+two routers, one anchoring arrow direction to the drawing rather than to
+agreement, one checking that `routing.js`'s fallback DRC limits still match
+`drc.py`, three comparing what each renderer actually draws, and one wrapper
+around 59 editor checks. A reviewer on a Node-less machine sees a green run
 with the most important tests absent. Confirm your environment has Node
 (`node --version`) before trusting a pass.
 
@@ -298,7 +307,22 @@ Ranked by where I would look first, with reasoning rather than a flat list.
    outstanding when the document is replaced wholesale by opening another
    file.
 
-9. **`manifest.txt` and the two things that hash.** `cli.content_hash` and
+9. **Anywhere two implementations of one rule have to agree.** Four separate
+   defects have now come from this shape, which makes it the most productive
+   thing to go looking for. `CELL_MIN_GAP` was served over the API and read by
+   nothing. `symbols.VALID_OPS` omitted an op both renderers drew and the
+   converter emitted. `render.js` and `render_svg.py` disagreed about whether
+   arrows avoid crossing bridges. The Check endpoint ran one of the two things
+   `validate` runs. In each case every file was self-consistent and the system
+   was not.
+
+   The pattern worth applying: for each rule, list every place that has to know
+   it, and ask what would happen if one of them were wrong. If the answer is
+   "a test would fail", check that the test calls the real code path rather
+   than asking both sides the same question with inputs it made up -- that is
+   the variant that passed while the browser and the exporter disagreed.
+
+10. **`manifest.txt` and the two things that hash.** `cli.content_hash` and
    `verify.ps1` have to agree exactly, in two languages, and nothing fails
    loudly if they drift -- one side just starts calling good files bad. The
    agreement is: read as UTF-8, drop a byte order mark, fold CRLF and lone CR
@@ -341,9 +365,16 @@ section defends -- so it is recorded here instead of quietly assumed.
 
 The deliberate reason is that adding a JS toolchain would cost the
 zero-dependency property that makes this installable on a locked-down machine.
-Whether that trade is correct is a fair thing to challenge; if you think it is
-wrong, the counter-proposal to make is a test runner that is itself
-dependency-free.
+
+That reason was stated more absolutely than it deserved. Node is already an
+optional test dependency -- ten tests skip without it -- so a browser-only test
+that skips the same way costs the application nothing. `tests/js/render_dump.mjs`
+is the working example: it runs the real browser renderer against a stub DOM
+written in the test folder, roughly fifty lines and no packages, and it caught
+a preview-versus-export mismatch that helper comparisons had missed on four
+examples. The honest limit is narrower than "a browser test would cost the
+bare-machine property": it is that a *full* browser is a large dependency, and
+that anything needing real layout or input events still has no standing test.
 
 **No visual regression testing beyond 7 golden SVGs.** A schematic's real
 output is a picture. The goldens catch a changed byte, not an ugly drawing. If
@@ -351,6 +382,14 @@ routing produces a technically-correct path that a hardware engineer would
 call unreadable, nothing here fails. **Please look at the output with your own
 eyes** -- render all seven examples and judge them as schematics, not as
 strings.
+
+**The DRCs are not a legibility oracle, and one gap is known.** They cover
+cell labels and net labels; a free text annotation is measured for the export
+bounds but is not checked against anything. An annotation lying across a wire
+is exactly the fault the text rules exist for, and no rule fires. Adding one
+would flag 3 of the 23 annotations in the shipped examples -- small enough to
+be worth doing and large enough that it is a decision rather than a fix, so it
+is recorded here rather than made quietly.
 
 **`--host` widens the server beyond loopback and there is no authentication of
 any kind.** It is documented as "tunnel instead", but the flag exists and
@@ -453,7 +492,69 @@ it does.
 
 ---
 
-## 8. What a first cold review already found
+## 8. What two cold reviews already found
+
+### The second pass
+
+A second review, by the same model reading the fixed code, produced nine
+demonstrated defects and one suspected. **All ten reproduced**, including two
+that contradicted claims made in this document. They are fixed. What they say
+about where this codebase goes wrong is more useful than the list itself:
+
+**Three were checks that could not fail** -- the same shape as the first
+pass, after that pass was supposed to have taught the lesson.
+
+- The nine-DRC claim in section 2 said deleting any checker turned
+  `tests/test_drc.py` red. Eight did. `_check_wire_spacing` -- the rule the
+  manual leads with -- had no test at all, and could have been deleted in
+  silence. The claim had been checked by hand once and then drifted. It is now
+  a test that performs the mutation in a loop, so the claim cannot outlive the
+  thing it describes.
+- The editor runner reported `DONE ran/N` with its own tally on both sides of
+  the slash. A number cannot disagree with itself: deleting five checks printed
+  a smaller number and passed. Expected counts are now written down, in the
+  runner and again in the Python wrapper.
+- The arrow parity test built its own exclusion set and left crossing bridges
+  out of it. So did `render.js`. The two agreed, six tests passed, and the
+  editor drew an arrow on a bridge the exported file did not have -- on four of
+  the seven examples, not just a constructed case. **Neither renderer's drawing
+  code was ever called.** Parity now runs `render.render()` under a small
+  stub DOM and compares the marks that come out.
+
+The lesson those three share: a test that recomputes what it is checking can
+only prove two copies match. It cannot tell you either is right, and nothing
+in a green run says which kind of test you have.
+
+**Two were stale state** in the same request handling the first pass fixed for
+a different case. A layout answer applied over an edit made while it was in
+flight, replacing the whole document and taking the edit with it -- the earlier
+fix covered switching drawings but deliberately ignored edits, on the reasoning
+that a layout was "just another edit". It is not an edit, it is a replacement.
+And turning live checking off did not invalidate an automatic check already on
+its way back.
+
+**Two were a contract three files had to agree on and one did not.**
+`symbols.VALID_OPS` omitted `ellipse`, which both renderers drew and which
+`authoring.py` emitted -- so Save as symbol refused artwork its own converter
+had just produced. And Check ran the geometric DRCs alone, reporting a drawing
+clean that `drawlogic validate` rejected a moment later; the clean bill was the
+damage, because it is what stops you looking further.
+
+**One was content measured as nothing.** A text shape has an anchor and no
+size, so a cropped export cut a long annotation down to its first letter.
+
+**One was confinement on the spelling of a path rather than its destination.**
+`_safe_join` used `abspath`, which tidies text; a directory link inside the
+served folder reads as an ordinary child, and following it walked out of the
+root to read *and to overwrite*. The first pass had fixed this for hierarchy
+references and not for documents named directly.
+
+**The suspected one was right too**: the numbers in section 3 were stale
+again -- 261 and 55 where the truth was 312 and 58. That is twice this document
+has been caught with wrong numbers. Treat every figure here as needing a check.
+
+### The first pass
+
 
 A pass of this kind has been run once, by a different model reading the code
 cold. It produced eleven demonstrated defects and two suspected ones, and all

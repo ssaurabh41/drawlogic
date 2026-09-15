@@ -854,6 +854,13 @@ The work happens in Python, in `layout.py`, and the editor calls it over
 `/api/layout`. A layout is not a gesture, so the round trip costs nothing, and
 there is one implementation of it the way there is one renderer.
 
+If you edit the drawing while it is working, the result is dropped and the
+status bar says so. The answer is a whole document built from the drawing as
+it was, so applying it would take your edit with it -- which it used to do,
+recoverable only by noticing and pressing undo. On a large drawing the round
+trip is a couple of seconds, which is long enough to type something into.
+Press Auto layout again once you have stopped.
+
 ### Tidy up
 
 `Arrange > Tidy up` pulls the selected cells into line with what they are wired
@@ -1079,8 +1086,15 @@ The DRC pane under Properties lists what failed, red for errors and amber for
 warnings. Click one and the view walks to it and rings the spot.
 
 The editor sends what is on the canvas rather than the file on disk, so
-unsaved edits are checked too. It is the same `drc.py` the command line uses,
-so a drawing that passes in one place passes in the other.
+unsaved edits are checked too. It runs the same two things `drawlogic
+validate` runs -- the references and the DRCs -- so a drawing that passes in
+one place passes in the other.
+
+Both halves matter. Check used to run the geometric rules alone, so a drawing
+naming a cell type that does not exist came back clean here and was rejected
+on the command line a moment later. A reference fault lists with the rule
+failures but has no marker on the sheet to walk to: an unknown cell type is
+about the cell, not about a place.
 
 ### Live checking
 
@@ -1104,7 +1118,11 @@ never a stale one presented as current.
 
 **live** in the DRC header turns it off, and the choice is remembered. Off,
 the pane goes back to whatever **Check** last found, and **Check** still works
-exactly as before.
+exactly as before. A check that was already on its way back when you turned
+live off is discarded rather than painted -- clearing the timer only stops the
+next one, and an answer nobody asked for arriving in manual mode is exactly
+what manual mode is supposed to prevent. Pressing **Check** always shows its
+own answer.
 
 It also turns itself off. A check that takes longer than a quarter of a second
 would be felt as the editor hesitating under the cursor, so on the first one
@@ -1237,8 +1255,11 @@ drawlogic/
     js/picture.js    rasterise the export to a pasteable PNG
     js/main.js       bootstrap and controls
 tests/            unittest, a golden-file regression suite, a JS parity check
+  js/             node-side runners: the editor checks, and dumps of what
+                  routing.js and render.js produce for parity to compare
 examples/         worked schematics, including a CDC FIFO
 manifest.txt      a hash of every file above; generated, never hand-edited
+sample.txt        a plain file to edit when trying verify.ps1 out by hand
 verify.ps1        checks a copy against it on Windows, without Python
 ```
 
@@ -1331,6 +1352,14 @@ python3 -m unittest tests.test_regression
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
 | `tests/test_manifest.py` | `manifest.txt` still describes the files here |
+
+Two of these are worth knowing about because of what they guard rather than
+what they test. `tests.test_drc.TestEveryCheckerIsReachable` replaces each
+checker with a no-op in turn and fails if the rest of the file stays green --
+a rule nothing depends on is a rule that can be deleted in silence, and one
+already had been. `tests.test_js_parity.TestWhatEachRendererActuallyDraws`
+calls both renderers rather than their helpers, because a comparison that
+recomputes its own inputs can only show that two copies agree.
 
 They need nothing installed: no network, no browser, no third-party package.
 That is a property worth keeping, and it is the

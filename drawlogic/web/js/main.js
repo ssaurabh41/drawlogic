@@ -490,6 +490,7 @@ const LIVE_DELAY = 400;
 const LIVE_BUDGET = 250;
 
 let liveOn = true;
+let liveEra = 0;
 let liveTimer = null;
 let liveBusy = false;
 let liveMarks = [];
@@ -517,6 +518,11 @@ async function runCheck({ quiet = false } = {}) {
     return;
   }
   liveBusy = true;
+  // Which run of live mode this check belongs to. Turning live off bumps the
+  // counter, so a quiet check already on its way back is recognised as
+  // belonging to a mode nobody is in any more and is dropped. Clearing the
+  // debounce timer cannot do this: the request has already gone.
+  const era = liveEra;
   if (!quiet) ui.btnCheck.disabled = true;
   // What the document looked like when this request went out. The answer is
   // only about that version, so if anything has changed by the time it comes
@@ -530,6 +536,9 @@ async function runCheck({ quiet = false } = {}) {
       body: JSON.stringify({ doc: store.doc, source: store.path }),
     });
     if (!store.matches(asked)) return;
+    // An explicit press always shows its answer; only automatic ones are
+    // subject to the mode having changed underneath them.
+    if (quiet && (!liveOn || era !== liveEra)) return;
     showViolations(result);
 
     const { errors, warnings } = result;
@@ -572,8 +581,11 @@ function afterEdit() {
 }
 
 function setLive(on) {
+  const was = liveOn;
   liveOn = Boolean(on);
   window.clearTimeout(liveTimer);
+  // Anything automatic that is still in flight belongs to the mode being left.
+  if (was !== liveOn) liveEra += 1;
   if (ui.drcLive) {
     ui.drcLive.setAttribute("aria-pressed", String(liveOn));
     ui.drcLive.textContent = liveOn ? "live" : "manual";
@@ -630,7 +642,7 @@ function showViolations(result) {
 
   ui.drcBody.replaceChildren();
   if (!violations.length) {
-    ui.drcBody.append(drcNote("Nothing to fix: every rule in drc.py passes."));
+    ui.drcBody.append(drcNote("Nothing to fix: the references resolve and every rule in drc.py passes."));
     return;
   }
 
@@ -778,11 +790,21 @@ async function autoLayout() {
     return;
   }
   say("laying out...");
-  // Which drawing asked. The answer is a whole document, and store.mutate
-  // hands the callback whatever is open at the time it runs -- so without
-  // this, a layout for one drawing would overwrite whichever drawing the
-  // user had switched to while it was being computed, and the next save
-  // would write it to that file.
+  // Which drawing asked, and which version of it. The answer is a whole
+  // document that replaces what is open, so both halves matter.
+  //
+  // The drawing, because store.mutate hands the callback whatever is open at
+  // the time it runs: without this a layout for one drawing would overwrite
+  // whichever drawing had been switched to while it was computed, and the
+  // next save would write it to that file.
+  //
+  // The version, because an answer built from the drawing as it was does not
+  // contain anything done since. This used to ignore edits on the theory that
+  // the layout was just another edit -- but it is not an edit, it is a
+  // replacement, so a gate moved or a note added while the server was working
+  // was simply gone. Undo could bring it back, if you noticed. A layout that
+  // takes two seconds on a large drawing is a wide enough window to type
+  // something into.
   const asked = store.stamp();
   try {
     const result = await api("/api/layout", {
@@ -791,6 +813,12 @@ async function autoLayout() {
       body: JSON.stringify({ doc: store.doc, source: asked.path }),
     });
     if (!store.matches(asked, { edits: false })) return;
+    if (!store.matches(asked)) {
+      // Dropping the answer is the safe half of the trade: the layout can be
+      // asked for again, and what was typed cannot.
+      say("edited while laying out -- layout dropped, press it again", "bad");
+      return;
+    }
     store.mutate("auto layout", (doc) => {
       // Replacing the contents rather than the object keeps every other
       // reference to the document valid.

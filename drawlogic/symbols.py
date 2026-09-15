@@ -29,7 +29,16 @@ BUILTIN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             "symbols.json")
 
 VALID_DIRECTIONS = ("in", "out", "inout")
-VALID_OPS = ("path", "line", "rect", "circle", "polygon", "text")
+
+# Every op both renderers draw. The list is the contract between three places
+# that have to agree -- this validator, render_svg.py and web/js/render.js --
+# and "ellipse" was missing from it alone: both renderers drew one, and
+# authoring.py emitted one for an ellipse drawn in the editor, so Save as
+# symbol refused artwork its own converter had just produced. A rule that
+# rejects what the rest of the system supports fails at the one moment the
+# work is finished, which is the worst time to find out.
+# tests/test_authoring.py checks a symbol for each of these loads.
+VALID_OPS = ("path", "line", "rect", "circle", "ellipse", "polygon", "text")
 
 
 class SymbolError(Exception):

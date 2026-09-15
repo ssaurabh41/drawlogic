@@ -15,6 +15,7 @@ Usage:
     python3 -m unittest tests.test_drc
 """
 
+import io
 import unittest
 
 from drawlogic import drc, routing
@@ -240,6 +241,108 @@ class TestSpacing(unittest.TestCase):
   def test_a_port_pressed_against_a_gate_is_reported(self):
     doc = build([port("a", 200, 205), gate("U1", 235, 190)], [])
     self.assertTrue(only(drc.check(doc), "port-to-cell"))
+
+
+class TestParallelRuns(unittest.TestCase):
+  """Two different nets running alongside each other.
+
+  This rule had no test at all. Replacing `_check_wire_spacing` with a no-op
+  left all 34 DRC tests green, so the whole rule -- the one the manual leads
+  with -- could have been deleted without the suite noticing. The shorts
+  tested elsewhere come from `_check_wire_contact`, a different checker that
+  happens to catch the same drawings, which is what made the hole invisible.
+
+  Coordinate endpoints rather than pins, so the distance under test is the one
+  written here and not whatever the router decided.
+  """
+
+  def runs(self, gap):
+    doc = new_document("parallel", 700, 400)
+    doc.nets.extend([
+      {"id": "n1", "name": "aa",
+       "from": {"x": 100, "y": 200}, "to": [{"x": 600, "y": 200}]},
+      {"id": "n2", "name": "bb",
+       "from": {"x": 100, "y": 200 + gap}, "to": [{"x": 600, "y": 200 + gap}]},
+    ])
+    doc.normalize()
+    return list(drc.check(doc))
+
+  def test_two_nets_closer_than_the_gap_are_reported(self):
+    found = only(self.runs(drc.WIRE_GAP - 3), "wire-spacing")
+    self.assertTrue(found, "two nets 3 short of WIRE_GAP went unreported")
+    self.assertEqual(found[0].level, "warning")
+    self.assertIsNotNone(found[0].at, "nothing to walk to in the editor")
+
+  def test_two_nets_a_clear_gap_apart_are_left_alone(self):
+    """The negative control: without it the rule could fire on everything and
+    still look like it worked."""
+    self.assertEqual(only(self.runs(drc.WIRE_GAP * 2), "wire-spacing"), [])
+
+  def test_lying_on_top_of_each_other_is_a_short_not_a_crowd(self):
+    """Same measurement, different distance -- and a different severity, so
+    the two ends of the rule are pinned separately."""
+    found = only(self.runs(0), "wire-short")
+    self.assertTrue(found)
+    self.assertEqual(found[0].level, "error")
+    self.assertEqual(only(self.runs(0), "wire-spacing"), [],
+                     "a short should not also be reported as a crowd")
+
+  def test_wires_that_only_cross_are_not_running_together(self):
+    """Perpendicular wires share one point, not a run. Reporting those would
+    make the rule fire on every ordinary drawing."""
+    doc = new_document("crossing", 700, 400)
+    doc.nets.extend([
+      {"id": "h", "name": "aa",
+       "from": {"x": 100, "y": 200}, "to": [{"x": 600, "y": 200}]},
+      {"id": "v", "name": "bb",
+       "from": {"x": 300, "y": 80}, "to": [{"x": 300, "y": 340}]},
+    ])
+    doc.normalize()
+    self.assertEqual(only(drc.check(doc), "wire-spacing"), [])
+
+
+class TestEveryCheckerIsReachable(unittest.TestCase):
+  """Each checker `check()` runs must be the only reason some test passes.
+
+  REVIEW.md claimed removing any one of them turned this file red. Eight did;
+  `_check_wire_spacing` did not, because nothing here exercised it. The claim
+  was checked by hand once and then drifted, so it is asserted here instead --
+  the same mutation, run in a loop.
+  """
+
+  def checkers(self):
+    import inspect
+    import re
+    source = inspect.getsource(drc.check)
+    return re.findall(r"^\s+(_check_\w+)\(scene, report\)", source, re.M)
+
+  def test_there_are_no_checkers_nothing_depends_on(self):
+    names = self.checkers()
+    self.assertGreaterEqual(len(names), 9, names)
+
+    # Everything in this file except this test, which would recurse.
+    cases = ["%s.%s" % (__name__, name) for name in sorted(globals())
+             if name.startswith("Test") and name != type(self).__name__]
+
+    unnoticed = []
+    for name in names:
+      original = getattr(drc, name)
+      setattr(drc, name, lambda *args, **kwargs: None)
+      try:
+        # Rebuilt each time: a suite empties itself as it runs, so reusing one
+        # would silently test nothing after the first pass.
+        suite = unittest.defaultTestLoader.loadTestsFromNames(cases)
+        result = unittest.TextTestRunner(
+          stream=io.StringIO(), verbosity=0).run(suite)
+        if result.wasSuccessful():
+          unnoticed.append(name)
+      finally:
+        setattr(drc, name, original)
+
+    self.assertEqual(
+      unnoticed, [],
+      "these checks could be deleted and this file would stay green: %s"
+      % ", ".join(unnoticed))
 
 
 class TestText(unittest.TestCase):

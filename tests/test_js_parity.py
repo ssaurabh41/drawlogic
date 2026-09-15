@@ -13,6 +13,7 @@ is not installed. Run them with:
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -20,6 +21,7 @@ import unittest
 
 from drawlogic import drc, render_svg, routing, theme
 from drawlogic.doc import new_document
+from drawlogic.symbols import default_registry
 
 from tests import ROOT, open_example
 
@@ -70,6 +72,51 @@ def _browser_result(path, registry):
 
 
 DRC_DUMP = os.path.join(ROOT, "tests", "js", "drc_dump.mjs")
+RENDER_DUMP = os.path.join(ROOT, "tests", "js", "render_dump.mjs")
+
+
+def _browser_render(doc, registry):
+  """What the browser renderer actually draws, from render.render() itself."""
+  handles = []
+  try:
+    for payload in (registry.as_data(), doc.ordered(), _theme_payload()):
+      handle, name = tempfile.mkstemp(suffix=".json")
+      with os.fdopen(handle, "w") as out:
+        json.dump(payload, out)
+      handles.append(name)
+    return json.loads(subprocess.check_output(
+      [NODE, RENDER_DUMP] + handles, cwd=ROOT))
+  finally:
+    for name in handles:
+      os.unlink(name)
+
+
+def _exported_arrows(svg):
+  """The arrow polygons in the exported file's net layer.
+
+  Scoped to `dl-nets` because symbol artwork can be a polygon too, and both
+  renderers put arrows in that group and nothing else polygonal.
+  """
+  start = svg.index('<g class="dl-nets">')
+  end = svg.index("</g>", svg.index('<g class="dl-cells">'))
+  return sorted(re.findall(r'<polygon points="([^"]+)"', svg[start:end]))
+
+
+def _crossing_drawing():
+  """One wire crossing another, which is drawn as a bridge.
+
+  The smallest drawing that tells the two renderers apart: an arrow lands
+  where the bridge is, so whether it is dropped depends on the thing that
+  drifted.
+  """
+  doc = new_document("crossing", 650, 250)
+  doc.canvas["grid"]["style"] = "blank"
+  doc.nets.extend([
+    {"id": "h", "from": {"x": 50, "y": 100}, "to": [{"x": 550, "y": 100}]},
+    {"id": "v", "from": {"x": 290, "y": 50}, "to": [{"x": 290, "y": 180}]},
+  ])
+  doc.normalize()
+  return doc
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -90,6 +137,63 @@ class TestDrcDefaults(unittest.TestCase):
         float(actual[key]), float(expected[key]), places=6,
         msg="routing.js default for %r is stale: %r, drc.py says %r"
             % (key, actual[key], expected[key]))
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestWhatEachRendererActuallyDraws(unittest.TestCase):
+  """The two renderers compared through their own drawing code.
+
+  Every other test here compares helpers: both sides are asked the same
+  question with inputs the test supplies. That caught a lot, and it could not
+  catch this. The arrow comparison built its own exclusion set, left the
+  crossing bridges out of it, and so did `render.js` -- so the helpers agreed,
+  all six tests passed, and the editor drew an arrow on a bridge that the
+  exported file did not have. Agreement between two helpers is not agreement
+  between two renderers, and only one of them is what anybody sees.
+
+  So this calls `render.render()` and `render_svg.render()` and compares the
+  marks that come out.
+  """
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def test_a_crossing_gets_the_same_arrows_in_both(self):
+    doc = _crossing_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = _exported_arrows(render_svg.render(doc, registry=self.registry))
+    self.assertEqual(
+      browser["arrows"], exported,
+      "the editor and the exported file disagree about arrows at a crossing")
+
+  def test_the_bridge_really_does_remove_an_arrow(self):
+    """Otherwise the test above passes on a drawing where nothing is at stake
+    -- two renderers agreeing that there is nothing to drop."""
+    doc = _crossing_drawing()
+    routes = routing.route_all(doc, self.registry)
+    hop_map = routing.hop_points(routes)
+    self.assertTrue([s for spots in hop_map.values() for s in spots],
+                    "the fixture has no bridge, so it tests nothing")
+    kept = len(_exported_arrows(
+      render_svg.render(doc, registry=self.registry)))
+    without = sum(
+      len(list(render_svg._arrow_spots(points, theme.ARROW_SIZE,
+                                       junctions=routing.junctions(routes))))
+      for _net, branches in routes for points in branches if len(points) >= 2)
+    self.assertLess(kept, without,
+                    "no arrow was dropped for the bridge, so both renderers "
+                    "could ignore hops and still agree")
+
+  def test_every_example_draws_the_same_arrows_in_both(self):
+    for name in sorted(os.listdir(EXAMPLES)):
+      if not name.endswith(".dlg"):
+        continue
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(os.path.join(EXAMPLES, name))
+        browser = _browser_render(doc, registry)
+        exported = _exported_arrows(render_svg.render(doc, registry=registry))
+        self.assertEqual(browser["arrows"], exported,
+                         "%s draws differently in the editor" % name)
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -174,7 +278,9 @@ class TestRouterParity(unittest.TestCase):
                         _round(way[0]), _round(way[1])]
                        for tip, way in render_svg._arrow_spots(
                          points, theme.ARROW_SIZE,
-                         junctions=routing.junctions(routes))]
+                         junctions=render_svg.arrow_marks(
+                           routing.junctions(routes),
+                           routing.hop_points(routes)))]
                       for points in branches if len(points) >= 2]
           for net, branches in routes if branches}
         actual = {net_id: [[[_round(tip[0]), _round(tip[1]),

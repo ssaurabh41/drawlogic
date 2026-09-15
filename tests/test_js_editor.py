@@ -31,6 +31,24 @@ class TestEditorBehaviour(unittest.TestCase):
   # that notices if a whole area of the editor quietly stops being tested.
   MINIMUM_CHECKS = 30
 
+  # The areas the browser-only code must keep being tested for, held here
+  # rather than only in the runner. The runner has its own table of expected
+  # counts; this is the second copy, and it is deliberately somewhere the
+  # person deleting a section is not already editing. Removing a section from
+  # editor_check.mjs fails there; removing it and its row fails here.
+  #
+  # Both were needed. The guard before this one compared the runner's count
+  # against itself, so deleting five checks printed "DONE 40/40" and passed.
+  REQUIRED_AREAS = (
+    "drag-time alignment",
+    "the Tidy command",
+    "nets with more than one load",
+    "dragging a wire by one of its runs",
+    "undo through a gesture",
+    "duplicating a group",
+    "stale answers",
+  )
+
   def test_alignment_and_tidy(self):
     result = subprocess.run([NODE, CHECK, SYMBOLS], cwd=ROOT,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -59,6 +77,27 @@ class TestEditorBehaviour(unittest.TestCase):
       sum(line.startswith("ok   ") for line in output.splitlines()), ran,
       "the runner's own count disagrees with the lines it printed:\n"
       + output)
+
+    # Every area named here has to appear, and to have run every check its
+    # own table expects. This is the part that does not come from the tally.
+    reported = {}
+    for line in output.splitlines():
+      if line.startswith("area "):
+        name, tally = line[len("area "):].rsplit(" ", 1)
+        actual, wanted = (int(part) for part in tally.split("/"))
+        reported[name] = (actual, wanted)
+
+    for name in self.REQUIRED_AREAS:
+      self.assertIn(
+        name, reported,
+        "the editor checks no longer cover %r -- if that is deliberate, take "
+        "it out of REQUIRED_AREAS as well, so the removal is visible in the "
+        "diff:\n%s" % (name, output))
+      actual, wanted = reported[name]
+      self.assertEqual(
+        actual, wanted,
+        "%r ran %d checks where the runner expects %d:\n%s"
+        % (name, actual, wanted, output))
 
 
 if __name__ == "__main__":

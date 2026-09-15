@@ -316,6 +316,20 @@ def _path_length(points):
              for i in range(len(points) - 1))
 
 
+def arrow_marks(junctions, hop_map):
+  """Everything an arrow has to keep clear of: junction dots and hop bridges.
+
+  Public, and the browser has the same function, because the parity test has
+  to ask what the renderer asks. It used to build its own list and leave the
+  hops out -- and so did the browser, so the two agreed with each other and
+  the test passed while the editor drew an arrow on a bridge the exported
+  file did not have. Two copies matching is not the same as either being
+  right, and only one of them was being rendered.
+  """
+  return list(junctions) + [spot for spots in hop_map.values()
+                            for spot in spots]
+
+
 def _arrow_spots(points, size, spacing=None, junctions=()):
   """Where a wire's direction arrows go, and which way each one points.
 
@@ -502,6 +516,34 @@ def _label_box(spot, anchor, text, size):
   return (x0, spot[1] - size * 0.8, x0 + width, spot[1] + size * 0.2)
 
 
+def text_shape_box(shape, font_scale=1.0):
+  """The rectangle a text shape covers, as (x0, y0, x1, y1), or None.
+
+  Public because a text annotation is content like any other, and two places
+  outside this module have to know how much room it takes: the bounding box a
+  cropped export is cut to, and any rule that asks what a piece of text runs
+  into.
+
+  Without this a text shape contributed only its anchor point -- a box of no
+  width and no height -- so cropping an export to the content cut a long
+  annotation down to whatever happened to fall within a few units of where it
+  started. One letter, in the case that found this.
+
+  The width is estimated the same way labels are, by counting characters.
+  There is no font metric here and never will be; the number only has to be
+  close enough to reserve the right room.
+  """
+  if shape.get("kind") != "text":
+    return None
+  text = shape.get("text")
+  if not isinstance(text, str) or not text:
+    return None
+  style = shape.get("style") or {}
+  size = float(style.get("fontSize", theme.FONT_SIZES["shape_text"])) * font_scale
+  spot = (float(shape.get("x", 0)), float(shape.get("y", 0)))
+  return _label_box(spot, style.get("anchor", "start"), text, size)
+
+
 def _grown(box, pad):
   """A box with clear space around it.
 
@@ -642,8 +684,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   routes = routing.route_all(doc, registry)
   hop_map = routing.hop_points(routes) if hops else {}
   junctions = routing.junctions(routes)
-  # Arrows give way to both kinds of mark, so they are asked about together.
-  marks = list(junctions) + [spot for spots in hop_map.values() for spot in spots]
+  marks = arrow_marks(junctions, hop_map)
 
   for net, branches in routes:
     if not branches:

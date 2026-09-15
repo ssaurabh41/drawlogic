@@ -632,6 +632,66 @@ class TestSymbolPreview(unittest.TestCase):
     self.assertIn("2:1 multiplexer", svg)
 
 
+class TestWrittenContentIsContentToo(unittest.TestCase):
+  """A text annotation has to survive a cropped export.
+
+  A text shape carries an anchor and no width or height, so measuring it the
+  way a rectangle is measured gave a box of nothing at all. Cropping to the
+  content then cut a long annotation down to whatever fell within a few units
+  of where it began -- a single letter, in the drawing that found this. The
+  drawing still had the text; the delivered file did not.
+  """
+
+  ANNOTATION = "A VERY LONG SIGNAL ANNOTATION"
+
+  def _annotated(self, size=40):
+    doc = new_document("annotated")
+    doc.shapes.append({"id": "t", "kind": "text", "x": 100, "y": 100,
+                       "text": self.ANNOTATION, "style": {"fontSize": size}})
+    doc.normalize()
+    return doc
+
+  def test_the_bounds_cover_the_whole_string(self):
+    box = self._annotated().content_bbox()
+    self.assertGreater(
+      box[2], len(self.ANNOTATION) * 10,
+      "%d characters at size 40 cannot fit in %.0f units"
+      % (len(self.ANNOTATION), box[2]))
+
+  def test_a_longer_annotation_takes_more_room(self):
+    """Otherwise any fixed guess would pass the test above."""
+    short = self._annotated().content_bbox()
+    doc = self._annotated()
+    doc.shapes[0]["text"] = self.ANNOTATION * 3
+    self.assertGreater(doc.content_bbox()[2], short[2])
+
+  def test_a_bigger_font_takes_more_room(self):
+    small = self._annotated(size=10).content_bbox()
+    large = self._annotated(size=40).content_bbox()
+    self.assertGreater(large[2], small[2])
+
+  def test_a_cropped_export_still_contains_it(self):
+    doc = self._annotated()
+    svg = render_svg.render(doc, crop=True)
+    view = [float(v) for v in
+            re.search(r'viewBox="([^"]+)"', svg).group(1).split()]
+    box = doc.content_bbox()
+    self.assertLessEqual(view[0], box[0])
+    self.assertGreaterEqual(
+      view[0] + view[2], box[0] + box[2],
+      "the crop is narrower than the writing it is supposed to contain")
+
+  def test_an_empty_annotation_does_not_invent_a_box(self):
+    """The other direction: text with nothing in it should not push the
+    bounds out around a string that is not there."""
+    doc = new_document("empty")
+    doc.shapes.append({"id": "t", "kind": "text", "x": 100, "y": 100,
+                       "text": "", "style": {"fontSize": 40}})
+    doc.normalize()
+    box = doc.content_bbox()
+    self.assertTrue(box is None or box[2] == 0, box)
+
+
 class TestContentBounds(unittest.TestCase):
   """A cropped export has to contain the wires, not just the cells.
 

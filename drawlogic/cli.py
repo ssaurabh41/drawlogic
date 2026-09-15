@@ -372,6 +372,15 @@ def content_hash(path):
   return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+# Files outside drawlogic/ that the manifest covers anyway. sample.txt is the
+# fixture for trying verify.ps1 by hand: edit it and the check should say
+# MISMATCH. It is named here rather than being re-added to manifest.txt after
+# every regeneration, because a manifest that needs a manual step afterwards
+# goes stale the first time someone forgets -- which is the exact failure the
+# manifest exists to prevent.
+EXTRA_FILES = ("sample.txt",)
+
+
 def manifest_files(root=None):
   """Every file the manifest covers, as repo-relative paths with / separators."""
   root = root or _repo_root()
@@ -384,6 +393,9 @@ def manifest_files(root=None):
         continue
       full = os.path.join(folder, name)
       found.append(os.path.relpath(full, root).replace(os.sep, "/"))
+  for name in EXTRA_FILES:
+    if os.path.isfile(os.path.join(root, name.replace("/", os.sep))):
+      found.append(name)
   return sorted(found)
 
 

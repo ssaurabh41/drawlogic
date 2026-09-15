@@ -539,8 +539,20 @@ class Document(object):
       for point in (start, end):
         box = union_bbox(box, (point[0], point[1], 0, 0))
 
+    # render_svg imports doc, so this import is local, as routing's is above.
+    from . import render_svg
+
     for shape in self.shapes:
-      if "x" in shape and "y" in shape:
+      # A text shape has an anchor and no size, so measuring it by x/y/w/h
+      # gave a box of nothing and a cropped export cut the writing off. What
+      # it covers depends on the string and the font size, which is a question
+      # only the renderer can answer.
+      written = render_svg.text_shape_box(shape)
+      if written is not None:
+        box = union_bbox(box, (written[0], written[1],
+                               written[2] - written[0],
+                               written[3] - written[1]))
+      elif "x" in shape and "y" in shape:
         box = union_bbox(box, (shape["x"], shape["y"],
                                shape.get("w", 0), shape.get("h", 0)))
       for point in shape.get("points", []):

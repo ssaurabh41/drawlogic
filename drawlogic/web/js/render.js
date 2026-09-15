@@ -271,6 +271,20 @@ function pathLength(points) {
 // solid marks in the same ink, so an arrow on a dot reads as one slightly
 // fatter arrow and the connection the dot announced is lost. The dot is the
 // more important of the two, so the arrow is the one that gives way.
+// Everything an arrow has to keep clear of: junction dots and crossing
+// bridges alike. Exported because the parity test has to ask the same
+// question the renderer asks -- when it built its own list instead, it left
+// the hops out, agreed with the Python helper doing the same, and reported
+// success while the editor drew an arrow on a bridge that the exported file
+// did not have. A test that recomputes what it is checking can only prove the
+// two copies match, not that either is right.
+export function arrowMarks(junctions, hops) {
+  const spots = [];
+  for (const points of (hops || new Map()).values()) spots.push(...points);
+  return junctions.concat(spots);
+}
+
+
 export function arrowSpots(points, size, spacing, junctions = []) {
   if (points.length < 2) return [];
   const step = spacing || theme.arrowSpacing || 240;
@@ -510,6 +524,7 @@ function renderNets(doc, fontScale, into) {
   const hops = (doc.canvas || {}).hops === false
     ? new Map() : routing.hopPoints(routes);
   const junctions = routing.junctions(routes);
+  const marks = arrowMarks(junctions, hops);
 
   for (const { net, branches } of routes) {
     if (!branches.length) continue;
@@ -562,7 +577,7 @@ function renderNets(doc, fontScale, into) {
       for (const points of branches) {
         if (points.length < 2) continue;
         for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7,
-                                                  null, junctions)) {
+                                                  null, marks)) {
           into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                         (net.style || {}).stroke || theme.colors.net));
         }

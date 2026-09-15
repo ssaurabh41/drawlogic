@@ -18,7 +18,7 @@ import tempfile
 import threading
 import unittest
 
-from drawlogic import authoring, render_svg, routing
+from drawlogic import authoring, render_svg, routing, symbols
 from drawlogic.doc import new_document
 from drawlogic.symbols import Symbol, SymbolError, default_registry
 
@@ -312,6 +312,76 @@ class TestConcurrentSaves(unittest.TestCase):
       self.assertEqual(
         [n for n in os.listdir(tmp) if n != "symbols.json"], [],
         "no temporary file should be left behind")
+
+
+class TestEveryShapeTheEditorCanDraw(unittest.TestCase):
+  """Converting artwork is only half of Save as symbol; the registry has to
+  accept the result.
+
+  These were tested apart, and they disagreed: `symbol_from` emitted `op:
+  "ellipse"`, both renderers drew it, and `symbols.VALID_OPS` did not list
+  it -- so an ellipse became a symbol that could not be loaded, and the
+  failure landed at the moment the work was finished. Testing conversion
+  alone could never have caught it. Each case below goes all the way through
+  a real registry.
+  """
+
+  BODY = {"kind": "rect", "x": 40, "y": 40, "w": 80, "h": 50}
+
+  SHAPES = {
+    "rect": {"kind": "rect", "x": 40, "y": 40, "w": 80, "h": 50},
+    "ellipse": {"kind": "ellipse", "x": 40, "y": 40, "w": 80, "h": 50},
+    "line": {"kind": "line", "x": 40, "y": 40,
+             "points": [[0, 0], [80, 50]]},
+    "polygon": {"kind": "polygon", "x": 40, "y": 40,
+                "points": [[0, 0], [60, 0], [30, 40]]},
+    "polyline": {"kind": "polyline", "x": 40, "y": 40,
+                 "points": [[0, 0], [60, 0], [30, 40]]},
+    "text": {"kind": "text", "x": 50, "y": 60, "text": "U"},
+  }
+
+  def drawing(self, shape):
+    doc = new_document()
+    # Text on its own is refused on purpose -- a label is not an outline -- so
+    # it is drawn on a body, which is how anyone would draw it anyway.
+    if shape["kind"] == "text":
+      doc.shapes.append(dict(self.BODY, id="body"))
+    doc.shapes.append(dict(shape, id="s"))
+    doc.cells.append({"id": "p", "type": "port_in", "x": 0, "y": 60,
+                      "label": "a"})
+    doc.normalize()
+    return doc
+
+  def test_each_one_converts_and_then_loads(self):
+    for name, shape in sorted(self.SHAPES.items()):
+      with self.subTest(shape=name):
+        symbol_id = "made_of_" + name
+        data = authoring.symbol_from(self.drawing(shape), symbol_id)
+        registry = default_registry().copy()
+        registry.add(Symbol(symbol_id, data))
+        self.assertTrue(registry.require(symbol_id).draw,
+                        "%s produced no artwork" % name)
+
+  def test_it_survives_being_written_and_read_back(self):
+    """add_to_file validates on the way in, which is where this first bit."""
+    for name, shape in sorted(self.SHAPES.items()):
+      with self.subTest(shape=name):
+        with tempfile.TemporaryDirectory() as tmp:
+          path = os.path.join(tmp, "symbols.json")
+          authoring.add_to_file(
+            path, name, authoring.symbol_from(self.drawing(shape), name))
+          registry = symbols.Registry()
+          symbols.load_file(registry, path)
+          self.assertIn(name, registry.ids())
+
+  def test_the_converter_never_emits_an_op_the_loader_refuses(self):
+    """Stated directly, because it is the invariant that broke: whatever
+    comes out of the converter has to be in the list the loader allows."""
+    for name, shape in sorted(self.SHAPES.items()):
+      with self.subTest(shape=name):
+        data = authoring.symbol_from(self.drawing(shape), name)
+        for op in data.get("draw", []):
+          self.assertIn(op.get("op"), symbols.VALID_OPS)
 
 
 if __name__ == "__main__":

@@ -45,12 +45,16 @@ process.stdout.write(JSON.stringify({
   junctions: routing.junctions(routes),
   hops: [...hops.entries()],
   labels: [...labels.entries()],
-  // Junctions are passed in because arrows give way to them; leaving them out
-  // here would compare a set of arrows neither renderer actually draws.
+  // The exclusion set comes from render.arrowMarks -- the renderer's own
+  // function -- rather than being rebuilt here. Rebuilt, it left the crossing
+  // bridges out, which is a set of arrows neither renderer draws, and the
+  // comparison passed while the two renderers disagreed on screen.
   arrows: routes.map(({ net, branches }) => [
     net.id,
     branches.filter((points) => points.length >= 2)
-      .map((points) => render.arrowSpots(points, theme.arrowSize || 7, null,
-                                         routing.junctions(routes))),
+      .map((points) => render.arrowSpots(
+        points, theme.arrowSize || 7, null,
+        render.arrowMarks(routing.junctions(routes),
+                          routing.hopPoints(routes)))),
   ]),
 }));

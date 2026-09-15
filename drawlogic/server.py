@@ -73,17 +73,46 @@ MAX_BODY = 16 * 1024 * 1024
 
 
 def _safe_join(root, relative):
-  """Resolve a client-supplied path inside root, or None if it escapes."""
+  """Resolve a client-supplied path inside root, or None if it escapes.
+
+  The name is checked first, then the destination it actually resolves to.
+  Both are needed, and the second is the one that matters: `abspath` only
+  tidies a path up as text, so a directory link inside the served folder --
+  a symlink, or a junction on Windows -- reads as an ordinary child and lets
+  a request walk straight out of the root, to read and to overwrite. The
+  hierarchy loader has resolved links since a ref could point out; the
+  requests that name a document directly were still going on the spelling.
+
+  A file being saved for the first time does not exist yet. `realpath`
+  resolves the part of the path that does, which is what settles this: the
+  parent is where the link would be, so a new file under one still lands
+  outside and is still refused.
+  """
   if not relative:
     return None
   relative = unquote(relative).lstrip("/")
   if os.path.isabs(relative) or ".." in relative.split("/"):
     return None
   candidate = os.path.abspath(os.path.join(root, relative))
-  root = os.path.abspath(root)
-  if candidate != root and not candidate.startswith(root + os.sep):
+  if not sheets.inside(candidate, root):
     return None
   return candidate
+
+
+def _issue_data(issue):
+  """A reference fault in the same shape the browser already draws.
+
+  `rule` is what the DRC pane prints as the name of the thing that failed, and
+  a reference fault has no rule -- so it gets the word "reference", rather
+  than the pane rendering a null.
+  """
+  return {
+    "rule": issue.rule or "reference",
+    "level": issue.level,
+    "where": issue.where,
+    "message": issue.message,
+    "at": None,
+  }
 
 
 def _revision(path):
@@ -391,12 +420,23 @@ class Handler(BaseHTTPRequestHandler):
 
 
   def _check(self, payload):
-    """Run the DRCs over the drawing in the request and report what failed.
+    """Report everything wrong with the drawing in the request.
 
     The editor sends what is on the canvas rather than what is on disk, so the
-    answer is about the drawing being worked on -- and it comes from the same
-    drc.py the exporter and the command line use, so a drawing that passes
-    here passes everywhere.
+    answer is about the drawing being worked on, and it comes from the same
+    modules the command line uses -- so a drawing that passes here passes
+    `drawlogic validate` too.
+
+    Both halves of that, which is the point. This used to run the geometric
+    DRCs alone and throw away what resolving the hierarchy said, so a drawing
+    naming a cell type that does not exist came back "clean" from Check and
+    was rejected by the command line a moment later. A checker that reports a
+    drawing as fine when a supported command calls it broken is worse than one
+    that does not run: the clean bill is what stops you looking further.
+
+    Reference faults arrive with no `at`, because there is no one point on the
+    sheet to walk to -- an unknown cell type is about the cell, not a place --
+    so they list without a marker rather than ringing the wrong spot.
     """
     try:
       document = Document.from_data(payload.get("doc") or {})
@@ -404,6 +444,7 @@ class Handler(BaseHTTPRequestHandler):
       return self._fail(422, "document is not valid: %s" % exc)
 
     registry = self.registry
+    issues = []
     source = payload.get("source")
     if source:
       resolved = _safe_join(self.root, source)
@@ -411,13 +452,15 @@ class Handler(BaseHTTPRequestHandler):
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
       registry = self.registry.copy()
-      sheets.resolve(document, registry, confine=self.root)
+      issues.extend(sheets.resolve(document, registry, confine=self.root))
 
-    found = drc.check(document, registry)
+    issues.extend(document.validate(registry))
+    found = [_issue_data(issue) for issue in issues]
+    found.extend(violation.as_data() for violation in drc.check(document, registry))
     return self._send_json({
-      "violations": [violation.as_data() for violation in found],
-      "errors": len([v for v in found if v.level == "error"]),
-      "warnings": len([v for v in found if v.level != "error"]),
+      "violations": found,
+      "errors": len([v for v in found if v["level"] == "error"]),
+      "warnings": len([v for v in found if v["level"] != "error"]),
     })
 
 

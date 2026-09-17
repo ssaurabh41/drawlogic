@@ -424,7 +424,21 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
             and _horizontal_clear(b[1], x, b[0], boxes))
 
   def free_at(x, crossings, gap):
-    return sheet.free(False, x, a[1], b[1], crossings, gap)
+    # All three legs, to match clear_at, which has always checked all three
+    # against cells. Testing only the corridor was the bug: a column with
+    # nothing in it is no use if the leg leading into it lies along another
+    # net's leg, and that overlap is exactly what a wire-short is.
+    #
+    # The legs are asked the weaker question, always, whatever the ladder is
+    # asking of the corridor. Two legs close together read as crowded and the
+    # DRCs call it a warning; two legs on top of each other read as one wire
+    # and the DRCs call it an error. Demanding full separation of the legs
+    # made the search reject well-spaced corridors over a mere warning and
+    # settle for a cramped one, which is a worse drawing by the measure that
+    # matters.
+    return (sheet.free(False, x, a[1], b[1], crossings, gap)
+            and sheet.free(True, a[1], a[0], x, False, TOUCHING)
+            and sheet.free(True, b[1], x, b[0], False, TOUCHING))
 
   # Both pins face each other, so a column between them carries the crossover
   # -- unless a block sits on one of the two rows, which no choice of column

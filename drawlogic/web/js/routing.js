@@ -341,7 +341,15 @@ function routeHH(a, b, aDir, bDir, sheet) {
   const clearAt = (m) => verticalClear(m, a[1], b[1], boxes)
     && horizontalClear(a[1], a[0], m, boxes)
     && horizontalClear(b[1], m, b[0], boxes);
-  const freeAt = (m, cross, gap) => sheet.free(false, m, a[1], b[1], cross, gap);
+  // All three legs, to match clearAt. Testing only the corridor was the bug:
+  // a column with nothing in it is no use if the leg leading into it lies
+  // along another net's leg, and that overlap is what a wire-short is. The
+  // legs are asked the weaker question whatever the ladder asks of the
+  // corridor: close legs are a warning, legs on top of each other are an
+  // error. Mirrors routing.py.
+  const freeAt = (m, cross, gap) => sheet.free(false, m, a[1], b[1], cross, gap)
+    && sheet.free(true, a[1], a[0], m, false, limits.touching)
+    && sheet.free(true, b[1], m, b[0], false, limits.touching);
 
   const rowClear = (m) => horizontalClear(m, a[0], b[0], boxes)
     && verticalClear(a[0], a[1], m, boxes)

@@ -482,9 +482,74 @@ def _order(cells, edges, ranks, spans=True):
       position = {cell_id: place for place, cell_id in enumerate(other)}
       order[index] = _by_median(order[index], side, position)
 
+  # Median ordering is a guess; this is the cheap correction to it.
+  _transpose(order, neighbours_left, neighbours_right)
+
   # The stand-ins have done their work; only real cells get placed.
   return [[cell_id for cell_id in column if not cell_id.startswith("\x00")]
           for column in order]
+
+
+# How many times to sweep the transpose pass. It settles quickly -- each pass
+# only accepts swaps that strictly reduce crossings, so it cannot cycle -- and
+# four matches the median sweeps it follows.
+TRANSPOSE_SWEEPS = 4
+
+
+def _pair_crossings(above, below, side, position):
+  """Crossings between two neighbouring cells' wires, with `above` on top.
+
+  Counted from the order alone rather than by routing anything: a wire from
+  `above` crosses one from `below` exactly when it lands lower in the next
+  column. That makes this thousands of times cheaper than laying the drawing
+  out and measuring it, which is what lets it run over every adjacent pair
+  instead of a chosen few.
+  """
+  upper = [position[n] for n in side[above] if n in position]
+  lower = [position[n] for n in side[below] if n in position]
+  if not upper or not lower:
+    return 0
+  return sum(1 for u in upper for l in lower if u > l)
+
+
+def _transpose(order, neighbours_left, neighbours_right):
+  """Swap neighbouring cells while that removes crossings.
+
+  The median pass gets each column roughly right and then stops: it moves a
+  cell to the middle of its neighbours, which is a good guess and not an
+  answer. This is the cheap repair for what the guess leaves behind -- the
+  classic companion to median ordering -- and it is worth having for a reason
+  beyond tidiness.
+
+  Two wires that cross in a column gap can be impossible to draw correctly.
+  Where one net leaves a row and another arrives at the same row, their
+  horizontal legs sit at the same height, and the only way to keep them apart
+  is for the leaving net's corridor to be left of the arriving one's -- which
+  the reverse pair demands in reverse. A fully crossed pair has no answer at
+  all, and the router resolves it by drawing one wire on another, which is
+  the `wire-short` these drawings are full of. So every crossing removed here
+  is a chance for that removed downstream.
+  """
+  for _sweep in range(TRANSPOSE_SWEEPS):
+    improved = False
+    for index, column in enumerate(order):
+      if len(column) < 2:
+        continue
+      left = {cell_id: place for place, cell_id
+              in enumerate(order[index - 1])} if index else {}
+      right = {cell_id: place for place, cell_id
+               in enumerate(order[index + 1])} if index + 1 < len(order) else {}
+      for position in range(len(column) - 1):
+        one, two = column[position], column[position + 1]
+        now = (_pair_crossings(one, two, neighbours_left, left)
+               + _pair_crossings(one, two, neighbours_right, right))
+        swapped = (_pair_crossings(two, one, neighbours_left, left)
+                   + _pair_crossings(two, one, neighbours_right, right))
+        if swapped < now:
+          column[position], column[position + 1] = two, one
+          improved = True
+    if not improved:
+      return
 
 
 def _by_median(column, side, position):

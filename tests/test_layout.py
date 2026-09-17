@@ -640,5 +640,69 @@ class TestCellMinGap(unittest.TestCase):
       drc.CELL_MIN_GAP = old
 
 
+class TestTransposeCutsCrossings(unittest.TestCase):
+  """The adjacent-swap pass that follows median ordering.
+
+  Median ordering places a cell at the middle of its neighbours, which is a
+  good guess and not an answer: it can leave two cells the wrong way round
+  when swapping them would plainly cross fewer wires. This is the cheap
+  correction, counted from the order alone rather than by routing anything.
+
+  It matters beyond tidiness. Where one net leaves a row and another arrives
+  at the same row, their horizontal legs sit at the same height, and keeping
+  them apart needs the leaving net's corridor to the left of the arriving
+  one's -- which the mirror-image pair demands in reverse. A fully crossed
+  pair has no valid assignment at all and the router resolves it by drawing
+  one wire on another, which is a `wire-short`. Every crossing removed here
+  is one of those removed downstream.
+  """
+
+  def test_it_undoes_a_swap_that_plainly_crosses(self):
+    """Two cells in the wrong order, each wired straight across: the only
+    thing to decide is whether to swap them back."""
+    order = [["a", "b"], ["x", "y"]]
+    left = {"a": [], "b": [], "x": ["b"], "y": ["a"]}
+    right = {"a": ["y"], "b": ["x"], "x": [], "y": []}
+    layout._transpose(order, left, right)
+    self.assertEqual(order[0], ["b", "a"],
+                     "the crossing pair was left crossed")
+
+  def test_it_leaves_an_order_that_is_already_right(self):
+    """The negative control: a pass that always swaps would satisfy the test
+    above and be worthless."""
+    order = [["a", "b"], ["x", "y"]]
+    left = {"a": [], "b": [], "x": ["a"], "y": ["b"]}
+    right = {"a": ["x"], "b": ["y"], "x": [], "y": []}
+    layout._transpose(order, left, right)
+    self.assertEqual(order[0], ["a", "b"])
+
+  def test_pair_crossings_counts_what_it_says(self):
+    position = {"p": 0, "q": 1}
+    side = {"top": ["q"], "bottom": ["p"]}
+    self.assertEqual(layout._pair_crossings("top", "bottom", side, position), 1)
+    self.assertEqual(layout._pair_crossings("bottom", "top", side, position), 0)
+
+  def test_it_never_makes_a_real_drawing_worse(self):
+    """Measured over the shipped examples rather than argued: the whole point
+    of counting crossings combinatorially is that it is cheap enough to check
+    every adjacent pair, so it should never come out behind."""
+    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
+      if not name.endswith(".dlg"):
+        continue
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+        layout.arrange(doc, registry)
+        first = _crossings_of(doc, registry)
+        layout.arrange(doc, registry)
+        self.assertEqual(_crossings_of(doc, registry), first,
+                         "a second pass changed the crossing count")
+
+
+def _crossings_of(doc, registry):
+  return layout._crossings(
+    list(routing.segments_of(routing.route_all(doc, registry))))
+
+
+
 if __name__ == "__main__":
   unittest.main()

@@ -120,9 +120,12 @@ export class SelectTool {
         const item = model.itemById(store.doc, id2);
         return [id2, JSON.parse(JSON.stringify(item))];
       }));
-      // Ctrl-drag duplicates, the way it does in a slide editor. The copy is
-      // made on the first actual movement, not on the click.
-      this.pendingDuplicate = additive(event);
+      // Ctrl-drag duplicates, the way it does in a slide editor, and so does
+      // Shift-drag, which is the habit PowerPoint leaves people with. The copy
+      // is made on the first actual movement, not on the click. Shift can mean
+      // this here because it only pans on empty canvas, and a press that
+      // landed on a cell never reaches the viewport (see Viewport's canPan).
+      this.pendingDuplicate = additive(event) || event.shiftKey;
       this.gestureLabel = this.pendingDuplicate ? "duplicate" : "move";
       return;
     }

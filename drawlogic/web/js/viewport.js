@@ -8,9 +8,15 @@ export const MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 8;
 
 export class Viewport {
-  constructor(svg, onChange) {
+  constructor(svg, onChange, canPan) {
     this.svg = svg;
     this.onChange = onChange || (() => {});
+    // Whether a press belongs to the viewport at all. Shift-drag pans, but
+    // shift-drag on a cell is a copy, and both listeners sit on the same
+    // element -- so without this the view slid out from under a gesture that
+    // was never aimed at it. The caller decides, because what counts as
+    // something on the canvas is the editor's business, not pan and zoom's.
+    this.canPan = canPan || (() => true);
     this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
@@ -86,6 +92,9 @@ export class Viewport {
       // Middle button, or space held, or any drag on empty workspace.
       if (event.button !== 1 && event.button !== 0) return;
       if (event.button === 0 && !event.shiftKey && !this.spaceHeld) return;
+      // Space held is a deliberate "pan now" and overrides everything; a
+      // shift-drag has to get past whatever the press landed on first.
+      if (!this.spaceHeld && !this.canPan(event)) return;
       panning = true;
       last = [event.clientX, event.clientY];
       this.svg.classList.add("panning");

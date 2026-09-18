@@ -38,6 +38,15 @@ async function api(url, options) {
   return payload;
 }
 
+// Did a press land on something, rather than on bare canvas? Shift means
+// "pan" on the empty sheet and "copy as you drag" on an item, so the tool
+// hand-off in bindCanvas and the viewport's pan guard in start both ask this
+// one question -- which is why it lives out here rather than inside either.
+function onSomething(event) {
+  return Boolean(event.target.closest(
+    ".dl-cell, .dl-shape, .dl-net, .dl-hit, [data-handle]"));
+}
+
 let toastTimer = null;
 // The message a busy run is showing, or null when nothing is running, and
 // whatever `say` was asked for while that was true. Between them they are the
@@ -196,8 +205,7 @@ function bindCanvas() {
 
   ui.canvas.addEventListener("mousedown", (event) => {
     if (event.button !== 0 || viewport.spaceHeld) return;
-    if (event.shiftKey && activeTool === "select"
-        && !event.target.closest(".dl-cell, .dl-shape, .dl-net, [data-handle]")) {
+    if (event.shiftKey && activeTool === "select" && !onSomething(event)) {
       // Shift-drag on empty space pans, handled by the viewport. Shift is
       // free for that because adding to a selection is Ctrl, not Shift.
       return;
@@ -1238,12 +1246,14 @@ async function start() {
 
   applyTheme(storedTheme());
 
+  // The viewport and the select tool listen on the same element, so the one
+  // rule about what a press landed on has to be the same rule for both.
   viewport = new Viewport(ui.canvas, (view) => {
     const percent = Math.round(view.zoom * 100);
     ui.zoomSlider.value = Math.min(400, Math.max(10, percent));
     ui.zoomValue.value = `${percent}%`;
     drawOverlay(overlayOptions);
-  });
+  }, (event) => !onSomething(event));
 
   tools = makeTools(context);
   inspector = new Inspector($("properties-body"), store, selection, () => redraw());

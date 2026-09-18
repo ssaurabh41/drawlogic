@@ -4,7 +4,7 @@ import os
 import re
 import unittest
 
-from drawlogic import drc, geometry, render_svg, routing, theme
+from drawlogic import drc, geometry, layout, render_svg, routing, theme
 from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE, ROOT, open_example
@@ -810,6 +810,77 @@ class TestLongNamesWrap(unittest.TestCase):
     two = routing.obstacle_boxes(doc)[0]
     self.assertLess(two[1], one[1],
                     "a two-line name must reserve more room above the cell")
+
+
+
+class TestTextInsideTheSheet(unittest.TestCase):
+  """Nothing drawn may fall outside the canvas.
+
+  An instance name is centred on its cell and drawn above it, so a name wider
+  than the body reaches past it on three sides. content_bbox measured the
+  bodies, the wires and the shapes but not the names, so auto layout sized a
+  sheet that the names hung over the edge of -- and both the canvas and a
+  cropped export then clipped them.
+  """
+
+  def drawing(self, label):
+    doc = new_document("clip", 400, 200)
+    doc.cells.append({"id": "u", "type": "and2", "x": 40, "y": 40,
+                      "label": label})
+    doc.normalize()
+    return doc
+
+  def label_box(self, doc):
+    registry = default_registry()
+    cell = doc.cells[0]
+    return render_svg.cell_label_box(registry.for_cell(cell), cell,
+                                     doc.symbol_scale, doc.font_scale)
+
+  def test_a_name_wider_than_the_margin_still_fits_the_sheet(self):
+    registry = default_registry()
+    doc = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    layout.arrange(doc, registry)
+    box = self.label_box(doc)
+    self.assertGreaterEqual(box[0], 0, "the name runs off the left edge")
+    self.assertGreaterEqual(box[1], 0, "the name runs off the top edge")
+    self.assertLessEqual(box[2], doc.canvas["width"],
+                         "the name runs off the right edge")
+    self.assertLessEqual(box[3], doc.canvas["height"],
+                         "the name runs off the bottom edge")
+
+  def test_the_name_sits_inside_the_margin_like_everything_else(self):
+    """Not merely on the sheet: auto layout puts the leftmost thing it draws
+    at the margin, and the name is one of the things it draws. Measuring the
+    body alone left the name a few units from the edge while the cell it
+    belongs to sat a full margin in."""
+    registry = default_registry()
+    doc = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    layout.arrange(doc, registry)
+    box = self.label_box(doc)
+    self.assertGreaterEqual(
+      round(box[0], 3), drc.SHEET_MARGIN,
+      "the name sits %.0f from the edge, inside the %g margin"
+      % (box[0], drc.SHEET_MARGIN))
+
+  def test_the_sheet_grows_only_for_a_name_that_needs_it(self):
+    """The negative control: a short name must not inflate the canvas."""
+    registry = default_registry()
+    small = self.drawing("u1")
+    layout.arrange(small, registry)
+    big = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    layout.arrange(big, registry)
+    self.assertGreater(big.canvas["width"], small.canvas["width"])
+
+  def test_the_bounds_cover_the_name_as_well_as_the_body(self):
+    """Stated on content_bbox directly, since the crop uses the same box."""
+    registry = default_registry()
+    doc = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    box = doc.content_bbox(registry)
+    written = self.label_box(doc)
+    self.assertLessEqual(box[0], written[0])
+    self.assertLessEqual(box[1], written[1])
+    self.assertGreaterEqual(box[0] + box[2], written[2])
+    self.assertGreaterEqual(box[1] + box[3], written[3])
 
 
 

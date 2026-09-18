@@ -218,15 +218,33 @@ function renderCell(symbol, cell, fontScale, scale, into) {
 
   if (cell.label) {
     const box = geometry.cellBounds(symbol, cell, scale);
+    const lines = geometry.labelLines(cell.label);
+    const size = theme.fontSizes.label * fontScale;
+    const middle = box[0] + box[2] / 2;
+    // Lines stack upward, so a wrapped name starts a line higher and its last
+    // line keeps the place a single-line name would have had.
+    const top = box[1] - 5 - (lines.length - 1) * size * LINE_STEP;
     const text = el("text", {
-      x: geometry.fmt(box[0] + box[2] / 2), y: geometry.fmt(box[1] - 5),
+      x: geometry.fmt(middle), y: geometry.fmt(top),
       "text-anchor": "middle",
       "font-family": theme.fontSans,
-      "font-size": geometry.fmt(theme.fontSizes.label * fontScale, 2),
+      "font-size": geometry.fmt(size, 2),
       "font-weight": "600",
       fill: theme.colors.label,
     });
-    text.textContent = cell.label;
+    if (lines.length === 1) {
+      // Unchanged markup for the common case: no tspan when nothing wraps.
+      text.textContent = lines[0];
+    } else {
+      lines.forEach((line, index) => {
+        const span = el("tspan", {
+          x: geometry.fmt(middle),
+          y: geometry.fmt(top + index * size * LINE_STEP),
+        });
+        span.textContent = line;
+        text.appendChild(span);
+      });
+    }
     into.appendChild(text);
   }
 }
@@ -466,6 +484,10 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
 // A whisker of air around a cell before a name counts as landing on it.
 const CELL_BOX_PAD = 2;
 
+// Baseline-to-baseline spacing for a wrapped instance name.
+// Mirrors LINE_STEP in render_svg.py.
+const LINE_STEP = 1.15;
+
 // Every cell's footprint, with room above a labelled one for its instance
 // name. An unlabelled cell gets no headroom: reserving space for text that is
 // not there pushes net names further away than they need to go.
@@ -477,7 +499,11 @@ export function cellBoxes(doc) {
     const symbol = geometry.forCell(cell);
     if (!symbol) continue;
     const [x, y, w, h] = geometry.cellBounds(symbol, cell, scale);
-    const headroom = cell.label ? limits.labelHeadroom : 0;
+    // A wrapped name reaches a line higher, so the box grows with it.
+    const lines = cell.label ? geometry.labelLines(cell.label).length : 0;
+    const headroom = lines
+      ? limits.labelHeadroom + (lines - 1) * theme.fontSizes.label * LINE_STEP
+      : 0;
     boxes.push([x - CELL_BOX_PAD, y - headroom,
                 x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD]);
   }

@@ -4,7 +4,7 @@ import os
 import re
 import unittest
 
-from drawlogic import drc, render_svg, routing, theme
+from drawlogic import drc, geometry, render_svg, routing, theme
 from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE, ROOT, open_example
@@ -734,6 +734,83 @@ class TestContentBounds(unittest.TestCase):
       lowest, view[1] + view[3],
       "crop viewBox ends at y=%.0f but the wire reaches y=%.0f"
       % (view[1] + view[3], lowest))
+
+
+class TestLongNamesWrap(unittest.TestCase):
+  """An instance name too long for its cell reaches across whatever is beside
+  it, which in a dense drawing is a wire. Two lines is half the reach."""
+
+  def test_a_short_name_stays_on_one_line(self):
+    """Single line is the preference, not the fallback."""
+    for name in ("U1", "and2", "clk", "a_b"):
+      self.assertEqual(geometry.label_lines(name), [name])
+
+  def test_a_long_name_splits_at_an_underscore(self):
+    self.assertEqual(geometry.label_lines("in_part1_clock"),
+                     ["in_part1_", "clock"])
+
+  def test_it_picks_the_seam_that_makes_the_longer_line_shortest(self):
+    """Of several underscores, the one nearest the middle wins -- which is
+    exactly the one that minimises the longer of the two lines, since that
+    length is max(split, rest)."""
+    self.assertEqual(geometry.label_lines("aaaa_bbbb_cccc"),
+                     ["aaaa_", "bbbb_cccc"])          # 9, against 10 the other way
+    self.assertEqual(geometry.label_lines("a_bbbbbbbbbb_c"),
+                     ["a_", "bbbbbbbbbb_c"])          # 12, against 13
+
+  def test_no_split_makes_the_longer_line_longer_than_the_name_would_be(self):
+    """The property the choice above is for, stated directly."""
+    for name in ("in_part1_clock", "aaaa_bbbb_cccc", "out_branch_99",
+                 "a_bbbbbbbbbb_c"):
+      lines = geometry.label_lines(name)
+      if len(lines) == 1:
+        continue
+      # The split goes after the underscore, so the lines are index+1 long
+      # and the rest.
+      best = min(max(index + 1, len(name) - index - 1)
+                 for index, ch in enumerate(name)
+                 if ch == "_" and index < len(name) - 1)
+      self.assertEqual(max(len(line) for line in lines), best,
+                       "%s split worse than it had to" % name)
+
+  def test_a_long_name_with_no_underscore_is_left_alone(self):
+    """Breaking mid-word trades a name that overhangs for one that cannot be
+    read, which is the worse of the two."""
+    self.assertEqual(geometry.label_lines("verylongnamehere"),
+                     ["verylongnamehere"])
+
+  def test_the_box_gets_narrower_and_taller(self):
+    """The DRCs and the renderer share this box, so wrapping has to move it."""
+    registry = default_registry()
+    doc = new_document("wrap", 600, 300)
+    doc.cells.append({"id": "u", "type": "and2", "x": 200, "y": 120,
+                      "label": "in_part1_clock"})
+    doc.normalize(registry)
+    cell = doc.cells[0]
+    symbol = registry.for_cell(cell)
+    wrapped = render_svg.cell_label_box(symbol, cell, doc.symbol_scale)
+
+    cell["label"] = "in_part1_clockxx".replace("_", "")   # same length, no seam
+    flat = render_svg.cell_label_box(symbol, cell, doc.symbol_scale)
+
+    self.assertLess(wrapped[2] - wrapped[0], flat[2] - flat[0],
+                    "a wrapped name should be narrower")
+    self.assertGreater(wrapped[3] - wrapped[1], flat[3] - flat[1],
+                       "a wrapped name should be taller")
+
+  def test_a_wire_keeps_clear_of_the_upper_line(self):
+    """The room reserved above a cell has to grow with the name, or a wire
+    routes straight through the line that was added."""
+    doc = new_document("wrap", 600, 300)
+    doc.cells.append({"id": "u", "type": "and2", "x": 200, "y": 120,
+                      "label": "short"})
+    doc.normalize()
+    one = routing.obstacle_boxes(doc)[0]
+    doc.cells[0]["label"] = "in_part1_clock"
+    two = routing.obstacle_boxes(doc)[0]
+    self.assertLess(two[1], one[1],
+                    "a two-line name must reserve more room above the cell")
+
 
 
 if __name__ == "__main__":

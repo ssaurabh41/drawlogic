@@ -70,6 +70,13 @@ FONT_SIZES = {
   "shape_text": 14.0,
 }
 
+# Air above and below the sheet title, which sits in a band along the top.
+# It was along the bottom, where a drawing that reached far enough down put a
+# port's name straight through it -- and nothing noticed, because the title is
+# not a cell and no DRC watches it. At the top it is out of the way of a
+# drawing that grows downward, which is the direction they grow.
+TITLE_PAD = 14.0
+
 # How far inside the body a pin name sits when the symbol does not draw one
 # itself, so a named block pin reads as the block's own labelling.
 PIN_LABEL_INSET = 8.0

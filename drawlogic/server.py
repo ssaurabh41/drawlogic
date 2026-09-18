@@ -267,6 +267,7 @@ class Handler(BaseHTTPRequestHandler):
         "arrowSpacing": theme.ARROW_SPACING,
         "hopRadius": theme.HOP_RADIUS,
         "pinLabelInset": theme.PIN_LABEL_INSET,
+        "titlePad": theme.TITLE_PAD,
         "gridStyles": list(theme.GRID_STYLES),
       })
 

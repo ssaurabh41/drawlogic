@@ -237,5 +237,5 @@
 <circle cx="860" cy="700" r="3.2" fill="#16202b" />
 <circle cx="900" cy="700" r="3.2" fill="#16202b" />
 </g>
-<text x="14" y="806" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">soc_top</text>
+<text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">soc_top</text>
 </svg>

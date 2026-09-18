@@ -822,6 +822,15 @@ def _render_shape(shape, font_scale, out):
       esc(shape.get("text", ""))))
 
 
+def title_band(font_scale=1.0):
+  """The room the sheet title needs along the top: air, text, air.
+
+  Shared with web/js/render.js, which is handed TITLE_PAD and the font size
+  by /api/theme rather than restating either.
+  """
+  return theme.TITLE_PAD * 2 + theme.FONT_SIZES["title"] * font_scale
+
+
 def render(doc, registry=None, zoom=1.0, width=None, margin=None,
            background=None, show_grid=False, crop=False, title=True,
            arrows=None, hops=None):
@@ -842,6 +851,13 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
     if box is None:
       box = (0.0, 0.0, float(canvas["width"]), float(canvas["height"]))
     view = (box[0] - pad, box[1] - pad, box[2] + 2 * pad, box[3] + 2 * pad)
+    # The title sits in a band along the top of the view. Cropping tight to
+    # the drawing would put that band over the first row of it, so the view
+    # opens upward far enough to hold the title clear of anything drawn.
+    if title and doc.title:
+      band = title_band(font_scale) - pad
+      if band > 0:
+        view = (view[0], view[1] - band, view[2], view[3] + band)
   else:
     pad = 0.0 if margin is None else float(margin)
     view = (-pad, -pad,
@@ -923,8 +939,9 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
   if title and doc.title:
     out.append("<text %s>%s</text>" % (
       _attrs([
-        ("x", fmt(view[0] + 14)),
-        ("y", fmt(view[1] + view[3] - 14)),
+        ("x", fmt(view[0] + theme.TITLE_PAD)),
+        ("y", fmt(view[1] + theme.TITLE_PAD
+                  + theme.FONT_SIZES["title"] * font_scale)),
         ("font-family", theme.FONT_SANS),
         ("font-size", fmt(theme.FONT_SIZES["title"] * font_scale, 2)),
         ("font-weight", "600"),

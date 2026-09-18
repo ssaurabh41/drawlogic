@@ -87,5 +87,5 @@
 <g class="dl-junctions">
 <circle cx="505" cy="125" r="3.2" fill="#16202b" />
 </g>
-<text x="14" y="546" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">dff_slice</text>
+<text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">dff_slice</text>
 </svg>

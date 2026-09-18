@@ -886,3 +886,53 @@ class TestTextInsideTheSheet(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestTheTitleKeepsOutOfTheDrawing(unittest.TestCase):
+  """The sheet title sits in a band along the top, clear of everything.
+
+  It used to sit along the bottom, where a drawing that reached far enough
+  down put a port's name straight through it. Nothing caught that: the title
+  is not a cell, so no DRC watches it, and content_bbox does not know it
+  exists. A cropped export was the worst case, because cropping pulls the
+  bottom edge up to whatever the drawing ends at.
+  """
+
+  def drawing(self):
+    """Cells all the way down to the bottom edge, and named."""
+    doc = new_document("a title", 400, 300)
+    for index in range(3):
+      doc.cells.append({"id": "u%d" % index, "type": "and2",
+                        "x": 60, "y": 60 + index * 100,
+                        "label": "gate_%d" % index})
+    doc.normalize()
+    return doc
+
+  def title_baseline(self, svg):
+    found = re.findall(r'<text x="([-\d.]+)" y="([-\d.]+)"[^>]*'
+                       r'font-size="16"[^>]*>a title</text>', svg)
+    self.assertEqual(len(found), 1, "expected exactly one title in the SVG")
+    return float(found[0][0]), float(found[0][1])
+
+  def test_the_title_sits_above_everything_drawn(self):
+    doc = self.drawing()
+    registry = default_registry()
+    box = doc.content_bbox(registry)
+    svg = render_svg.render(doc, registry, crop=True, margin=16)
+    _x, baseline = self.title_baseline(svg)
+    self.assertLess(
+      baseline, box[1],
+      "the title's baseline (%.1f) is level with or below the top of the "
+      "drawing (%.1f), so it is drawn over it" % (baseline, box[1]))
+
+  def test_cropping_leaves_room_for_the_title(self):
+    """Cropping tight to the drawing must not crop the title off instead."""
+    doc = self.drawing()
+    registry = default_registry()
+    svg = render_svg.render(doc, registry, crop=True, margin=16)
+    view = re.search(r'viewBox="([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)"', svg)
+    self.assertIsNotNone(view, "no viewBox in the rendered SVG")
+    top = float(view.group(2))
+    _x, baseline = self.title_baseline(svg)
+    self.assertGreater(baseline - theme.FONT_SIZES["title"], top,
+                       "the title is drawn above the top of the viewBox")

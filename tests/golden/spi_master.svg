@@ -176,5 +176,5 @@
 <circle cx="390" cy="800" r="3.2" fill="#16202b" />
 <circle cx="440" cy="760" r="3.2" fill="#16202b" />
 </g>
-<text x="14" y="866" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">spi_master</text>
+<text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">spi_master</text>
 </svg>

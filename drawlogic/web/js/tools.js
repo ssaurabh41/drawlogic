@@ -469,6 +469,87 @@ export class PlaceTool {
   onDeactivate() { this.type = null; }
 }
 
+// ---- rubbing a wire out ----
+
+// How close the cursor has to come, in sheet units. Generous, because an
+// eraser is aimed by eye at a line one unit wide.
+const ERASE_REACH = 8;
+
+// There is no `eraser` among the CSS cursors, so here is one: a block of
+// rubber held at an angle, with the hotspot at the corner that does the work.
+// `cell` is the fallback for anything that will not take a data URI.
+const ERASER_CURSOR = 'url("data:image/svg+xml;utf8,'
+  + "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'>"
+  + "<g transform='rotate(-40 11 13)'>"
+  + "<rect x='3' y='7' width='16' height='11' rx='2' fill='%23f6c177'"
+  + " stroke='%2316202b' stroke-width='1.5'/>"
+  + "<path d='M3 13 h16' stroke='%2316202b' stroke-width='1.5'/>"
+  + "</g></svg>"
+  + '") 4 20, cell';
+
+export class EraseTool {
+  constructor(context) {
+    this.ctx = context;
+    this.erasing = false;
+    this.erased = 0;
+  }
+
+  cursorFor() { return ERASER_CURSOR; }
+
+  // Click or drag: both rub out whatever the cursor passes over. A drag is
+  // the natural gesture for an eraser and it is also the forgiving one, since
+  // it does not ask anyone to land exactly on a line one unit wide.
+  onPointerDown(event, point) {
+    this.erasing = true;
+    this.erased = 0;
+    // One sweep of the eraser is one thing you did, so it is one thing to
+    // undo, however many wires it happened to cross on the way.
+    this.ctx.store.beginGesture("erase wire");
+    this.rub(point);
+  }
+
+  onPointerMove(event, point) {
+    if (!this.erasing) return false;
+    this.rub(point);
+    return true;
+  }
+
+  onPointerUp() {
+    if (!this.erasing) return false;
+    this.erasing = false;
+    this.ctx.store.endGesture();
+    if (!this.erased) {
+      this.ctx.say("nothing to erase there -- drag across a wire", "bad");
+    } else {
+      this.ctx.say(`erased ${this.erased} wire${this.erased === 1 ? "" : "s"}`);
+    }
+    this.erased = 0;
+    return true;
+  }
+
+  onDeactivate() {
+    if (this.erasing) this.ctx.store.endGesture();
+    this.erasing = false;
+    this.erased = 0;
+  }
+
+  rub(point) {
+    const { store, selection } = this.ctx;
+    const found = model.branchAt(store.doc, point, ERASE_REACH);
+    if (!found) return;
+    const gone = store.mutate("erase wire",
+                              (doc) => model.deleteBranch(doc, found.netId,
+                                                          found.branch));
+    if (!gone) return;
+    this.erased += 1;
+    // A net that has just stopped existing cannot stay selected. `toggle` is
+    // the only way to drop one id, so it is guarded rather than called blind.
+    if (gone.netGone && selection.has(found.netId)) {
+      selection.toggle(found.netId);
+    }
+  }
+}
+
 // ---- autoshapes ----
 
 export class ShapeTool {
@@ -591,6 +672,7 @@ export function makeTools(context) {
   return {
     select: new SelectTool(context),
     wire: new WireTool(context),
+    erase: new EraseTool(context),
     place: new PlaceTool(context),
     shape: new ShapeTool(context),
   };

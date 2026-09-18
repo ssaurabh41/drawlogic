@@ -328,11 +328,28 @@ Wires are stored as **pin references, never coordinates**. Once a wire exists
 it stays attached no matter what moves, and the path is re-routed from the
 pins on every redraw.
 
+### Rubbing a wire out
+
+Press `E` for the eraser, then drag the cursor across a wire. What goes is
+that wire's **branch**: the run from one pin back to wherever it parts company
+with the rest of the net. Wire a clock into a reset pin by mistake and the
+eraser takes the run between the reset pin and the junction dot feeding it,
+leaving the rest of the clock alone.
+
+That is the unit because it is the only one that means anything. A net is one
+driver and its loads, so the piece between a junction and a pin is not a
+length of wire that can be rubbed out on its own -- it is that load's whole
+share of the net, and the load going is what makes it disappear. Erasing the
+last load takes the net with it, since a net driving nothing is not a net.
+
+One sweep is one undo, however many wires it crossed, and the status line says
+how many went.
+
 ### Keys
 
 | | |
 |---|---|
-| `V` `W` | select tool, wire tool |
+| `V` `W` `E` | select tool, wire tool, eraser |
 | `L` `B` `P` `T` | line, box, polygon, text |
 | click, `Ctrl`+click, drag a box | select one, add or remove one, marquee |
 | drag | move, snapped to the grid |

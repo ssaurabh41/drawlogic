@@ -1191,6 +1191,7 @@ function bindKeyboard() {
       const key = event.key.toLowerCase();
       if (key === "v") setTool("select");
       else if (key === "w") setTool("wire");
+      else if (key === "e") setTool("erase");
       else if (shapes[key]) {
         tools.shape.arm(shapes[key]);
         setTool("shape");

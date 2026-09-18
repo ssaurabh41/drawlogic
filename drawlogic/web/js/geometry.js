@@ -181,26 +181,6 @@ export function cellBounds(symbol, cell, scale = 1) {
 }
 
 
-// Group sorted-able positions that sit within `reach` of their neighbour,
-// as [[first, last], ...]. A lone position comes back as [v, v].
-//
-// Used for crossing bridges. A bridge is a bulge in a wire, and a bulge only
-// says "this crossing is not a connection" when there is flat wire either
-// side of it. The crossings themselves cannot be moved apart -- a bridge is
-// drawn where the wires actually cross -- so close ones get one wider bridge
-// over the group. Mirrors cluster_spots in geometry.py.
-export function clusterSpots(values, reach) {
-  const ordered = [...values].sort((a, b) => a - b);
-  if (!ordered.length) return [];
-  const groups = [[ordered[0], ordered[0]]];
-  for (const value of ordered.slice(1)) {
-    const group = groups[groups.length - 1];
-    if (value - group[1] <= reach) group[1] = value;
-    else groups.push([value, value]);
-  }
-  return groups;
-}
-
 
 // An instance name longer than this wants two lines. Mirrors
 // LABEL_WRAP_CHARS in geometry.py.
@@ -224,4 +204,25 @@ export function labelLines(text) {
   }
   if (best === null) return [text];
   return [text.slice(0, best[1]), text.slice(best[1])];
+}
+
+
+// A bridge radius for each crossing, shrunk where neighbours are close. The
+// crossings cannot be moved -- a bridge is drawn where the wires actually
+// cross -- but how wide it is can be, so each takes at most half the room
+// beside it and never less than `smallest`. `positions` must be sorted.
+// Mirrors hop_radii in geometry.py.
+export function hopRadii(positions, radius, flat, smallest) {
+  const count = positions.length;
+  if (!count) return [];
+  return positions.map((here, index) => {
+    let room = null;
+    if (index) room = here - positions[index - 1];
+    if (index + 1 < count) {
+      const after = positions[index + 1] - here;
+      room = room === null ? after : Math.min(room, after);
+    }
+    if (room === null) return radius;
+    return Math.max(smallest, Math.min(radius, (room - flat) / 2));
+  });
 }

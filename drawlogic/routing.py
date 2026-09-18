@@ -47,6 +47,9 @@ CORRIDOR_TRIES = drc.CORRIDOR_TRIES
 # that only asks them not to be drawn on top of each other.
 WIRE_GAP = drc.WIRE_GAP
 TOUCHING = drc.TOUCHING
+# Corridors this far apart give any wire crossing both of them two bridges
+# with visible wire between, instead of one squiggle.
+HOP_GAP = drc.HOP_GAP
 
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")

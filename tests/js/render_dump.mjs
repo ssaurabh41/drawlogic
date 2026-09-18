@@ -21,6 +21,7 @@
 import { readFileSync } from "node:fs";
 import * as geometry from "../../drawlogic/web/js/geometry.js";
 import * as render from "../../drawlogic/web/js/render.js";
+import * as routing from "../../drawlogic/web/js/routing.js";
 
 function node(tag) {
   const self = {
@@ -60,6 +61,12 @@ globalThis.document = {
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 const doc = JSON.parse(readFileSync(process.argv[3], "utf8"));
 render.setTheme(JSON.parse(readFileSync(process.argv[4], "utf8")));
+// The DRC limits decide how the router picks corridors. Without them
+// routing.js falls back to its own defaults and draws a different
+// drawing from the exporter, which is the drift this file exists to catch.
+if (process.argv[5]) {
+  routing.setLimits(JSON.parse(readFileSync(process.argv[5], "utf8")));
+}
 
 const svg = node("svg");
 render.render(svg, doc);

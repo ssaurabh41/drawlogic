@@ -161,34 +161,6 @@ def snap(value, step):
   return round(value / float(step)) * step
 
 
-def cluster_spots(values, reach):
-  """Group sorted-able positions that sit within `reach` of their neighbour.
-
-  Returns [(first, last), ...] in ascending order, one entry per run of
-  positions each within `reach` of the one before it. A lone position comes
-  back as (v, v).
-
-  Used for crossing bridges. A bridge is a bulge in a wire, and a bulge only
-  says "this crossing is not a connection" when there is flat wire either
-  side of it. Two bridges close together read as one squiggle -- and the
-  crossings themselves cannot be moved apart, because a bridge is drawn where
-  the wires actually cross. So the honest answer is to draw one wider bridge
-  over the whole group, which still says "these cross, I do not join them".
-  Grouping them is this function; the renderer draws them and the DRCs judge
-  what is left, both from the same grouping.
-  """
-  ordered = sorted(values)
-  if not ordered:
-    return []
-  groups = [(ordered[0], ordered[0])]
-  for value in ordered[1:]:
-    first, last = groups[-1]
-    if value - last <= reach:
-      groups[-1] = (first, value)
-    else:
-      groups.append((value, value))
-  return groups
-
 
 # An instance name longer than this wants two lines. Twelve characters is
 # about the width of a two-input gate at the usual font size, so shorter names
@@ -230,3 +202,38 @@ def label_lines(text):
   if best is None:
     return [text]
   return [text[:best[1]], text[best[1]:]]
+
+
+def hop_radii(positions, radius, flat, smallest):
+  """A bridge radius for each crossing, shrunk where neighbours are close.
+
+  Two crossings close together give two bulges with almost no wire between
+  them, and a bulge only says "this crossing is not a connection" when there
+  is flat wire either side of it. The crossings cannot be moved apart -- a
+  bridge is drawn where the wires actually cross, so moving one means routing
+  a wire differently, which a local rule has no business deciding. What can
+  move is how wide the bridge is.
+
+  So each bridge is drawn no wider than the room beside it allows: given a
+  neighbour `gap` away, the two bridges between them may take up to
+  `gap - flat`, half each. `smallest` is the floor, because a bridge nobody
+  can see is worse than a tight one.
+
+  `positions` must be sorted. Returns one radius per position.
+  """
+  count = len(positions)
+  if not count:
+    return []
+  radii = []
+  for index, here in enumerate(positions):
+    room = None
+    if index:
+      room = here - positions[index - 1]
+    if index + 1 < count:
+      after = positions[index + 1] - here
+      room = after if room is None else min(room, after)
+    if room is None:
+      radii.append(radius)
+      continue
+    radii.append(max(smallest, min(radius, (room - flat) / 2.0)))
+  return radii

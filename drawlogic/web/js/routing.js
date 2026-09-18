@@ -26,6 +26,8 @@ let limits = {
   wireGap: 18,
   touching: 0.5,
   arrowToJunction: 12,
+  hopGap: 17,
+  hopFlat: 12,
   portStub: 26,
   labelClearance: 5,
   labelHeadroom: 20,

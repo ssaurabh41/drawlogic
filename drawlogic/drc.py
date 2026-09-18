@@ -28,7 +28,7 @@ Usage:
 
 import math
 
-from .geometry import cluster_spots, corners
+from .geometry import corners
 
 # ---- wires ----------------------------------------------------------------
 
@@ -143,7 +143,11 @@ PORT_TO_WIRE = 12.0
 # two bulges, and the corridor grid puts crossings 20 apart all the time.
 # 22 = 10 of bulge plus HOP_FLAT of wire you can actually see.
 HOP_FLAT = 12.0
-HOP_GAP = 22.0
+# Below this the renderer cannot keep flat wire between two bridges even with
+# both shrunk to their smallest: 2.5 of bulge each side plus HOP_FLAT of wire.
+# Above it the bridges narrow (geometry.hop_radii) and the drawing still reads,
+# which is why this is the reporting threshold rather than HOP_FLAT + 10.
+HOP_GAP = 17.0
 
 # A bridge drawn over a corner or a junction dot deforms it, and a deformed
 # junction is a connection the reader is no longer sure about.
@@ -778,20 +782,8 @@ def _check_hops(scene, report):
   how a junction is drawn, so the reader loses the connection as well.
   """
   hops = scene.hops
-  # Judge what the renderer actually draws. Crossings closer than a bridge
-  # plus flat wire are drawn as one wider bridge (geometry.cluster_spots), so
-  # warning about them would be complaining about a squiggle nobody draws.
-  # What is left is genuine: two separate bulges with too little between them.
-  merged = []
-  rows = {}
-  for net_id, spot in hops:
-    rows.setdefault((net_id, round(spot[1], 3)), []).append(spot[0])
-  for (net_id, y), xs in rows.items():
-    for first, last in cluster_spots(xs, HOP_GAP):
-      merged.append((net_id, ((first + last) / 2.0, y)))
-
-  for index, (net_id, spot) in enumerate(merged):
-    for other_id, other in merged[index + 1:]:
+  for index, (net_id, spot) in enumerate(hops):
+    for other_id, other in hops[index + 1:]:
       gap = math.hypot(spot[0] - other[0], spot[1] - other[1])
       if gap >= HOP_GAP:
         continue

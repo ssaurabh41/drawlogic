@@ -79,7 +79,8 @@ def _browser_render(doc, registry):
   """What the browser renderer actually draws, from render.render() itself."""
   handles = []
   try:
-    for payload in (registry.as_data(), doc.ordered(), _theme_payload()):
+    for payload in (registry.as_data(), doc.ordered(), _theme_payload(),
+                    drc.as_data()):
       handle, name = tempfile.mkstemp(suffix=".json")
       with os.fdopen(handle, "w") as out:
         json.dump(payload, out)

@@ -488,6 +488,10 @@ const CELL_BOX_PAD = 2;
 // Mirrors LINE_STEP in render_svg.py.
 const LINE_STEP = 1.15;
 
+// A bridge squeezed between close neighbours never shrinks past this.
+// Mirrors MIN_HOP_RADIUS in render_svg.py.
+const MIN_HOP_RADIUS = 2.5;
+
 // Every cell's footprint, with room above a labelled one for its instance
 // name. An unlabelled cell gets no headroom: reserving space for text that is
 // not there pushes net names further away than they need to go.
@@ -525,28 +529,24 @@ function netPath(points, hops, radius) {
       const here = hops
         .filter(([hx, hy]) => Math.abs(hy - ay) < 1e-6
                               && hx > low + radius && hx < high - radius)
-        .map(([hx]) => hx);
+        .map(([hx]) => hx)
+        .sort((p, q) => p - q);
 
-      // Crossings closer together than a bridge plus visible flat wire get
-      // one bridge over the lot: they cannot be moved apart, so the choice is
-      // one wide arc or a row of bumps that reads as a squiggle. Mirrors
-      // _net_path in render_svg.py.
-      const groups = geometry.clusterSpots(
-        here, radius * 2 + routing.currentLimits().hopFlat);
-      if (direction < 0) groups.reverse();
+      // Each bridge is drawn no wider than the room beside it allows, so two
+      // crossings close together still show wire between their bulges rather
+      // than running into one squiggle. Mirrors _net_path in render_svg.py.
+      const radii = geometry.hopRadii(
+        here, radius, routing.currentLimits().hopFlat, MIN_HOP_RADIUS);
+      if (direction < 0) { here.reverse(); radii.reverse(); }
 
-      for (const [first, last] of groups) {
-        const near = direction > 0 ? first : last;
-        const far = direction > 0 ? last : first;
-        const start = near - radius * direction;
-        const end = far + radius * direction;
-        const rx = Math.abs(end - start) / 2;
-        parts.push(`L${geometry.fmt(start)} ${geometry.fmt(ay)}`);
+      here.forEach((hx, index) => {
+        const hopRadius = radii[index];
+        parts.push(`L${geometry.fmt(hx - hopRadius * direction)} ${geometry.fmt(ay)}`);
         // With y pointing down, sweep 1 bulges upward when travelling right.
         const sweep = direction > 0 ? 1 : 0;
-        parts.push(`A${geometry.fmt(rx)} ${geometry.fmt(radius)} 0 0 ${sweep} `
-                   + `${geometry.fmt(end)} ${geometry.fmt(ay)}`);
-      }
+        parts.push(`A${geometry.fmt(hopRadius)} ${geometry.fmt(hopRadius)} 0 0 ${sweep} `
+                   + `${geometry.fmt(hx + hopRadius * direction)} ${geometry.fmt(ay)}`);
+      });
     }
     parts.push(`L${geometry.fmt(bx)} ${geometry.fmt(by)}`);
   }

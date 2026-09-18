@@ -52,6 +52,10 @@ SWEEPS = 4
 
 PORT_IN = ("port_in", "port_inout")
 PORT_OUT = ("port_out",)
+# Every cell that stands for a connection off the sheet. Which side of it a
+# given one belongs on is `_flow`'s question, not the type name's: an inout
+# port is an input or an output depending on which way its connector faces.
+PORTS = PORT_IN + PORT_OUT
 
 
 class Result(object):
@@ -87,7 +91,7 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   _forget_waypoints(doc)
 
   edges, feedback = _edges(doc, registry, cells)
-  ranks = _ranks(doc, cells, edges)
+  ranks = _ranks(doc, registry, cells, edges)
 
   # Two orderings, and the drawing itself decides. Following a wire through
   # the columns it skips (see _span_chain) helps some drawings a great deal
@@ -435,7 +439,7 @@ def _back_edges(pairs):
   return back
 
 
-def _ranks(doc, cells, edges):
+def _ranks(doc, registry, cells, edges):
   """Which column each cell belongs in: one right of everything driving it."""
   rank = {cell["id"]: 0 for cell in cells}
   incoming = {cell["id"]: [] for cell in cells}
@@ -458,10 +462,20 @@ def _ranks(doc, cells, edges):
       break
 
   # Output ports belong on the right edge, not one step past whatever happens
-  # to drive them, or they stagger.
+  # to drive them, or they stagger. An input port needs no such help: its pin
+  # drives, so nothing can arrive at it and it is already in column zero.
+  #
+  # Which ports those are is asked of the pins rather than of the type name,
+  # so an inout port whose connector faces left -- an output port in all but
+  # name -- goes to the edge with the rest of them.
   widest = max(rank.values()) if rank else 0
   for cell in cells:
-    if cell.get("type") in PORT_OUT and not outgoing[cell["id"]]:
+    if cell.get("type") not in PORTS or outgoing[cell["id"]]:
+      continue
+    symbol = registry.for_cell(cell)
+    names = symbol.pin_names() if symbol is not None else []
+    if names and all(_flow(doc, registry, cell, name) == "in"
+                     for name in names):
       rank[cell["id"]] = widest
   return rank
 

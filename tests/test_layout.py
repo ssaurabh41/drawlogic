@@ -319,7 +319,7 @@ class TestOrderingChoice(unittest.TestCase):
           layout._face_forward(cells)
           layout._forget_waypoints(doc)
           edges, _feedback = layout._edges(doc, registry, cells)
-          ranks = layout._ranks(doc, cells, edges)
+          ranks = layout._ranks(doc, registry, cells, edges)
           order = layout._order(cells, edges, ranks, spans=spans)
           layout._place(doc, registry, cells, edges, ranks, order,
                         layout.GAP_X, layout.GAP_Y)
@@ -751,7 +751,7 @@ class TestWhichWayTheSignalRuns(unittest.TestCase):
     registry = default_registry()
     cells = [c for c in doc.cells if registry.for_cell(c) is not None]
     edges, _feedback = layout._edges(doc, registry, cells)
-    return layout._ranks(doc, cells, edges)
+    return layout._ranks(doc, registry, cells, edges)
 
   def test_a_wire_drawn_backwards_ranks_the_same_way(self):
     """The gate stays left of the flop it feeds, whichever end was clicked."""
@@ -801,3 +801,45 @@ class TestWhichWayTheSignalRuns(unittest.TestCase):
     cell["mirror"] = True
     self.assertEqual(layout._flow(doc, registry, cell, "p"), "out",
                      "mirrored, the same connector faces right and drives")
+
+  def test_an_inout_port_lands_on_the_side_it_faces(self):
+    """An inout port is an input or an output by which way its connector faces.
+
+    Nothing in the type name says which, so the column it belongs in has to
+    come from the same place the direction does. Facing left it takes, and
+    belongs on the right edge with the other output ports; mirrored it drives,
+    and belongs in the first column with the inputs.
+    """
+    def ranks_with(mirror):
+      doc = new_document("io", 900, 400)
+      doc.cells.append({"id": "pin", "type": "port_in", "x": 40, "y": 40,
+                        "label": "a"})
+      doc.cells.append({"id": "u", "type": "inv", "x": 200, "y": 200})
+      doc.cells.append({"id": "io", "type": "port_inout", "x": 400, "y": 200,
+                        "mirror": mirror, "label": "b"})
+      # A longer branch beside it, so the sheet is wider than the port's own
+      # chain. Without that the port's natural column is already the last one
+      # and the test cannot tell whether anything put it there.
+      for index in range(3):
+        doc.cells.append({"id": "v%d" % index, "type": "inv",
+                          "x": 200 + index * 80, "y": 320})
+      links = [("pin", "p", "u", "a"), ("u", "y", "io", "p"),
+               ("pin", "p", "v0", "a"), ("v0", "y", "v1", "a"),
+               ("v1", "y", "v2", "a")]
+      for index, (source, source_pin, target, target_pin) in enumerate(links, 1):
+        doc.nets.append({"id": "n%d" % index, "name": None,
+                         "from": {"cell": source, "pin": source_pin},
+                         "to": {"cell": target, "pin": target_pin},
+                         "waypoints": [], "style": {}})
+      doc.normalize()
+      return self.ranks_of(doc)
+
+    facing_left = ranks_with(False)
+    self.assertEqual(
+      facing_left["io"], max(facing_left.values()),
+      "a left-facing inout port takes, so it belongs on the right edge")
+
+    facing_right = ranks_with(True)
+    self.assertEqual(
+      facing_right["io"], 0,
+      "a mirrored inout port drives, so it belongs in the first column")

@@ -706,3 +706,98 @@ def _crossings_of(doc, registry):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestWhichWayTheSignalRuns(unittest.TestCase):
+  """Direction comes from the pins, not from the order the wire was drawn.
+
+  A net records which pin was clicked first, and half the time that is the
+  load: clicking the flip-flop's D and then the gate that feeds it is a
+  perfectly ordinary way to draw a wire, and it is the same circuit either
+  way. Every drawing in examples/ and benchmarks/ was wired driver-first by
+  the same hand, so not one of them can tell whether this works -- which is
+  why it needs a fixture of its own.
+  """
+
+  def wired(self, backwards=False, tie_resets=False):
+    """A port into an AND, into a flop, out to a port.
+
+    `backwards` draws the AND-to-flop wire from the flop's D back to the
+    gate's Y, which is the same circuit stated the other way round.
+    `tie_resets` adds a wire between two reset pins, which drives nothing.
+    """
+    doc = new_document("flow", 900, 400)
+    doc.cells.append({"id": "pin", "type": "port_in", "x": 40, "y": 40,
+                      "label": "a"})
+    doc.cells.append({"id": "g", "type": "and2", "x": 200, "y": 200})
+    doc.cells.append({"id": "ff", "type": "dffr", "x": 300, "y": 100})
+    doc.cells.append({"id": "ff2", "type": "dffr", "x": 300, "y": 260})
+    doc.cells.append({"id": "pout", "type": "port_out", "x": 60, "y": 300,
+                      "label": "y"})
+    links = [("pin", "p", "g", "a"),
+             ("ff", "d", "g", "y") if backwards else ("g", "y", "ff", "d"),
+             ("ff", "q", "pout", "p")]
+    if tie_resets:
+      links.append(("ff", "rn", "ff2", "rn"))
+    for index, (source, source_pin, target, target_pin) in enumerate(links, 1):
+      doc.nets.append({"id": "n%d" % index, "name": None,
+                       "from": {"cell": source, "pin": source_pin},
+                       "to": {"cell": target, "pin": target_pin},
+                       "waypoints": [], "style": {}})
+    doc.normalize()
+    return doc
+
+  def ranks_of(self, doc):
+    registry = default_registry()
+    cells = [c for c in doc.cells if registry.for_cell(c) is not None]
+    edges, _feedback = layout._edges(doc, registry, cells)
+    return layout._ranks(doc, cells, edges)
+
+  def test_a_wire_drawn_backwards_ranks_the_same_way(self):
+    """The gate stays left of the flop it feeds, whichever end was clicked."""
+    forward = self.ranks_of(self.wired(backwards=False))
+    reversed_ = self.ranks_of(self.wired(backwards=True))
+    self.assertEqual(
+      forward, reversed_,
+      "drawing the wire from the flop back to the gate moved things: "
+      "%s against %s" % (reversed_, forward))
+    self.assertLess(forward["g"], forward["ff"],
+                    "the gate should sit left of the flop it drives")
+
+  def test_a_wire_between_two_inputs_orders_nothing(self):
+    """Two reset pins tied together says nothing about which comes first.
+
+    It is a drawing with no driver -- `validate` says so -- and obeying it as
+    though it were one would push a flop into a column of its own for a wire
+    that carries nothing.
+    """
+    without = self.ranks_of(self.wired())
+    with_tie = self.ranks_of(self.wired(tie_resets=True))
+    self.assertEqual(
+      with_tie["ff2"], without["ff2"],
+      "tying two reset pins together moved a flop: %d against %d"
+      % (with_tie["ff2"], without["ff2"]))
+    self.assertEqual(with_tie, without,
+                     "a wire with no driver changed the columns")
+
+  def test_an_undeclared_pin_is_read_from_the_side_it_leaves(self):
+    """`inout` -- which is what a pin that never said anything gets.
+
+    Right of centre drives, anything else takes, so mirroring a port turns it
+    round. That is what lets an inout port be an input on the left of the
+    sheet and an output on the right.
+    """
+    doc = new_document("io", 400, 200)
+    cell = {"id": "p", "type": "port_inout", "x": 100, "y": 100, "label": "b"}
+    doc.cells.append(cell)
+    doc.normalize()
+    registry = default_registry()
+    symbol = registry.for_cell(cell)
+    self.assertEqual(symbol.pin("p")["dir"], "inout",
+                     "this test is pointless unless the pin is undeclared")
+
+    self.assertEqual(layout._flow(doc, registry, cell, "p"), "in",
+                     "a connector on the left should read as taking")
+    cell["mirror"] = True
+    self.assertEqual(layout._flow(doc, registry, cell, "p"), "out",
+                     "mirrored, the same connector faces right and drives")

@@ -533,6 +533,21 @@ select {
 .toast.shown { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.good { border-color: var(--accent); }
 .toast.bad { border-color: var(--danger); color: var(--danger); }
+/* Something slow is still running. The dot pulses because a message that does
+   not fade needs another way to say it is alive -- auto layout on a hundred
+   gates runs for a minute, and a still message that long reads as a hang. */
+.toast.busy { border-color: var(--accent); }
+.toast.busy::before {
+  background: var(--accent);
+  animation: dl-pulse 1.1s ease-in-out infinite;
+}
+@keyframes dl-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast.busy::before { animation: none; }
+}
 .toast::before {
   content: "";
   display: inline-block;

@@ -13,3 +13,4 @@ venv/
 *.svg
 !examples/*.svg
 !tests/golden/*.svg
+benchmarks/.cache/

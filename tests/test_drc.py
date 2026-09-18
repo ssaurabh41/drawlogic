@@ -620,5 +620,81 @@ class TestExamples(unittest.TestCase):
           "%s has DRC errors; fix the drawing, not the rule" % name)
 
 
+class TestLegsGetOutOfEachOthersWay(unittest.TestCase):
+  """A corridor is only as good as the legs that lead into it.
+
+  `clear_at` has always asked whether all three legs of a Z route miss the
+  cells. `free_at` asked only whether the corridor missed other wires, so the
+  router would happily choose a column with nothing in it and lay the leg
+  leading into it straight along another net's leg. That overlap is a
+  `wire-short`: two unrelated nets drawn as one wire.
+
+  It accounted for 31 of the 46 DRC errors auto layout left on the benchmark
+  corpus, and for eight of the nine on its densest drawing.
+  """
+
+  def three_rows(self):
+    """A leaves row 0 and arrives at row 1; B leaves row 1 and arrives at 2.
+
+    At row 1 one net arrives and another departs, so their legs share that
+    height and B's corridor has to sit left of A's. One constraint, pointing
+    one way: there is an answer, and the router has only to find it.
+    """
+    doc = new_document("legs", 900, 500)
+    for index in range(3):
+      doc.cells.append({"id": "s%d" % index, "type": "port_in",
+                        "x": 100, "y": 120 + index * 70, "label": "i%d" % index})
+      doc.cells.append({"id": "d%d" % index, "type": "port_out",
+                        "x": 520, "y": 120 + index * 70, "label": "o%d" % index})
+    doc.nets.append({"id": "a", "name": "a", "from": {"cell": "s0", "pin": "p"},
+                     "to": [{"cell": "d1", "pin": "p"}]})
+    doc.nets.append({"id": "b", "name": "b", "from": {"cell": "s1", "pin": "p"},
+                     "to": [{"cell": "d2", "pin": "p"}]})
+    doc.normalize()
+    return doc
+
+  def test_two_nets_sharing_a_row_are_not_drawn_as_one(self):
+    self.assertEqual(only(drc.check(self.three_rows()), "wire-short"), [],
+                     "a leg was laid along another net's leg")
+
+  def test_the_drawing_is_clean_altogether(self):
+    """Not just free of shorts: the fix must not trade one error for another."""
+    errors = [v for v in drc.check(self.three_rows()) if v.level == "error"]
+    self.assertEqual([str(e) for e in errors], [])
+
+  def test_the_corridors_end_up_in_the_order_the_rows_demand(self):
+    """Stated as the constraint rather than as a coordinate, so the test says
+    why the answer is right instead of only what it was on the day."""
+    doc = self.three_rows()
+    corridors = {}
+    for net, branches in routing.route_all(doc, default_registry()):
+      for points in branches:
+        verticals = [p[0] for p, q in zip(points, points[1:])
+                     if abs(p[0] - q[0]) < 1e-6]
+        if verticals:
+          corridors[net["id"]] = verticals[0]
+    self.assertIn("a", corridors)
+    self.assertIn("b", corridors)
+    self.assertLess(corridors["b"], corridors["a"],
+                    "b leaves row 1 and a arrives at it, so b must pass first")
+
+  def test_a_clear_drawing_still_spreads_its_wires_out(self):
+    """The guard on the guard. Demanding full separation of the legs made the
+    search refuse well-spaced corridors over what is only a warning and settle
+    for a cramped one, so the legs are asked the weaker question: not on top
+    of each other, rather than far enough apart to read as separate."""
+    doc = self.three_rows()
+    corridors = sorted(
+      p[0] for _net, branches in routing.route_all(doc, default_registry())
+      for points in branches
+      for p, q in zip(points, points[1:]) if abs(p[0] - q[0]) < 1e-6)
+    for one, two in zip(corridors, corridors[1:]):
+      self.assertGreaterEqual(
+        abs(two - one), drc.WIRE_GAP,
+        "corridors %g and %g are closer than two wires need, with room to "
+        "spare" % (one, two))
+
+
+
 if __name__ == "__main__":
   unittest.main()

@@ -60,6 +60,49 @@ function say(message, kind) {
   }, kind === "bad" ? 6000 : 2800);
 }
 
+
+// ---- work that takes longer than a message stays up for ----
+
+let busyTimer = null;
+
+/* Say that something is still running, and keep saying it.
+ *
+ * `say` fades after 2.8 seconds, which is right for "saved" and wrong for
+ * anything slow: auto layout on a hundred gates runs for a minute, the
+ * message went away after three seconds, and the editor then looked idle
+ * while it was still working. People pressed the button again.
+ *
+ * So this one does not fade, and it counts up, because a number that keeps
+ * moving is the difference between "still going" and "stuck". Returns the
+ * function that ends it; call it in a `finally` so a failure clears the
+ * message too.
+ */
+function busy(message) {
+  const started = Date.now();
+  const tick = () => {
+    const seconds = Math.round((Date.now() - started) / 1000);
+    const elapsed = seconds >= 2 ? ` (${seconds}s)` : "";
+    ui.message.textContent = message + elapsed;
+    ui.message.className = "push";
+    if (ui.toast) {
+      ui.toast.textContent = message + elapsed;
+      ui.toast.className = "toast shown busy";
+      ui.toast.hidden = false;
+    }
+  };
+
+  window.clearTimeout(toastTimer);
+  window.clearInterval(busyTimer);
+  tick();
+  busyTimer = window.setInterval(tick, 1000);
+
+  return () => {
+    window.clearInterval(busyTimer);
+    busyTimer = null;
+    if (ui.toast) ui.toast.classList.remove("busy");
+  };
+}
+
 // ---- drawing ----
 
 function drawOverlay(options) {
@@ -789,7 +832,11 @@ async function autoLayout() {
     say("nothing to lay out", "bad");
     return;
   }
-  say("laying out...");
+  // Auto layout is the slowest thing the editor does, by a wide margin, and
+  // the button is the one people press twice when nothing appears to happen.
+  const done = busy("laying out...");
+  const button = document.querySelector('[data-command="layout"]');
+  if (button) button.disabled = true;
   // Which drawing asked, and which version of it. The answer is a whole
   // document that replaces what is open, so both halves matter.
   //
@@ -835,6 +882,10 @@ async function autoLayout() {
     say(`${result.note}${stranded}`, "good");
   } catch (error) {
     say(error.message, "bad");
+  } finally {
+    // In `finally` so a failure, a dropped answer and a success all clear it.
+    done();
+    if (button) button.disabled = false;
   }
 }
 

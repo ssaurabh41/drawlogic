@@ -318,7 +318,7 @@ class TestOrderingChoice(unittest.TestCase):
           cells = [c for c in doc.cells if registry.for_cell(c) is not None]
           layout._face_forward(cells)
           layout._forget_waypoints(doc)
-          edges, _feedback = layout._edges(doc, cells)
+          edges, _feedback = layout._edges(doc, registry, cells)
           ranks = layout._ranks(doc, cells, edges)
           order = layout._order(cells, edges, ranks, spans=spans)
           layout._place(doc, registry, cells, edges, ranks, order,

@@ -208,5 +208,56 @@ class TestWhatTheModelBuys(unittest.TestCase):
     self.assertEqual(again.dumps(), doc.dumps())
 
 
+class TestANetIsStoredDriverFirst(unittest.TestCase):
+  """Which pin was clicked first is not which way the signal runs.
+
+  The connection is the same either way, but the net is stored driver-first
+  and the arrowhead reads that order, so a wire drawn from the flip-flop's D
+  back to the gate that feeds it drew an arrow into the gate's output. Putting
+  the ends right on the way in means the arrow, `validate` and the layout are
+  all looking at the same thing.
+  """
+
+  def wired(self, source, loads):
+    doc = new_document("dir", 600, 400)
+    doc.cells.append({"id": "g", "type": "and2", "x": 100, "y": 100})
+    doc.cells.append({"id": "ff", "type": "dffr", "x": 300, "y": 100})
+    doc.cells.append({"id": "ff2", "type": "dffr", "x": 300, "y": 260})
+    doc.nets.append({"id": "n1", "name": None, "from": source,
+                     "to": loads, "style": {}})
+    doc.normalize()
+    return doc.nets[0]
+
+  def test_a_wire_drawn_back_to_front_is_turned_round(self):
+    net = self.wired({"cell": "ff", "pin": "d"},
+                     [{"cell": "g", "pin": "y", "waypoints": []}])
+    self.assertEqual((net["from"]["cell"], net["from"]["pin"]), ("g", "y"),
+                     "the gate's output drives, so it belongs in `from`")
+    self.assertEqual([(l["cell"], l["pin"]) for l in loads_of(net)],
+                     [("ff", "d")])
+
+  def test_the_branch_keeps_its_waypoints_the_right_way_round(self):
+    """They run driver to load, and it is that end which just changed."""
+    net = self.wired({"cell": "ff", "pin": "d"},
+                     [{"cell": "g", "pin": "y",
+                       "waypoints": [[10, 10], [20, 20], [30, 30]]}])
+    self.assertEqual(loads_of(net)[0]["waypoints"],
+                     [[30, 30], [20, 20], [10, 10]])
+
+  def test_a_wire_already_the_right_way_round_is_left_alone(self):
+    net = self.wired({"cell": "g", "pin": "y"},
+                     [{"cell": "ff", "pin": "d", "waypoints": [[10, 10]]}])
+    self.assertEqual((net["from"]["cell"], net["from"]["pin"]), ("g", "y"))
+    self.assertEqual(loads_of(net)[0]["waypoints"], [[10, 10]])
+
+  def test_two_drivers_on_one_net_are_left_for_validate_to_report(self):
+    """Picking one of them would hide a short behind a tidy-looking wire."""
+    net = self.wired({"cell": "ff", "pin": "d"},
+                     [{"cell": "g", "pin": "y", "waypoints": []},
+                      {"cell": "ff2", "pin": "q", "waypoints": []}])
+    self.assertEqual((net["from"]["cell"], net["from"]["pin"]), ("ff", "d"),
+                     "a net with two drivers is a fault, not a shape to guess")
+
+
 if __name__ == "__main__":
   unittest.main()

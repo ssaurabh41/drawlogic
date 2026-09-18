@@ -301,8 +301,12 @@ class TestRouterParity(unittest.TestCase):
     right, whatever either renderer says.
     """
     doc = new_document("direction")
-    doc.cells.extend([{"id": "a", "type": "port_out", "x": 10, "y": 100},
-                      {"id": "b", "type": "port_in", "x": 400, "y": 100}])
+    # The driver on the left and the load on the right, which is both a
+    # left-to-right wire and a circuit that makes sense. It used to be the
+    # other way round -- an output port wired into an input port -- which
+    # drew a left-to-right arrow only because nothing yet read the pins.
+    doc.cells.extend([{"id": "a", "type": "port_in", "x": 10, "y": 100},
+                      {"id": "b", "type": "port_out", "x": 400, "y": 100}])
     doc.nets.append({"id": "n1", "name": "sig", "width": 1,
                      "from": {"cell": "a", "pin": "p"},
                      "to": [{"cell": "b", "pin": "p", "waypoints": []}]})

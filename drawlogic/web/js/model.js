@@ -721,9 +721,26 @@ function pinWidth(doc, endpoint) {
   return pin ? (pin.width === undefined ? 1 : pin.width) : 1;
 }
 
+function pinDir(doc, endpoint) {
+  if (!endpoint || endpoint.cell === undefined) return null;
+  const cell = doc.cells.find((c) => c.id === endpoint.cell);
+  if (!cell) return null;
+  const pin = geometry.findPin(geometry.forCell(cell), endpoint.pin);
+  return pin ? (pin.dir || "inout") : null;
+}
+
 // Wiring a second load onto a pin that already drives one extends that net
 // rather than making another. That is what a net is: one driver, many loads.
 export function addNet(doc, from, to) {
+  // Clicking the flip-flop's D and then the gate that feeds it is an ordinary
+  // way to draw a wire, and it is the same connection either way -- but the
+  // net is stored driver-first, and the arrowhead reads that order. So the
+  // ends are put the right way round here, as the wire is made, rather than
+  // being left for the next time the drawing is opened. `inout` is left alone:
+  // deciding one of those is the layout's job, which knows where the cell sits.
+  if (pinDir(doc, from) === "in" && pinDir(doc, to) === "out") {
+    [from, to] = [to, from];
+  }
   const already = doc.nets.some((net) =>
     routing.loadsOf(net).some((load) =>
       (sameEnd(net.from, from) && sameEnd(load, to))

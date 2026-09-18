@@ -733,10 +733,27 @@ def _normalise(doc, registry, cells, margin):
   Done once at the end rather than by clamping each column to the margin as it
   is placed -- clamping the first cell in a column moves it off the row its
   wire wanted, which is the one thing this is all for.
+
+  The instance name counts as part of the cell here. It is centred on the body
+  and drawn above it, so a name wider than its cell reaches past it on three
+  sides; measuring the body alone left the name hanging over the edge of the
+  sheet, where it was clipped.
   """
+  from . import render_svg
+
   boxes = [_box(registry, doc, cell) for cell in cells]
-  left = min(box[0] for box in boxes)
-  top = min(box[1] - _headroom(cell) for box, cell in zip(boxes, cells))
+  lefts = []
+  tops = []
+  for box, cell in zip(boxes, cells):
+    written = render_svg.cell_label_box(registry.for_cell(cell), cell,
+                                        doc.symbol_scale, doc.font_scale)
+    lefts.append(min(box[0], written[0]) if written else box[0])
+    # _headroom is what the stacking reserved; the drawn name may want more.
+    plain = box[1] - _headroom(cell)
+    tops.append(min(plain, written[1]) if written else plain)
+
+  left = min(lefts)
+  top = min(tops)
   for cell in cells:
     cell["x"] += margin - left
     cell["y"] += margin - top

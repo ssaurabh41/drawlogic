@@ -18,7 +18,7 @@ Usage:
 import io
 import unittest
 
-from drawlogic import drc, routing
+from drawlogic import drc, render_svg, routing, theme
 from drawlogic.doc import Document, new_document
 from drawlogic.symbols import default_registry
 
@@ -385,9 +385,42 @@ class TestHops(unittest.TestCase):
                 "waypoints": [[x, 120], [x, 400]]}]})
     return doc
 
-  def test_two_bridges_on_top_of_each_other_are_reported(self):
-    found = only(drc.check(self.crossed(310, 322)), "hop-spacing")
-    self.assertTrue(found, "two bridges 12 apart merge and went unreported")
+  def test_close_crossings_still_get_two_separate_bridges(self):
+    """Never merged into one. Two crossings are two crossings, and the
+    drawing should say so."""
+    import re
+    svg = render_svg.render(self.crossed(310, 330))
+    path = [p for p in re.findall(r'<path class="dl-net"[^>]*d="([^"]+)"', svg)
+            if p.count("A") == 2][0]
+    self.assertEqual(path.count("A"), 2, "the two bridges were merged")
+
+  def test_a_crowded_bridge_narrows_to_leave_wire_showing(self):
+    """A bridge cannot be moved -- it is drawn where the wires actually cross
+    -- but how wide it is can be. Two crossings 20 apart would leave only 10
+    units between two full-width bulges; narrowing them leaves the 12 the
+    rule asks for."""
+    import re
+    svg = render_svg.render(self.crossed(310, 330))
+    radii = [float(m) for m in re.findall(r"A([\d.]+) [\d.]+", svg)]
+    self.assertTrue(radii)
+    self.assertLess(max(radii), theme.HOP_RADIUS,
+                    "a crowded bridge should be narrower than a lone one")
+    flat = 330 - max(radii) - (310 + max(radii))
+    self.assertGreaterEqual(round(flat, 3), drc.HOP_FLAT)
+
+  def test_a_lone_bridge_keeps_its_full_width(self):
+    """The negative control: narrowing must only happen where it is needed."""
+    import re
+    svg = render_svg.render(self.crossed(200, 460))
+    radii = [float(m) for m in re.findall(r"A([\d.]+) [\d.]+", svg)]
+    self.assertTrue(radii)
+    self.assertEqual(max(radii), theme.HOP_RADIUS)
+
+  def test_crossings_too_close_even_for_a_narrowed_bridge_are_reported(self):
+    """Below HOP_GAP the renderer has run out of room: both bridges are at
+    their smallest and there is still too little wire between them. That is
+    what the rule is left to catch, and why it is not vacuous."""
+    self.assertTrue(only(drc.check(self.crossed(310, 322)), "hop-spacing"))
 
   def test_two_bridges_with_wire_between_them_are_clean(self):
     self.assertEqual(only(drc.check(self.crossed(280, 380)), "hop-spacing"), [])

@@ -534,13 +534,38 @@ class Document(object):
     #
     # routing imports doc, so this import is local rather than at the top.
     from . import routing
-    for _net_id, start, end in routing.segments_of(
-        routing.route_all(self, registry)):
+    routes = routing.route_all(self, registry)
+    for _net_id, start, end in routing.segments_of(routes):
       for point in (start, end):
         box = union_bbox(box, (point[0], point[1], 0, 0))
 
     # render_svg imports doc, so this import is local, as routing's is above.
     from . import render_svg
+
+    # The names drawn on the cells. An instance name sits above its cell and
+    # is centred on it, so it reaches past the body on three sides -- and a
+    # name wider than the margin then fell outside the sheet, which is how a
+    # cropped export and an auto-laid-out canvas both came to clip text at the
+    # border. The body is not the whole of what is drawn.
+    for cell in self.cells:
+      symbol = registry.for_cell(cell)
+      if symbol is None:
+        continue
+      written = render_svg.cell_label_box(symbol, cell, scale, self.font_scale)
+      if written is not None:
+        box = union_bbox(box, (written[0], written[1],
+                               written[2] - written[0],
+                               written[3] - written[1]))
+
+    # And the net names, which the placer puts wherever it found room --
+    # including past the last wire. Routes are handed over rather than
+    # recomputed: routing a drawing twice to measure it is the expensive way
+    # to get the same answer.
+    for written in render_svg.net_label_boxes(self, registry, routes).values():
+      if written is not None:
+        box = union_bbox(box, (written[0], written[1],
+                               written[2] - written[0],
+                               written[3] - written[1]))
 
     for shape in self.shapes:
       # A text shape has an anchor and no size, so measuring it by x/y/w/h

@@ -136,7 +136,18 @@ PORT_TO_WIRE = 12.0
 # Two crossing bridges closer than this merge into one squiggle and stop
 # reading as two separate crossings. A bridge is 5 units across, so this is
 # roughly "a bridge's width of flat wire between them".
-HOP_GAP = 16.0
+# Two crossing bridges need flat wire between them, or they read as one
+# squiggle. The bulge itself is theme.HOP_RADIUS (5) either side of the
+# crossing, so the centres have to be 10 apart before there is any flat wire
+# at all -- which is why 16 was too small: it allowed 6 units of flat between
+# two bulges, and the corridor grid puts crossings 20 apart all the time.
+# 22 = 10 of bulge plus HOP_FLAT of wire you can actually see.
+HOP_FLAT = 12.0
+# Below this the renderer cannot keep flat wire between two bridges even with
+# both shrunk to their smallest: 2.5 of bulge each side plus HOP_FLAT of wire.
+# Above it the bridges narrow (geometry.hop_radii) and the drawing still reads,
+# which is why this is the reporting threshold rather than HOP_FLAT + 10.
+HOP_GAP = 17.0
 
 # A bridge drawn over a corner or a junction dot deforms it, and a deformed
 # junction is a connection the reader is no longer sure about.
@@ -188,6 +199,7 @@ def as_data():
     "portToCell": PORT_TO_CELL,
     "portToWire": PORT_TO_WIRE,
     "hopGap": HOP_GAP,
+    "hopFlat": HOP_FLAT,
     "hopToCorner": HOP_TO_CORNER,
     "hopToCell": HOP_TO_CELL,
     "hopToText": HOP_TO_TEXT,

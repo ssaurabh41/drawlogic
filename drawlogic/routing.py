@@ -20,7 +20,7 @@ checking it clears every cell the wire is not connected to. A net's
 """
 
 from . import theme
-from .geometry import corners
+from .geometry import corners, label_lines
 from . import drc
 from .doc import loads_of
 from .symbols import default_registry
@@ -35,6 +35,10 @@ CLEARANCE = drc.WIRE_TO_CELL
 # How far a wire keeps above a cell that has an instance name: the room the
 # name takes, plus the air text needs to stay readable.
 TEXT_HEADROOM = drc.LABEL_HEADROOM + drc.TEXT_TO_WIRE
+# One more line of a wrapped instance name. theme is not imported here, so
+# this is the label font size times the renderer's line spacing, written out:
+# 13.5 * 1.15, rounded up to keep the reservation on the generous side.
+LABEL_LINE = 16.0
 CORRIDOR_STEP = drc.CORRIDOR_STEP
 CORRIDOR_TRIES = drc.CORRIDOR_TRIES
 
@@ -43,6 +47,9 @@ CORRIDOR_TRIES = drc.CORRIDOR_TRIES
 # that only asks them not to be drawn on top of each other.
 WIRE_GAP = drc.WIRE_GAP
 TOUCHING = drc.TOUCHING
+# Corridors this far apart give any wire crossing both of them two bridges
+# with visible wire between, instead of one squiggle.
+HOP_GAP = drc.HOP_GAP
 
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")
@@ -192,7 +199,12 @@ def obstacle_boxes(doc, registry=None, exclude=()):
               for px, py in corners(0, 0, symbol.width, symbol.height)]
     xs = [p[0] for p in points]
     ys = [p[1] for p in points]
-    headroom = TEXT_HEADROOM if cell.get("label") else CLEARANCE
+    # A name split over two lines reaches a line higher, so the room kept
+    # above the cell grows with it -- otherwise a wire routes straight
+    # through the upper line of a wrapped name.
+    lines = len(label_lines(cell["label"])) if cell.get("label") else 0
+    headroom = (TEXT_HEADROOM + (lines - 1) * LABEL_LINE
+                if lines else CLEARANCE)
     boxes.append((min(xs) - CLEARANCE, min(ys) - headroom,
                   max(xs) + CLEARANCE, max(ys) + CLEARANCE))
   return boxes

@@ -159,3 +159,81 @@ def snap(value, step):
   if not step:
     return value
   return round(value / float(step)) * step
+
+
+
+# An instance name longer than this wants two lines. Twelve characters is
+# about the width of a two-input gate at the usual font size, so shorter names
+# sit over their own cell and longer ones start reaching across whatever is
+# beside them.
+LABEL_WRAP_CHARS = 12
+
+
+def label_lines(text):
+  """An instance name as the one or two lines it should be drawn on.
+
+  One line is always preferred: a name broken in half is harder to read than
+  a name that sticks out a little, so this only splits when the name is long
+  enough to reach well past its own cell.
+
+  The split goes at an underscore, because that is where a signal name has a
+  seam -- `in_part1_clock` reads fine as `in_part1_` over `clock` and badly as
+  `in_part1_cl` over `ock`. The underscore nearest the middle wins, so the two
+  lines come out as even as the name allows.
+
+  A long name with no underscore is left on one line on purpose. Breaking
+  `verylongname` mid-word to save width trades a name that overhangs for one
+  that cannot be read at all, which is the worse of the two.
+  """
+  if not isinstance(text, str):
+    return [""] if text is None else [str(text)]
+  if len(text) <= LABEL_WRAP_CHARS:
+    return [text]
+
+  middle = len(text) / 2.0
+  best = None
+  for index, character in enumerate(text):
+    if character != "_" or index == len(text) - 1:
+      continue
+    # Split after the underscore, so the seam stays with the first line.
+    distance = abs((index + 1) - middle)
+    if best is None or distance < best[0]:
+      best = (distance, index + 1)
+  if best is None:
+    return [text]
+  return [text[:best[1]], text[best[1]:]]
+
+
+def hop_radii(positions, radius, flat, smallest):
+  """A bridge radius for each crossing, shrunk where neighbours are close.
+
+  Two crossings close together give two bulges with almost no wire between
+  them, and a bulge only says "this crossing is not a connection" when there
+  is flat wire either side of it. The crossings cannot be moved apart -- a
+  bridge is drawn where the wires actually cross, so moving one means routing
+  a wire differently, which a local rule has no business deciding. What can
+  move is how wide the bridge is.
+
+  So each bridge is drawn no wider than the room beside it allows: given a
+  neighbour `gap` away, the two bridges between them may take up to
+  `gap - flat`, half each. `smallest` is the floor, because a bridge nobody
+  can see is worse than a tight one.
+
+  `positions` must be sorted. Returns one radius per position.
+  """
+  count = len(positions)
+  if not count:
+    return []
+  radii = []
+  for index, here in enumerate(positions):
+    room = None
+    if index:
+      room = here - positions[index - 1]
+    if index + 1 < count:
+      after = positions[index + 1] - here
+      room = after if room is None else min(room, after)
+    if room is None:
+      radii.append(radius)
+      continue
+    radii.append(max(smallest, min(radius, (room - flat) / 2.0)))
+  return radii

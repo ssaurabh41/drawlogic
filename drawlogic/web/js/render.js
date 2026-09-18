@@ -218,15 +218,33 @@ function renderCell(symbol, cell, fontScale, scale, into) {
 
   if (cell.label) {
     const box = geometry.cellBounds(symbol, cell, scale);
+    const lines = geometry.labelLines(cell.label);
+    const size = theme.fontSizes.label * fontScale;
+    const middle = box[0] + box[2] / 2;
+    // Lines stack upward, so a wrapped name starts a line higher and its last
+    // line keeps the place a single-line name would have had.
+    const top = box[1] - 5 - (lines.length - 1) * size * LINE_STEP;
     const text = el("text", {
-      x: geometry.fmt(box[0] + box[2] / 2), y: geometry.fmt(box[1] - 5),
+      x: geometry.fmt(middle), y: geometry.fmt(top),
       "text-anchor": "middle",
       "font-family": theme.fontSans,
-      "font-size": geometry.fmt(theme.fontSizes.label * fontScale, 2),
+      "font-size": geometry.fmt(size, 2),
       "font-weight": "600",
       fill: theme.colors.label,
     });
-    text.textContent = cell.label;
+    if (lines.length === 1) {
+      // Unchanged markup for the common case: no tspan when nothing wraps.
+      text.textContent = lines[0];
+    } else {
+      lines.forEach((line, index) => {
+        const span = el("tspan", {
+          x: geometry.fmt(middle),
+          y: geometry.fmt(top + index * size * LINE_STEP),
+        });
+        span.textContent = line;
+        text.appendChild(span);
+      });
+    }
     into.appendChild(text);
   }
 }
@@ -466,6 +484,14 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
 // A whisker of air around a cell before a name counts as landing on it.
 const CELL_BOX_PAD = 2;
 
+// Baseline-to-baseline spacing for a wrapped instance name.
+// Mirrors LINE_STEP in render_svg.py.
+const LINE_STEP = 1.15;
+
+// A bridge squeezed between close neighbours never shrinks past this.
+// Mirrors MIN_HOP_RADIUS in render_svg.py.
+const MIN_HOP_RADIUS = 2.5;
+
 // Every cell's footprint, with room above a labelled one for its instance
 // name. An unlabelled cell gets no headroom: reserving space for text that is
 // not there pushes net names further away than they need to go.
@@ -477,7 +503,11 @@ export function cellBoxes(doc) {
     const symbol = geometry.forCell(cell);
     if (!symbol) continue;
     const [x, y, w, h] = geometry.cellBounds(symbol, cell, scale);
-    const headroom = cell.label ? limits.labelHeadroom : 0;
+    // A wrapped name reaches a line higher, so the box grows with it.
+    const lines = cell.label ? geometry.labelLines(cell.label).length : 0;
+    const headroom = lines
+      ? limits.labelHeadroom + (lines - 1) * theme.fontSizes.label * LINE_STEP
+      : 0;
     boxes.push([x - CELL_BOX_PAD, y - headroom,
                 x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD]);
   }
@@ -500,15 +530,23 @@ function netPath(points, hops, radius) {
         .filter(([hx, hy]) => Math.abs(hy - ay) < 1e-6
                               && hx > low + radius && hx < high - radius)
         .map(([hx]) => hx)
-        .sort((p, q) => (direction > 0 ? p - q : q - p));
+        .sort((p, q) => p - q);
 
-      for (const hx of here) {
-        parts.push(`L${geometry.fmt(hx - radius * direction)} ${geometry.fmt(ay)}`);
+      // Each bridge is drawn no wider than the room beside it allows, so two
+      // crossings close together still show wire between their bulges rather
+      // than running into one squiggle. Mirrors _net_path in render_svg.py.
+      const radii = geometry.hopRadii(
+        here, radius, routing.currentLimits().hopFlat, MIN_HOP_RADIUS);
+      if (direction < 0) { here.reverse(); radii.reverse(); }
+
+      here.forEach((hx, index) => {
+        const hopRadius = radii[index];
+        parts.push(`L${geometry.fmt(hx - hopRadius * direction)} ${geometry.fmt(ay)}`);
         // With y pointing down, sweep 1 bulges upward when travelling right.
         const sweep = direction > 0 ? 1 : 0;
-        parts.push(`A${geometry.fmt(radius)} ${geometry.fmt(radius)} 0 0 ${sweep} `
-                   + `${geometry.fmt(hx + radius * direction)} ${geometry.fmt(ay)}`);
-      }
+        parts.push(`A${geometry.fmt(hopRadius)} ${geometry.fmt(hopRadius)} 0 0 ${sweep} `
+                   + `${geometry.fmt(hx + hopRadius * direction)} ${geometry.fmt(ay)}`);
+      });
     }
     parts.push(`L${geometry.fmt(bx)} ${geometry.fmt(by)}`);
   }

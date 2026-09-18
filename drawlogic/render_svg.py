@@ -26,7 +26,7 @@ width/height attributes, so output stays vector-perfect at any size.
 from . import routing
 from . import drc
 from . import theme
-from .geometry import corners, fmt
+from .geometry import corners, fmt, hop_radii, label_lines
 from .symbols import default_registry
 
 DEFAULT_MARGIN = 24.0
@@ -242,16 +242,32 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
   label = cell.get("label")
   if label:
     box = _cell_bbox(symbol, cell, symbol_scale)
+    lines = label_lines(label)
+    size = theme.FONT_SIZES["label"] * font_scale
+    # Lines stack upward, so the first of two sits a line higher and the last
+    # keeps the position a single-line name would have had.
+    top = box[1] - 5 - (len(lines) - 1) * size * LINE_STEP
+    # A name that fits on one line is drawn exactly as it always was: no
+    # tspan, so the markup for the common case does not change at all.
+    if len(lines) == 1:
+      spans = esc(lines[0])
+    else:
+      spans = "".join(
+        "<tspan %s>%s</tspan>" % (
+          _attrs([("x", fmt(box[0] + box[2] / 2.0)),
+                  ("y", fmt(top + index * size * LINE_STEP))]),
+          esc(line))
+        for index, line in enumerate(lines))
     out.append("<text %s>%s</text>" % (
       _attrs([
         ("x", fmt(box[0] + box[2] / 2.0)),
-        ("y", fmt(box[1] - 5)),
+        ("y", fmt(top)),
         ("text-anchor", "middle"),
         ("font-family", theme.FONT_SANS),
-        ("font-size", fmt(theme.FONT_SIZES["label"] * font_scale, 2)),
+        ("font-size", fmt(size, 2)),
         ("font-weight", "600"),
         ("fill", theme.COLORS["label"])]),
-      esc(label)))
+      spans))
 
 
 def _pin_label(x, y, anchor, text, font_scale, out):
@@ -425,15 +441,22 @@ def _net_path(points, hops, radius):
         # Leave room for the whole arc, or it would overrun the corner.
         if abs(hy - ay) < 1e-6 and low + radius < hx < high - radius:
           on_this.append(hx)
-      on_this.sort(reverse=direction < 0)
+      # Each bridge is drawn no wider than the room beside it allows, so two
+      # crossings close together still show wire between their bulges rather
+      # than running into one squiggle. See geometry.hop_radii.
+      on_this.sort()
+      radii = hop_radii(on_this, radius, drc.HOP_FLAT, MIN_HOP_RADIUS)
+      if direction < 0:
+        on_this.reverse()
+        radii.reverse()
 
-      for hx in on_this:
-        parts.append("L%s %s" % (fmt(hx - radius * direction), fmt(ay)))
+      for hx, hop_radius in zip(on_this, radii):
+        parts.append("L%s %s" % (fmt(hx - hop_radius * direction), fmt(ay)))
         # With y pointing down, sweep 1 bulges upward when travelling right.
         sweep = 1 if direction > 0 else 0
         parts.append("A%s %s 0 0 %d %s %s"
-                     % (fmt(radius), fmt(radius), sweep,
-                        fmt(hx + radius * direction), fmt(ay)))
+                     % (fmt(hop_radius), fmt(hop_radius), sweep,
+                        fmt(hx + hop_radius * direction), fmt(ay)))
 
     parts.append("L%s %s" % (fmt(bx), fmt(by)))
 
@@ -458,7 +481,11 @@ def _cell_boxes(doc, registry):
     if symbol is None:
       continue
     x, y, w, h = _cell_bbox(symbol, cell, doc.symbol_scale)
-    headroom = drc.LABEL_HEADROOM if cell.get("label") else 0.0
+    # A wrapped name reaches a line higher, so the box grows with it.
+    lines = len(label_lines(cell["label"])) if cell.get("label") else 0
+    headroom = (drc.LABEL_HEADROOM
+                + (lines - 1) * theme.FONT_SIZES["label"] * LINE_STEP
+                if lines else 0.0)
     boxes.append((x - CELL_BOX_PAD, y - headroom,
                   x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD))
   return boxes
@@ -468,14 +495,22 @@ def cell_label_box(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   """The rectangle a cell's instance name occupies, or None if it has none.
 
   The DRCs need the same rectangle the renderer will draw into, so both come
-  from here rather than from two guesses that can drift apart.
+  from here rather than from two guesses that can drift apart. A name long
+  enough to be split sits on two lines, so the rectangle is half as wide and
+  a line taller -- see geometry.label_lines.
   """
   label = cell.get("label")
   if not label:
     return None
   box = _cell_bbox(symbol, cell, symbol_scale)
   size = theme.FONT_SIZES["label"] * font_scale
-  return _label_box((box[0] + box[2] / 2.0, box[1] - 5), "middle", label, size)
+  lines = label_lines(label)
+  widest = max(lines, key=len)
+  # The lines stack upward from the cell, so an extra line raises the top.
+  spot = (box[0] + box[2] / 2.0, box[1] - 5 - (len(lines) - 1) * size * LINE_STEP)
+  first = _label_box(spot, "middle", widest, size)
+  return (first[0], first[1], first[2],
+          first[3] + (len(lines) - 1) * size * LINE_STEP)
 
 
 def net_label_boxes(doc, registry=None, routes=None):
@@ -501,6 +536,13 @@ LABEL_STOPS = (0.5, 0.32, 0.68, 0.16, 0.84)
 # One character of the mono face, as a fraction of the font size. Close enough
 # to reserve the right amount of room without measuring text properly.
 LABEL_CHAR = 0.62
+
+# A bridge squeezed between close neighbours never shrinks past this: one
+# nobody can see is worse than a tight one.
+MIN_HOP_RADIUS = 2.5
+
+# Baseline-to-baseline spacing for a wrapped instance name.
+LINE_STEP = 1.15
 
 
 def _label_box(spot, anchor, text, size):

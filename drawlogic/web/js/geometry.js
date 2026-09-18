@@ -179,3 +179,50 @@ export function cellBounds(symbol, cell, scale = 1) {
     .map(([px, py]) => matrix.apply(px, py));
   return boundsOf(points);
 }
+
+
+
+// An instance name longer than this wants two lines. Mirrors
+// LABEL_WRAP_CHARS in geometry.py.
+export const LABEL_WRAP_CHARS = 12;
+
+// An instance name as the one or two lines it should be drawn on. One line is
+// always preferred; the split goes at the underscore nearest the middle,
+// because that is where a signal name has a seam. A long name with no
+// underscore stays on one line on purpose: breaking it mid-word trades a name
+// that overhangs for one that cannot be read. Mirrors label_lines in
+// geometry.py.
+export function labelLines(text) {
+  if (typeof text !== "string") return [text == null ? "" : String(text)];
+  if (text.length <= LABEL_WRAP_CHARS) return [text];
+  const middle = text.length / 2;
+  let best = null;
+  for (let i = 0; i < text.length - 1; i += 1) {
+    if (text[i] !== "_") continue;
+    const distance = Math.abs((i + 1) - middle);
+    if (best === null || distance < best[0]) best = [distance, i + 1];
+  }
+  if (best === null) return [text];
+  return [text.slice(0, best[1]), text.slice(best[1])];
+}
+
+
+// A bridge radius for each crossing, shrunk where neighbours are close. The
+// crossings cannot be moved -- a bridge is drawn where the wires actually
+// cross -- but how wide it is can be, so each takes at most half the room
+// beside it and never less than `smallest`. `positions` must be sorted.
+// Mirrors hop_radii in geometry.py.
+export function hopRadii(positions, radius, flat, smallest) {
+  const count = positions.length;
+  if (!count) return [];
+  return positions.map((here, index) => {
+    let room = null;
+    if (index) room = here - positions[index - 1];
+    if (index + 1 < count) {
+      const after = positions[index + 1] - here;
+      room = room === null ? after : Math.min(room, after);
+    }
+    if (room === null) return radius;
+    return Math.max(smallest, Math.min(radius, (room - flat) / 2));
+  });
+}

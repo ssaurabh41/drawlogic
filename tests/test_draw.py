@@ -4,7 +4,7 @@ import os
 import re
 import unittest
 
-from drawlogic import drc, render_svg, routing, theme
+from drawlogic import drc, geometry, layout, render_svg, routing, theme
 from drawlogic.doc import Document, loads_of, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE, ROOT, open_example
@@ -734,6 +734,154 @@ class TestContentBounds(unittest.TestCase):
       lowest, view[1] + view[3],
       "crop viewBox ends at y=%.0f but the wire reaches y=%.0f"
       % (view[1] + view[3], lowest))
+
+
+class TestLongNamesWrap(unittest.TestCase):
+  """An instance name too long for its cell reaches across whatever is beside
+  it, which in a dense drawing is a wire. Two lines is half the reach."""
+
+  def test_a_short_name_stays_on_one_line(self):
+    """Single line is the preference, not the fallback."""
+    for name in ("U1", "and2", "clk", "a_b"):
+      self.assertEqual(geometry.label_lines(name), [name])
+
+  def test_a_long_name_splits_at_an_underscore(self):
+    self.assertEqual(geometry.label_lines("in_part1_clock"),
+                     ["in_part1_", "clock"])
+
+  def test_it_picks_the_seam_that_makes_the_longer_line_shortest(self):
+    """Of several underscores, the one nearest the middle wins -- which is
+    exactly the one that minimises the longer of the two lines, since that
+    length is max(split, rest)."""
+    self.assertEqual(geometry.label_lines("aaaa_bbbb_cccc"),
+                     ["aaaa_", "bbbb_cccc"])          # 9, against 10 the other way
+    self.assertEqual(geometry.label_lines("a_bbbbbbbbbb_c"),
+                     ["a_", "bbbbbbbbbb_c"])          # 12, against 13
+
+  def test_no_split_makes_the_longer_line_longer_than_the_name_would_be(self):
+    """The property the choice above is for, stated directly."""
+    for name in ("in_part1_clock", "aaaa_bbbb_cccc", "out_branch_99",
+                 "a_bbbbbbbbbb_c"):
+      lines = geometry.label_lines(name)
+      if len(lines) == 1:
+        continue
+      # The split goes after the underscore, so the lines are index+1 long
+      # and the rest.
+      best = min(max(index + 1, len(name) - index - 1)
+                 for index, ch in enumerate(name)
+                 if ch == "_" and index < len(name) - 1)
+      self.assertEqual(max(len(line) for line in lines), best,
+                       "%s split worse than it had to" % name)
+
+  def test_a_long_name_with_no_underscore_is_left_alone(self):
+    """Breaking mid-word trades a name that overhangs for one that cannot be
+    read, which is the worse of the two."""
+    self.assertEqual(geometry.label_lines("verylongnamehere"),
+                     ["verylongnamehere"])
+
+  def test_the_box_gets_narrower_and_taller(self):
+    """The DRCs and the renderer share this box, so wrapping has to move it."""
+    registry = default_registry()
+    doc = new_document("wrap", 600, 300)
+    doc.cells.append({"id": "u", "type": "and2", "x": 200, "y": 120,
+                      "label": "in_part1_clock"})
+    doc.normalize(registry)
+    cell = doc.cells[0]
+    symbol = registry.for_cell(cell)
+    wrapped = render_svg.cell_label_box(symbol, cell, doc.symbol_scale)
+
+    cell["label"] = "in_part1_clockxx".replace("_", "")   # same length, no seam
+    flat = render_svg.cell_label_box(symbol, cell, doc.symbol_scale)
+
+    self.assertLess(wrapped[2] - wrapped[0], flat[2] - flat[0],
+                    "a wrapped name should be narrower")
+    self.assertGreater(wrapped[3] - wrapped[1], flat[3] - flat[1],
+                       "a wrapped name should be taller")
+
+  def test_a_wire_keeps_clear_of_the_upper_line(self):
+    """The room reserved above a cell has to grow with the name, or a wire
+    routes straight through the line that was added."""
+    doc = new_document("wrap", 600, 300)
+    doc.cells.append({"id": "u", "type": "and2", "x": 200, "y": 120,
+                      "label": "short"})
+    doc.normalize()
+    one = routing.obstacle_boxes(doc)[0]
+    doc.cells[0]["label"] = "in_part1_clock"
+    two = routing.obstacle_boxes(doc)[0]
+    self.assertLess(two[1], one[1],
+                    "a two-line name must reserve more room above the cell")
+
+
+
+class TestTextInsideTheSheet(unittest.TestCase):
+  """Nothing drawn may fall outside the canvas.
+
+  An instance name is centred on its cell and drawn above it, so a name wider
+  than the body reaches past it on three sides. content_bbox measured the
+  bodies, the wires and the shapes but not the names, so auto layout sized a
+  sheet that the names hung over the edge of -- and both the canvas and a
+  cropped export then clipped them.
+  """
+
+  def drawing(self, label):
+    doc = new_document("clip", 400, 200)
+    doc.cells.append({"id": "u", "type": "and2", "x": 40, "y": 40,
+                      "label": label})
+    doc.normalize()
+    return doc
+
+  def label_box(self, doc):
+    registry = default_registry()
+    cell = doc.cells[0]
+    return render_svg.cell_label_box(registry.for_cell(cell), cell,
+                                     doc.symbol_scale, doc.font_scale)
+
+  def test_a_name_wider_than_the_margin_still_fits_the_sheet(self):
+    registry = default_registry()
+    doc = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    layout.arrange(doc, registry)
+    box = self.label_box(doc)
+    self.assertGreaterEqual(box[0], 0, "the name runs off the left edge")
+    self.assertGreaterEqual(box[1], 0, "the name runs off the top edge")
+    self.assertLessEqual(box[2], doc.canvas["width"],
+                         "the name runs off the right edge")
+    self.assertLessEqual(box[3], doc.canvas["height"],
+                         "the name runs off the bottom edge")
+
+  def test_the_name_sits_inside_the_margin_like_everything_else(self):
+    """Not merely on the sheet: auto layout puts the leftmost thing it draws
+    at the margin, and the name is one of the things it draws. Measuring the
+    body alone left the name a few units from the edge while the cell it
+    belongs to sat a full margin in."""
+    registry = default_registry()
+    doc = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    layout.arrange(doc, registry)
+    box = self.label_box(doc)
+    self.assertGreaterEqual(
+      round(box[0], 3), drc.SHEET_MARGIN,
+      "the name sits %.0f from the edge, inside the %g margin"
+      % (box[0], drc.SHEET_MARGIN))
+
+  def test_the_sheet_grows_only_for_a_name_that_needs_it(self):
+    """The negative control: a short name must not inflate the canvas."""
+    registry = default_registry()
+    small = self.drawing("u1")
+    layout.arrange(small, registry)
+    big = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    layout.arrange(big, registry)
+    self.assertGreater(big.canvas["width"], small.canvas["width"])
+
+  def test_the_bounds_cover_the_name_as_well_as_the_body(self):
+    """Stated on content_bbox directly, since the crop uses the same box."""
+    registry = default_registry()
+    doc = self.drawing("an_extremely_long_instance_name_that_keeps_going")
+    box = doc.content_bbox(registry)
+    written = self.label_box(doc)
+    self.assertLessEqual(box[0], written[0])
+    self.assertLessEqual(box[1], written[1])
+    self.assertGreaterEqual(box[0] + box[2], written[2])
+    self.assertGreaterEqual(box[1] + box[3], written[3])
+
 
 
 if __name__ == "__main__":

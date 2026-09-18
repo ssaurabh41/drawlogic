@@ -39,6 +39,13 @@ async function api(url, options) {
 }
 
 let toastTimer = null;
+// The message a busy run is showing, or null when nothing is running, and
+// whatever `say` was asked for while that was true. Between them they are the
+// rule that only one thing talks at a time and the slow thing wins. Declared
+// up here beside the timer they work with, rather than down beside `busy`,
+// because `say` reads them and is defined first.
+let busyNow = null;
+let deferredSay = null;
 
 // Two places, on purpose. The status bar keeps the last thing that happened
 // for anyone who looks later; the toast puts it where the eye already is,
@@ -46,6 +53,14 @@ let toastTimer = null;
 // is a message nobody reads. Reported as "after clicking save, display a
 // message if successful or not" -- it did, just invisibly.
 function say(message, kind) {
+  // Something slow has the floor. This message fades and that one is still
+  // true, so this one waits its turn rather than replacing it: a "laying
+  // out..." that vanishes while the layout is still running is what makes
+  // people press the button a second time. It is said when the floor clears.
+  if (busyNow) {
+    deferredSay = [message, kind];
+    return;
+  }
   ui.message.textContent = message;
   ui.message.className = "push" + (kind ? ` ${kind}` : "");
 
@@ -93,13 +108,22 @@ function busy(message) {
 
   window.clearTimeout(toastTimer);
   window.clearInterval(busyTimer);
+  busyNow = message;
   tick();
   busyTimer = window.setInterval(tick, 1000);
 
   return () => {
     window.clearInterval(busyTimer);
     busyTimer = null;
+    busyNow = null;
     if (ui.toast) ui.toast.classList.remove("busy");
+    // Whatever tried to speak while the floor was taken says it now, which
+    // is how the layout's own "9 cells in 4 columns" gets through.
+    if (deferredSay) {
+      const [message, kind] = deferredSay;
+      deferredSay = null;
+      say(message, kind);
+    }
   };
 }
 
@@ -592,7 +616,14 @@ async function runCheck({ quiet = false } = {}) {
     }
 
     const took = Date.now() - started;
-    if (quiet && took > LIVE_BUDGET) {
+    // Not while something else is running. A check that overlapped a layout
+    // spent most of its time waiting behind it -- same process, one drawing's
+    // worth of Python at a time -- so `took` is the measure of what else was
+    // going on, not of this drawing. Turning live checking off over that
+    // number, and saying so over the top of the layout's own message, is how
+    // pressing Auto layout on a big drawing used to lose both at once. The
+    // next quiet check measures it honestly.
+    if (quiet && took > LIVE_BUDGET && !busyNow) {
       setLive(false);
       say(`this drawing takes ${took}ms to check, so live checking is off; `
           + "press Check when you want one", "warn");

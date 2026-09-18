@@ -159,3 +159,32 @@ def snap(value, step):
   if not step:
     return value
   return round(value / float(step)) * step
+
+
+def cluster_spots(values, reach):
+  """Group sorted-able positions that sit within `reach` of their neighbour.
+
+  Returns [(first, last), ...] in ascending order, one entry per run of
+  positions each within `reach` of the one before it. A lone position comes
+  back as (v, v).
+
+  Used for crossing bridges. A bridge is a bulge in a wire, and a bulge only
+  says "this crossing is not a connection" when there is flat wire either
+  side of it. Two bridges close together read as one squiggle -- and the
+  crossings themselves cannot be moved apart, because a bridge is drawn where
+  the wires actually cross. So the honest answer is to draw one wider bridge
+  over the whole group, which still says "these cross, I do not join them".
+  Grouping them is this function; the renderer draws them and the DRCs judge
+  what is left, both from the same grouping.
+  """
+  ordered = sorted(values)
+  if not ordered:
+    return []
+  groups = [(ordered[0], ordered[0])]
+  for value in ordered[1:]:
+    first, last = groups[-1]
+    if value - last <= reach:
+      groups[-1] = (first, value)
+    else:
+      groups.append((value, value))
+  return groups

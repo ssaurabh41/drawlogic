@@ -26,7 +26,7 @@ width/height attributes, so output stays vector-perfect at any size.
 from . import routing
 from . import drc
 from . import theme
-from .geometry import corners, fmt
+from .geometry import cluster_spots, corners, fmt
 from .symbols import default_registry
 
 DEFAULT_MARGIN = 24.0
@@ -425,15 +425,27 @@ def _net_path(points, hops, radius):
         # Leave room for the whole arc, or it would overrun the corner.
         if abs(hy - ay) < 1e-6 and low + radius < hx < high - radius:
           on_this.append(hx)
-      on_this.sort(reverse=direction < 0)
+      on_this.sort()
+      # Crossings closer together than a bridge plus visible flat wire get one
+      # bridge over the lot. They cannot be moved apart -- a bridge is drawn
+      # where the wires actually cross -- so the choice is one wide arc or a
+      # row of bumps that reads as a squiggle. See geometry.cluster_spots.
+      groups = cluster_spots(on_this, radius * 2 + drc.HOP_FLAT)
+      if direction < 0:
+        groups.reverse()
 
-      for hx in on_this:
-        parts.append("L%s %s" % (fmt(hx - radius * direction), fmt(ay)))
+      for first, last in groups:
+        near, far = (first, last) if direction > 0 else (last, first)
+        start = near - radius * direction
+        end = far + radius * direction
+        # A group spanning several crossings is a flattened arc: wide enough
+        # to clear them all, still only as tall as one bridge.
+        rx = abs(end - start) / 2.0
+        parts.append("L%s %s" % (fmt(start), fmt(ay)))
         # With y pointing down, sweep 1 bulges upward when travelling right.
         sweep = 1 if direction > 0 else 0
         parts.append("A%s %s 0 0 %d %s %s"
-                     % (fmt(radius), fmt(radius), sweep,
-                        fmt(hx + radius * direction), fmt(ay)))
+                     % (fmt(rx), fmt(radius), sweep, fmt(end), fmt(ay)))
 
     parts.append("L%s %s" % (fmt(bx), fmt(by)))
 

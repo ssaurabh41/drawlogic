@@ -499,15 +499,27 @@ function netPath(points, hops, radius) {
       const here = hops
         .filter(([hx, hy]) => Math.abs(hy - ay) < 1e-6
                               && hx > low + radius && hx < high - radius)
-        .map(([hx]) => hx)
-        .sort((p, q) => (direction > 0 ? p - q : q - p));
+        .map(([hx]) => hx);
 
-      for (const hx of here) {
-        parts.push(`L${geometry.fmt(hx - radius * direction)} ${geometry.fmt(ay)}`);
+      // Crossings closer together than a bridge plus visible flat wire get
+      // one bridge over the lot: they cannot be moved apart, so the choice is
+      // one wide arc or a row of bumps that reads as a squiggle. Mirrors
+      // _net_path in render_svg.py.
+      const groups = geometry.clusterSpots(
+        here, radius * 2 + routing.currentLimits().hopFlat);
+      if (direction < 0) groups.reverse();
+
+      for (const [first, last] of groups) {
+        const near = direction > 0 ? first : last;
+        const far = direction > 0 ? last : first;
+        const start = near - radius * direction;
+        const end = far + radius * direction;
+        const rx = Math.abs(end - start) / 2;
+        parts.push(`L${geometry.fmt(start)} ${geometry.fmt(ay)}`);
         // With y pointing down, sweep 1 bulges upward when travelling right.
         const sweep = direction > 0 ? 1 : 0;
-        parts.push(`A${geometry.fmt(radius)} ${geometry.fmt(radius)} 0 0 ${sweep} `
-                   + `${geometry.fmt(hx + radius * direction)} ${geometry.fmt(ay)}`);
+        parts.push(`A${geometry.fmt(rx)} ${geometry.fmt(radius)} 0 0 ${sweep} `
+                   + `${geometry.fmt(end)} ${geometry.fmt(ay)}`);
       }
     }
     parts.push(`L${geometry.fmt(bx)} ${geometry.fmt(by)}`);

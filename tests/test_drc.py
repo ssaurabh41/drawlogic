@@ -18,7 +18,7 @@ Usage:
 import io
 import unittest
 
-from drawlogic import drc, routing
+from drawlogic import drc, render_svg, routing
 from drawlogic.doc import Document, new_document
 from drawlogic.symbols import default_registry
 
@@ -385,9 +385,44 @@ class TestHops(unittest.TestCase):
                 "waypoints": [[x, 120], [x, 400]]}]})
     return doc
 
-  def test_two_bridges_on_top_of_each_other_are_reported(self):
-    found = only(drc.check(self.crossed(310, 322)), "hop-spacing")
-    self.assertTrue(found, "two bridges 12 apart merge and went unreported")
+  def test_two_crossings_close_together_are_drawn_as_one_bridge(self):
+    """Not reported -- fixed. The two crossings cannot be moved apart, since
+    a bridge is drawn where the wires actually cross, so the renderer spans
+    both with a single wider arc. One arc over two wires still says "these
+    cross, I do not join them", and it reads far better than two bumps with
+    two units of wire between them."""
+    import re
+    svg = render_svg.render(self.crossed(310, 322))
+    arcs = re.findall(r"A([\d.]+) ([\d.]+) 0 0 \d", svg)
+    self.assertEqual(len(arcs), 1, "expected one merged bridge, got %s" % arcs)
+    self.assertGreater(float(arcs[0][0]), float(arcs[0][1]),
+                       "a merged bridge should be wider than it is tall")
+    self.assertEqual(only(drc.check(self.crossed(310, 322)), "hop-spacing"), [],
+                     "a bridge the renderer merges is not a squiggle")
+
+  def test_two_bridges_far_enough_apart_stay_two_bridges(self):
+    """The negative control for the merge: it must not swallow crossings that
+    were perfectly readable as separate bulges."""
+    import re
+    svg = render_svg.render(self.crossed(280, 380))
+    arcs = re.findall(r"A([\d.]+) ([\d.]+) 0 0 \d", svg)
+    self.assertEqual(len(arcs), 2, "expected two separate bridges, got %s" % arcs)
+
+  def test_bridges_on_different_wires_are_still_reported(self):
+    """Merging only helps crossings on one wire, where one arc can cover the
+    lot. Two bulges on two different wires cannot be merged into anything, so
+    this is the case the rule still exists to catch -- without it the rule
+    would fire on nothing at all."""
+    doc = build(
+      [port("a", 40, 230), port("y", 620, 230, kind="port_out"),
+       port("a2", 40, 244), port("y2", 620, 244, kind="port_out"),
+       port("b", 300, 60), port("c", 300, 420, kind="port_out")],
+      [wire("h1", "a", "p", "y", "p"), wire("h2", "a2", "p", "y2", "p")],
+      width=700, height=500)
+    doc.nets.append({"id": "v", "from": {"cell": "b", "pin": "p"},
+                     "to": [{"cell": "c", "pin": "p",
+                             "waypoints": [[300, 120], [300, 400]]}]})
+    self.assertTrue(only(drc.check(doc), "hop-spacing"))
 
   def test_two_bridges_with_wire_between_them_are_clean(self):
     self.assertEqual(only(drc.check(self.crossed(280, 380)), "hop-spacing"), [])

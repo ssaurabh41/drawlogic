@@ -28,7 +28,7 @@ Usage:
 
 import math
 
-from .geometry import corners
+from .geometry import cluster_spots, corners
 
 # ---- wires ----------------------------------------------------------------
 
@@ -136,7 +136,14 @@ PORT_TO_WIRE = 12.0
 # Two crossing bridges closer than this merge into one squiggle and stop
 # reading as two separate crossings. A bridge is 5 units across, so this is
 # roughly "a bridge's width of flat wire between them".
-HOP_GAP = 16.0
+# Two crossing bridges need flat wire between them, or they read as one
+# squiggle. The bulge itself is theme.HOP_RADIUS (5) either side of the
+# crossing, so the centres have to be 10 apart before there is any flat wire
+# at all -- which is why 16 was too small: it allowed 6 units of flat between
+# two bulges, and the corridor grid puts crossings 20 apart all the time.
+# 22 = 10 of bulge plus HOP_FLAT of wire you can actually see.
+HOP_FLAT = 12.0
+HOP_GAP = 22.0
 
 # A bridge drawn over a corner or a junction dot deforms it, and a deformed
 # junction is a connection the reader is no longer sure about.
@@ -188,6 +195,7 @@ def as_data():
     "portToCell": PORT_TO_CELL,
     "portToWire": PORT_TO_WIRE,
     "hopGap": HOP_GAP,
+    "hopFlat": HOP_FLAT,
     "hopToCorner": HOP_TO_CORNER,
     "hopToCell": HOP_TO_CELL,
     "hopToText": HOP_TO_TEXT,
@@ -770,8 +778,20 @@ def _check_hops(scene, report):
   how a junction is drawn, so the reader loses the connection as well.
   """
   hops = scene.hops
-  for index, (net_id, spot) in enumerate(hops):
-    for other_id, other in hops[index + 1:]:
+  # Judge what the renderer actually draws. Crossings closer than a bridge
+  # plus flat wire are drawn as one wider bridge (geometry.cluster_spots), so
+  # warning about them would be complaining about a squiggle nobody draws.
+  # What is left is genuine: two separate bulges with too little between them.
+  merged = []
+  rows = {}
+  for net_id, spot in hops:
+    rows.setdefault((net_id, round(spot[1], 3)), []).append(spot[0])
+  for (net_id, y), xs in rows.items():
+    for first, last in cluster_spots(xs, HOP_GAP):
+      merged.append((net_id, ((first + last) / 2.0, y)))
+
+  for index, (net_id, spot) in enumerate(merged):
+    for other_id, other in merged[index + 1:]:
       gap = math.hypot(spot[0] - other[0], spot[1] - other[1])
       if gap >= HOP_GAP:
         continue

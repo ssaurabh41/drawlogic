@@ -179,3 +179,24 @@ export function cellBounds(symbol, cell, scale = 1) {
     .map(([px, py]) => matrix.apply(px, py));
   return boundsOf(points);
 }
+
+
+// Group sorted-able positions that sit within `reach` of their neighbour,
+// as [[first, last], ...]. A lone position comes back as [v, v].
+//
+// Used for crossing bridges. A bridge is a bulge in a wire, and a bulge only
+// says "this crossing is not a connection" when there is flat wire either
+// side of it. The crossings themselves cannot be moved apart -- a bridge is
+// drawn where the wires actually cross -- so close ones get one wider bridge
+// over the group. Mirrors cluster_spots in geometry.py.
+export function clusterSpots(values, reach) {
+  const ordered = [...values].sort((a, b) => a - b);
+  if (!ordered.length) return [];
+  const groups = [[ordered[0], ordered[0]]];
+  for (const value of ordered.slice(1)) {
+    const group = groups[groups.length - 1];
+    if (value - group[1] <= reach) group[1] = value;
+    else groups.push([value, value]);
+  }
+  return groups;
+}

@@ -998,6 +998,34 @@ the whole sheet.
 
 ---
 
+### The grid a layout lands on
+
+Placing works in real numbers -- a column's width is averaged and a cell is
+centred in it -- so a laid-out drawing used to come to rest on values like
+113.48. Nothing drawing the file minded. The next person to drag something
+did: a drag snaps to the grid, and a grid the drawing is no longer on cannot
+line anything up with anything.
+
+So the finished arrangement is rounded to the step the library's pins use,
+`drc.PIN_GRID`. That is only safe when every pin offset in the drawing is a
+whole number of steps, and then it is exactly safe: auto layout lines two
+cells up by setting one's y to the other's pin height less its own pin
+offset, so two aligned cells differ by the difference of their offsets. Whole
+steps means both have the same fractional part, both round the same way, and
+the wire between them stays straight.
+
+Where they are not -- `block8` sits at 26, 58, 102 and 134, and stretching a
+cell multiplies whatever its offset was -- the two ends move by different
+amounts and straight wires bend. Tried without that guard, spi_master went
+from four straight wires out of nineteen to one. So a drawing like that is
+left where it is, off the grid, rather than rounded and regretted.
+
+Rounding is judged on errors and warnings alone, not on the score. The score
+folds in wire length and area, and it refused the grid on three examples for
+about a tenth of a percent of wire with the violation counts identical either
+way -- a trade not worth making, since the thing the grid buys is not in the
+score at all.
+
 ### How a wire forks
 
 A wire with one driver and several loads has two ways to reach them. It can

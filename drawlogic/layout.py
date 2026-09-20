@@ -134,9 +134,94 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   order = _refine(doc, registry, cells, edges, ranks, best[1],
                   gap_x, gap_y, margin, best[2])
   _fit(doc, registry, margin)
+  # Onto the grid first, because moving a cell changes which way its wires
+  # want to fork, and then the forking, on the arrangement that is staying.
+  _settle_on_grid(doc, registry, margin)
   _choose_forking(doc, registry)
 
   return Result(len(order), len(cells), feedback)
+
+
+def _settle_on_grid(doc, registry, margin):
+  """Round the finished arrangement onto the grid, where that is safe to do.
+
+  Placing works in real numbers -- a column's width is averaged and a cell is
+  centred in it -- so cells come to rest on values like 113.48. Nothing
+  downstream minds, but the person who presses the button next does: a drag
+  snaps to the grid, and a grid the drawing is no longer on cannot line
+  anything up with anything.
+
+  Rounding is only safe when every pin offset in the drawing is a multiple of
+  the step, and then it is exactly safe. `_place` lines two cells up by
+  setting one's y to the other's pin height less its own pin offset, so two
+  aligned cells differ by the difference of their offsets. If those are
+  multiples of the step the two ys have the same fractional part, so both
+  round the same way and the wire between them stays straight.
+
+  Where they are not -- block8 sits at 26, 58, 102 and 134, and stretching a
+  cell multiplies whatever the offset was -- rounding moves the two ends by
+  different amounts and straightens nothing while bending plenty. Tried
+  without this guard, spi_master went from four straight wires out of
+  nineteen to one.
+
+  So the drawing is asked first, and the result is measured afterwards anyway.
+  """
+  step = drc.PIN_GRID
+  if step <= 0 or not _offsets_on_grid(doc, registry, step):
+    return
+
+  before = _violation_count(doc, registry)
+  was = [(cell["x"], cell["y"]) for cell in doc.cells]
+  canvas = dict(doc.canvas)
+
+  for cell in doc.cells:
+    cell["x"] = round(cell["x"] / step) * step
+    cell["y"] = round(cell["y"] / step) * step
+  _fit(doc, registry, margin)
+
+  if _violation_count(doc, registry) > before:
+    for cell, (x, y) in zip(doc.cells, was):
+      cell["x"], cell["y"] = x, y
+    doc.canvas.clear()
+    doc.canvas.update(canvas)
+
+
+def _offsets_on_grid(doc, registry, step):
+  """True when every pin in the drawing sits a whole step from its cell."""
+  for cell in doc.cells:
+    symbol = registry.for_cell(cell)
+    if symbol is None:
+      continue
+    for pin in symbol.pins:
+      for value in _pin_offset(registry, doc, cell, pin["name"]):
+        if abs(value / step - round(value / step)) > EPSILON:
+          return False
+  return True
+
+
+def _violation_count(doc, registry):
+  """Errors and warnings, worst first, and deliberately nothing else.
+
+  `_score` folds violations, wire length and area into one number, which is
+  what the search above wants when it is choosing between arrangements that
+  are much of a muchness. It is the wrong measure for the grid, because the
+  thing the grid buys does not appear in it at all: a drawing sitting on the
+  step its pins use is one whose next hand edit lines up, and no term in the
+  score knows that.
+
+  Measured against the score, rounding was refused on three of the examples
+  for a twelfth of a percent of wire -- alu_slice 8552 against 8564 -- with
+  the error and warning counts identical either way. That is a trade not
+  worth making, so only the counts are compared, and a drawing that reads
+  exactly as well goes on the grid.
+  """
+  errors = warnings = 0
+  for issue in drc.check(doc, registry):
+    if issue.level == "error":
+      errors += 1
+    elif issue.level == "warning":
+      warnings += 1
+  return (errors, warnings)
 
 
 def _choose_forking(doc, registry):

@@ -904,3 +904,64 @@ class TestForkingIsChosenByMeasuring(unittest.TestCase):
         layout.arrange(doc, registry)
         self.assertEqual(doc.dumps(), once,
                          "%s moved when laid out a second time" % name)
+
+
+class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
+  """A laid-out drawing lands on the step its pins use, where that is safe.
+
+  Placing works in real numbers, so cells came to rest on values like 113.48.
+  Nothing downstream minded, but the next person to drag something did: a drag
+  snaps to the grid, and a grid the drawing is no longer on lines nothing up.
+  """
+
+  STEP = drc.PIN_GRID
+
+  def laid_out(self, name):
+    doc, registry, _ = open_example(
+      os.path.join(ROOT, "examples", name + ".dlg"))
+    layout.arrange(doc, registry)
+    return doc, registry
+
+  def on_grid(self, doc):
+    return all(abs(value / self.STEP - round(value / self.STEP)) < 1e-9
+               for cell in doc.cells for value in (cell["x"], cell["y"]))
+
+  def test_a_drawing_whose_pins_suit_it_comes_back_on_the_grid(self):
+    for name in ("alu_slice", "dff_slice", "mac_pipe"):
+      with self.subTest(example=name):
+        doc, registry = self.laid_out(name)
+        self.assertTrue(
+          layout._offsets_on_grid(doc, registry, self.STEP),
+          "%s was picked because its pin offsets are whole steps" % name)
+        self.assertTrue(self.on_grid(doc),
+                        "%s came back off the grid" % name)
+
+  def test_a_drawing_whose_pins_do_not_is_left_alone(self):
+    """spi_master uses block8, whose pins sit at 26, 58, 102 and 134.
+
+    Rounding there moves the two ends of a wire by different amounts, which
+    bends wires that were straight -- four of nineteen down to one, measured.
+    So it is not done at all rather than done and then regretted.
+    """
+    doc, registry = self.laid_out("spi_master")
+    self.assertFalse(
+      layout._offsets_on_grid(doc, registry, self.STEP),
+      "spi_master's offsets are whole steps now, so this test has lost its "
+      "subject -- pick another drawing or drop it")
+    self.assertFalse(self.on_grid(doc),
+                     "spi_master was rounded despite its offsets")
+
+  def test_settling_never_costs_an_error_or_a_warning(self):
+    """The grid is worth a little wire, and nothing at all beyond that."""
+    for name in ("alu_slice", "cdc_fifo", "mac_pipe", "dff_slice"):
+      with self.subTest(example=name):
+        doc, registry = self.laid_out(name)
+        after = layout._violation_count(doc, registry)
+        for cell in doc.cells:
+          cell["x"] = cell["x"] + 0.37
+          cell["y"] = cell["y"] + 0.37
+        off_grid = layout._violation_count(doc, registry)
+        self.assertLessEqual(
+          after, off_grid,
+          "%s reads worse on the grid (%s) than off it (%s)"
+          % (name, after, off_grid))

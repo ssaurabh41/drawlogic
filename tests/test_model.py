@@ -303,3 +303,69 @@ class TestMalformedContainers(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestEveryPinSitsOnTheGrid(unittest.TestCase):
+  """Pins land on multiples of five, so a dragged wire can reach them.
+
+  A cell is dropped on the drawing's grid and a pin sits at a fixed offset
+  inside its symbol, so the pin's place on the sheet is the sum of the two. If
+  that offset is not a multiple of the step a wire is dragged on, no amount of
+  careful dragging will ever line the wire up with the pin -- it will always
+  stop a unit or two short, and the near-miss is drawn as a kink.
+
+  Most of the library already obeyed this. block6 and block8 did not, with
+  pins at 24, 26, 58, 96, 102 and 134.
+  """
+
+  STEP = 5
+
+  # block6 and block8 sit at 24, 26, 58, 96, 102 and 134, and are left there.
+  # Moving them to multiples of five is a one-line change to symbols.json and
+  # it makes the drawings worse: cdc_fifo and spi_master were drawn against
+  # these offsets, so every cell wired to one of those blocks lines up with it
+  # exactly, and shifting a pin by a unit or two turns a straight wire into a
+  # 1.2-unit jog. cdc_fifo went from two warnings to six when it was tried.
+  #
+  # Nor would it be enough on its own: cdc_fifo stretches its blocks by 1.25,
+  # and a stretch multiplies the offset, so no fixed grid in symbol space
+  # survives it. 24 happens to scale to 30 and 25 to 31.25, which is how the
+  # old numbers turned out to be the better ones for that drawing.
+  GRANDFATHERED = ("block6", "block8")
+
+  def test_no_new_symbol_has_a_pin_off_the_grid(self):
+    registry = default_registry()
+    stray = []
+    for symbol_id in registry.ids():
+      if symbol_id in self.GRANDFATHERED:
+        continue
+      symbol = registry.get(symbol_id)
+      for pin in symbol.pins:
+        if pin["x"] % self.STEP or pin["y"] % self.STEP:
+          stray.append("%s.%s at (%g, %g)"
+                       % (symbol_id, pin["name"], pin["x"], pin["y"]))
+    self.assertEqual(stray, [],
+                     "pins off the %d grid: %s" % (self.STEP, "; ".join(stray)))
+
+  def test_the_grandfathered_two_are_still_the_only_ones(self):
+    """So the exemption shrinks when one of them is fixed, rather than hiding
+    the next symbol that drifts off the grid."""
+    registry = default_registry()
+    off = [symbol_id for symbol_id in registry.ids()
+           for pin in registry.get(symbol_id).pins
+           if pin["x"] % self.STEP or pin["y"] % self.STEP]
+    self.assertEqual(sorted(set(off)), sorted(self.GRANDFATHERED))
+
+  def test_a_placed_pin_lands_on_the_grid_too(self):
+    """The offset is only half of it; the cell has to be on the grid as well."""
+    registry = default_registry()
+    doc = new_document("grid", 400, 300)
+    doc.cells.append({"id": "u", "type": "dffr", "x": 100, "y": 60})
+    doc.normalize()
+    cell = doc.cells[0]
+    symbol = registry.for_cell(cell)
+    for pin in symbol.pins:
+      spot = symbol.pin_position(cell, pin["name"], doc.symbol_scale)
+      self.assertEqual(
+        (spot[0] % self.STEP, spot[1] % self.STEP), (0, 0),
+        "pin %s of a cell on the grid landed at %s" % (pin["name"], spot))

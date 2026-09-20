@@ -352,7 +352,7 @@ how many went.
 | `V` `W` `E` | select tool, wire tool, eraser |
 | `L` `B` `P` `T` | line, box, polygon, text |
 | click, `Ctrl`+click, drag a box | select one, add or remove one, marquee |
-| drag | move, snapped to the grid |
+| drag | move, snapped to the grid (a wire snaps to 5, so it can reach a pin) |
 | `Ctrl`+drag | duplicate as you drag |
 | `Ctrl+N` | new drawing |
 | drag a wire | slide that run of it; the wire becomes hand-routed |

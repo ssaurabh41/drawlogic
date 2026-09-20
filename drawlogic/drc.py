@@ -168,6 +168,17 @@ SHEET_MARGIN = 90.0
 # SHEET_MARGIN, which is what a layout aims for rather than what it must have.
 SHEET_EDGE = 20.0
 
+# The step every pin in the library sits on, and so the step a wire is dragged
+# on. A cell is dropped on the drawing's grid and a pin sits at a fixed offset
+# inside its symbol, so a pin's place on the sheet is the sum of the two --
+# and a wire dragged on a coarser step than that offset can never line up with
+# the pin it is heading for. It stops a unit or two short every time, and the
+# near-miss is drawn as a kink.
+#
+# Five, because that is what the library already used for all but two of its
+# symbols; tests/test_model.py holds the rest of it to the same number.
+PIN_GRID = 5.0
+
 # The sheet a new drawing gets. One size for every drawing means a folder of
 # them prints and pastes consistently; change it per drawing in the properties
 # panel when one needs more room.
@@ -194,6 +205,7 @@ def as_data():
     "cellGapX": CELL_GAP_X,
     "cellGapY": CELL_GAP_Y,
     "cellMinGap": CELL_MIN_GAP,
+    "pinGrid": PIN_GRID,
     "portStub": PORT_STUB,
     "portGap": PORT_GAP,
     "portToCell": PORT_TO_CELL,

@@ -37,6 +37,7 @@ const EXPECTED = [
   ["the Tidy command", 9],
   ["nets with more than one load", 10],
   ["dragging a wire by one of its runs", 13],
+  ["the step a wire is dragged on", 4],
   ["undo through a gesture", 5],
   ["duplicating a group", 6],
   ["stale answers", 8],
@@ -300,6 +301,40 @@ function wired() {
   check("and both start at the driving pin",
         branches[0][0][0] === branches[1][0][0]
         && branches[0][0][1] === branches[1][0][1]);
+}
+
+// ---- the step a wire is dragged on ----
+//
+// Not the step a cell is dropped on. A cell lands on the drawing's grid and a
+// pin sits at a fixed offset inside its symbol, so a port dropped on a 10
+// grid puts its connector at a multiple of 10 plus 5. A wire dragged on 10
+// can never meet it: it stops five short every time, and that near-miss is
+// drawn as a kink.
+section("the step a wire is dragged on");
+
+{
+  const doc = {
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 10 } },
+    cells: [], nets: [], shapes: [], groups: [],
+  };
+  check("a wire drags on a finer step than a cell",
+        model.wireStep(doc) === 5 && model.gridStep(doc) === 10,
+        `wire ${model.wireStep(doc)}, cell ${model.gridStep(doc)}`);
+
+  const port = { id: "p", type: "port_in", x: 100, y: 60, w: 20, h: 10,
+                 rotate: 0, mirror: false };
+  doc.cells.push(port);
+  const symbol = geometry.forCell(port);
+  const spot = geometry.pinPosition(symbol, port, "p", 1);
+  check("a port on the grid puts its pin off the cell step",
+        spot[1] % model.gridStep(doc) !== 0, `pin at ${spot[1]}`);
+  check("but on the wire step, so a drag can reach it",
+        spot[1] % model.wireStep(doc) === 0, `pin at ${spot[1]}`);
+
+  // A drawing asking for something finer keeps it: the rule is a ceiling.
+  doc.canvas.grid.size = 2;
+  check("a finer grid than the pins is honoured as it stands",
+        model.wireStep(doc) === 2, `wire ${model.wireStep(doc)}`);
 }
 
 // ---- dragging a wire by one of its runs ----

@@ -171,7 +171,7 @@ export class SelectTool {
     }
 
     if (this.mode === "waypoint") {
-      const step = model.gridStep(store.doc);
+      const step = model.wireStep(store.doc);
       // A horizontal run moves in y and a vertical one in x: a run slides
       // across itself, it does not travel along itself.
       const value = model.snap(this.run.horizontal ? point[1] : point[0], step);

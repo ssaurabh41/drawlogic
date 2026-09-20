@@ -196,6 +196,19 @@ export function snap(value, step) {
   return step ? Math.round(value / step) * step : value;
 }
 
+// The step a wire is dragged on, which is not the step a cell is dropped on.
+// Pins land on multiples of drc.PIN_GRID, so a wire dragged on the drawing's
+// own grid -- 10 by default -- could never meet a pin sitting at a multiple of
+// 5 that is not a multiple of 10, which is where a port's connector always is.
+// It stopped short every time and the near-miss was drawn as a kink. A finer
+// grid than that is honoured as it stands: the rule is a ceiling, not a step
+// of its own.
+export function wireStep(doc) {
+  const grid = gridStep(doc);
+  const pins = routing.currentLimits().pinGrid || 5;
+  return Math.min(grid, pins);
+}
+
 export function symbolScale(doc) {
   const value = Number(doc.canvas.symbolScale);
   return Number.isFinite(value) && value > 0 ? value : 1;

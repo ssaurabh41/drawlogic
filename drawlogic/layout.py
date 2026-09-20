@@ -89,6 +89,13 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
 
   _face_forward(cells)
   _forget_waypoints(doc)
+  # The search below routes the drawing dozens of times to compare
+  # arrangements, and it has to do that the same way every time: with the flag
+  # left as the file happened to carry it, laying out a drawing a second time
+  # searched differently from the first and settled somewhere else. So the
+  # search always runs with wires forking early, and `_choose_forking` decides
+  # the question once at the end, on the arrangement that won.
+  doc.canvas.pop("forkLate", None)
 
   edges, feedback = _edges(doc, registry, cells)
   ranks = _ranks(doc, registry, cells, edges)
@@ -127,8 +134,43 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   order = _refine(doc, registry, cells, edges, ranks, best[1],
                   gap_x, gap_y, margin, best[2])
   _fit(doc, registry, margin)
+  _choose_forking(doc, registry)
 
   return Result(len(order), len(cells), feedback)
+
+
+def _choose_forking(doc, registry):
+  """Route the finished drawing both ways and keep the wires that measure better.
+
+  A wire with several loads can give each one its own way across the sheet, or
+  it can run as one trunk that divides near the pins it serves. The second is
+  shorter on most drawings and puts the junction dot beside the load rather
+  than beside the driver, which is how a schematic is read -- but not always:
+  a branch that leaves late takes a line of its own, and every wire routed
+  after it then has to dodge that line instead of the old one. On the examples
+  here that comes out ahead three times, level once and behind once, and
+  nothing short of routing the drawing says which it will be.
+
+  So it is asked rather than assumed, once, on the arrangement that won. Two
+  extra routing passes against the dozens `_refine` has already done, and the
+  answer is written into the drawing so that every later render -- the canvas,
+  the exporter, the checker -- draws the wires the layout measured.
+  """
+  best = None
+  for late in (False, True):
+    if late:
+      doc.canvas["forkLate"] = True
+    else:
+      doc.canvas.pop("forkLate", None)
+    score = _score(doc, registry)
+    if best is None or score < best[0] - EPSILON:
+      best = (score, late)
+  # Absent rather than false, so a drawing that gains nothing from this is
+  # written exactly as it would have been before it existed.
+  if best[1]:
+    doc.canvas["forkLate"] = True
+  else:
+    doc.canvas.pop("forkLate", None)
 
 
 # A ceiling on how many times to sweep every column looking for a swap worth

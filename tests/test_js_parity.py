@@ -19,7 +19,7 @@ import subprocess
 import tempfile
 import unittest
 
-from drawlogic import drc, render_svg, routing, theme
+from drawlogic import drc, layout, render_svg, routing, theme
 from drawlogic.doc import new_document
 from drawlogic.symbols import default_registry
 
@@ -328,3 +328,55 @@ class TestRouterParity(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestForkingLateAgreesInBothRenderers(unittest.TestCase):
+  """A drawing whose wires fork late routes the same in node as in Python.
+
+  Nothing in examples/ carries the flag, because it is written by the layout
+  and those files are stored as drawn. So the router parity suite above would
+  go on passing with this half-built: both sides would fork early, agree
+  perfectly, and prove nothing about the half that does the work. A drawing
+  that asks for it is the only thing that tests it.
+  """
+
+  def laid_out_with_forking(self, name):
+    """An example, laid out, with the wires told to fork late."""
+    doc, registry, _ = open_example(os.path.join(EXAMPLES, name))
+    layout.arrange(doc, registry)
+    doc.canvas["forkLate"] = True
+    return doc, registry
+
+  def test_both_routers_agree_when_wires_fork_late(self):
+    for name in ("alu_slice.dlg", "cdc_fifo.dlg", "spi_master.dlg"):
+      with self.subTest(example=name):
+        doc, registry = self.laid_out_with_forking(name)
+        handle, path = tempfile.mkstemp(suffix=".dlg")
+        os.close(handle)
+        try:
+          doc.save(path)
+          browser = _browser_result(path, registry)
+          routes = routing.route_all(doc, registry)
+          self.assertTrue(any(branches for _, branches in routes),
+                          "%s routed to nothing, so this proves nothing" % name)
+          expected = [[net["id"], _rounded(branches)]
+                      for net, branches in routes]
+          actual = [[net_id, _rounded(branches)]
+                    for net_id, branches in browser["routes"]]
+          self.assertEqual(
+            actual, expected,
+            "%s with forkLate: routing.js and routing.py disagree" % name)
+        finally:
+          os.unlink(path)
+
+  def test_the_flag_actually_changes_what_is_drawn(self):
+    """Otherwise the agreement above is between two idle code paths."""
+    doc, registry = self.laid_out_with_forking("alu_slice.dlg")
+    late = _rounded([b for _net, branches in routing.route_all(doc, registry)
+                     for b in branches])
+    doc.canvas.pop("forkLate", None)
+    early = _rounded([b for _net, branches in routing.route_all(doc, registry)
+                      for b in branches])
+    self.assertNotEqual(early, late,
+                        "forkLate changed nothing, so the parity above is "
+                        "comparing two wires that fork early")

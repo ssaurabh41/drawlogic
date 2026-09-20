@@ -843,3 +843,64 @@ class TestWhichWayTheSignalRuns(unittest.TestCase):
     self.assertEqual(
       facing_right["io"], 0,
       "a mirrored inout port drives, so it belongs in the first column")
+
+
+class TestForkingIsChosenByMeasuring(unittest.TestCase):
+  """Whether wires fork late is decided by routing the drawing, not assumed.
+
+  A wire with several loads can give each one its own way across the sheet, or
+  run as one trunk that divides near the pins it serves. The second is shorter
+  on most drawings and puts the junction dot beside the load rather than the
+  driver -- but not on all of them, because a branch that leaves late takes a
+  line of its own and every wire routed after it has to dodge that line
+  instead. Assuming either way made some drawing worse, so the layout routes
+  the finished arrangement both ways and keeps the better.
+  """
+
+  def test_the_choice_never_makes_a_drawing_worse(self):
+    """Whatever it picks is at least as good as either answer alone."""
+    for name in ("alu_slice", "cdc_fifo", "spi_master", "mac_pipe",
+                 "dff_slice"):
+      with self.subTest(example=name):
+        path = os.path.join(ROOT, "examples", name + ".dlg")
+        doc, registry, _ = open_example(path)
+        layout.arrange(doc, registry)
+        chosen = layout._score(doc, registry)
+
+        both = []
+        for late in (False, True):
+          if late:
+            doc.canvas["forkLate"] = True
+          else:
+            doc.canvas.pop("forkLate", None)
+          both.append(layout._score(doc, registry))
+        self.assertLessEqual(
+          chosen, min(both) + 1e-6,
+          "%s: kept a %.0f when %.0f was available" % (name, chosen, min(both)))
+
+  def test_it_leaves_the_flag_off_when_it_buys_nothing(self):
+    """An unchanged drawing is written exactly as it was before this existed."""
+    doc, registry, _ = open_example(os.path.join(ROOT, "examples",
+                                                 "spi_master.dlg"))
+    layout.arrange(doc, registry)
+    self.assertNotIn(
+      "forkLate", doc.canvas,
+      "spi_master measures worse forking late, so the flag should be absent "
+      "rather than written as false")
+
+  def test_laying_out_twice_gives_the_same_answer(self):
+    """The search has to start from a known state, whatever the file carried.
+
+    Left as the file happened to have it, the second layout searched
+    differently from the first and settled somewhere else -- which is the one
+    thing a layout button must never do.
+    """
+    for name in ("alu_slice", "soc_top"):
+      with self.subTest(example=name):
+        path = os.path.join(ROOT, "examples", name + ".dlg")
+        doc, registry, _ = open_example(path)
+        layout.arrange(doc, registry)
+        once = doc.dumps()
+        layout.arrange(doc, registry)
+        self.assertEqual(doc.dumps(), once,
+                         "%s moved when laid out a second time" % name)

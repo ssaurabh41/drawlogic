@@ -477,15 +477,161 @@ export function route(doc, net, sheet = null) {
   const keys = endpointKeys(net);
 
   const branches = [];
+  // Only a wire with somewhere to fork needs any of the tapping machinery, and
+  // most wires have one load, so the terminals are worked out only if asked for.
+  let terminals = null;
+  const late = forksLate(doc);
   for (const load of loadsOf(net)) {
-    const points = branchTo(doc, net, load, start, startDir, board, keys);
+    let points = branchTo(doc, net, load, start, startDir, board, keys);
+    const [tap, tapDir] = late
+      ? tapPoint(branches, endpointPosition(doc, load)) : [null, null];
+    if (tap) {
+      if (terminals === null) terminals = foreignTerminals(doc, net);
+      const shorter = branchTo(doc, net, load, tap, tapDir, board, keys, false);
+      // Both ways are routed and the shorter clean one wins. Leaving late is
+      // the point of the exercise, but it is worth doing only when it actually
+      // saves wire: a tap that comes out no shorter has bought nothing and
+      // still moved the wire, which shifts what every net routed after it has
+      // to dodge.
+      if (runLength(shorter) < runLength(points) - EPSILON
+          && landsClear(shorter, doc, net, load, board, keys, terminals)) {
+        points = shorter;
+      }
+    }
     if (points.length) branches.push(points);
   }
   return branches;
 }
 
-// One path, from the driving pin to one of the loads.
-function branchTo(doc, net, load, start, startDir, sheet, keys) {
+// Whether this drawing's wires share a trunk and divide near their loads.
+// Off unless the drawing says so, so a file written before any of this existed
+// is routed exactly as it always was. See routing.forks_late.
+export function forksLate(doc) {
+  return Boolean(doc && doc.canvas && doc.canvas.forkLate);
+}
+
+function runLength(points) {
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    total += Math.abs(points[i + 1][0] - points[i][0])
+           + Math.abs(points[i + 1][1] - points[i][1]);
+  }
+  return total;
+}
+
+// Where a new branch should leave the wire already drawn, and going which way.
+// See routing._tap: a wire is a tree, so the run is shared until it has to
+// divide, and the last moment to leave is the point nearest the pin served.
+function tapPoint(branches, end) {
+  if (!branches.length || !end) return [null, null];
+  let best = null;
+  for (const points of branches) {
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      const spot = closestOnRun(end, a, b);
+      const away = Math.abs(spot[0] - end[0]) + Math.abs(spot[1] - end[1]);
+      if (!best || away < best.away - EPSILON) {
+        best = { away, spot, run: [b[0] - a[0], b[1] - a[1]] };
+      }
+    }
+  }
+  if (!best) return [null, null];
+  const length = Math.max(Math.abs(best.run[0]), Math.abs(best.run[1]));
+  if (length < EPSILON) return [null, null];
+  return [best.spot, [best.run[0] / length, best.run[1] / length]];
+}
+
+function closestOnRun(point, a, b) {
+  return [
+    Math.min(Math.max(point[0], Math.min(a[0], b[0])), Math.max(a[0], b[0])),
+    Math.min(Math.max(point[1], Math.min(a[1], b[1])), Math.max(a[1], b[1])),
+  ];
+}
+
+// Where every other wire in the drawing begins and ends. A wire laid across
+// the pin another wire stops at is drawn with a junction dot on it, which says
+// the two are connected when the file says they are not. See
+// routing._foreign_terminals.
+function foreignTerminals(doc, net) {
+  const mine = endpointKeys(net);
+  const spots = [];
+  for (const other of doc.nets || []) {
+    if (other === net || other.id === net.id) continue;
+    const keys = endpointKeys(other);
+    if ([...keys].some((key) => mine.has(key))) continue;
+    for (const endpoint of [other.from, ...loadsOf(other)]) {
+      const spot = endpointPosition(doc, endpoint);
+      if (spot) spots.push(spot);
+    }
+  }
+  return spots;
+}
+
+// Cell bodies as drawn, without the clearance a router keeps around them.
+// See routing.body_boxes: the padded boxes are the right question when
+// choosing a corridor and the wrong one when judging a finished route.
+function bodyBoxes(doc, exclude = new Set()) {
+  const scale = symbolScale(doc);
+  const boxes = [];
+  for (const cell of doc.cells) {
+    if (exclude.has(cell.id)) continue;
+    const symbol = geometry.forCell(cell);
+    if (!symbol) continue;
+    const matrix = geometry.matrixFor(symbol, cell, scale);
+    const points = geometry.corners(0, 0, symbol.size[0], symbol.size[1])
+      .map(([px, py]) => matrix.apply(px, py));
+    const xs = points.map((p) => p[0]);
+    const ys = points.map((p) => p[1]);
+    boxes.push([Math.min(...xs), Math.min(...ys),
+                Math.max(...xs), Math.max(...ys)]);
+  }
+  return boxes;
+}
+
+function onRun(point, a, b) {
+  if (Math.abs(a[1] - b[1]) < EPSILON) {
+    return Math.abs(point[1] - a[1]) < EPSILON
+      && Math.min(a[0], b[0]) - EPSILON <= point[0]
+      && point[0] <= Math.max(a[0], b[0]) + EPSILON;
+  }
+  if (Math.abs(a[0] - b[0]) < EPSILON) {
+    return Math.abs(point[0] - a[0]) < EPSILON
+      && Math.min(a[1], b[1]) - EPSILON <= point[1]
+      && point[1] <= Math.max(a[1], b[1]) + EPSILON;
+  }
+  return false;
+}
+
+// See routing._lands_clear.
+function landsClear(points, doc, net, load, sheet, keys, terminals) {
+  if (!points || points.length < 2) return false;
+  const exclude = new Set();
+  for (const endpoint of [net.from, load]) {
+    if (endpoint && endpoint.cell !== undefined) exclude.add(endpoint.cell);
+  }
+  const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id);
+  const bodies = bodyBoxes(doc, exclude);
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const a = points[i];
+    const b = points[i + 1];
+    if (!legClear(a, b, bodies)) return false;
+    if (Math.abs(a[1] - b[1]) < EPSILON) {
+      if (!view.free(true, a[1], a[0], b[0])) return false;
+    } else if (Math.abs(a[0] - b[0]) < EPSILON) {
+      if (!view.free(false, a[0], a[1], b[1])) return false;
+    }
+    for (const spot of terminals) {
+      if (onRun(spot, a, b)) return false;
+    }
+  }
+  return true;
+}
+
+// One path, from the driving pin -- or from a tap on the wire -- to a load.
+// `fromPin` is false when the branch leaves the middle of a wire already
+// drawn: there is no pin to stand off from there, so it gets no stub.
+function branchTo(doc, net, load, start, startDir, sheet, keys, fromPin = true) {
   const end = endpointPosition(doc, load);
   if (!end) return [];
 
@@ -499,7 +645,8 @@ function branchTo(doc, net, load, start, startDir, sheet, keys) {
     const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id);
     return clean(directRoute(start, end, startDir,
                              endpointDirection(doc, load), view,
-                             stubFor(doc, net.from), stubFor(doc, load)));
+                             fromPin ? stubFor(doc, net.from) : 0,
+                             stubFor(doc, load)));
   }
 
   const points = [start, ...waypoints, end];

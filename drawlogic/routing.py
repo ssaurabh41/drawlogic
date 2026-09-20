@@ -210,6 +210,32 @@ def obstacle_boxes(doc, registry=None, exclude=()):
   return boxes
 
 
+def body_boxes(doc, registry=None, exclude=()):
+  """Cell bodies as they are drawn, without the clearance a router keeps.
+
+  `obstacle_boxes` pads every cell so a wire is steered well clear of it and
+  of the name above it. That is the right question when choosing a corridor
+  and the wrong one when asking whether a finished route is acceptable: a
+  wire passing snugly by a cell is untidy, and one drawn across its body is
+  an error. This is the second question, and it is the one the DRC asks.
+  """
+  registry = registry or default_registry()
+  boxes = []
+  for cell in doc.cells:
+    if cell.get("id") in exclude:
+      continue
+    symbol = registry.for_cell(cell)
+    if symbol is None:
+      continue
+    matrix = symbol.matrix_for(cell, doc.symbol_scale)
+    points = [matrix.apply(px, py)
+              for px, py in corners(0, 0, symbol.width, symbol.height)]
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    boxes.append((min(xs), min(ys), max(xs), max(ys)))
+  return boxes
+
+
 def _vertical_clear(x, y0, y1, boxes):
   lo, hi = min(y0, y1), max(y0, y1)
   for bx0, by0, bx1, by1 in boxes:
@@ -598,15 +624,196 @@ def route(doc, net, registry=None, sheet=None):
   keys = _endpoint_keys(net)
 
   branches = []
+  # Only a wire with somewhere to fork needs any of the tapping machinery, and
+  # most wires have one load, so the terminals are worked out only if asked for.
+  terminals = None
+  late = forks_late(doc)
   for load in loads_of(net):
     points = _branch(doc, net, load, start, start_dir, registry, sheet, keys)
+    tap, tap_dir = (_tap(branches, endpoint_position(doc, load, registry))
+                    if late else (None, None))
+    if tap is not None:
+      if terminals is None:
+        terminals = _foreign_terminals(doc, net, registry)
+      shorter = _branch(doc, net, load, tap, tap_dir, registry, sheet, keys,
+                        from_pin=False)
+      # Both ways are routed and the shorter clean one wins. Leaving late is
+      # the point of the exercise, but it is worth doing only when it actually
+      # saves wire: a tap that comes out no shorter has bought nothing and
+      # still moved the wire, which shifts what every net routed after it has
+      # to dodge. Measuring rather than assuming keeps that from happening.
+      if (_run_length(shorter) < _run_length(points) - EPSILON
+          and _lands_clear(shorter, doc, net, load, registry, sheet, keys,
+                           terminals)):
+        points = shorter
     if points:
       branches.append(points)
   return branches
 
 
-def _branch(doc, net, load, start, start_dir, registry, sheet, keys):
-  """One path, from the driving pin to one of the loads."""
+def _run_length(points):
+  """How far a path travels, corner to corner."""
+  return sum(abs(points[i + 1][0] - points[i][0])
+             + abs(points[i + 1][1] - points[i][1])
+             for i in range(len(points) - 1)) if points else 0.0
+
+
+def forks_late(doc):
+  """Whether this drawing's wires share a trunk and divide near their loads.
+
+  Off unless the drawing says so, which means a file written before any of
+  this existed is routed exactly as it always was, and the flag only ever
+  appears on a drawing that measured better with it.
+
+  It is not a property of wires in general, which is why it is recorded per
+  drawing rather than simply switched on. Sharing a trunk shortens most
+  drawings and lengthens a few: the branch that leaves late takes a line of
+  its own across the sheet, and every wire routed after it has to dodge that
+  line instead of the old one. Whether that trade comes out ahead is a
+  question only measuring the drawing can settle, so `layout.arrange` routes
+  it both ways and writes the answer here.
+  """
+  canvas = getattr(doc, "canvas", None) or {}
+  return bool(canvas.get("forkLate"))
+
+
+def _tap(branches, end):
+  """Where a new branch should leave the wire already drawn, and going which way.
+
+  Routing every branch from the driving pin gives each one its own way across
+  the sheet, and they part company as soon as their routes differ -- usually a
+  step outside the pin. Two loads to the right of a port then leave it as two
+  wires running side by side, and the junction dot lands next to the port
+  rather than next to the load it serves.
+
+  A wire is a tree, though, not a bundle of paths that happen to start
+  together: the run is shared until it has to divide. So a later branch starts
+  from whichever point of the wire so far is nearest the pin it is heading
+  for, which is the last moment it can leave. The dot ends up beside the load,
+  and the shared run is drawn once instead of twice.
+  """
+  if not branches or end is None:
+    return None, None
+
+  best = None
+  for points in branches:
+    for index in range(len(points) - 1):
+      a, b = points[index], points[index + 1]
+      spot = _closest_on_run(end, a, b)
+      away = abs(spot[0] - end[0]) + abs(spot[1] - end[1])
+      if best is None or away < best[0] - EPSILON:
+        # Which way the run travels, so the new branch leaves along the wire
+        # rather than doubling back down it.
+        best = (away, spot, (b[0] - a[0], b[1] - a[1]))
+  if best is None:
+    return None, None
+
+  _away, spot, run = best
+  length = max(abs(run[0]), abs(run[1]))
+  if length < EPSILON:
+    return None, None
+  return spot, (run[0] / length, run[1] / length)
+
+
+def _closest_on_run(point, a, b):
+  """The point of an axis-aligned run lying nearest `point`."""
+  x = min(max(point[0], min(a[0], b[0])), max(a[0], b[0]))
+  y = min(max(point[1], min(a[1], b[1])), max(a[1], b[1]))
+  return (x, y)
+
+
+def _foreign_terminals(doc, net, registry):
+  """Where every other wire in the drawing begins and ends.
+
+  The sheet remembers the runs wires have taken, which is what keeps a wire
+  from being drawn along another. It does not remember where they stop, and
+  that is a different question: a wire laid across the pin another wire ends
+  at is drawn with a junction dot on it, and the drawing then says the two are
+  connected when the file says they are not.
+
+  It never came up while every branch set off from its own driving pin, since
+  a branch then went much the same way as the one before it. A branch that
+  leaves late takes a line of its own across the sheet, and that line has to
+  miss these.
+
+  Read from the document rather than from what has been routed so far,
+  because a wire has to miss the pins of the wires that come after it too.
+  """
+  mine = _endpoint_keys(net)
+  spots = []
+  for other in doc.nets:
+    if other is net or other.get("id") == net.get("id"):
+      continue
+    keys = _endpoint_keys(other)
+    if keys & mine:
+      # Two wires off one pin are one signal; a dot between them says so
+      # truthfully.
+      continue
+    for endpoint in [other.get("from")] + loads_of(other):
+      spot = endpoint_position(doc, endpoint, registry)
+      if spot is not None:
+        spots.append(spot)
+  return spots
+
+
+def _on_run(point, a, b):
+  """True if a point lies on an axis-aligned run, ends included."""
+  if abs(a[1] - b[1]) < EPSILON:
+    return (abs(point[1] - a[1]) < EPSILON
+            and min(a[0], b[0]) - EPSILON <= point[0] <= max(a[0], b[0]) + EPSILON)
+  if abs(a[0] - b[0]) < EPSILON:
+    return (abs(point[0] - a[0]) < EPSILON
+            and min(a[1], b[1]) - EPSILON <= point[1] <= max(a[1], b[1]) + EPSILON)
+  return False
+
+
+def _lands_clear(points, doc, net, load, registry, sheet, keys, terminals):
+  """True when a branch that left the wire late lands on nothing already taken.
+
+  Leaving late is only worth doing when the shorter way round is also a clear
+  one. Starting in the middle of a wire rather than at a pin changes which
+  corridors the search will consider, and on a crowded sheet that can walk the
+  branch along another net or across the pin a third one ends at -- both of
+  which read as a connection that is not in the file. The shortcut is taken
+  when it is clean and the branch is routed from the driving pin when it is
+  not, which is the arrangement that was there before.
+  """
+  if not points or len(points) < 2:
+    return False
+  exclude = set()
+  for endpoint in (net.get("from"), load):
+    if isinstance(endpoint, dict) and "cell" in endpoint:
+      exclude.add(endpoint["cell"])
+  view = sheet.for_net(obstacle_boxes(doc, registry, exclude), keys,
+                       net.get("id"))
+  bodies = body_boxes(doc, registry, exclude)
+  for index in range(len(points) - 1):
+    a, b = points[index], points[index + 1]
+    # Cells, wires and the pins other wires stop at, in that order: a corridor
+    # search that finds nothing clear falls back to a route that crosses
+    # things, and a branch leaving late gets its own line across the sheet
+    # rather than following the one before it, so it has to be asked.
+    if not _leg_clear(a, b, bodies):
+      return False
+    if abs(a[1] - b[1]) < EPSILON:
+      if not view.free(True, a[1], a[0], b[0]):
+        return False
+    elif abs(a[0] - b[0]) < EPSILON:
+      if not view.free(False, a[0], a[1], b[1]):
+        return False
+    for spot in terminals:
+      if _on_run(spot, a, b):
+        return False
+  return True
+
+
+def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
+            from_pin=True):
+  """One path, from the driving pin -- or from a tap on the wire -- to a load.
+
+  `from_pin` is false when the branch leaves the middle of a wire already
+  drawn. There is no pin to stand off from there, so it gets no stub.
+  """
   end = endpoint_position(doc, load, registry)
   if end is None:
     return []
@@ -623,7 +830,7 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys):
     view = sheet.for_net(boxes, keys, net.get("id"))
     return _clean(_direct_route(
       start, end, start_dir, end_dir, view,
-      stub_for(doc, net.get("from"), registry),
+      stub_for(doc, net.get("from"), registry) if from_pin else 0.0,
       stub_for(doc, load, registry)))
 
   points = [start] + waypoints + [end]

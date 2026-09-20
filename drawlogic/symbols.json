@@ -918,6 +918,309 @@
       }
     ]
   },
+  "sdff": {
+    "name": "Scan D flip-flop",
+    "category": "sequential",
+    "size": [
+      70,
+      90
+    ],
+    "pins": [
+      {
+        "name": "d",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "si",
+        "x": 0,
+        "y": 35,
+        "dir": "in"
+      },
+      {
+        "name": "se",
+        "x": 0,
+        "y": 55,
+        "dir": "in"
+      },
+      {
+        "name": "ck",
+        "x": 0,
+        "y": 75,
+        "dir": "in"
+      },
+      {
+        "name": "q",
+        "x": 70,
+        "y": 15,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 35,
+        "x2": 10,
+        "y2": 35,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 55,
+        "x2": 10,
+        "y2": 55,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 75,
+        "x2": 10,
+        "y2": 75,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 50,
+        "h": 90,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M10 69 L18 75 L10 81",
+        "role": "decor"
+      },
+      {
+        "op": "line",
+        "x1": 60,
+        "y1": 15,
+        "x2": 70,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "D",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "d"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 39,
+        "text": "SI",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "si"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 59,
+        "text": "SE",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "se"
+      },
+      {
+        "op": "text",
+        "x": 21,
+        "y": 79,
+        "text": "CK",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "ck"
+      },
+      {
+        "op": "text",
+        "x": 56,
+        "y": 19,
+        "text": "Q",
+        "anchor": "end",
+        "role": "pin_label",
+        "pin": "q"
+      }
+    ]
+  },
+  "sdffr": {
+    "name": "Scan D flip-flop with reset",
+    "category": "sequential",
+    "size": [
+      70,
+      100
+    ],
+    "pins": [
+      {
+        "name": "d",
+        "x": 0,
+        "y": 15,
+        "dir": "in"
+      },
+      {
+        "name": "si",
+        "x": 0,
+        "y": 35,
+        "dir": "in"
+      },
+      {
+        "name": "se",
+        "x": 0,
+        "y": 55,
+        "dir": "in"
+      },
+      {
+        "name": "ck",
+        "x": 0,
+        "y": 75,
+        "dir": "in"
+      },
+      {
+        "name": "q",
+        "x": 70,
+        "y": 15,
+        "dir": "out"
+      },
+      {
+        "name": "rn",
+        "x": 35,
+        "y": 100,
+        "dir": "in"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 10,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 35,
+        "x2": 10,
+        "y2": 35,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 55,
+        "x2": 10,
+        "y2": 55,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 75,
+        "x2": 10,
+        "y2": 75,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 0,
+        "w": 50,
+        "h": 90,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M10 69 L18 75 L10 81",
+        "role": "decor"
+      },
+      {
+        "op": "line",
+        "x1": 60,
+        "y1": 15,
+        "x2": 70,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 35,
+        "y1": 90,
+        "x2": 35,
+        "y2": 100,
+        "role": "pin"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 19,
+        "text": "D",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "d"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 39,
+        "text": "SI",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "si"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 59,
+        "text": "SE",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "se"
+      },
+      {
+        "op": "text",
+        "x": 21,
+        "y": 79,
+        "text": "CK",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "ck"
+      },
+      {
+        "op": "text",
+        "x": 56,
+        "y": 19,
+        "text": "Q",
+        "anchor": "end",
+        "role": "pin_label",
+        "pin": "q"
+      },
+      {
+        "op": "text",
+        "x": 50,
+        "y": 86,
+        "text": "RN",
+        "anchor": "middle",
+        "role": "pin_label",
+        "pin": "rn"
+      }
+    ]
+  },
   "dlatch": {
     "name": "D latch",
     "category": "sequential",

@@ -38,7 +38,23 @@ async function api(url, options) {
   return payload;
 }
 
+// Did a press land on something, rather than on bare canvas? Shift means
+// "pan" on the empty sheet and "copy as you drag" on an item, so the tool
+// hand-off in bindCanvas and the viewport's pan guard in start both ask this
+// one question -- which is why it lives out here rather than inside either.
+function onSomething(event) {
+  return Boolean(event.target.closest(
+    ".dl-cell, .dl-shape, .dl-net, .dl-hit, [data-handle]"));
+}
+
 let toastTimer = null;
+// The message a busy run is showing, or null when nothing is running, and
+// whatever `say` was asked for while that was true. Between them they are the
+// rule that only one thing talks at a time and the slow thing wins. Declared
+// up here beside the timer they work with, rather than down beside `busy`,
+// because `say` reads them and is defined first.
+let busyNow = null;
+let deferredSay = null;
 
 // Two places, on purpose. The status bar keeps the last thing that happened
 // for anyone who looks later; the toast puts it where the eye already is,
@@ -46,6 +62,14 @@ let toastTimer = null;
 // is a message nobody reads. Reported as "after clicking save, display a
 // message if successful or not" -- it did, just invisibly.
 function say(message, kind) {
+  // Something slow has the floor. This message fades and that one is still
+  // true, so this one waits its turn rather than replacing it: a "laying
+  // out..." that vanishes while the layout is still running is what makes
+  // people press the button a second time. It is said when the floor clears.
+  if (busyNow) {
+    deferredSay = [message, kind];
+    return;
+  }
   ui.message.textContent = message;
   ui.message.className = "push" + (kind ? ` ${kind}` : "");
 
@@ -93,13 +117,22 @@ function busy(message) {
 
   window.clearTimeout(toastTimer);
   window.clearInterval(busyTimer);
+  busyNow = message;
   tick();
   busyTimer = window.setInterval(tick, 1000);
 
   return () => {
     window.clearInterval(busyTimer);
     busyTimer = null;
+    busyNow = null;
     if (ui.toast) ui.toast.classList.remove("busy");
+    // Whatever tried to speak while the floor was taken says it now, which
+    // is how the layout's own "9 cells in 4 columns" gets through.
+    if (deferredSay) {
+      const [message, kind] = deferredSay;
+      deferredSay = null;
+      say(message, kind);
+    }
   };
 }
 
@@ -172,8 +205,7 @@ function bindCanvas() {
 
   ui.canvas.addEventListener("mousedown", (event) => {
     if (event.button !== 0 || viewport.spaceHeld) return;
-    if (event.shiftKey && activeTool === "select"
-        && !event.target.closest(".dl-cell, .dl-shape, .dl-net, [data-handle]")) {
+    if (event.shiftKey && activeTool === "select" && !onSomething(event)) {
       // Shift-drag on empty space pans, handled by the viewport. Shift is
       // free for that because adding to a selection is Ctrl, not Shift.
       return;
@@ -592,7 +624,14 @@ async function runCheck({ quiet = false } = {}) {
     }
 
     const took = Date.now() - started;
-    if (quiet && took > LIVE_BUDGET) {
+    // Not while something else is running. A check that overlapped a layout
+    // spent most of its time waiting behind it -- same process, one drawing's
+    // worth of Python at a time -- so `took` is the measure of what else was
+    // going on, not of this drawing. Turning live checking off over that
+    // number, and saying so over the top of the layout's own message, is how
+    // pressing Auto layout on a big drawing used to lose both at once. The
+    // next quiet check measures it honestly.
+    if (quiet && took > LIVE_BUDGET && !busyNow) {
       setLive(false);
       say(`this drawing takes ${took}ms to check, so live checking is off; `
           + "press Check when you want one", "warn");
@@ -1152,6 +1191,7 @@ function bindKeyboard() {
       const key = event.key.toLowerCase();
       if (key === "v") setTool("select");
       else if (key === "w") setTool("wire");
+      else if (key === "e") setTool("erase");
       else if (shapes[key]) {
         tools.shape.arm(shapes[key]);
         setTool("shape");
@@ -1207,12 +1247,14 @@ async function start() {
 
   applyTheme(storedTheme());
 
+  // The viewport and the select tool listen on the same element, so the one
+  // rule about what a press landed on has to be the same rule for both.
   viewport = new Viewport(ui.canvas, (view) => {
     const percent = Math.round(view.zoom * 100);
     ui.zoomSlider.value = Math.min(400, Math.max(10, percent));
     ui.zoomValue.value = `${percent}%`;
     drawOverlay(overlayOptions);
-  });
+  }, (event) => !onSomething(event));
 
   tools = makeTools(context);
   inspector = new Inspector($("properties-body"), store, selection, () => redraw());

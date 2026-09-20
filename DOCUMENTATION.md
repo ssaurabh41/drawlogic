@@ -328,11 +328,28 @@ Wires are stored as **pin references, never coordinates**. Once a wire exists
 it stays attached no matter what moves, and the path is re-routed from the
 pins on every redraw.
 
+### Rubbing a wire out
+
+Press `E` for the eraser, then drag the cursor across a wire. What goes is
+that wire's **branch**: the run from one pin back to wherever it parts company
+with the rest of the net. Wire a clock into a reset pin by mistake and the
+eraser takes the run between the reset pin and the junction dot feeding it,
+leaving the rest of the clock alone.
+
+That is the unit because it is the only one that means anything. A net is one
+driver and its loads, so the piece between a junction and a pin is not a
+length of wire that can be rubbed out on its own -- it is that load's whole
+share of the net, and the load going is what makes it disappear. Erasing the
+last load takes the net with it, since a net driving nothing is not a net.
+
+One sweep is one undo, however many wires it crossed, and the status line says
+how many went.
+
 ### Keys
 
 | | |
 |---|---|
-| `V` `W` | select tool, wire tool |
+| `V` `W` `E` | select tool, wire tool, eraser |
 | `L` `B` `P` `T` | line, box, polygon, text |
 | click, `Ctrl`+click, drag a box | select one, add or remove one, marquee |
 | drag | move, snapped to the grid |
@@ -506,9 +523,14 @@ A schematic is reviewable the same way code is.
 | `symbolScale` | one multiplier on the size of every cell |
 | `arrows` | draw direction arrows on wires |
 | `hops` | bridge a wire over any wire it merely crosses |
+| `forkLate` | a wire with several loads runs as one trunk and divides near the pins it serves |
 
 The grid is a drawing aid and stays out of exported SVG unless `--grid` is
 passed.
+
+`forkLate` is written by auto layout rather than set by hand, and only when it
+measured better: see [How a wire forks](#how-a-wire-forks). A drawing that
+gains nothing from it has no such key at all.
 
 ### cells
 
@@ -973,6 +995,35 @@ Order therefore matters: the first net stated gets the straightest run. Drag a
 wire to add a waypoint the route must pass through, which is the way to draw
 something the router cannot guess, such as a clock rail that has to run below
 the whole sheet.
+
+---
+
+### How a wire forks
+
+A wire with one driver and several loads has two ways to reach them. It can
+give each load its own way across the sheet, which is what it has always done:
+the branches lie on top of each other near the driving pin and part company as
+soon as their routes differ. Or it can run as one trunk and divide near the
+pins it serves, which is shorter and puts the junction dot beside the load
+rather than beside the driver -- the way a schematic is normally read.
+
+The second is better on most drawings and worse on some. A branch that leaves
+late takes a line of its own across the sheet, and every wire routed after it
+has to dodge that line instead of the old one; on a crowded sheet that can
+cost more than the sharing saves. Of the drawings in `examples/`, forking late
+wins on two, loses on one and makes no difference to the rest.
+
+So it is not a rule, it is a measurement. Auto layout routes the finished
+arrangement both ways, keeps the wires that score better, and records the
+answer as `canvas.forkLate` so that everything drawing the file afterwards --
+the canvas, the exporter, `validate` -- draws what the layout measured. A
+drawing that gains nothing is written without the key, exactly as it would
+have been before any of this existed.
+
+A branch only leaves late when the shorter route is also a clean one: clear of
+cell bodies, clear of other wires, and not across a pin some other wire stops
+at, which would draw a junction dot claiming a connection the file does not
+have. Otherwise that branch is routed from the driving pin as before.
 
 ---
 

@@ -147,5 +147,5 @@
 <circle cx="455" cy="180" r="3.2" fill="#16202b" />
 <circle cx="615" cy="310" r="3.2" fill="#16202b" />
 </g>
-<text x="14" y="766" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">alu_slice</text>
+<text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">alu_slice</text>
 </svg>

@@ -39,7 +39,7 @@ VERSION = 2
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
 CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
-               "arrows", "hops"]
+               "arrows", "hops", "forkLate"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
@@ -141,6 +141,59 @@ def loads_of(net):
   if isinstance(target, list):
     return [load for load in target if isinstance(load, dict)]
   return []
+
+
+def _declared_dir(registry, by_id, endpoint):
+  """What a pin says it does, or None when there is nothing to ask.
+
+  Only what the symbol declares. `inout` is left as it is: deciding one of
+  those needs the cell's placement, which is layout's business, and guessing
+  it here would rewrite the drawing over something the symbol never claimed.
+  """
+  if not isinstance(endpoint, dict):
+    return None
+  cell = by_id.get(endpoint.get("cell"))
+  if cell is None:
+    return None
+  symbol = registry.for_cell(cell)
+  if symbol is None:
+    return None
+  pin = symbol.pin(endpoint.get("pin"))
+  return pin["dir"] if pin else None
+
+
+def _driver_first(registry, by_id, net, loads):
+  """Turn a net round when it was drawn from the load back to the driver.
+
+  `from` and `to` record which pin was clicked first, and clicking the
+  flip-flop's D and then the gate that feeds it is an ordinary way to draw a
+  wire. Stored that way the drawing still says the right thing about what is
+  connected, but everything that reads a direction off it -- the arrowhead
+  most visibly -- says it backwards.
+
+  So the net is turned round here, once, where every reader gets it: the
+  arrow, `validate`, and the layout all see the same driver. Only a pin that
+  declares itself is trusted, and only when exactly one load drives, because
+  two drivers on one net is a fault to report rather than a shape to guess
+  at. The branch's waypoints are reversed with it -- they run driver to load,
+  and that is the end that changed.
+  """
+  source = net.get("from")
+  if _declared_dir(registry, by_id, source) != "in":
+    return loads
+  driving = [index for index, load in enumerate(loads)
+             if _declared_dir(registry, by_id, load) == "out"]
+  if len(driving) != 1:
+    return loads
+
+  index = driving[0]
+  was_load = loads[index]
+  waypoints = list(was_load.get("waypoints") or [])
+  waypoints.reverse()
+  loads[index] = dict(source, waypoints=waypoints)
+  net["from"] = {key: value for key, value in was_load.items()
+                 if key != "waypoints"}
+  return loads
 
 
 def upgrade_from_v1(data):
@@ -486,6 +539,7 @@ class Document(object):
       cell.setdefault("style", {})
       _text_field(cell, "label")
 
+    by_id = {cell.get("id"): cell for cell in _list_of_objects(data, "cells")}
     for net in _list_of_objects(data, "nets"):
       name = net.get("name")
       if name and "width" not in net:
@@ -495,7 +549,7 @@ class Document(object):
       loads = loads_of(net)
       for load in loads:
         load.setdefault("waypoints", [])
-      net["to"] = loads
+      net["to"] = _driver_first(registry, by_id, net, loads)
 
     for shape in _list_of_objects(data, "shapes"):
       shape.setdefault("style", {})

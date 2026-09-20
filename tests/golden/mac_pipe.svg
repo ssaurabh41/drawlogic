@@ -164,5 +164,5 @@
 <circle cx="750" cy="540" r="3.2" fill="#16202b" />
 <circle cx="1330" cy="180" r="3.2" fill="#16202b" />
 </g>
-<text x="14" y="686" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">mac_pipe</text>
+<text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">mac_pipe</text>
 </svg>

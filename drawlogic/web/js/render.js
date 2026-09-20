@@ -741,8 +741,12 @@ export function render(svg, doc) {
   content.appendChild(dots);
 
   if (doc.title) {
+    // Along the top, matching render_svg.render. At the bottom it used to sit
+    // straight through the name of any port that reached far enough down.
+    const titlePad = theme.titlePad === undefined ? 14 : theme.titlePad;
     const text = el("text", {
-      x: 14, y: canvas.height - 14,
+      x: titlePad,
+      y: geometry.fmt(titlePad + theme.fontSizes.title * fontScale, 2),
       "font-family": theme.fontSans,
       "font-size": geometry.fmt(theme.fontSizes.title * fontScale, 2),
       "font-weight": "600",

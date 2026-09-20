@@ -318,8 +318,8 @@ class TestOrderingChoice(unittest.TestCase):
           cells = [c for c in doc.cells if registry.for_cell(c) is not None]
           layout._face_forward(cells)
           layout._forget_waypoints(doc)
-          edges, _feedback = layout._edges(doc, cells)
-          ranks = layout._ranks(doc, cells, edges)
+          edges, _feedback = layout._edges(doc, registry, cells)
+          ranks = layout._ranks(doc, registry, cells, edges)
           order = layout._order(cells, edges, ranks, spans=spans)
           layout._place(doc, registry, cells, edges, ranks, order,
                         layout.GAP_X, layout.GAP_Y)
@@ -706,3 +706,201 @@ def _crossings_of(doc, registry):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestWhichWayTheSignalRuns(unittest.TestCase):
+  """Direction comes from the pins, not from the order the wire was drawn.
+
+  A net records which pin was clicked first, and half the time that is the
+  load: clicking the flip-flop's D and then the gate that feeds it is a
+  perfectly ordinary way to draw a wire, and it is the same circuit either
+  way. Every drawing in examples/ and benchmarks/ was wired driver-first by
+  the same hand, so not one of them can tell whether this works -- which is
+  why it needs a fixture of its own.
+  """
+
+  def wired(self, backwards=False, tie_resets=False):
+    """A port into an AND, into a flop, out to a port.
+
+    `backwards` draws the AND-to-flop wire from the flop's D back to the
+    gate's Y, which is the same circuit stated the other way round.
+    `tie_resets` adds a wire between two reset pins, which drives nothing.
+    """
+    doc = new_document("flow", 900, 400)
+    doc.cells.append({"id": "pin", "type": "port_in", "x": 40, "y": 40,
+                      "label": "a"})
+    doc.cells.append({"id": "g", "type": "and2", "x": 200, "y": 200})
+    doc.cells.append({"id": "ff", "type": "dffr", "x": 300, "y": 100})
+    doc.cells.append({"id": "ff2", "type": "dffr", "x": 300, "y": 260})
+    doc.cells.append({"id": "pout", "type": "port_out", "x": 60, "y": 300,
+                      "label": "y"})
+    links = [("pin", "p", "g", "a"),
+             ("ff", "d", "g", "y") if backwards else ("g", "y", "ff", "d"),
+             ("ff", "q", "pout", "p")]
+    if tie_resets:
+      links.append(("ff", "rn", "ff2", "rn"))
+    for index, (source, source_pin, target, target_pin) in enumerate(links, 1):
+      doc.nets.append({"id": "n%d" % index, "name": None,
+                       "from": {"cell": source, "pin": source_pin},
+                       "to": {"cell": target, "pin": target_pin},
+                       "waypoints": [], "style": {}})
+    doc.normalize()
+    return doc
+
+  def ranks_of(self, doc):
+    registry = default_registry()
+    cells = [c for c in doc.cells if registry.for_cell(c) is not None]
+    edges, _feedback = layout._edges(doc, registry, cells)
+    return layout._ranks(doc, registry, cells, edges)
+
+  def test_a_wire_drawn_backwards_ranks_the_same_way(self):
+    """The gate stays left of the flop it feeds, whichever end was clicked."""
+    forward = self.ranks_of(self.wired(backwards=False))
+    reversed_ = self.ranks_of(self.wired(backwards=True))
+    self.assertEqual(
+      forward, reversed_,
+      "drawing the wire from the flop back to the gate moved things: "
+      "%s against %s" % (reversed_, forward))
+    self.assertLess(forward["g"], forward["ff"],
+                    "the gate should sit left of the flop it drives")
+
+  def test_a_wire_between_two_inputs_orders_nothing(self):
+    """Two reset pins tied together says nothing about which comes first.
+
+    It is a drawing with no driver -- `validate` says so -- and obeying it as
+    though it were one would push a flop into a column of its own for a wire
+    that carries nothing.
+    """
+    without = self.ranks_of(self.wired())
+    with_tie = self.ranks_of(self.wired(tie_resets=True))
+    self.assertEqual(
+      with_tie["ff2"], without["ff2"],
+      "tying two reset pins together moved a flop: %d against %d"
+      % (with_tie["ff2"], without["ff2"]))
+    self.assertEqual(with_tie, without,
+                     "a wire with no driver changed the columns")
+
+  def test_an_undeclared_pin_is_read_from_the_side_it_leaves(self):
+    """`inout` -- which is what a pin that never said anything gets.
+
+    Right of centre drives, anything else takes, so mirroring a port turns it
+    round. That is what lets an inout port be an input on the left of the
+    sheet and an output on the right.
+    """
+    doc = new_document("io", 400, 200)
+    cell = {"id": "p", "type": "port_inout", "x": 100, "y": 100, "label": "b"}
+    doc.cells.append(cell)
+    doc.normalize()
+    registry = default_registry()
+    symbol = registry.for_cell(cell)
+    self.assertEqual(symbol.pin("p")["dir"], "inout",
+                     "this test is pointless unless the pin is undeclared")
+
+    self.assertEqual(layout._flow(doc, registry, cell, "p"), "in",
+                     "a connector on the left should read as taking")
+    cell["mirror"] = True
+    self.assertEqual(layout._flow(doc, registry, cell, "p"), "out",
+                     "mirrored, the same connector faces right and drives")
+
+  def test_an_inout_port_lands_on_the_side_it_faces(self):
+    """An inout port is an input or an output by which way its connector faces.
+
+    Nothing in the type name says which, so the column it belongs in has to
+    come from the same place the direction does. Facing left it takes, and
+    belongs on the right edge with the other output ports; mirrored it drives,
+    and belongs in the first column with the inputs.
+    """
+    def ranks_with(mirror):
+      doc = new_document("io", 900, 400)
+      doc.cells.append({"id": "pin", "type": "port_in", "x": 40, "y": 40,
+                        "label": "a"})
+      doc.cells.append({"id": "u", "type": "inv", "x": 200, "y": 200})
+      doc.cells.append({"id": "io", "type": "port_inout", "x": 400, "y": 200,
+                        "mirror": mirror, "label": "b"})
+      # A longer branch beside it, so the sheet is wider than the port's own
+      # chain. Without that the port's natural column is already the last one
+      # and the test cannot tell whether anything put it there.
+      for index in range(3):
+        doc.cells.append({"id": "v%d" % index, "type": "inv",
+                          "x": 200 + index * 80, "y": 320})
+      links = [("pin", "p", "u", "a"), ("u", "y", "io", "p"),
+               ("pin", "p", "v0", "a"), ("v0", "y", "v1", "a"),
+               ("v1", "y", "v2", "a")]
+      for index, (source, source_pin, target, target_pin) in enumerate(links, 1):
+        doc.nets.append({"id": "n%d" % index, "name": None,
+                         "from": {"cell": source, "pin": source_pin},
+                         "to": {"cell": target, "pin": target_pin},
+                         "waypoints": [], "style": {}})
+      doc.normalize()
+      return self.ranks_of(doc)
+
+    facing_left = ranks_with(False)
+    self.assertEqual(
+      facing_left["io"], max(facing_left.values()),
+      "a left-facing inout port takes, so it belongs on the right edge")
+
+    facing_right = ranks_with(True)
+    self.assertEqual(
+      facing_right["io"], 0,
+      "a mirrored inout port drives, so it belongs in the first column")
+
+
+class TestForkingIsChosenByMeasuring(unittest.TestCase):
+  """Whether wires fork late is decided by routing the drawing, not assumed.
+
+  A wire with several loads can give each one its own way across the sheet, or
+  run as one trunk that divides near the pins it serves. The second is shorter
+  on most drawings and puts the junction dot beside the load rather than the
+  driver -- but not on all of them, because a branch that leaves late takes a
+  line of its own and every wire routed after it has to dodge that line
+  instead. Assuming either way made some drawing worse, so the layout routes
+  the finished arrangement both ways and keeps the better.
+  """
+
+  def test_the_choice_never_makes_a_drawing_worse(self):
+    """Whatever it picks is at least as good as either answer alone."""
+    for name in ("alu_slice", "cdc_fifo", "spi_master", "mac_pipe",
+                 "dff_slice"):
+      with self.subTest(example=name):
+        path = os.path.join(ROOT, "examples", name + ".dlg")
+        doc, registry, _ = open_example(path)
+        layout.arrange(doc, registry)
+        chosen = layout._score(doc, registry)
+
+        both = []
+        for late in (False, True):
+          if late:
+            doc.canvas["forkLate"] = True
+          else:
+            doc.canvas.pop("forkLate", None)
+          both.append(layout._score(doc, registry))
+        self.assertLessEqual(
+          chosen, min(both) + 1e-6,
+          "%s: kept a %.0f when %.0f was available" % (name, chosen, min(both)))
+
+  def test_it_leaves_the_flag_off_when_it_buys_nothing(self):
+    """An unchanged drawing is written exactly as it was before this existed."""
+    doc, registry, _ = open_example(os.path.join(ROOT, "examples",
+                                                 "spi_master.dlg"))
+    layout.arrange(doc, registry)
+    self.assertNotIn(
+      "forkLate", doc.canvas,
+      "spi_master measures worse forking late, so the flag should be absent "
+      "rather than written as false")
+
+  def test_laying_out_twice_gives_the_same_answer(self):
+    """The search has to start from a known state, whatever the file carried.
+
+    Left as the file happened to have it, the second layout searched
+    differently from the first and settled somewhere else -- which is the one
+    thing a layout button must never do.
+    """
+    for name in ("alu_slice", "soc_top"):
+      with self.subTest(example=name):
+        path = os.path.join(ROOT, "examples", name + ".dlg")
+        doc, registry, _ = open_example(path)
+        layout.arrange(doc, registry)
+        once = doc.dumps()
+        layout.arrange(doc, registry)
+        self.assertEqual(doc.dumps(), once,
+                         "%s moved when laid out a second time" % name)

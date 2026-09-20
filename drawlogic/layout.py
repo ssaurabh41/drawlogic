@@ -52,6 +52,10 @@ SWEEPS = 4
 
 PORT_IN = ("port_in", "port_inout")
 PORT_OUT = ("port_out",)
+# Every cell that stands for a connection off the sheet. Which side of it a
+# given one belongs on is `_flow`'s question, not the type name's: an inout
+# port is an input or an output depending on which way its connector faces.
+PORTS = PORT_IN + PORT_OUT
 
 
 class Result(object):
@@ -85,9 +89,16 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
 
   _face_forward(cells)
   _forget_waypoints(doc)
+  # The search below routes the drawing dozens of times to compare
+  # arrangements, and it has to do that the same way every time: with the flag
+  # left as the file happened to carry it, laying out a drawing a second time
+  # searched differently from the first and settled somewhere else. So the
+  # search always runs with wires forking early, and `_choose_forking` decides
+  # the question once at the end, on the arrangement that won.
+  doc.canvas.pop("forkLate", None)
 
-  edges, feedback = _edges(doc, cells)
-  ranks = _ranks(doc, cells, edges)
+  edges, feedback = _edges(doc, registry, cells)
+  ranks = _ranks(doc, registry, cells, edges)
 
   # Two orderings, and the drawing itself decides. Following a wire through
   # the columns it skips (see _span_chain) helps some drawings a great deal
@@ -123,8 +134,43 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   order = _refine(doc, registry, cells, edges, ranks, best[1],
                   gap_x, gap_y, margin, best[2])
   _fit(doc, registry, margin)
+  _choose_forking(doc, registry)
 
   return Result(len(order), len(cells), feedback)
+
+
+def _choose_forking(doc, registry):
+  """Route the finished drawing both ways and keep the wires that measure better.
+
+  A wire with several loads can give each one its own way across the sheet, or
+  it can run as one trunk that divides near the pins it serves. The second is
+  shorter on most drawings and puts the junction dot beside the load rather
+  than beside the driver, which is how a schematic is read -- but not always:
+  a branch that leaves late takes a line of its own, and every wire routed
+  after it then has to dodge that line instead of the old one. On the examples
+  here that comes out ahead three times, level once and behind once, and
+  nothing short of routing the drawing says which it will be.
+
+  So it is asked rather than assumed, once, on the arrangement that won. Two
+  extra routing passes against the dozens `_refine` has already done, and the
+  answer is written into the drawing so that every later render -- the canvas,
+  the exporter, the checker -- draws the wires the layout measured.
+  """
+  best = None
+  for late in (False, True):
+    if late:
+      doc.canvas["forkLate"] = True
+    else:
+      doc.canvas.pop("forkLate", None)
+    score = _score(doc, registry)
+    if best is None or score < best[0] - EPSILON:
+      best = (score, late)
+  # Absent rather than false, so a drawing that gains nothing from this is
+  # written exactly as it would have been before it existed.
+  if best[1]:
+    doc.canvas["forkLate"] = True
+  else:
+    doc.canvas.pop("forkLate", None)
 
 
 # A ceiling on how many times to sweep every column looking for a swap worth
@@ -308,14 +354,62 @@ def _forget_waypoints(doc):
 
 # ---- the graph ----
 
-def _edges(doc, cells):
+def _flow(doc, registry, cell, pin_name):
+  """Which way the signal runs at this pin: "out" if it drives, "in" if it takes.
+
+  A net records which pin was clicked first, not which way the signal goes.
+  Someone drawing a schematic clicks the flip-flop's D and then the gate that
+  feeds it about as often as the other way round, and both are the same
+  circuit -- so the order a wire was drawn in cannot be what decides which
+  column a cell lands in. The pins already know: every symbol declares a
+  direction for each of its pins, and that is the thing to ask.
+
+  A pin that declares `in` or `out` is taken at its word. `inout` is the
+  interesting case, and it is also what a pin that never said anything gets
+  (see symbols.Symbol), so a custom symbol drawn without directions lands
+  here rather than being refused. Those are settled by which side of the cell
+  the pin comes out of: a connector on the right drives, one anywhere else
+  takes. That is not a new convention -- it is the one the built-in library
+  already follows, every declared `out` sitting on its symbol's right edge
+  and every declared `in` somewhere else -- so an undeclared pin gets read
+  the way the drawing already looks.
+
+  Asked of the placed cell rather than of the symbol, so mirroring a port
+  turns it round. That is the whole control the rule needs: an inout port is
+  an input where its connector faces right and an output where it faces left.
+  """
+  symbol = registry.for_cell(cell)
+  if symbol is None:
+    return None
+  pin = symbol.pin(pin_name)
+  if pin is None:
+    return None
+  if pin["dir"] in ("in", "out"):
+    return pin["dir"]
+  spot = symbol.pin_position(cell, pin_name, doc.symbol_scale)
+  if spot is None:
+    return None
+  left, _, width, _ = _box(registry, doc, cell)
+  return "out" if spot[0] > left + width / 2.0 else "in"
+
+
+def _edges(doc, registry, cells):
   """Driver-to-load edges, and how many of them close a feedback loop.
 
   A loop cannot be ranked -- some cell would have to sit right of itself -- so
   the edges that close one are dropped from the ranking. They are still drawn;
   they are simply not allowed to decide what goes where.
+
+  Which end drives is asked of the pins rather than of the net (see `_flow`),
+  so a wire drawn from the load back to its driver still ranks the way the
+  circuit runs. A branch whose ends both take, or both drive, says nothing
+  about order at all, and is left out of the ranking rather than obeyed
+  backwards: it is still drawn, and `validate` still has something to say
+  about it, but a wire with no driver is not a reason to put one cell to the
+  right of another.
   """
   known = {cell["id"] for cell in cells}
+  by_id = {cell["id"]: cell for cell in cells}
   raw = []
   for net in doc.nets:
     source = net.get("from")
@@ -328,8 +422,16 @@ def _edges(doc, cells):
         continue
       if source["cell"] not in known or target["cell"] not in known:
         continue
-      raw.append((source["cell"], target["cell"], source.get("pin"),
-                  target.get("pin")))
+      driver, load = source["cell"], target["cell"]
+      driver_pin, load_pin = source.get("pin"), target.get("pin")
+      drives = _flow(doc, registry, by_id[driver], driver_pin)
+      takes = _flow(doc, registry, by_id[load], load_pin)
+      if drives == "in" and takes == "out":
+        driver, load = load, driver
+        driver_pin, load_pin = load_pin, driver_pin
+      elif drives is not None and drives == takes:
+        continue
+      raw.append((driver, load, driver_pin, load_pin))
 
   back = _back_edges([(a, b) for a, b, _, _ in raw])
   forward = [e for e in raw if (e[0], e[1]) not in back]
@@ -379,7 +481,7 @@ def _back_edges(pairs):
   return back
 
 
-def _ranks(doc, cells, edges):
+def _ranks(doc, registry, cells, edges):
   """Which column each cell belongs in: one right of everything driving it."""
   rank = {cell["id"]: 0 for cell in cells}
   incoming = {cell["id"]: [] for cell in cells}
@@ -402,10 +504,20 @@ def _ranks(doc, cells, edges):
       break
 
   # Output ports belong on the right edge, not one step past whatever happens
-  # to drive them, or they stagger.
+  # to drive them, or they stagger. An input port needs no such help: its pin
+  # drives, so nothing can arrive at it and it is already in column zero.
+  #
+  # Which ports those are is asked of the pins rather than of the type name,
+  # so an inout port whose connector faces left -- an output port in all but
+  # name -- goes to the edge with the rest of them.
   widest = max(rank.values()) if rank else 0
   for cell in cells:
-    if cell.get("type") in PORT_OUT and not outgoing[cell["id"]]:
+    if cell.get("type") not in PORTS or outgoing[cell["id"]]:
+      continue
+    symbol = registry.for_cell(cell)
+    names = symbol.pin_names() if symbol is not None else []
+    if names and all(_flow(doc, registry, cell, name) == "in"
+                     for name in names):
       rank[cell["id"]] = widest
   return rank
 

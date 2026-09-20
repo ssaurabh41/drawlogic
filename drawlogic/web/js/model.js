@@ -721,9 +721,26 @@ function pinWidth(doc, endpoint) {
   return pin ? (pin.width === undefined ? 1 : pin.width) : 1;
 }
 
+function pinDir(doc, endpoint) {
+  if (!endpoint || endpoint.cell === undefined) return null;
+  const cell = doc.cells.find((c) => c.id === endpoint.cell);
+  if (!cell) return null;
+  const pin = geometry.findPin(geometry.forCell(cell), endpoint.pin);
+  return pin ? (pin.dir || "inout") : null;
+}
+
 // Wiring a second load onto a pin that already drives one extends that net
 // rather than making another. That is what a net is: one driver, many loads.
 export function addNet(doc, from, to) {
+  // Clicking the flip-flop's D and then the gate that feeds it is an ordinary
+  // way to draw a wire, and it is the same connection either way -- but the
+  // net is stored driver-first, and the arrowhead reads that order. So the
+  // ends are put the right way round here, as the wire is made, rather than
+  // being left for the next time the drawing is opened. `inout` is left alone:
+  // deciding one of those is the layout's job, which knows where the cell sits.
+  if (pinDir(doc, from) === "in" && pinDir(doc, to) === "out") {
+    [from, to] = [to, from];
+  }
   const already = doc.nets.some((net) =>
     routing.loadsOf(net).some((load) =>
       (sameEnd(net.from, from) && sameEnd(load, to))
@@ -808,6 +825,49 @@ export function grabRun(doc, netId, point) {
     points,
     horizontal: Math.abs(a[1] - b[1]) < Math.abs(a[0] - b[0]) || a[1] === b[1],
   };
+}
+
+// Which branch of which net passes nearest a point, within `reach` sheet
+// units, or null when nothing does. Used by the eraser, which has no element
+// under the cursor to go on: it is asked about a position, not a click.
+export function branchAt(doc, point, reach) {
+  let best = null;
+  for (const net of doc.nets || []) {
+    routing.route(doc, net).forEach((points, branch) => {
+      for (let i = 0; i < points.length - 1; i += 1) {
+        const away = distanceToRun(point, points[i], points[i + 1]);
+        if (away <= reach && (!best || away < best.away)) {
+          best = { away, netId: net.id, branch };
+        }
+      }
+    });
+  }
+  return best;
+}
+
+// Erase one branch of a net: the run from one load back to wherever it parts
+// company with the rest.
+//
+// This is what there is to erase. A net is one driver and its loads, so the
+// wire from the junction dot to a reset pin is not a piece of drawing that
+// can be rubbed out on its own -- it is that load's whole share of the net,
+// and taking the load away is what makes it go. The trunk stays, because the
+// other loads are still using it. Erasing the last load leaves a net driving
+// nothing, which is not a net, so the net goes too.
+export function deleteBranch(doc, netId, branch) {
+  const net = (doc.nets || []).find((n) => n.id === netId);
+  if (!net) return null;
+  const loads = routing.loadsOf(net);
+  if (branch < 0 || branch >= loads.length) return null;
+  const gone = loads[branch];
+  loads.splice(branch, 1);
+  if (loads.length) {
+    net.to = loads;
+  } else {
+    doc.nets = doc.nets.filter((n) => n.id !== netId);
+  }
+  return { netId, pin: gone && gone.pin, cell: gone && gone.cell,
+           netGone: loads.length === 0 };
 }
 
 function distanceToRun(point, a, b) {

@@ -39,7 +39,7 @@ VERSION = 2
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
 CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
-               "arrows", "hops"]
+               "arrows", "hops", "forkLate"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",

@@ -332,6 +332,27 @@ def _path_length(points):
              for i in range(len(points) - 1))
 
 
+def text_marks(doc, registry, routes, scale, font_scale):
+  """Every name on the sheet, as boxes an arrow should stay out of.
+
+  Public, and the browser has the same function, for the reason arrow_marks
+  is: the parity test has to ask the renderer the question it asks itself,
+  not a reconstruction of it.
+  """
+  boxes = []
+  for cell in doc.cells:
+    symbol = registry.for_cell(cell)
+    if symbol is None:
+      continue
+    written = cell_label_box(symbol, cell, scale, font_scale)
+    if written is not None:
+      boxes.append(written)
+  for written in net_label_boxes(doc, registry, routes).values():
+    if written is not None:
+      boxes.append(written)
+  return boxes
+
+
 def arrow_marks(junctions, hop_map):
   """Everything an arrow has to keep clear of: junction dots and hop bridges.
 
@@ -346,7 +367,7 @@ def arrow_marks(junctions, hop_map):
                             for spot in spots]
 
 
-def _arrow_spots(points, size, spacing=None, junctions=()):
+def _arrow_spots(points, size, spacing=None, junctions=(), text=()):
   """Where a wire's direction arrows go, and which way each one points.
 
   One always sits near the receiving end, which is where a reader looks to ask
@@ -361,6 +382,12 @@ def _arrow_spots(points, size, spacing=None, junctions=()):
   connection the dot announced is lost. The dot is the more important of the
   two -- it is the only thing saying these wires are joined -- so the arrow is
   the one that gives way.
+
+  `text` is every name on the sheet, and the same rule applies to it, only
+  more so: a name is the one thing on a wire that cannot be worked out from
+  looking at the drawing, and an arrowhead through the middle of one costs a
+  reader far more than a missing arrow does. An arrow with nowhere clear to go
+  is not drawn at all.
   """
   if len(points) < 2:
     return []
@@ -406,10 +433,88 @@ def _arrow_spots(points, size, spacing=None, junctions=()):
     distance += spacing
 
   found = extra + spots
-  if not junctions:
+  if not junctions and not text:
     return found
-  return [(tip, direction) for tip, direction in found
-          if _clear_of(tip, junctions, drc.ARROW_TO_JUNCTION)]
+  # An arrow is the most expendable mark on the sheet. Everything else it
+  # might land on -- a junction dot, a crossing bridge, a name -- carries
+  # something the reader cannot work out for themselves, while the direction
+  # of a wire is usually obvious from the pins at its ends. So the arrow moves
+  # along the wire to somewhere clear, and goes without rather than sit on top
+  # of any of them.
+  clear = []
+  for tip, direction in found:
+    moved = _slide_clear(points, tip, direction, size, junctions, text)
+    if moved is not None:
+      clear.append(moved)
+  return clear
+
+
+def _blocked(tip, size, junctions, text):
+  """Whether an arrowhead here would land on something that matters more."""
+  if not _clear_of(tip, junctions, drc.ARROW_TO_JUNCTION):
+    return True
+  half = size / 2.0
+  for x0, y0, x1, y1 in text:
+    if (x0 - half <= tip[0] <= x1 + half
+        and y0 - half <= tip[1] <= y1 + half):
+      return True
+  return False
+
+
+# How far along the wire an arrow will shuffle looking for a clear spot, and
+# in what steps. Far enough to clear a name, short enough that the head stays
+# on the stretch of wire it was describing.
+SLIDE_REACH = 44.0
+SLIDE_STEP = 4.0
+
+
+def _slide_clear(points, tip, direction, size, junctions, text):
+  """Move an arrow along its wire until it sits clear, or give it up.
+
+  Tried where it wanted to be first, then a little either way, so an arrow
+  only moves as far as it has to and a wire with room keeps its head where it
+  reads best -- near the end that receives the signal.
+  """
+  if not _blocked(tip, size, junctions, text):
+    return (tip, direction)
+
+  at = _distance_along(points, tip)
+  if at is None:
+    return None
+  step = SLIDE_STEP
+  while step <= SLIDE_REACH:
+    for away in (-step, step):
+      found = _walk(points, at + away)
+      if found is None:
+        continue
+      spot, heading, from_corner = found
+      if from_corner < size * 2:
+        continue
+      if not _blocked(spot, size, junctions, text):
+        return (spot, heading)
+    step += SLIDE_STEP
+  return None
+
+
+def _distance_along(points, tip):
+  """How far along a path a point sits, or None if it is not on it."""
+  travelled = 0.0
+  for index in range(len(points) - 1):
+    a = points[index]
+    b = points[index + 1]
+    length = abs(b[0] - a[0]) + abs(b[1] - a[1])
+    if length <= 0:
+      continue
+    if _on_segment(tip, a, b):
+      return travelled + abs(tip[0] - a[0]) + abs(tip[1] - a[1])
+    travelled += length
+  return None
+
+
+def _on_segment(point, a, b):
+  slack = 1e-6
+  return (min(a[0], b[0]) - slack <= point[0] <= max(a[0], b[0]) + slack
+          and min(a[1], b[1]) - slack <= point[1] <= max(a[1], b[1]) + slack)
 
 
 def _clear_of(point, others, distance):
@@ -727,6 +832,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   hop_map = routing.hop_points(routes) if hops else {}
   junctions = routing.junctions(routes)
   marks = arrow_marks(junctions, hop_map)
+  names = text_marks(doc, registry, routes, doc.symbol_scale, font_scale)
 
   for net, branches in routes:
     if not branches:
@@ -775,7 +881,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
         if len(points) < 2:
           continue
         for tip, direction in _arrow_spots(points, theme.ARROW_SIZE,
-                                           junctions=marks):
+                                           junctions=marks, text=names):
           _render_arrow(tip, direction, theme.ARROW_SIZE,
                         style.get("stroke", theme.COLORS["net"]), out)
 

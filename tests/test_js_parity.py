@@ -167,23 +167,32 @@ class TestWhatEachRendererActuallyDraws(unittest.TestCase):
       browser["arrows"], exported,
       "the editor and the exported file disagree about arrows at a crossing")
 
-  def test_the_bridge_really_does_remove_an_arrow(self):
+  def test_the_bridge_really_does_move_an_arrow(self):
     """Otherwise the test above passes on a drawing where nothing is at stake
-    -- two renderers agreeing that there is nothing to drop."""
+    -- two renderers agreeing that there was nothing to move.
+
+    It used to demand that an arrow be *dropped*. An arrow now slides along
+    its wire first and is only given up when the whole run is spoken for, so
+    the bridge usually costs a position rather than an arrow. Either way the
+    marks have to come out somewhere other than where they would have with
+    the bridges ignored, which is the thing worth proving.
+    """
     doc = _crossing_drawing()
     routes = routing.route_all(doc, self.registry)
     hop_map = routing.hop_points(routes)
     self.assertTrue([s for spots in hop_map.values() for s in spots],
                     "the fixture has no bridge, so it tests nothing")
-    kept = len(_exported_arrows(
-      render_svg.render(doc, registry=self.registry)))
-    without = sum(
-      len(list(render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                       junctions=routing.junctions(routes))))
-      for _net, branches in routes for points in branches if len(points) >= 2)
-    self.assertLess(kept, without,
-                    "no arrow was dropped for the bridge, so both renderers "
-                    "could ignore hops and still agree")
+    kept = _exported_arrows(render_svg.render(doc, registry=self.registry))
+    # The same drawing with nothing to bridge over, so nothing for an arrow
+    # to keep clear of. Asked through render rather than of the placer, so
+    # what is compared is what the file actually carries.
+    without = _exported_arrows(
+      render_svg.render(doc, registry=self.registry, hops=False))
+    self.assertTrue(without, "the fixture draws no arrows at all")
+    self.assertNotEqual(
+      kept, without,
+      "the bridges changed nothing about where the arrows went, so both "
+      "renderers could ignore hops and still agree")
 
   def test_every_example_draws_the_same_arrows_in_both(self):
     for name in sorted(os.listdir(EXAMPLES)):

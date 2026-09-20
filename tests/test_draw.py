@@ -936,3 +936,99 @@ class TestTheTitleKeepsOutOfTheDrawing(unittest.TestCase):
     _x, baseline = self.title_baseline(svg)
     self.assertGreater(baseline - theme.FONT_SIZES["title"], top,
                        "the title is drawn above the top of the viewBox")
+
+
+class TestTheArrowGivesWayToText(unittest.TestCase):
+  """A name outranks the arrowhead that would sit on it.
+
+  An arrow is the most redundant mark on a schematic: which way a wire runs is
+  usually plain from the pins at its ends. A name is the opposite -- it is the
+  one thing a reader cannot work out by looking. So where the two want the
+  same spot the arrow moves along the wire, and where the whole run is spoken
+  for it is not drawn at all.
+  """
+
+  # Long enough that the name's box reaches the arrows spaced along the wire.
+  # A shorter one sits between two of them and collides with neither, which
+  # passes every assertion here with the rule taken out.
+  NAME = "a_very_long_signal_name_that_runs_on"
+
+  def drawing(self):
+    """A long wire whose name lies across where the arrows want to go."""
+    doc = new_document("arrows", 900, 300)
+    doc.cells.append({"id": "a", "type": "port_in", "x": 40, "y": 140,
+                      "label": "src"})
+    doc.cells.append({"id": "b", "type": "port_out", "x": 800, "y": 140,
+                      "label": "dst"})
+    doc.nets.append({"id": "n1", "name": self.NAME, "width": 1,
+                     "from": {"cell": "a", "pin": "p"},
+                     "to": [{"cell": "b", "pin": "p", "waypoints": []}]})
+    doc.normalize()
+    return doc
+
+  def test_the_fixture_really_does_put_an_arrow_on_the_name(self):
+    """Without this the two tests below prove nothing at all."""
+    doc = self.drawing()
+    registry = default_registry()
+    routes, marks, names = self.marks_and_names(doc, registry)
+    half = theme.ARROW_SIZE / 2.0
+    clashes = sum(
+      1
+      for _net, branches in routes for points in branches
+      if len(points) >= 2
+      for tip, _d in render_svg._arrow_spots(points, theme.ARROW_SIZE,
+                                             junctions=marks)
+      for x0, y0, x1, y1 in names
+      if x0 - half <= tip[0] <= x1 + half and y0 - half <= tip[1] <= y1 + half)
+    self.assertGreater(clashes, 0,
+                       "no arrow wanted the name's spot, so this fixture "
+                       "cannot tell whether the rule does anything")
+
+  def marks_and_names(self, doc, registry):
+    routes = routing.route_all(doc, registry)
+    marks = render_svg.arrow_marks(routing.junctions(routes),
+                                   routing.hop_points(routes))
+    names = render_svg.text_marks(doc, registry, routes, doc.symbol_scale,
+                                  doc.font_scale)
+    return routes, marks, names
+
+  def test_no_arrow_is_drawn_on_a_name(self):
+    doc = self.drawing()
+    registry = default_registry()
+    routes, marks, names = self.marks_and_names(doc, registry)
+    self.assertTrue(names, "the fixture wrote no names, so it tests nothing")
+
+    half = theme.ARROW_SIZE / 2.0
+    for _net, branches in routes:
+      for points in branches:
+        if len(points) < 2:
+          continue
+        for tip, _direction in render_svg._arrow_spots(
+            points, theme.ARROW_SIZE, junctions=marks, text=names):
+          for x0, y0, x1, y1 in names:
+            on_it = (x0 - half <= tip[0] <= x1 + half
+                     and y0 - half <= tip[1] <= y1 + half)
+            self.assertFalse(
+              on_it, "an arrow at %s sits on the name in %s"
+              % (tuple(round(v, 1) for v in tip),
+                 tuple(round(v, 1) for v in (x0, y0, x1, y1))))
+
+  def test_it_moves_the_arrow_rather_than_losing_it(self):
+    """Dropping every blocked arrow would pass the test above and be worse."""
+    doc = self.drawing()
+    registry = default_registry()
+    routes, marks, names = self.marks_and_names(doc, registry)
+
+    def count(text):
+      return sum(len(render_svg._arrow_spots(points, theme.ARROW_SIZE,
+                                             junctions=marks, text=text))
+                 for _net, branches in routes for points in branches
+                 if len(points) >= 2)
+
+    free = count(())
+    guarded = count(names)
+    self.assertGreater(free, 0, "the fixture draws no arrows at all")
+    self.assertEqual(
+      guarded, free,
+      "the name cost %d arrow(s) on a wire with room to slide along"
+      % (free - guarded))

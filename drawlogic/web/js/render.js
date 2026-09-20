@@ -303,7 +303,102 @@ export function arrowMarks(junctions, hops) {
 }
 
 
-export function arrowSpots(points, size, spacing, junctions = []) {
+// Every name on the sheet, as boxes an arrow should stay out of. Mirrors
+// render_svg.text_marks; `spots` is what labelSpots already worked out, so
+// the net names are the ones actually being drawn rather than a second guess.
+export function textMarks(doc, spots, routes, fontScale) {
+  const scale = routing.symbolScale(doc);
+  const boxes = [];
+  for (const cell of doc.cells || []) {
+    if (!cell.label) continue;
+    const symbol = geometry.forCell(cell);
+    if (!symbol) continue;
+    const bounds = geometry.cellBounds(symbol, cell, scale);
+    const lines = geometry.labelLines(cell.label);
+    const size = theme.fontSizes.label * fontScale;
+    const middle = bounds[0] + bounds[2] / 2;
+    const top = bounds[1] - 5 - (lines.length - 1) * size * LINE_STEP;
+    const width = Math.max(...lines.map((line) => line.length), 1)
+      * size * LABEL_CHAR;
+    boxes.push([middle - width / 2,
+                top - size * 0.8 - (lines.length - 1) * size * LINE_STEP,
+                middle + width / 2, top + size * 0.2]);
+  }
+  const size = theme.fontSizes.net_label * fontScale;
+  for (const { net } of routes) {
+    if (!net.name || !spots.has(net.id)) continue;
+    const [spot, anchor] = spots.get(net.id);
+    boxes.push(labelBox(spot, anchor, net.name, size));
+  }
+  return boxes;
+}
+
+// How far along the wire an arrow will shuffle looking for a clear spot, and
+// in what steps. Mirrors SLIDE_REACH and SLIDE_STEP in render_svg.py.
+const SLIDE_REACH = 44;
+const SLIDE_STEP = 4;
+
+function arrowBlocked(tip, size, junctions, text) {
+  const limit = routing.currentLimits().arrowToJunction;
+  for (const dot of junctions) {
+    if (Math.abs(tip[0] - dot[0]) < limit && Math.abs(tip[1] - dot[1]) < limit) {
+      return true;
+    }
+  }
+  const half = size / 2;
+  for (const [x0, y0, x1, y1] of text) {
+    if (x0 - half <= tip[0] && tip[0] <= x1 + half
+        && y0 - half <= tip[1] && tip[1] <= y1 + half) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function onSegment(point, a, b) {
+  const slack = 1e-6;
+  return Math.min(a[0], b[0]) - slack <= point[0]
+    && point[0] <= Math.max(a[0], b[0]) + slack
+    && Math.min(a[1], b[1]) - slack <= point[1]
+    && point[1] <= Math.max(a[1], b[1]) + slack;
+}
+
+function distanceAlong(points, tip) {
+  let travelled = 0;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const a = points[i];
+    const b = points[i + 1];
+    const length = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
+    if (length <= 0) continue;
+    if (onSegment(tip, a, b)) {
+      return travelled + Math.abs(tip[0] - a[0]) + Math.abs(tip[1] - a[1]);
+    }
+    travelled += length;
+  }
+  return null;
+}
+
+// Move an arrow along its wire until it sits clear, or give it up. See
+// render_svg._slide_clear: everything an arrow might land on carries
+// something the reader cannot work out for themselves, and the direction of a
+// wire usually can be, so the arrow is the one that moves.
+function slideClear(points, tip, direction, size, junctions, text) {
+  if (!arrowBlocked(tip, size, junctions, text)) return [tip, direction];
+  const at = distanceAlong(points, tip);
+  if (at === null) return null;
+  for (let step = SLIDE_STEP; step <= SLIDE_REACH; step += SLIDE_STEP) {
+    for (const away of [-step, step]) {
+      const found = walk(points, at + away);
+      if (!found) continue;
+      const [spot, heading, fromCorner] = found;
+      if (fromCorner < size * 2) continue;
+      if (!arrowBlocked(spot, size, junctions, text)) return [spot, heading];
+    }
+  }
+  return null;
+}
+
+export function arrowSpots(points, size, spacing, junctions = [], text = []) {
   if (points.length < 2) return [];
   const step = spacing || theme.arrowSpacing || 240;
   const total = pathLength(points);
@@ -345,11 +440,13 @@ export function arrowSpots(points, size, spacing, junctions = []) {
     if (fromCorner >= size * 2) extra.push([spot, direction]);
   }
   const found = extra.concat(spots);
-  if (!junctions.length) return found;
-  const limit = routing.currentLimits().arrowToJunction;
-  return found.filter(([tip]) => junctions.every(
-    (dot) => Math.abs(tip[0] - dot[0]) >= limit
-          || Math.abs(tip[1] - dot[1]) >= limit));
+  if (!junctions.length && !text.length) return found;
+  const clear = [];
+  for (const [tip, direction] of found) {
+    const moved = slideClear(points, tip, direction, size, junctions, text);
+    if (moved) clear.push(moved);
+  }
+  return clear;
 }
 
 function arrowElement(tip, direction, size, color) {
@@ -608,6 +705,7 @@ function renderNets(doc, fontScale, into) {
     into.appendChild(text);
   }
 
+  const names = textMarks(doc, spots, routes, fontScale);
   if ((doc.canvas || {}).arrows !== false) {
     for (const { net, branches } of routes) {
       if ((net.style || {}).arrow === false) continue;
@@ -615,7 +713,7 @@ function renderNets(doc, fontScale, into) {
       for (const points of branches) {
         if (points.length < 2) continue;
         for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7,
-                                                  null, marks)) {
+                                                  null, marks, names)) {
           into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                         (net.style || {}).stroke || theme.colors.net));
         }

@@ -4,7 +4,7 @@
 #
 # Run it from the folder that contains manifest.txt -- the top of the repo --
 # or point it anywhere with -Root. It reads manifest.txt, hashes each file it
-# names, and reports OK, MISMATCH, MISSING or EXTRA.
+# names, and reports MATCH (with the file's size), MISMATCH, MISSING or EXTRA.
 #
 # Line endings and trailing blank lines are made uniform before hashing,
 # exactly as drawlogic/cli.py does it, so a file is only "wrong" when what it
@@ -92,6 +92,12 @@ foreach ($line in Get-Content -LiteralPath $Manifest) {
 
     if ($actual -eq $expected) {
         $ok++
+        # The size is of the file as it sits on disk, not of the normalised
+        # text that was hashed -- it is here so a MATCH still says something
+        # concrete about the file, the same way MISMATCH names the file that
+        # differs rather than just counting it.
+        $size = (Get-Item -LiteralPath $full).Length
+        Write-Host ("MATCH     {0}  ({1:N0} bytes)" -f $relative, $size) -ForegroundColor Green
     } else {
         Write-Host "MISMATCH  $relative" -ForegroundColor Yellow
         [void]$bad.Add($relative)

@@ -194,6 +194,23 @@ class TestDoctor(unittest.TestCase):
                  "render to SVG"):
       self.assertIn(step, output)
 
+  def test_the_documented_output_is_what_it_prints(self):
+    """DOCUMENTATION.md shows a sample run, and the counts in it had drifted
+    to a symbol and a file behind the real thing without anything noticing."""
+    code, output = self.run_doctor()
+    self.assertEqual(code, 0, output)
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "..", "DOCUMENTATION.md")) as handle:
+      documented = handle.read()
+    counted = [line for line in output.splitlines()
+               if any(char.isdigit() for char in line)
+               and not line.startswith(("drawlogic ", "python "))]
+    self.assertTrue(counted, output)
+    for line in counted:
+      # assertIn would print the whole of DOCUMENTATION.md on a failure.
+      self.assertTrue(line in documented,
+                      "DOCUMENTATION.md's sample doctor output lacks %r" % line)
+
   def test_it_notices_a_module_missing_a_function_another_calls(self):
     """The Check crash: drc asks render_svg for cell_label_box, and an older
     render_svg does not have one."""

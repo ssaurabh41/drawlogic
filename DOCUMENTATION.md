@@ -256,9 +256,9 @@ ok    route a wire
 ok    check the rules
 ok    lay it out
 ok    render to SVG
-33 built-in symbols
+35 built-in symbols
 ok     11 browser modules, 0 import mismatches
-ok     28 files against manifest.txt, 0 differ
+ok     29 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -1248,7 +1248,7 @@ them. Every file reads correctly on its own. Nothing in the code can tell you,
 because the code is not what is wrong.
 
 `manifest.txt` at the top of the repository is a hash of every file that has
-to be right, 28 of them:
+to be right:
 
 ```
 <64 hex digits>  drawlogic/__init__.py

@@ -66,7 +66,7 @@ passing `--host` -- see section 6 for what that flag gives up.
 single most common way this has broken for a real user, and its symptoms
 (blank canvas, empty icons, `Check` answering "failed to fetch") look like
 product bugs rather than a bad copy. It exercises Python end to end, checks
-every browser import resolves, and hashes all 28 files against `manifest.txt`.
+every browser import resolves, and hashes every file `manifest.txt` names.
 On Windows, `verify.ps1` does the manifest half without needing Python to run
 at all. If either reports a mismatch, stop and re-take the repository whole --
 nothing found after that point is trustworthy.
@@ -97,7 +97,7 @@ independently. Treat a claim with no check as unverified.
 | The DRCs do not cry wolf | `for f in examples/*.dlg; do drawlogic validate $f; done` | warnings, none of them errors; each one findable in the picture |
 | Checking keeps up while you draw | serve an example, drag a gate onto another, stop | a ring appears within about half a second; the status-bar count matches the pane |
 | The live count is never stale | drag something and watch the count during the drag | it greys out on the first move and only goes solid again with a fresh answer |
-| This copy is the copy | `python3 -m drawlogic doctor`, or `verify.ps1` on Windows | 28 files against `manifest.txt`, 0 differ |
+| This copy is the copy | `python3 -m drawlogic doctor`, or `verify.ps1` on Windows | `N files against manifest.txt, 0 differ` |
 | The manifest cannot rot | append a blank line to any file under `drawlogic/`, `python3 -m unittest tests.test_manifest` | red, naming the command that regenerates it |
 
 Warnings are expected, not a defect: `validate` reports unconnected pins, and
@@ -345,8 +345,8 @@ Ranked by where I would look first, with reasoning rather than a flat list.
    path needs escaping, the script still names both replacements) but cannot
    run PowerShell, so the two implementations are checked by reading, not by
    execution. If you have Windows, the highest-value thing you can do in ten
-   minutes is run `verify.ps1` on a fresh `git clone` and confirm it says all
-   28 files are fine. A byte-for-byte version of this manifest reported every
+   minutes is run `verify.ps1` on a fresh `git clone` and confirm it reports
+   every file as a MATCH. A byte-for-byte version of this manifest reported every
    file in a healthy clone as broken; that is the failure mode to re-check,
    not a missed mismatch.
 

@@ -109,18 +109,18 @@ class TestExportRespectsTheDocument(unittest.TestCase):
 
 
 def _shorted_document():
-  """Two nets forced onto one corridor: the drawing says they are joined."""
+  """Two nets drawn by hand down one line: the drawing says they are joined."""
   doc = new_document("shorted", 600, 420)
   doc.cells.extend([
     {"id": "in1", "type": "port_in", "x": 60, "y": 100, "label": "in1"},
-    {"id": "in2", "type": "port_in", "x": 60, "y": 160, "label": "in2"},
-    {"id": "U1", "type": "and2", "x": 105, "y": 100},
+    {"id": "in2", "type": "port_in", "x": 60, "y": 200, "label": "in2"},
+    {"id": "U1", "type": "and2", "x": 160, "y": 100},
   ])
   doc.nets.extend([
     {"id": "n1", "name": "s1", "from": {"cell": "in2", "pin": "p"},
-     "to": [{"cell": "U1", "pin": "a"}]},
+     "to": [{"cell": "U1", "pin": "a", "waypoints": [[120, 205], [120, 110]]}]},
     {"id": "n2", "name": "s2", "from": {"cell": "in1", "pin": "p"},
-     "to": [{"cell": "U1", "pin": "b"}]},
+     "to": [{"cell": "U1", "pin": "b", "waypoints": [[120, 105], [120, 130]]}]},
   ])
   doc.normalize()
   return doc

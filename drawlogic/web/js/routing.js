@@ -149,8 +149,11 @@ function horizontalClear(y, x0, x1, boxes) {
 // Nets that share an endpoint are exempt -- a fan-out from one pin is meant to
 // lie on top of itself and show as a rail with junction dots.
 export class Sheet {
-  constructor(boxes = []) {
+  // `own` is the bodies of the net's own cells, which `boxes` leaves out; see
+  // routing.py.
+  constructor(boxes = [], own = []) {
     this.boxes = boxes;
+    this.own = own;
     this.runs = [];
     this.keys = new Set();
     this.net = null;
@@ -170,8 +173,8 @@ export class Sheet {
     }
   }
 
-  forNet(boxes, keys, netId = null) {
-    const view = new Sheet(boxes);
+  forNet(boxes, keys, netId = null, own = []) {
+    const view = new Sheet(boxes, own);
     view.runs = this.runs;
     view.keys = keys;
     view.net = netId;
@@ -368,7 +371,7 @@ function routeHH(a, b, aDir, bDir, sheet) {
     const hi = Math.max(a[0], b[0]);
     const x = pickCorridor((a[0] + b[0]) / 2, lo, hi, clearAt, freeAt);
     if (clearAt(x)) return [a, [x, a[1]], [x, b[1]], b];
-    return rowCrossover(a, b, sheet, rowClear);
+    return rowCrossover(a, b, aDir, bDir, sheet, rowClear);
   }
   if (aDir[0] * bDir[0] > 0) {
     const direction = aDir[0];
@@ -377,16 +380,33 @@ function routeHH(a, b, aDir, bDir, sheet) {
     return [a, [x, a[1]], [x, b[1]], b];
   }
   // Back to back, so no column between them can be used either way.
-  return rowCrossover(a, b, sheet, rowClear);
+  return rowCrossover(a, b, aDir, bDir, sheet, rowClear);
 }
 
 // Out of each pin and across on a shared row: the answer both when no column
 // between the pins can be used and when every one of them is blocked, since
 // leaving the pins' own rows is the only way past a block standing on one.
-function rowCrossover(a, b, sheet, rowClear) {
+function rowCrossover(a, b, aDir, bDir, sheet, rowClear) {
   const y = pickCorridor((a[1] + b[1]) / 2, -Infinity, Infinity, rowClear,
     (m, cross, gap) => sheet.free(true, m, a[0], b[0], cross, gap));
-  return [a, [a[0], y], [b[0], y], b];
+  const xa = legColumn(a, aDir[0], y, sheet);
+  const xb = legColumn(b, bDir[0], y, sheet);
+  return [a, [xa, a[1]], [xa, y], [xb, y], [xb, b[1]], b];
+}
+
+// The column a crossover's leg runs down, from a pin's row to its own. The leg
+// sits on the stub end, shared by every pin down one side of a cell, so two
+// unrelated wires both dropped down it and lay on top of each other. A leg
+// with nothing under it stays put; one that would lie on another net moves
+// outward, away from its pin. Mirrors routing.py.
+function legColumn(end, direction, y, sheet) {
+  if (sheet.free(false, end[0], end[1], y, false, limits.touching)) return end[0];
+  const { boxes } = sheet;
+  const clearAt = (m) => [boxes, sheet.own].every((found) =>
+    verticalClear(m, end[1], y, found) && horizontalClear(end[1], end[0], m, found));
+  const freeAt = (m, cross, gap) => sheet.free(false, m, end[1], y, cross, gap)
+    && sheet.free(true, end[1], end[0], m, false, limits.touching);
+  return pickOutward(end[0], direction, clearAt, freeAt);
 }
 
 // Both ends face up or down: cross over on a shared row.
@@ -643,7 +663,10 @@ function branchTo(doc, net, load, start, startDir, sheet, keys, fromPin = true) 
     for (const endpoint of [net.from, load]) {
       if (endpoint && endpoint.cell !== undefined) exclude.add(endpoint.cell);
     }
-    const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id);
+    const others = new Set(doc.cells.map((cell) => cell.id)
+      .filter((id) => !exclude.has(id)));
+    const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id,
+                              bodyBoxes(doc, others));
     return clean(directRoute(start, end, startDir,
                              endpointDirection(doc, load), view,
                              fromPin ? stubFor(doc, net.from) : 0,

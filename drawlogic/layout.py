@@ -352,8 +352,8 @@ SPREAD_COST = 0.35
 # and so does dropping ERROR_COST to zero. The error weight is here because an
 # untrue drawing should outrank an ugly one on principle, not because these
 # examples demonstrate it. Second, pricing errors very high backfires -- at
-# 4000 the layout chases shorts it cannot remove (they come from the router
-# running out of corridor, not from cell order) and pays for the chase
+# 4000 the layout chases shorts it cannot remove (they came from the router,
+# not from cell order -- see routing._leg_column) and pays for the chase
 # elsewhere: 10 errors but 75 warnings and 134 crossings, a worse drawing by
 # every other measure.
 ERROR_COST = 1000.0

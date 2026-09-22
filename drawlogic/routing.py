@@ -263,8 +263,12 @@ class Sheet:
   meant to lie on top of itself and show as a rail with junction dots.
   """
 
-  def __init__(self, boxes=()):
+  def __init__(self, boxes=(), own=()):
     self.boxes = boxes
+    # The bodies of the net's own cells, which `boxes` leaves out because the
+    # wire has to reach them. Only a crossover leg that has been moved off its
+    # stub looks at these: nothing else can wander into its own cells.
+    self.own = own
     self._runs = []
     self._keys = frozenset()
     self._net = None
@@ -281,14 +285,14 @@ class Sheet:
         self._runs.append((net_id, keys, False, a[0],
                            min(a[1], b[1]), max(a[1], b[1])))
 
-  def for_net(self, boxes, keys, net_id=None):
+  def for_net(self, boxes, keys, net_id=None, own=()):
     """A view of this sheet for one net: its own obstacles, shared history.
 
     The net's own branches are exempt from the reserved runs, so a fan-out
     does not block itself -- that overlap is the rail, and the junction dots
     on it are the point.
     """
-    view = Sheet(boxes)
+    view = Sheet(boxes, own)
     view._runs = self._runs
     view._keys = keys
     view._net = net_id
@@ -494,7 +498,7 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
     x = _pick_corridor((a[0] + b[0]) / 2.0, lo, hi, clear_at, free_at)
     if clear_at(x):
       return [a, (x, a[1]), (x, b[1]), b]
-    return _row_crossover(a, b, sheet, row_clear)
+    return _row_crossover(a, b, a_dir, b_dir, sheet, row_clear)
 
   if a_dir[0] * b_dir[0] > 0:
     direction = a_dir[0]
@@ -503,10 +507,10 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
     return [a, (x, a[1]), (x, b[1]), b]
 
   # Back to back, so no column between them can be used either way.
-  return _row_crossover(a, b, sheet, row_clear)
+  return _row_crossover(a, b, a_dir, b_dir, sheet, row_clear)
 
 
-def _row_crossover(a, b, sheet, row_clear):
+def _row_crossover(a, b, a_dir, b_dir, sheet, row_clear):
   """Out of each pin and across on a shared row.
 
   The answer both when no column between the pins can be used and when every
@@ -516,7 +520,36 @@ def _row_crossover(a, b, sheet, row_clear):
   y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, row_clear,
                      lambda y, cross, gap:
                      sheet.free(True, y, a[0], b[0], cross, gap))
-  return [a, (a[0], y), (b[0], y), b]
+  xa = _leg_column(a, a_dir[0], y, sheet)
+  xb = _leg_column(b, b_dir[0], y, sheet)
+  return [a, (xa, a[1]), (xa, y), (xb, y), (xb, b[1]), b]
+
+
+def _leg_column(end, direction, y, sheet):
+  """The column a crossover's leg runs down, from a pin's row to its own.
+
+  The leg sits on the stub end, which is the same column for every pin down
+  one side of a cell -- so two unrelated wires leaving that side both dropped
+  down it and were drawn on top of each other: every wire-short the examples
+  had after auto-layout. The row was searched for a free place and the legs
+  never were. A leg with nothing under it stays exactly where it was; one
+  that would lie on another net moves outward, away from its pin, until it
+  does not.
+  """
+  if sheet.free(False, end[0], end[1], y, False, TOUCHING):
+    return end[0]
+  boxes = sheet.boxes
+
+  def clear_at(x):
+    return all(_vertical_clear(x, end[1], y, found)
+               and _horizontal_clear(end[1], end[0], x, found)
+               for found in (boxes, sheet.own))
+
+  def free_at(x, crossings, gap):
+    return (sheet.free(False, x, end[1], y, crossings, gap)
+            and sheet.free(True, end[1], end[0], x, False, TOUCHING))
+
+  return _pick_outward(end[0], direction, clear_at, free_at)
 
 
 def _route_vv(a, b, a_dir, b_dir, sheet):
@@ -827,7 +860,9 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
       if isinstance(endpoint, dict) and "cell" in endpoint:
         exclude.add(endpoint["cell"])
     boxes = obstacle_boxes(doc, registry, exclude)
-    view = sheet.for_net(boxes, keys, net.get("id"))
+    others = set(cell.get("id") for cell in doc.cells) - exclude
+    view = sheet.for_net(boxes, keys, net.get("id"),
+                         body_boxes(doc, registry, others))
     return _clean(_direct_route(
       start, end, start_dir, end_dir, view,
       stub_for(doc, net.get("from"), registry) if from_pin else 0.0,

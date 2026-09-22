@@ -177,18 +177,19 @@ class TestEndpoints(unittest.TestCase):
   def test_check_finds_a_short_the_editor_would_have_to_show(self):
     payload = self.get("/api/doc?path=slice.dlg")
     doc = payload["doc"]
-    # Two ports squeezed against a gate with no room for two corridors: the
-    # router has to put both wires on one line, which reads as a short.
+    # Two wires drawn by hand down one line, which reads as a short.
     doc["cells"].extend([
       {"id": "z1", "type": "port_in", "x": 60, "y": 620, "label": "z1"},
-      {"id": "z2", "type": "port_in", "x": 60, "y": 680, "label": "z2"},
-      {"id": "ZU", "type": "and2", "x": 105, "y": 620},
+      {"id": "z2", "type": "port_in", "x": 60, "y": 720, "label": "z2"},
+      {"id": "ZU", "type": "and2", "x": 160, "y": 620},
     ])
     doc["nets"].extend([
       {"id": "z_a", "name": "za", "from": {"cell": "z2", "pin": "p"},
-       "to": [{"cell": "ZU", "pin": "a"}]},
+       "to": [{"cell": "ZU", "pin": "a",
+               "waypoints": [[120, 725], [120, 630]]}]},
       {"id": "z_b", "name": "zb", "from": {"cell": "z1", "pin": "p"},
-       "to": [{"cell": "ZU", "pin": "b"}]},
+       "to": [{"cell": "ZU", "pin": "b",
+               "waypoints": [[120, 625], [120, 650]]}]},
     ])
     result = self.post("/api/check", {"doc": doc, "source": "slice.dlg"})
     rules = [v["rule"] for v in result["violations"] if v["level"] == "error"]

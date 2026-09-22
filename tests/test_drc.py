@@ -53,6 +53,25 @@ def wire(net_id, source, source_pin, target, target_pin, name=None):
   return net
 
 
+def hand_shorted_nets():
+  """in2 to U1.a and in1 to U1.b, with waypoints that put both down x=120."""
+  return [
+    {"id": "n1", "name": "s1", "from": {"cell": "in2", "pin": "p"},
+     "to": [{"cell": "U1", "pin": "a", "waypoints": [[120, 205], [120, 110]]}]},
+    {"id": "n2", "name": "s2", "from": {"cell": "in1", "pin": "p"},
+     "to": [{"cell": "U1", "pin": "b", "waypoints": [[120, 105], [120, 130]]}]},
+  ]
+
+
+def _through(a, b, box):
+  """True if the straight run a-b passes through the inside of a box."""
+  x0, y0, x1, y1 = box
+  lo_x, hi_x = sorted((a[0], b[0]))
+  lo_y, hi_y = sorted((a[1], b[1]))
+  return (max(x0, lo_x) < min(x1, hi_x) or x0 < lo_x < x1) and \
+         (max(y0, lo_y) < min(y1, hi_y) or y0 < lo_y < y1)
+
+
 def rules_in(violations):
   return set(v.rule for v in violations)
 
@@ -64,17 +83,13 @@ def only(violations, rule):
 class TestShorts(unittest.TestCase):
   """Two nets drawn as one. The faults that make a drawing lie."""
 
-  def test_two_nets_into_one_gate_must_not_merge(self):
-    """The reported case: in1 to B and in2 to A, drawn as one wire.
-
-    The ports sit two columns from the gate with no room between them for two
-    corridors, so both wires take the same one. Nothing in the file says these
-    nets are connected; the picture says they are.
-    """
+  def test_a_short_drawn_by_hand_is_reported(self):
+    """Waypoints are honoured as drawn, so two wires put on one line by hand
+    stay there -- and nothing in the file says these nets are connected while
+    the picture says they are."""
     doc = build(
-      [port("in1", 60, 100), port("in2", 60, 160), gate("U1", 105, 100)],
-      [wire("n1", "in2", "p", "U1", "a", "s1"),
-       wire("n2", "in1", "p", "U1", "b", "s2")])
+      [port("in1", 60, 100), port("in2", 60, 200), gate("U1", 160, 100)],
+      hand_shorted_nets())
 
     shorts = only(drc.check(doc), "wire-short")
     self.assertTrue(shorts, "two nets drawn on one line went unreported")
@@ -82,12 +97,41 @@ class TestShorts(unittest.TestCase):
     self.assertIn("n1", shorts[0].where)
     self.assertIn("n2", shorts[0].where)
 
-  def test_the_same_two_nets_with_room_are_clean(self):
-    """The same drawing, given room: the wires cross and bridge, not merge.
+  def test_the_same_two_nets_left_to_the_router_are_clean(self):
+    """Without this the test above proves only that the checker says "short"
+    a lot. The same two nets, with no waypoints, are routed apart."""
+    doc = build(
+      [port("in1", 60, 100), port("in2", 60, 200), gate("U1", 160, 100)],
+      [wire("n1", "in2", "p", "U1", "a", "s1"),
+       wire("n2", "in1", "p", "U1", "b", "s2")])
 
-    Without this the test above proves only that the checker says "short" a
-    lot. The difference between the two is the gap between the columns.
-    """
+    self.assertEqual(only(drc.check(doc), "wire-short"), [])
+
+  def test_two_nets_into_one_gate_must_not_merge(self):
+    """The reported case: in1 to B and in2 to A, squeezed two columns from
+    the gate. Both wires cross over on a row of their own, and their legs
+    down to it used to share the stub column beside the gate -- drawn as one
+    wire. A leg that would lie on another net now moves outward instead, and
+    not through the cells at either end of its own net."""
+    doc = build(
+      [port("in1", 60, 100), port("in2", 60, 160), gate("U1", 105, 100)],
+      [wire("n1", "in2", "p", "U1", "a", "s1"),
+       wire("n2", "in1", "p", "U1", "b", "s2")])
+
+    self.assertEqual([v for v in drc.check(doc) if v.level == "error"], [])
+    # The ports, which a moved leg used to run straight through. The gate is
+    # left out: the ports sit so close that their own stubs reach into it,
+    # which is this fixture's squeeze rather than anything a leg did.
+    bodies = routing.body_boxes(doc, exclude={"U1"})
+    for _net, branches in routing.route_all(doc):
+      for points in branches:
+        for a, b in zip(points[1:-2], points[2:-1]):
+          for box in bodies:
+            self.assertFalse(_through(a, b, box),
+                             "a wire runs through a cell: %r-%r" % (a, b))
+
+  def test_the_same_two_nets_with_room_are_clean(self):
+    """The same drawing, given room: the wires cross and bridge, not merge."""
     doc = build(
       [port("in1", 60, 100), port("in2", 60, 160), gate("U1", 260, 100)],
       [wire("n1", "in2", "p", "U1", "a", "s1"),
@@ -484,10 +528,10 @@ class TestViolations(unittest.TestCase):
     self.assertIsInstance(data["at"], list)
 
   def test_errors_are_listed_before_warnings(self):
+    # The hand-drawn short, squeezed against the gate so warnings come too.
     doc = build(
-      [port("in1", 60, 100), port("in2", 60, 160), gate("U1", 105, 100)],
-      [wire("n1", "in2", "p", "U1", "a", "s1"),
-       wire("n2", "in1", "p", "U1", "b", "s2")])
+      [port("in1", 60, 100), port("in2", 60, 200), gate("U1", 125, 100)],
+      hand_shorted_nets())
     levels = [v.level for v in drc.check(doc)]
     self.assertIn("error", levels)
     self.assertEqual(levels, sorted(levels, key=lambda l: l != "error"),

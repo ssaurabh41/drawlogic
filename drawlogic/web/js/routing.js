@@ -439,13 +439,36 @@ function routeVV(a, b, aDir, bDir, sheet) {
 }
 
 // One end faces sideways and the other up or down: a single corner.
-function routeCorner(a, b, boxes, aHorizontal) {
+// A corner that misses every cell but lies on another net is a wire-short:
+// the leg down from the sideways end sits on its stub column, shared by every
+// pin down that side. So the other corner is tried first, and failing that
+// the leg moves outward. Mirrors routing.py.
+function routeCorner(a, b, aDir, bDir, sheet, aHorizontal) {
+  const { boxes } = sheet;
   const alongA = aHorizontal ? [b[0], a[1]] : [a[0], b[1]];
   const alongB = aHorizontal ? [a[0], b[1]] : [b[0], a[1]];
-  for (const corner of [alongA, alongB]) {
-    if (legClear(a, corner, boxes) && legClear(corner, b, boxes)) return [a, corner, b];
+  const clear = [alongA, alongB].filter((corner) =>
+    legClear(a, corner, boxes) && legClear(corner, b, boxes));
+  for (const corner of clear) {
+    if (legFree(a, corner, sheet) && legFree(corner, b, sheet)) return [a, corner, b];
   }
-  return [a, alongA, b];
+  if (!clear.length) return [a, alongA, b];
+
+  const [side, facing, other] = aHorizontal ? [a, aDir, b] : [b, bDir, a];
+  const x = legColumn(side, facing[0], other[1], sheet);
+  if (Math.abs(x - side[0]) > EPSILON
+      && horizontalClear(other[1], x, other[0], boxes)
+      && legFree([x, other[1]], other, sheet)) {
+    return [a, [x, a[1]], [x, b[1]], b];
+  }
+  return [a, clear[0], b];
+}
+
+function legFree(p, q, sheet) {
+  if (Math.abs(p[1] - q[1]) < EPSILON) {
+    return sheet.free(true, p[1], p[0], q[0], false, limits.touching);
+  }
+  return sheet.free(false, p[0], p[1], q[1], false, limits.touching);
 }
 
 // Orthogonal path between two stub ends, dodging every cell on the way.
@@ -462,7 +485,7 @@ function middleRoute(a, b, aDir, bDir, sheet) {
   const bHorizontal = Math.abs(bDir[0]) > Math.abs(bDir[1]);
   if (aHorizontal && bHorizontal) return routeHH(a, b, aDir, bDir, sheet);
   if (!aHorizontal && !bHorizontal) return routeVV(a, b, aDir, bDir, sheet);
-  return routeCorner(a, b, sheet.boxes, aHorizontal);
+  return routeCorner(a, b, aDir, bDir, sheet, aHorizontal);
 }
 
 // The wire leaves each pin along the side that pin faces and only then is

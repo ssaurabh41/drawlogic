@@ -335,6 +335,31 @@ class TestOrderingChoice(unittest.TestCase):
           % (name, chosen, min(scores)))
 
 
+class TestStackingKeepsTheColumnOrder(unittest.TestCase):
+  """_stack used to re-sort a column by the heights its cells wanted, which
+  made every order the same answer: the crossing cuts in _order and every swap
+  _refine measured were thrown away, and a loose cell always went last."""
+
+  def stack(self, column, desired):
+    by_id = {c: {"id": c, "y": 0.0} for c in "abc"}
+    boxes = {c: (0.0, 0.0, 40.0, 40.0) for c in "abc"}
+    layout._stack(by_id, boxes, column, desired, 20.0)
+    return by_id
+
+  def test_a_cell_listed_first_stays_on_top(self):
+    placed = self.stack(["b", "a"], {"a": 0.0, "b": 100.0})
+    self.assertLess(placed["b"]["y"], placed["a"]["y"])
+
+  def test_a_loose_cell_keeps_its_slot(self):
+    placed = self.stack(["a", "c", "b"], {"a": 0.0, "b": 300.0})
+    self.assertLess(placed["a"]["y"], placed["c"]["y"])
+    self.assertLess(placed["c"]["y"], placed["b"]["y"])
+
+  def test_a_cell_with_room_still_goes_where_its_wire_wants(self):
+    placed = self.stack(["a", "b"], {"a": 0.0, "b": 300.0})
+    self.assertEqual(placed["b"]["y"], 300.0)
+
+
 class TestRefinement(unittest.TestCase):
   """Swapping neighbours in a column and measuring the result.
 

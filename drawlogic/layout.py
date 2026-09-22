@@ -124,7 +124,7 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
       order = _order(cells, edges, ranks, spans=spans)
       _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y, settle)
       _normalise(doc, registry, cells, margin)
-      score = _score(doc, registry)
+      score = _score(doc, registry, margin)
       if best is None or score < best[0]:
         best = (score, order, settle)
 
@@ -285,7 +285,7 @@ def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
   def lay_out(candidate):
     _place(doc, registry, cells, edges, ranks, candidate, gap_x, gap_y, settle)
     _normalise(doc, registry, cells, margin)
-    return _score(doc, registry)
+    return _score(doc, registry, margin)
 
   best = lay_out(order)
   for _sweep in range(REFINE_SWEEPS):
@@ -362,7 +362,7 @@ WARNING_COST = 150.0
 EPSILON = 1e-9
 
 
-def _score(doc, registry):
+def _score(doc, registry, margin=None):
   """How hard the laid-out drawing is to read. Lower is better.
 
   Four things a reader pays for. Every crossing is a moment of doubt about
@@ -374,7 +374,10 @@ def _score(doc, registry):
   this score is asking, so there is no reason to ask it a second, weaker way.
 
   Measured by routing and checking the drawing, not by a proxy for it, so what
-  is scored is what would be exported.
+  is scored is what would be exported. Given a `margin`, the sheet is first
+  sized to this candidate as _fit will size the winner: the DRCs read the
+  sheet, and scoring against whatever canvas the file arrived with made a
+  second layout of the same drawing search differently from the first.
   """
   # Routed once and handed on: the bounding box and the DRCs would otherwise
   # each route the drawing again, and this runs once per candidate swap.
@@ -384,6 +387,8 @@ def _score(doc, registry):
 
   box = doc.content_bbox(registry, routes)
   spread = (box[2] + box[3]) if box else 0.0
+  if margin is not None and box is not None:
+    _size_sheet(doc, box, margin)
 
   errors = warnings = 0
   for violation in drc.check(doc, registry, routes):
@@ -904,17 +909,19 @@ def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y):
 
 
 def _stack(by_id, boxes, column, desired, gap_y):
-  """Give one column its heights: what each cell wants, then pushed apart.
+  """Give one column its heights, top to bottom in the column's own order.
 
-  A cell with a wire to follow goes where that wire wants it. One with nothing
-  to follow keeps the place the ordering pass gave it, slotted in after.
+  A cell with a wire to follow goes where that wire wants it, or as near as
+  the cell above lets it. One with nothing to follow sits just below the cell
+  above it.
+
+  The order is kept rather than re-sorted by the heights wanted. Sorting made
+  every choice of order for driven cells come out the same -- the crossing
+  cuts in _order and every swap _refine measured were thrown away here -- and
+  sent every loose cell to the bottom of its column whatever slot it had.
   """
-  following = sorted((desired[c], index, c)
-                     for index, c in enumerate(column) if c in desired)
-  loose = [c for c in column if c not in desired]
-
   bottom = None
-  for cell_id in [c for _, _, c in following] + loose:
+  for cell_id in column:
     cell = by_id[cell_id]
     box = boxes[cell_id]
     offset = cell["y"] - box[1]
@@ -969,7 +976,10 @@ def _fit(doc, registry, margin):
   # path that returns underneath the row it came from. It did not always --
   # this function used to walk the segments separately to make up for it.
   box = doc.content_bbox(registry)
-  if box is None:
-    return
+  if box is not None:
+    _size_sheet(doc, box, margin)
+
+
+def _size_sheet(doc, box, margin):
   doc.canvas["width"] = int(box[0] + box[2] + margin)
   doc.canvas["height"] = int(box[1] + box[3] + margin)

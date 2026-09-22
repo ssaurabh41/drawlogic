@@ -587,15 +587,40 @@ def _route_vv(a, b, a_dir, b_dir, sheet):
   return [a, (x, a[1]), (x, b[1]), b]
 
 
-def _route_corner(a, b, sheet, a_horizontal):
-  """One end faces sideways and the other up or down: a single corner."""
+def _route_corner(a, b, a_dir, b_dir, sheet, a_horizontal):
+  """One end faces sideways and the other up or down: a single corner.
+
+  A corner that misses every cell but lies on another net is a wire-short,
+  the same fault _leg_column is there for: the leg down from the sideways
+  end sits on that end's stub column, which every pin down that side of the
+  cell shares. So the other corner is tried first, and failing that the leg
+  moves outward -- one bend more, rather than two wires drawn as one.
+  """
   boxes = sheet.boxes
   along_a = (b[0], a[1]) if a_horizontal else (a[0], b[1])
   along_b = (a[0], b[1]) if a_horizontal else (b[0], a[1])
-  for corner in (along_a, along_b):
-    if _leg_clear(a, corner, boxes) and _leg_clear(corner, b, boxes):
+  clear = [corner for corner in (along_a, along_b)
+           if _leg_clear(a, corner, boxes) and _leg_clear(corner, b, boxes)]
+  for corner in clear:
+    if _leg_free(a, corner, sheet) and _leg_free(corner, b, sheet):
       return [a, corner, b]
-  return [a, along_a, b]
+  if not clear:
+    return [a, along_a, b]
+
+  side, facing, other = (a, a_dir, b) if a_horizontal else (b, b_dir, a)
+  x = _leg_column(side, facing[0], other[1], sheet)
+  if (abs(x - side[0]) > EPSILON
+      and _horizontal_clear(other[1], x, other[0], boxes)
+      and _leg_free((x, other[1]), other, sheet)):
+    return [a, (x, a[1]), (x, b[1]), b]
+  return [a, clear[0], b]
+
+
+def _leg_free(p, q, sheet):
+  """True if one axis-aligned run is not drawn on top of another net."""
+  if abs(p[1] - q[1]) < EPSILON:
+    return sheet.free(True, p[1], p[0], q[0], False, TOUCHING)
+  return sheet.free(False, p[0], p[1], q[1], False, TOUCHING)
 
 
 def _middle_route(a, b, a_dir, b_dir, sheet):
@@ -615,7 +640,7 @@ def _middle_route(a, b, a_dir, b_dir, sheet):
     return _route_hh(a, b, a_dir, b_dir, sheet)
   if not a_horizontal and not b_horizontal:
     return _route_vv(a, b, a_dir, b_dir, sheet)
-  return _route_corner(a, b, sheet, a_horizontal)
+  return _route_corner(a, b, a_dir, b_dir, sheet, a_horizontal)
 
 
 def _direct_route(start, end, start_dir, end_dir, sheet,

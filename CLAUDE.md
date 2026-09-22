@@ -68,8 +68,9 @@ algorithm is intentionally written twice.
 
 **Layered (Sugiyama-style) auto-layout** (`layout.py`): rank -> order
 (median heuristic + transpose pass to cut crossings) -> place -> refine ->
-fit. `_stack` currently sorts columns by desired y-position, which makes
-column ordering inert for driven cells — a known rough edge, not yet fixed.
+fit. `_stack` places a column in its given order, so ordering and `_refine`'s
+swaps change the drawing; every candidate is scored on a sheet fitted to it,
+which is what keeps laying out twice idempotent.
 
 **Routing** (`routing.py`): orthogonal channel routing with junction dots and
 crossing bridges ("hops"). Doglegs are not implemented; a Phase-0 analysis

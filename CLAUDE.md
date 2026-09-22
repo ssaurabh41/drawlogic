@@ -15,7 +15,9 @@ runs as a zero-dependency stdlib-only Python package with a browser editor
 ## Commands
 
 ```bash
-python3 -m unittest discover -s tests      # everything (~365 tests, ~40s)
+python3 tests/run.py                       # everything, in parallel (~390 tests, ~12s); one line when green
+python3 tests/run.py test_layout           # only modules whose name contains this
+python3 -m unittest discover -s tests      # everything, serially (~35s) -- what CI runs
 python3 -m unittest tests.test_drc         # one file
 python3 -m unittest tests.test_drc.TestHops.test_min_spacing   # one test
 
@@ -28,8 +30,12 @@ python3 -m drawlogic serve examples/dff_slice.dlg      # browser editor
 python3 -m unittest tests.test_js_parity   # routing.js/render.js vs the Python originals; needs node, skips silently without it
 ```
 
+Iterate on the module you touched (`tests/run.py test_drc`); run the whole
+suite once before committing. `test_layout` is most of the suite's time.
+
 After changing anything under `drawlogic/`, run `doctor --write-manifest` —
-`test_manifest.py` fails until `manifest.txt` is regenerated. After a
+`test_manifest.py` (and two `test_cli` doctor tests) fail until
+`manifest.txt` is regenerated; those failures mean only that. After a
 deliberate rendering/routing change, regenerate goldens with
 `DRAWLOGIC_REGOLD=1 python3 -m unittest tests.test_regression` and **read the
 diff** (`git diff tests/golden/`) before committing it — a golden updated

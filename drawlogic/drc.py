@@ -380,7 +380,7 @@ class _Scene(object):
   answer, so it happens here rather than once per check.
   """
 
-  def __init__(self, doc, registry=None):
+  def __init__(self, doc, registry=None, routes=None):
     from . import render_svg
     from . import routing
     from .doc import loads_of
@@ -407,6 +407,11 @@ class _Scene(object):
       self.cells.append(_Placed(cell, symbol, box, label_box))
     self.by_id = dict((placed.id, placed) for placed in self.cells)
 
+    # The first net with an id wins, as the linear search this replaced did.
+    self.nets_by_id = {}
+    for net in doc.nets:
+      self.nets_by_id.setdefault(net.get("id"), net)
+
     self.net_pins = {}
     self.net_cells = {}
     for net in doc.nets:
@@ -420,7 +425,8 @@ class _Scene(object):
       self.net_pins[net.get("id")] = frozenset(pins)
       self.net_cells[net.get("id")] = touched
 
-    self.routes = routing.route_all(doc, self.registry)
+    self.routes = (routes if routes is not None
+                   else routing.route_all(doc, self.registry))
     self.runs = []
     self.vertices = []
     for net, branches in self.routes:
@@ -442,10 +448,7 @@ class _Scene(object):
       doc, self.registry, self.routes)
 
   def net(self, net_id):
-    for net in self.doc.nets:
-      if net.get("id") == net_id:
-        return net
-    return None
+    return self.nets_by_id.get(net_id)
 
   def net_name(self, net_id):
     net = self.net(net_id)
@@ -476,7 +479,7 @@ class _Scene(object):
 # ---- the checks ------------------------------------------------------------
 
 
-def check(doc, registry=None):
+def check(doc, registry=None, routes=None):
   """Every DRC failure in a drawing, errors first.
 
   Errors are the drawing saying something untrue -- a wire lying on another
@@ -488,7 +491,7 @@ def check(doc, registry=None):
   Every pair of things is reported once, at the tightest point between them,
   rather than once per segment; one crowded wire is one problem to fix.
   """
-  scene = _Scene(doc, registry)
+  scene = _Scene(doc, registry, routes)
   report = _Report()
   _check_wire_spacing(scene, report)
   _check_wire_contact(scene, report)

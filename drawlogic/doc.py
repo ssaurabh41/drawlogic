@@ -561,7 +561,7 @@ class Document(object):
 
   # ---- geometry ----
 
-  def content_bbox(self, registry=None):
+  def content_bbox(self, registry=None, routes=None):
     """Bounding box of everything drawn, or None for an empty document."""
     registry = registry or default_registry()
     box = None
@@ -588,7 +588,8 @@ class Document(object):
     #
     # routing imports doc, so this import is local rather than at the top.
     from . import routing
-    routes = routing.route_all(self, registry)
+    if routes is None:
+      routes = routing.route_all(self, registry)
     for _net_id, start, end in routing.segments_of(routes):
       for point in (start, end):
         box = union_bbox(box, (point[0], point[1], 0, 0))

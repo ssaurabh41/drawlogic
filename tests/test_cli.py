@@ -16,6 +16,12 @@ from drawlogic import cli, render_svg
 from drawlogic.doc import new_document
 
 
+def _export(argv):
+  # export reports the file it wrote on stderr, which is noise in a test run.
+  with contextlib.redirect_stderr(io.StringIO()):
+    return cli.main(argv)
+
+
 def _wired_document(title, **canvas):
   doc = new_document(title)
   doc.data["canvas"].update(canvas)
@@ -51,7 +57,7 @@ class TestExportRespectsTheDocument(unittest.TestCase):
       src = os.path.join(tmp, "d.dlg")
       out = os.path.join(tmp, "d.svg")
       doc.save(src)
-      cli.main(["export", src, "-o", out])
+      _export(["export", src, "-o", out])
       with open(out) as handle:
         svg = handle.read()
     self.assertNotIn("<polygon", svg,
@@ -64,7 +70,7 @@ class TestExportRespectsTheDocument(unittest.TestCase):
       src = os.path.join(tmp, "d.dlg")
       out = os.path.join(tmp, "d.svg")
       doc.save(src)
-      cli.main(["export", src, "-o", out, "--no-arrows"])
+      _export(["export", src, "-o", out, "--no-arrows"])
       with open(out) as handle:
         svg = handle.read()
     self.assertNotIn("<polygon", svg,
@@ -76,7 +82,7 @@ class TestExportRespectsTheDocument(unittest.TestCase):
       src = os.path.join(tmp, "d.dlg")
       out = os.path.join(tmp, "d.svg")
       doc.save(src)
-      cli.main(["export", src, "-o", out])
+      _export(["export", src, "-o", out])
       with open(out) as handle:
         svg = handle.read()
     self.assertIn("<polygon", svg,
@@ -92,7 +98,7 @@ class TestExportRespectsTheDocument(unittest.TestCase):
           src = os.path.join(tmp, "d.dlg")
           out = os.path.join(tmp, "d.svg")
           doc.save(src)
-          cli.main(["export", src, "-o", out])
+          _export(["export", src, "-o", out])
           with open(out) as handle:
             cli_svg = handle.read()
         direct_svg = render_svg.render(doc)

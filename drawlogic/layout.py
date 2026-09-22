@@ -376,14 +376,17 @@ def _score(doc, registry):
   Measured by routing and checking the drawing, not by a proxy for it, so what
   is scored is what would be exported.
   """
-  segments = list(routing.segments_of(routing.route_all(doc, registry)))
+  # Routed once and handed on: the bounding box and the DRCs would otherwise
+  # each route the drawing again, and this runs once per candidate swap.
+  routes = routing.route_all(doc, registry)
+  segments = list(routing.segments_of(routes))
   length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, a, b in segments)
 
-  box = doc.content_bbox(registry)
+  box = doc.content_bbox(registry, routes)
   spread = (box[2] + box[3]) if box else 0.0
 
   errors = warnings = 0
-  for violation in drc.check(doc, registry):
+  for violation in drc.check(doc, registry, routes):
     if violation.level == "error":
       errors += 1
     else:

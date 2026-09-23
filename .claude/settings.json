@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 tests/run.py)",
+      "Bash(python3 tests/run.py *)",
+      "Bash(node --check *)",
+      "Bash(python3 -m drawlogic validate *)",
+      "Bash(python3 -m drawlogic doctor)",
+      "Bash(python3 -m drawlogic help)",
+      "Bash(python3 -m drawlogic help *)",
+      "Bash(python3 -m drawlogic symbols)",
+      "Bash(python3 -m drawlogic symbols *)",
+      "Bash(python3 -m drawlogic info *)"
+    ]
+  }
+}

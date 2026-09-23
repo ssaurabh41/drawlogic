@@ -711,8 +711,21 @@ function branchTo(doc, net, load, start, startDir, sheet, keys, fromPin = true) 
 // Wires are routed one after another and each remembers where it ran, so a
 // later wire picks a corridor of its own rather than landing on an earlier
 // one. Order therefore matters: the first net stated gets the straightest run.
+// Every pin's stub is claimed before anything is routed, so an early wire
+// cannot take a corridor along the row of a pin whose own wire comes later
+// and leave it nowhere to go but on top. Mirrors routing.py.
 export function routeAll(doc) {
   const sheet = new Sheet();
+  for (const net of doc.nets || []) {
+    const keys = endpointKeys(net);
+    for (const endpoint of [net.from, ...loadsOf(net)]) {
+      const spot = endpointPosition(doc, endpoint);
+      const facing = endpointDirection(doc, endpoint);
+      if (spot && facing) {
+        sheet.reserve(keys, [spot, stubEnd(spot, facing, stubFor(doc, endpoint))], net.id);
+      }
+    }
+  }
   return (doc.nets || []).map((net) => {
     const branches = route(doc, net, sheet);
     const keys = endpointKeys(net);

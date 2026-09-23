@@ -915,9 +915,22 @@ def route_all(doc, registry=None):
   Wires are routed one after another and each remembers where it ran, so a
   later wire picks a corridor of its own rather than landing on an earlier
   one. Order therefore matters: the first net stated gets the straightest run.
+
+  Every pin's stub is claimed before anything is routed. Otherwise the first
+  wire could take a corridor along the row of a pin whose own wire had not
+  been routed yet, and that wire then had nowhere to leave its pin but on top
+  of it -- a short, found once ports were stacked as close as the DRCs allow.
   """
   registry = registry or default_registry()
   sheet = Sheet()
+  for net in doc.nets:
+    keys = _endpoint_keys(net)
+    for endpoint in [net.get("from")] + loads_of(net):
+      spot = endpoint_position(doc, endpoint, registry)
+      facing = endpoint_direction(doc, endpoint, registry)
+      if spot is not None and facing is not None:
+        stub = _stub_end(spot, facing, stub_for(doc, endpoint, registry))
+        sheet.reserve(keys, [spot, stub], net.get("id"))
   routes = []
   for net in doc.nets:
     branches = route(doc, net, registry, sheet)

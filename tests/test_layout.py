@@ -359,6 +359,35 @@ class TestStackingKeepsTheColumnOrder(unittest.TestCase):
     placed = self.stack(["a", "b"], {"a": 0.0, "b": 300.0})
     self.assertEqual(placed["b"]["y"], 300.0)
 
+  def test_ports_stack_as_close_as_the_drcs_allow(self):
+    """Reported: auto-layout spread a column of ports a cell gap apart --
+    82 units -- where the same ports drawn by hand sat about 33 apart."""
+    by_id = {c: {"id": c, "y": 0.0, "label": c} for c in "abc"}
+    boxes = {c: (0.0, 0.0, 20.0, 10.0) for c in "abc"}
+    layout._stack(by_id, boxes, ["a", "b", "c"], {}, 52.0,
+                  ports=frozenset("ab"))
+    self.assertEqual(by_id["b"]["y"] - by_id["a"]["y"],
+                     10.0 + drc.PORT_GAP + drc.TEXT_TO_CELL)
+    self.assertEqual(by_id["c"]["y"] - by_id["b"]["y"],
+                     10.0 + 52.0 + drc.LABEL_HEADROOM,
+                     "a cell under a port still keeps the full cell gap")
+
+
+class TestAutoLayoutLeavesNoErrors(unittest.TestCase):
+  """Every DRC error auto-layout has produced so far was the router drawing
+  two nets as one; this holds the examples to none."""
+
+  def test_no_example_comes_out_of_layout_with_an_error(self):
+    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
+      if not name.endswith(".dlg"):
+        continue
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+        layout.arrange(doc, registry)
+        errors = [str(v) for v in drc.check(doc, registry)
+                  if v.level == "error"]
+        self.assertEqual(errors, [])
+
 
 class TestRefinement(unittest.TestCase):
   """Swapping neighbours in a column and measuring the result.

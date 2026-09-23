@@ -818,6 +818,8 @@ def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y,
            settle=True):
   by_id = {cell["id"]: cell for cell in cells}
   boxes = {cell["id"]: _box(registry, doc, cell) for cell in cells}
+  ports = frozenset(cell["id"] for cell in cells
+                    if registry.for_cell(cell).category == drc.PORT_CATEGORY)
 
   x = 0.0
   for column in order:
@@ -854,7 +856,7 @@ def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y,
         best = (gap, driver_y - _pin_offset(registry, doc, cell, target_pin)[1])
       if best is not None:
         desired[cell_id] = best[1]
-    _stack(by_id, boxes, column, desired, gap_y)
+    _stack(by_id, boxes, column, desired, gap_y, ports)
 
   if settle:
     # Fresh boxes: the pass above moved every cell, and _box reports absolute
@@ -862,10 +864,11 @@ def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y,
     # where the cells used to be.
     _settle_followers(doc, registry, by_id,
                       {c["id"]: _box(registry, doc, c) for c in by_id.values()},
-                      order, ranks, edges, gap_y)
+                      order, ranks, edges, gap_y, ports)
 
 
-def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y):
+def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y,
+                      ports=frozenset()):
   """Place the cells that had nothing arriving by what leaves them instead.
 
   The pass above puts each cell where its incoming wire wants it, which says
@@ -911,10 +914,10 @@ def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y):
         desired[cell_id] = best[1]
         settling = True
     if settling:
-      _stack(by_id, boxes, column, desired, gap_y)
+      _stack(by_id, boxes, column, desired, gap_y, ports)
 
 
-def _stack(by_id, boxes, column, desired, gap_y):
+def _stack(by_id, boxes, column, desired, gap_y, ports=frozenset()):
   """Give one column its heights, top to bottom in the column's own order.
 
   A cell with a wire to follow goes where that wire wants it, or as near as
@@ -925,19 +928,34 @@ def _stack(by_id, boxes, column, desired, gap_y):
   every choice of order for driven cells come out the same -- the crossing
   cuts in _order and every swap _refine measured were thrown away here -- and
   sent every loose cell to the bottom of its column whatever slot it had.
+
+  A port under a port needs only drc.PORT_GAP and room for its name, not the
+  space two blocks keep for the wires between them. Stacking every port a
+  cell gap apart spread a column of ports down the sheet with nothing running
+  between them -- the distance was the rule's, not the drawing's. A port whose wire is straighter
+  further down still goes there; this is only how close it may come.
   """
   bottom = None
+  above = None
   for cell_id in column:
     cell = by_id[cell_id]
     box = boxes[cell_id]
     offset = cell["y"] - box[1]
     want = desired.get(cell_id)
-    if want is None:
-      want = (bottom if bottom is not None else 0.0) + offset
     if bottom is not None:
-      want = max(want, bottom + offset + _headroom(cell))
+      if above in ports and cell_id in ports:
+        # The outline gap the DRC asks of two ports, plus the air the lower
+        # port's name needs from the port above -- not the headroom a
+        # block's name gets, which is sized for a gate.
+        least = bottom + drc.PORT_GAP + drc.TEXT_TO_CELL + offset
+      else:
+        least = bottom + gap_y + offset + _headroom(cell)
+      want = least if want is None else max(want, least)
+    elif want is None:
+      want = offset
     cell["y"] = want
-    bottom = (want - offset) + box[3] + gap_y
+    bottom = (want - offset) + box[3]
+    above = cell_id
 
 
 def _normalise(doc, registry, cells, margin):

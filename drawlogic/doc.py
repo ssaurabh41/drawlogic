@@ -561,7 +561,7 @@ class Document(object):
 
   # ---- geometry ----
 
-  def content_bbox(self, registry=None, routes=None):
+  def content_bbox(self, registry=None, routes=None, labels=None):
     """Bounding box of everything drawn, or None for an empty document."""
     registry = registry or default_registry()
     box = None
@@ -616,7 +616,9 @@ class Document(object):
     # including past the last wire. Routes are handed over rather than
     # recomputed: routing a drawing twice to measure it is the expensive way
     # to get the same answer.
-    for written in render_svg.net_label_boxes(self, registry, routes).values():
+    if labels is None:
+      labels = render_svg.net_label_boxes(self, registry, routes)
+    for written in labels.values():
       if written is not None:
         box = union_bbox(box, (written[0], written[1],
                                written[2] - written[0],

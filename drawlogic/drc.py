@@ -380,7 +380,7 @@ class _Scene(object):
   answer, so it happens here rather than once per check.
   """
 
-  def __init__(self, doc, registry=None, routes=None):
+  def __init__(self, doc, registry=None, routes=None, labels=None):
     from . import render_svg
     from . import routing
     from .doc import loads_of
@@ -444,8 +444,9 @@ class _Scene(object):
       for net_id, spots in routing.hop_points(self.routes).items():
         self.hops.extend((net_id, spot) for spot in spots)
 
-    self.net_label_boxes = render_svg.net_label_boxes(
-      doc, self.registry, self.routes)
+    self.net_label_boxes = (labels if labels is not None
+                            else render_svg.net_label_boxes(
+                              doc, self.registry, self.routes))
 
   def net(self, net_id):
     return self.nets_by_id.get(net_id)
@@ -479,7 +480,7 @@ class _Scene(object):
 # ---- the checks ------------------------------------------------------------
 
 
-def check(doc, registry=None, routes=None):
+def check(doc, registry=None, routes=None, labels=None):
   """Every DRC failure in a drawing, errors first.
 
   Errors are the drawing saying something untrue -- a wire lying on another
@@ -491,7 +492,7 @@ def check(doc, registry=None, routes=None):
   Every pair of things is reported once, at the tightest point between them,
   rather than once per segment; one crowded wire is one problem to fix.
   """
-  scene = _Scene(doc, registry, routes)
+  scene = _Scene(doc, registry, routes, labels)
   report = _Report()
   _check_wire_spacing(scene, report)
   _check_wire_contact(scene, report)

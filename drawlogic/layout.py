@@ -379,19 +379,25 @@ def _score(doc, registry, margin=None):
   sheet, and scoring against whatever canvas the file arrived with made a
   second layout of the same drawing search differently from the first.
   """
-  # Routed once and handed on: the bounding box and the DRCs would otherwise
-  # each route the drawing again, and this runs once per candidate swap.
+  # Routed and labelled once and handed on: the bounding box and the DRCs
+  # would otherwise each do both again, and this runs once per candidate swap.
+  # The labels are placed before the sheet is sized to the candidate below;
+  # the sized sheet is the box they helped measure plus the margin, so every
+  # one of them still fits on it.
+  from . import render_svg
+
   routes = routing.route_all(doc, registry)
+  labels = render_svg.net_label_boxes(doc, registry, routes)
   segments = list(routing.segments_of(routes))
   length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, a, b in segments)
 
-  box = doc.content_bbox(registry, routes)
+  box = doc.content_bbox(registry, routes, labels)
   spread = (box[2] + box[3]) if box else 0.0
   if margin is not None and box is not None:
     _size_sheet(doc, box, margin)
 
   errors = warnings = 0
-  for violation in drc.check(doc, registry, routes):
+  for violation in drc.check(doc, registry, routes, labels):
     if violation.level == "error":
       errors += 1
     else:

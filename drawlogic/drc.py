@@ -456,6 +456,15 @@ class _Scene(object):
                             else render_svg.net_label_boxes(
                               doc, self.registry, self.routes))
 
+    # Text notes are words on the sheet like any name, and a wire through one
+    # loses it the same way. They were not measured at all, so a layout could
+    # lay a wire across a drawing's subtitle and call it clean.
+    self.notes = []
+    for shape in doc.shapes:
+      box = render_svg.text_shape_box(shape, doc.font_scale)
+      if box is not None:
+        self.notes.append(("note %s" % shape.get("id"), box))
+
   def net(self, net_id):
     return self.nets_by_id.get(net_id)
 
@@ -489,6 +498,7 @@ class _Scene(object):
              for placed in self.cells if placed.label_box]
     found.extend(("name of net %s" % net_id, box)
                  for net_id, box in sorted(self.net_label_boxes.items()))
+    found.extend(self.notes)
     return found
 
 
@@ -828,6 +838,18 @@ def _check_text(scene, report):
         "text-to-text", "warning", "%s and %s" % (what, other_what),
         "two names sit %.1f apart and run into each other" % gap,
         (box[0], box[1])))
+
+  for what, box in scene.notes:
+    for index in wire_index.overlapping(_grow(box, TEXT_TO_WIRE)):
+      run, run_box = wires[index]
+      gap = _box_gap(box, run_box)
+      if gap >= TEXT_TO_WIRE:
+        continue
+      report.add(("text-to-wire", what, run.net_id), gap, Violation(
+        "text-to-wire", "warning",
+        "%s and net %s" % (what, scene.net_name(run.net_id)),
+        "the note sits %.1f from the wire, and text needs %.0f of air to stay "
+        "readable" % (gap, TEXT_TO_WIRE), _midpoint(run.a, run.b)))
 
   for net_id, box in sorted(scene.net_label_boxes.items()):
     for index in wire_index.overlapping(_grow(box, LABEL_CLEARANCE)):

@@ -1046,6 +1046,17 @@ about a tenth of a percent of wire with the violation counts identical either
 way -- a trade not worth making, since the thing the grid buys is not in the
 score at all.
 
+### The drawing stays under its headings
+
+A text note that sits above every cell -- a title, a subtitle -- is a
+heading, and the laid-out drawing starts below it rather than at the top
+margin. Laying `soc_top` out used to put its first row there and route the
+clock along the top, straight through the subtitle.
+
+Other notes stay where they are. Nothing says which part of a drawing a note
+in the middle of it was about, so layout cannot carry it along; the DRCs do
+report any wire that ends up through one, as they do for a cell's name.
+
 ### How a wire forks
 
 A wire with one driver and several loads has two ways to reach them. It can
@@ -1158,7 +1169,7 @@ point to look at.
 | `wire-jog` | a step shorter than `WIRE_MIN_JOG` |
 | `cell-spacing` | two parts closer than `CELL_MIN_GAP` |
 | `port-spacing`, `port-to-cell`, `port-to-wire` | the same questions for ports, at their own distances |
-| `text-to-wire`, `text-to-cell`, `text-to-text` | an instance name against a wire, a body, or another name |
+| `text-to-wire`, `text-to-cell`, `text-to-text` | an instance name or a text note against a wire, a body, or another name |
 | `net-label` | a net name with nowhere clear to go, so it sits on something |
 | `hop-spacing`, `hop-to-corner`, `hop-to-cell`, `hop-to-text` | crossing bridges against each other, the corners, the bodies and the text |
 | `sheet-edge` | drawing inside a printer's own margin |

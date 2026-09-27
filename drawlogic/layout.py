@@ -103,6 +103,7 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
 
   edges, feedback = _edges(doc, registry, cells)
   ranks = _ranks(doc, registry, cells, edges)
+  top_at = _below_headings(doc, registry, cells, margin)
 
   # Two orderings, and the drawing itself decides. Following a wire through
   # the columns it skips (see _span_chain) helps some drawings a great deal
@@ -127,7 +128,7 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
     for settle in (True, False):
       order = _order(cells, edges, ranks, spans=spans)
       _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y, settle)
-      _normalise(doc, registry, cells, margin)
+      _normalise(doc, registry, cells, margin, top_at)
       score = _score(doc, registry, margin)
       if best is None or score < best[0]:
         best = (score, order, settle)
@@ -136,7 +137,7 @@ def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   # good guess at which cell goes where in a column, and a good guess is not
   # the same as the best arrangement. Swapping two neighbours and measuring is.
   order = _refine(doc, registry, cells, edges, ranks, best[1],
-                  gap_x, gap_y, margin, best[2])
+                  gap_x, gap_y, margin, best[2], top_at)
   _fit(doc, registry, margin)
   # Onto the grid first, because moving a cell changes which way its wires
   # want to fork, and then the forking, on the arrangement that is staying.
@@ -273,7 +274,7 @@ REFINE_SWEEPS = 4
 
 
 def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
-            settle=True):
+            settle=True, top_at=None):
   """Swap neighbours within a column while that makes the drawing better.
 
   Ordering by median neighbour position settles quickly and reads well, but it
@@ -288,7 +289,7 @@ def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
   """
   def lay_out(candidate):
     _place(doc, registry, cells, edges, ranks, candidate, gap_x, gap_y, settle)
-    _normalise(doc, registry, cells, margin)
+    _normalise(doc, registry, cells, margin, top_at)
     return _score(doc, registry, margin)
 
   best = lay_out(order)
@@ -962,7 +963,32 @@ def _stack(by_id, boxes, column, desired, gap_y, ports=frozenset()):
     above = cell_id
 
 
-def _normalise(doc, registry, cells, margin):
+def _below_headings(doc, registry, cells, margin):
+  """Where the drawing may start so that it stays under its heading notes.
+
+  A title or a subtitle written above the drawing is a note that sits above
+  every cell. Laying the drawing out used to put its first row at the margin,
+  straight through them, and route a wire along the top that crossed the
+  subtitle. Notes anywhere else are left where they are: nothing says which
+  part of the drawing a note in the middle of it was about.
+  """
+  from . import render_svg
+
+  tops = [_box(registry, doc, cell)[1] - _headroom(cell) for cell in cells]
+  if not tops:
+    return None
+  highest = min(tops)
+  bottoms = []
+  for shape in doc.shapes:
+    box = render_svg.text_shape_box(shape, doc.font_scale)
+    if box is not None and box[3] <= highest:
+      bottoms.append(box[3])
+  if not bottoms:
+    return None
+  return max(margin, max(bottoms) + drc.LABEL_HEADROOM)
+
+
+def _normalise(doc, registry, cells, margin, top_at=None):
   """Shift every cell so the drawing starts at the margin.
 
   Done once at the end rather than by clamping each column to the margin as it
@@ -989,9 +1015,10 @@ def _normalise(doc, registry, cells, margin):
 
   left = min(lefts)
   top = min(tops)
+  start = margin if top_at is None else top_at
   for cell in cells:
     cell["x"] += margin - left
-    cell["y"] += margin - top
+    cell["y"] += start - top
 
 
 def _fit(doc, registry, margin):

@@ -373,6 +373,27 @@ class TestStackingKeepsTheColumnOrder(unittest.TestCase):
                      "a cell under a port still keeps the full cell gap")
 
 
+class TestTheDrawingStaysUnderItsHeadings(unittest.TestCase):
+  """Reported on soc_top: laid out, its first row went to the top margin and
+  the clk wire ran along the top straight through the subtitle."""
+
+  def test_soc_top_keeps_clear_of_its_title_and_subtitle(self):
+    from drawlogic import render_svg
+    doc, registry, _ = open_example(os.path.join(ROOT, "examples", "soc_top.dlg"))
+    tops = [layout._box(registry, doc, c)[1] for c in doc.cells]
+    headings = [render_svg.text_shape_box(s, doc.font_scale) for s in doc.shapes]
+    headings = [b for b in headings if b and b[3] <= min(tops)]
+    self.assertTrue(headings, "soc_top has no heading notes; this proves nothing")
+
+    layout.arrange(doc, registry)
+    lowest = max(b[3] for b in headings)
+    for cell in doc.cells:
+      self.assertGreater(layout._box(registry, doc, cell)[1], lowest, cell["id"])
+    crossed = [v.where for v in drc.check(doc, registry)
+               if v.rule == "text-to-wire" and "note" in v.where]
+    self.assertEqual(crossed, [])
+
+
 class TestAutoLayoutLeavesNoErrors(unittest.TestCase):
   """Every DRC error auto-layout has produced so far was the router drawing
   two nets as one; this holds the examples to none."""

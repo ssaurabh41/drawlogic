@@ -80,6 +80,29 @@ def only(violations, rule):
   return [v for v in violations if v.rule == rule]
 
 
+class TestNotesAreText(unittest.TestCase):
+  """A wire laid through a text note loses it just as it loses a name, and
+  notes were not measured at all -- a layout ran a wire across a subtitle and
+  the DRCs called it clean."""
+
+  def test_a_wire_through_a_note_is_reported(self):
+    doc = build([], [{"id": "n", "from": {"x": 50, "y": 100},
+                      "to": [{"x": 500, "y": 100}]}])
+    doc.shapes.append({"id": "t", "kind": "text", "text": "a note", "x": 200,
+                       "y": 104, "style": {}})
+    doc.normalize()
+    found = only(drc.check(doc), "text-to-wire")
+    self.assertTrue(any("note t" in v.where for v in found), found)
+
+  def test_a_note_clear_of_every_wire_is_not(self):
+    doc = build([], [{"id": "n", "from": {"x": 50, "y": 100},
+                      "to": [{"x": 500, "y": 100}]}])
+    doc.shapes.append({"id": "t", "kind": "text", "text": "a note", "x": 200,
+                       "y": 300, "style": {}})
+    doc.normalize()
+    self.assertEqual([v for v in drc.check(doc) if "note" in v.where], [])
+
+
 class TestShorts(unittest.TestCase):
   """Two nets drawn as one. The faults that make a drawing lie."""
 

@@ -417,10 +417,8 @@ function onDoubleClick(event) {
   }
   // A name is edited where it is drawn. Checked before the wire, because a
   // net's name sits on its wire and the name is what was aimed at.
-  console.log("DBL", activeTool);
   const named = activeTool === "select" && store.doc
     ? render.nameAt(store.doc, viewport.toDoc(event.clientX, event.clientY)) : null;
-  console.log("NAMED", JSON.stringify(named), JSON.stringify(viewport.toDoc(event.clientX, event.clientY)));
   if (named) {
     renameInPlace(named);
     return true;

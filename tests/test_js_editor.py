@@ -134,3 +134,20 @@ class TestTheShortcutListMatchesTheManual(unittest.TestCase):
     editor = self.rows_in_the_editor()
     self.assertGreater(len(editor), 20, "the parse found almost nothing")
     self.assertEqual(editor, self.rows_in_the_manual())
+
+
+class TestNoDebuggingLeftIn(unittest.TestCase):
+  """A console.log added to chase a bug went out in a commit once already;
+  the editor has no logging of its own, so any is left over."""
+
+  def test_no_console_log_in_the_editor(self):
+    import re
+    folder = os.path.join(ROOT, "drawlogic", "web", "js")
+    found = []
+    for name in sorted(os.listdir(folder)):
+      if name.endswith(".js"):
+        with open(os.path.join(folder, name)) as handle:
+          for number, line in enumerate(handle, 1):
+            if re.search(r"\bconsole\.log\(", line):
+              found.append("%s:%d" % (name, number))
+    self.assertEqual(found, [])

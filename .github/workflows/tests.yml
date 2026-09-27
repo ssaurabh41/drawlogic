@@ -51,7 +51,7 @@ jobs:
         run: python -c "import sys; print(sys.version)"
 
       # Nothing is installed: no pip step here on purpose. If one ever becomes
-      # necessary, the "runs on a bare machine" claim in REVIEW.md has stopped
+      # necessary, the "runs on a bare machine" claim in DOCUMENTATION.md has stopped
       # being true and should be changed in the same commit.
       - name: Tests
         run: python -m unittest discover -s tests -v

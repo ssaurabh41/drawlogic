@@ -125,7 +125,7 @@ class TestTheDocumentationAgrees(unittest.TestCase):
   def test_no_document_still_advertises_an_older_floor(self):
     """The specific way this went wrong: the number was corrected in one
     file and left standing in another."""
-    for name in ("DOCUMENTATION.md", "REVIEW.md"):
+    for name in ("DOCUMENTATION.md", "CLAUDE.md"):
       text = self.read(name)
       for stale in re.findall(r"Python (\d+\.\d+)\+", text):
         self.assertGreaterEqual(

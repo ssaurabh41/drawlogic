@@ -8,9 +8,9 @@ drawlogic draws logic-circuit schematics and exports them as SVG. A drawing
 is a plain-text `.dlg` (JSON) file; wires store **pin references, not
 coordinates** (`u1.y -> ff1.d`), so a gate can move and its wires follow. It
 runs as a zero-dependency stdlib-only Python package with a browser editor
-(`serve`) and a CLI (`export`, `validate`, `layout`, `doctor`, `symbols`,
-`info`). See `DOCUMENTATION.md` for the full user-facing reference and
-`REVIEW.md` for how to verify the project from scratch.
+(`serve`) and a CLI (`export`, `validate`, `layout`, `import`, `doctor`,
+`symbols`, `info`). `DOCUMENTATION.md` is the one document: the user-facing
+reference, and under Tests, what is and is not covered.
 
 ## Commands
 
@@ -111,7 +111,7 @@ and writes.
   just that nothing crashed.
 - 2-space indent, ASCII-only, ported JS mirrors the Python file's structure
   line-for-line where practical, to keep parity reviewable.
-- Prose in `DOCUMENTATION.md`/`REVIEW.md`/commit messages in this repo
+- Prose in `DOCUMENTATION.md` and commit messages in this repo
   explains *why*, not just *what* — match that register when editing them.
 - CDP browser verification (when checking editor behavior) uses
   `Input.dispatchMouseEvent`, not synthetic `new MouseEvent()` — the app

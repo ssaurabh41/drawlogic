@@ -197,7 +197,7 @@ class TestTheWindowsScriptAgrees(unittest.TestCase):
   hashes the same way in words, and that the manifest it reads is in the
   shape it parses. The script itself was exercised against PowerShell 7.4 on
   a CRLF copy, a copy with a byte order mark, a changed file, a missing file
-  and a leftover file -- see REVIEW.md.
+  and a leftover file -- see DOCUMENTATION.md, Checking the files themselves.
   """
 
   def script(self):

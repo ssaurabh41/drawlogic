@@ -263,7 +263,7 @@ Each item names what must go red if the change is removed.
 | Phase 1 port | `channels.js`, parity green | 1 day |
 | Phase 2 Python | doglegs, tests 4-5 | 2 days |
 | Phase 2 port | dogleg branch in `routeHH`, parity fixture | 1 day |
-| Corpus + docs | full gate, DOCUMENTATION and REVIEW updates | 1 day |
+| Corpus + docs | full gate, DOCUMENTATION updates | 1 day |
 
 Phase 1 is independently shippable. If Phase 0 says the graphs are mostly
 acyclic, stop after it and measure before deciding on Phase 2.

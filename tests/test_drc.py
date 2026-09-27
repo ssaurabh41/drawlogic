@@ -371,7 +371,7 @@ class TestParallelRuns(unittest.TestCase):
 class TestEveryCheckerIsReachable(unittest.TestCase):
   """Each checker `check()` runs must be the only reason some test passes.
 
-  REVIEW.md claimed removing any one of them turned this file red. Eight did;
+  A review once claimed removing any one of them turned this file red. Eight did;
   `_check_wire_spacing` did not, because nothing here exercised it. The claim
   was checked by hand once and then drifted, so it is asserted here instead --
   the same mutation, run in a loop.

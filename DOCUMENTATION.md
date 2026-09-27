@@ -40,9 +40,14 @@ That opens the editor in your browser. Then:
    rearranges itself by what is wired to what.
 5. **Save it** with `Ctrl+S`, and **export a picture** with `Ctrl+E`.
 
-Nothing is written to disk until you save. There is no autosave and no backup
-file, on purpose -- the only surprise the editor allows itself is refusing to
-close a tab with unsaved changes.
+Nothing is written to disk until you save; there is no autosave. What you
+have not saved yet is still kept safe: the browser holds a copy to offer back
+after a crash, and each save keeps the previous file as `<name>.dlg.bak`. See
+[Saving](#saving).
+
+Already have the design in Verilog? **Import Verilog** in the toolbar, or
+`drawlogic import design.v`, draws every module for you. See
+[import](#import).
 
 If you would rather not open a browser at all, the command line does the same
 work:
@@ -85,8 +90,6 @@ Everything below is the complete reference.
 - [Extending it](#extending-it)
 - [Tests](#tests)
 - [Not built yet](#not-built-yet)
-
-For how to review or verify this project, see [REVIEW.md](REVIEW.md).
 
 ---
 
@@ -231,6 +234,19 @@ question.
 
 `validate` exits non-zero when it finds errors, so it drops into a pre-commit
 hook or a CI job unchanged.
+
+### layout
+
+```bash
+drawlogic layout alu_ctrl.dlg              # rearrange it, in place
+drawlogic layout alu_ctrl.dlg -o tidy.dlg  # write the result elsewhere
+drawlogic layout alu_ctrl.dlg --gap-x 80 --gap-y 40
+```
+
+The same auto layout as the editor's button -- see
+[Auto layout](#auto-layout). Only cells move; shapes stay where they were,
+since nothing says which cell a caption belongs to. Rewriting the file keeps
+the previous version as `<name>.dlg.bak`.
 
 ### import
 
@@ -453,14 +469,17 @@ never swallows a click meant for a gate inside it.
 
 ### Arrange
 
-The **Arrange** menu aligns edges, distributes evenly (three or more items),
-and moves things front or back.
+The icon buttons in the second toolbar row align edges and centres,
+distribute evenly (three or more items), and move things to the front or
+back.
 
 ### View
 
 The **Zoom**, **Text** and **Symbols** sliders control view scale,
 `canvas.font.scale` and `canvas.symbolScale`. The last two change the
-document, so they mark it unsaved; zoom does not.
+document, so they mark it unsaved; zoom does not. **Grid** picks dots, lines
+or a blank sheet for this drawing; the default for new drawings is in Preferences.
+**Fit** (`Ctrl+0`) shows the whole sheet, and `F` zooms to what is selected.
 
 ### Tabs
 
@@ -513,6 +532,16 @@ weight -- and the next item you click takes it; Shift+click to give it to
 several, Esc to stop. `Ctrl+Shift+C` and `Ctrl+Shift+V` do the same from the
 keyboard, onto everything selected. Only style is copied, never position or
 names.
+
+### Importing Verilog
+
+**Import Verilog** asks for a `.v` file, draws each of its modules as a
+drawing in the folder being served, and opens the top one in a new tab. If any
+of those drawings is already there it asks before replacing them, and a tab
+showing one of them is closed so its old contents cannot be saved back over
+the new. Anything in the Verilog that the drawings do not show is listed when
+it finishes. What is understood and what is not is under
+[import](#import).
 
 ### Saving
 
@@ -942,7 +971,7 @@ the exported file has no use for it.
 
 ### Auto layout
 
-`Arrange > Auto layout`, or `drawlogic layout FILE`, rearranges the whole
+**Auto layout** in the toolbar, or `drawlogic layout FILE`, rearranges the whole
 drawing from what it is wired to. It is the difference between a correct
 drawing and a readable one, and it is the thing hand-placing cells cannot
 give you.
@@ -1011,7 +1040,7 @@ Press Auto layout again once you have stopped.
 
 ### Tidy up
 
-`Arrange > Tidy up` pulls the selected cells into line with what they are wired
+**Tidy up** in the toolbar pulls the selected cells into line with what they are wired
 to, so a rough sketch becomes a clean one. The status bar says how many wires
 it straightened.
 
@@ -1492,7 +1521,10 @@ drawlogic/
     js/viewport.js   pan and zoom
     js/guides.js     drag-time alignment and the Tidy rule
     js/picture.js    rasterise the export to a pasteable PNG
-    js/main.js       bootstrap and controls
+    js/prefs.js      preferences, kept in the browser
+    js/recovery.js   the copy of unsaved work kept for after a crash
+    js/shortcuts.js  the key list `?` shows, checked against this document
+    js/main.js       bootstrap, controls, tabs
 tests/            unittest, a golden-file regression suite, a JS parity check
   js/             node-side runners: the editor checks, and dumps of what
                   routing.js and render.js produce for parity to compare
@@ -1575,7 +1607,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-339 tests, in fourteen parts:
+439 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|
@@ -1586,11 +1618,12 @@ python3 -m unittest tests.test_regression
 | `tests/test_cli.py` | the commands, including validate and doctor |
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
-| `tests/test_js_editor.py` | drag-time alignment and Tidy |
+| `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
+| `tests/test_hdl.py` | Verilog import: gates, hierarchy, bit selects, errors |
 | `tests/test_manifest.py` | `manifest.txt` still describes the files here |
 | `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
 
@@ -1603,9 +1636,8 @@ calls both renderers rather than their helpers, because a comparison that
 recomputes its own inputs can only show that two copies agree.
 
 They need nothing installed: no network, no browser, no third-party package.
-That is a property worth keeping, and it is the
-reason one or two things are checked by hand instead -- REVIEW.md, section 6,
-says which and why.
+That is a property worth keeping, and it is the reason some things are checked
+by hand instead -- see [What the tests do not cover](#what-the-tests-do-not-cover).
 
 ### The regression suite
 
@@ -1646,8 +1678,12 @@ twice: `routing.js` against `routing.py`, and the layout decisions in
 compares every route point, junction dot, crossing bridge, name position and
 arrow position.
 
-`test_js_editor.py` covers alignment and Tidy, which exist only in JavaScript
-and so have no Python counterpart to compare against.
+`test_js_editor.py` covers what exists only in JavaScript and so has no
+Python counterpart to compare against: alignment, Tidy, nets with several
+loads, dragging a wire, auto-connect, undo through a gesture, duplicating a
+group, and a save or layout answer that arrives after the drawing changed. It
+imports the real editor modules into node, and fails if any of those areas
+stops reporting.
 
 It shells out to `node`, which is **not** a dependency of drawlogic, so it
 skips itself when node is not installed and the rest of the suite still runs.
@@ -1657,12 +1693,27 @@ Where node is available it is cheap and worth running:
 python3 -m unittest tests.test_js_parity
 ```
 
-The rest of the JavaScript -- tools, selection, panels, the canvas itself --
-has no automated tests, because covering it needs a browser toolchain and that
-would cost the zero-dependency property that makes this installable on a
-locked-down machine. It is exercised by hand through a headless browser
-instead. If that trade stops being worth it, a Playwright suite kept outside
-the install path would be the way to fix it.
+### What the tests do not cover
+
+Stated plainly, so nobody assumes more than exists.
+
+**Anything that needs a real browser.** Pointer input, selection handles, the
+properties panel, tabs, preferences, rename in place, the format painter,
+crash recovery and the Import Verilog dialog all live in the DOM. Each was
+verified by driving the real editor in headless Chromium with trusted input
+events, but none of that is a standing test: a browser in the suite would
+cost the zero-dependency property that makes this installable on a
+locked-down machine. If that trade stops being worth it, a Playwright suite
+kept outside the install path is the way to fix it. When testing by hand,
+use real input events -- synthetic `new MouseEvent()` calls fire no default
+actions and have passed against an editor that was visibly broken.
+
+**Whether a drawing looks good.** The golden files catch a changed byte, not
+an ugly drawing, and the DRCs catch specific faults, not bad taste. Render
+the examples and look at them.
+
+**`--host` has no authentication.** Binding beyond loopback is documented as
+"tunnel instead", but nothing stops it being used on a shared machine.
 
 ---
 
@@ -1671,7 +1722,8 @@ the install path would be the way to fix it.
 - **Several sheets inside one file.** Today a drawing is one sheet, and a
   hierarchy is a folder of them tied together by `ref`. Pages in one file,
   with off-sheet connectors, would be a different thing.
-- **Netlist export** (Verilog, SPICE) and electrical rule checks. The net
+- **Netlist export** (Verilog, SPICE) and electrical rule checks. Verilog
+  comes *in* (see [import](#import)); nothing goes back out yet. The net
   model supports it; `validate` is where it would grow. The DRCs check how a
   drawing reads, which is a different question from whether the circuit is
   right: a drawing can pass every rule here and still drive two outputs onto
@@ -1679,6 +1731,6 @@ the install path would be the way to fix it.
 - **Automatic fixing.** The DRCs say what is wrong and where; moving the cell
   or rerouting the wire is still yours to do. The router avoids what it can
   see, but a drawing with no room left needs more room, not a cleverer router.
-- **Sheet border and title block.** Today there is just a title name at the
-  bottom left.
+- **Sheet border and title block.** Today there is just the title, in a band
+  along the top of the sheet.
 - **PDF export.** Out of scope; print to PDF from the browser.

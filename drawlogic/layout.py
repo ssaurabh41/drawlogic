@@ -685,16 +685,30 @@ def _ranks(doc, registry, cells, edges):
 
   # Longest path, settled by repeated relaxation. The graph has no loops left,
   # so this terminates in at most one pass per cell.
-  for _ in range(len(cells)):
-    changed = False
-    for cell in cells:
-      cell_id = cell["id"]
-      for source in incoming[cell_id]:
-        if rank[source] + 1 > rank[cell_id]:
-          rank[cell_id] = rank[source] + 1
-          changed = True
-    if not changed:
-      break
+  def relax():
+    for _ in range(len(cells)):
+      changed = False
+      for cell in cells:
+        cell_id = cell["id"]
+        for source in incoming[cell_id]:
+          if rank[source] + 1 > rank[cell_id]:
+            rank[cell_id] = rank[source] + 1
+            changed = True
+      if not changed:
+        break
+
+  relax()
+  # Bits put onto one bus meet it in one column. Each joiner would otherwise
+  # sit one step right of whatever drives its bit -- a register bit-blasted
+  # into a chain of flip-flops put every joiner in a different column, and the
+  # bus between them looped back across the sheet.
+  joins = _joins_by_bus(doc, cells)
+  if joins:
+    for members in joins:
+      column = max(rank[member] for member in members)
+      for member in members:
+        rank[member] = column
+    relax()
 
   # Output ports belong on the right edge, not one step past whatever happens
   # to drive them, or they stagger. An input port needs no such help: its pin
@@ -713,6 +727,21 @@ def _ranks(doc, registry, cells, edges):
                      for name in names):
       rank[cell["id"]] = widest
   return rank
+
+
+def _joins_by_bus(doc, cells):
+  """The bus joiners in `cells`, grouped by the bus their `bus` pin is on."""
+  joiners = set(cell["id"] for cell in cells if cell.get("type") == "bus_join")
+  if not joiners:
+    return []
+  groups = []
+  for net in doc.nets:
+    members = [end["cell"] for end in [net.get("from")] + loads_of(net)
+               if isinstance(end, dict) and end.get("cell") in joiners
+               and end.get("pin") == "bus"]
+    if len(members) > 1:
+      groups.append(members)
+  return groups
 
 
 def _span_chain(edges, ranks):

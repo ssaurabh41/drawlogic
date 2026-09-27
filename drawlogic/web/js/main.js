@@ -1448,14 +1448,20 @@ async function importVerilog(file) {
     }
 
     const count = result.written.length;
+    // "note: ..." says how it was drawn (through Yosys, say); the rest are
+    // things the drawing leaves out.
+    const notes = result.warnings.filter((w) => w.startsWith("note: "))
+      .map((w) => w.slice(6).split(":")[0]);
+    const warnings = result.warnings.filter((w) => !w.startsWith("note: "));
     say(`${count} drawing${count === 1 ? "" : "s"} from ${file.name}`
-        + (result.warnings.length ? `; ${result.warnings.length} things in it are not drawn`
-          : ""), result.warnings.length ? "warn" : "good");
-    if (result.warnings.length) {
+        + (notes.length ? ` (${notes.join("; ")})` : "")
+        + (warnings.length ? `; ${warnings.length} things in it are not drawn`
+          : ""), warnings.length ? "warn" : "good");
+    if (warnings.length) {
       // Each is something in the Verilog the drawing does not show, which
       // someone reading the drawing would otherwise never find out.
-      const shown = result.warnings.slice(0, 15);
-      const more = result.warnings.length - shown.length;
+      const shown = warnings.slice(0, 15);
+      const more = warnings.length - shown.length;
       window.alert(`Not drawn, or drawn differently:\n\n${shown.join("\n")}`
         + (more ? `\n\n...and ${more} more; \`drawlogic import\` lists them all.` : ""));
     }

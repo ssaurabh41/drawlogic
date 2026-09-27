@@ -254,6 +254,7 @@ the previous version as `<name>.dlg.bak`.
 drawlogic import alu.v                # one drawing per module, beside alu.v
 drawlogic import alu.v -o sheets/ --top alu_top
 drawlogic import alu.v --force        # replace drawings already there
+drawlogic import alu.v --synth builtin   # never use Yosys, even if installed
 ```
 
 Draws a structural Verilog netlist: every module becomes a drawing named
@@ -266,18 +267,40 @@ the one nothing instantiates, unless `--top` names another. The editor's
 **Import Verilog** button does the same into the folder it serves and opens the
 top drawing.
 
-It is the part of Verilog a schematic can show. Headers in either style,
+**Netlists** are read as they stand: headers in either style,
 `input`/`output`/`inout`, `wire`/`reg`/`logic`, vector ranges, connections by
-name or by position, and `assign a = b;` (which joins the two nets) are
-understood. One bit of a vector, `d[3]`, is its own one-bit net, joined to the
-vector by a `ripper` where the bit is taken off it or a `bus_join` where it is
-put on.
+name or by position, and `assign a = b;` (which joins the two nets). One bit
+of a vector, `d[3]`, is its own one-bit net, joined to the vector by a
+`ripper` where the bit is taken off it or a `bus_join` where it is put on;
+the joiners onto one bus are lined up in one column.
 
-Everything else is reported as a warning and left out rather than refused:
-`always` and `initial` blocks, other `assign`s, and expressions in connections.
-A slice such as `d[3:0]` connects the whole vector. An instance of a module
-defined nowhere gets a drawing holding only ports, named after the connections
-made to it and drawn as `inout`, because nothing says which way they face.
+**RTL** -- `assign` with logic in it and `always` blocks -- is turned into
+gates and flip-flops, one per bit, the way a synthesiser does it:
+
+- With [Yosys](https://github.com/YosysHQ/yosys) installed (`yosys` on the
+  PATH), behavioural code goes through it: anything Yosys can synthesise is
+  drawn, arithmetic and state machines included, on 2-input gates, 2:1
+  muxes, `dff`, `dffr` and `dlatch`. The first warning says Yosys was used;
+  internal signals get the names Yosys gave them.
+- Without it, drawlogic's own reader (`rtl.py`) covers the common shapes:
+  `~ & | ^ ! && || ?: == !=`, `{..}` and `{n{..}}`, bit and part selects,
+  sized constants, `parameter`/`localparam` numbers, `if`/`else` and `case`,
+  in `assign`, `always @(*)` and `always @(posedge clk)` -- optionally
+  `or posedge rst` / `or negedge rst_n` with the reset tested first, which
+  gives a `dffr` (an active-high reset goes through one shared inverter,
+  `rst_n`). Arithmetic, `<`/`>`, `casez`, loops, functions and latches are
+  reported and left out.
+- A netlist with no behaviour is never resynthesised: its gates and names
+  are what you wrote. `--synth yosys` insists on Yosys (and fails without
+  it); `--synth builtin` never uses it. If Yosys fails, the import falls back
+  to the built-in reader and says why.
+
+A constant that survives is drawn as a `tie0` or `tie1` cell. Expressions in
+an instance's connections are still reported and left unconnected; a slice
+such as `d[3:0]` there connects the whole vector. An instance of a module
+defined nowhere gets a drawing holding only ports, named after the
+connections made to it and drawn as `inout`, because nothing says which way
+they face.
 
 Nothing is overwritten unless asked: if any of the drawings is already there,
 none is written. A parse error names its line.
@@ -313,9 +336,9 @@ ok    route a wire
 ok    check the rules
 ok    lay it out
 ok    render to SVG
-36 built-in symbols
+38 built-in symbols
 ok     14 browser modules, 0 import mismatches
-ok     33 files against manifest.txt, 0 differ
+ok     35 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -861,7 +884,8 @@ generic block ports and the bus ripper use this. An ordinary gate pin is one
 bit and rejects a bus.
 
 `ripper` and `bus_tap` symbols are provided for pulling a bit off a bus, and
-`bus_join` (a ripper facing the other way) for putting one on.
+`bus_join` (a ripper facing the other way) for putting one on. `tie0` and
+`tie1` are a constant 0 and 1.
 
 A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
 is one bit, so wiring a bus to it is an error the checker will catch.
@@ -1517,7 +1541,9 @@ drawlogic/
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
-  hdl.py          structural Verilog to drawings, one per module
+  hdl.py          Verilog to drawings, one per module
+  rtl.py          behavioural Verilog lowered to gates and flip-flops
+  yosys.py        the same through Yosys, when it is installed
   authoring.py    turning a drawing of shapes and ports into a symbol
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
@@ -1621,7 +1647,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-439 tests, in fifteen parts:
+451 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|
@@ -1637,7 +1663,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
-| `tests/test_hdl.py` | Verilog import: gates, hierarchy, bit selects, errors |
+| `tests/test_hdl.py` | Verilog import: netlists, RTL lowered to gates, Yosys, errors |
 | `tests/test_manifest.py` | `manifest.txt` still describes the files here |
 | `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
 

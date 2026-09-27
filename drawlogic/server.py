@@ -559,7 +559,8 @@ class Handler(BaseHTTPRequestHandler):
       return self._fail(400, "expected the Verilog as text")
     try:
       top, drawings, warnings = hdl.import_verilog(
-        text, self.registry, payload.get("top") or None)
+        text, self.registry, payload.get("top") or None,
+        payload.get("synth") or "auto")
       written = hdl.write_drawings(self.root, drawings,
                                    bool(payload.get("overwrite")))
     except hdl.HdlError as exc:

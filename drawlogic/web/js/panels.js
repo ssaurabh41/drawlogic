@@ -267,6 +267,7 @@ export class Inspector {
       if (model.groupOf(this.store.doc, items[0].id)) {
         root.appendChild(element("p", "note", "Grouped. Ctrl+Shift+G ungroups."));
       }
+      this.renderShared(items);
       this.renderAppearance(items);
       this.renderDocument();
       return;
@@ -305,6 +306,28 @@ export class Inspector {
       this.onChange();
     });
     return field;
+  }
+
+  // X and Y for everything selected at once: typing a value puts every item's
+  // left (or top) there. A field shows the value when they all agree and is
+  // blank, marked "mixed", when they do not.
+  renderShared(items) {
+    for (const [key, label] of [["x", "X"], ["y", "Y"]]) {
+      const values = items.map((item) => item[key]).filter((v) => v !== undefined);
+      if (!values.length) continue;
+      const same = values.every((v) => v === values[0]);
+      const field = input(same ? Math.round(values[0]) : "", "number");
+      field.placeholder = "mixed";
+      this.bind(field, (doc, value) => {
+        const number = numberFrom(value);
+        if (!Number.isFinite(number)) return false;
+        for (const id of this.selection.ids) {
+          const target = model.itemById(doc, id);
+          if (target && target[key] !== undefined) target[key] = number;
+        }
+      }, "edit");
+      this.root.appendChild(row(label, field));
+    }
   }
 
   renderGeometry(item, keys) {
@@ -360,6 +383,24 @@ export class Inspector {
       if (target) target.rotate = Number(value);
     }, "rotate");
     root.appendChild(row("Rotation", rotation));
+
+    // Auto layout arranges everything else around a pinned cell and never
+    // moves it -- for the part of a drawing that is already where you want it.
+    const pinned = document.createElement("input");
+    pinned.type = "checkbox";
+    pinned.className = "pcheck";
+    pinned.checked = cell.pinned === true;
+    pinned.title = "auto layout leaves a pinned cell where it is";
+    pinned.addEventListener("change", () => {
+      this.store.mutate(pinned.checked ? "pin" : "unpin", (doc) => {
+        const target = doc.cells.find((c) => c.id === cell.id);
+        if (!target) return false;
+        if (pinned.checked) target.pinned = true;
+        else delete target.pinned;
+      });
+      this.onChange();
+    });
+    root.appendChild(row("Pinned", pinned));
 
     // A custom cell can carry its own picture, embedded so the .dlg stays one
     // shippable file.

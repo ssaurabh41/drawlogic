@@ -34,9 +34,11 @@ Usage:
     print(note)          # "6 columns, 14 cells, 2 feedback wires"
 """
 
+import json
+
 from . import drc
 from . import routing
-from .doc import loads_of, repeated_ids
+from .doc import Document, loads_of, repeated_ids
 from .geometry import corners
 from .symbols import default_registry
 
@@ -74,13 +76,100 @@ class Result(object):
     return ", ".join(parts)
 
 
-def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
-  """Lay the drawing out left to right. Modifies `doc` and returns a Result."""
+def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN,
+            only=None):
+  """Lay the drawing out left to right. Modifies `doc` and returns a Result.
+
+  `only` names the cells to arrange, and a cell whose `pinned` is true is
+  never moved. With either, the chosen cells are laid out as a group of their
+  own -- see _arrange_part -- and everything else stays exactly where it is.
+  """
   registry = registry or default_registry()
   repeated = repeated_ids(doc)
   if repeated:
     raise ValueError("ids must be unique to lay a drawing out: %s is used "
                      "more than once" % ", ".join(repeated))
+  chosen = set(c.get("id") for c in doc.cells
+               if (only is None or c.get("id") in only) and not c.get("pinned"))
+  if len(chosen) < len(doc.cells):
+    return _arrange_part(doc, registry, chosen, gap_x, gap_y, margin)
+  return _arrange_all(doc, registry, gap_x, gap_y, margin)
+
+
+def _arrange_part(doc, registry, chosen, gap_x, gap_y, margin):
+  """Lay out some cells and leave the rest alone.
+
+  The chosen cells, and the wires wholly between them, are laid out as a
+  drawing of their own; the group then goes back where those cells were,
+  moved down just far enough to clear every cell that stayed. A wire from the
+  group to the rest has nothing to say about arrangement inside the group,
+  so it is left to the router; its hand-drawn waypoints are dropped, because
+  a point chosen for where the cells used to be now means nothing.
+  """
+  moving = [c for c in doc.cells
+            if c.get("id") in chosen and registry.for_cell(c) is not None]
+  if not moving:
+    return Result(0, 0, 0)
+  staying = [c for c in doc.cells
+             if c.get("id") not in chosen and registry.for_cell(c) is not None]
+
+  def cells_of(net):
+    return set(end.get("cell") for end in [net.get("from")] + loads_of(net)
+               if isinstance(end, dict) and "cell" in end)
+
+  inner = [net for net in doc.nets if cells_of(net) and cells_of(net) <= chosen]
+  for net in doc.nets:
+    if cells_of(net) & chosen:
+      for load in loads_of(net):
+        load["waypoints"] = []
+
+  was = _extent(registry, doc, moving)
+  canvas = json.loads(json.dumps(doc.canvas))
+  canvas.pop("forkLate", None)
+  part = Document({"format": doc.data.get("format"),
+                   "version": doc.data.get("version"),
+                   "title": doc.title, "canvas": canvas,
+                   "cells": moving, "nets": inner, "shapes": [],
+                   "groups": []}, doc.path)
+  result = _arrange_all(part, registry, gap_x, gap_y, margin)
+
+  now = _extent(registry, doc, moving)
+  dx, dy = was[0] - now[0], was[1] - now[1]
+  fixed = [_box(registry, doc, c) for c in staying]
+  step = max(drc.PIN_GRID, 1.0)
+  for _attempt in range(2000):
+    if not any(_near(_box(registry, doc, c), dx, dy, box)
+               for c in moving for box in fixed):
+      break
+    dy += step
+  for cell in moving:
+    cell["x"] += dx
+    cell["y"] += dy
+
+  needed = doc.content_bbox(registry)
+  if needed is not None:
+    doc.canvas["width"] = max(doc.canvas.get("width", 0),
+                              int(needed[0] + needed[2] + margin))
+    doc.canvas["height"] = max(doc.canvas.get("height", 0),
+                               int(needed[1] + needed[3] + margin))
+  return result
+
+
+def _extent(registry, doc, cells):
+  boxes = [_box(registry, doc, c) for c in cells]
+  return (min(b[0] for b in boxes), min(b[1] for b in boxes))
+
+
+def _near(box, dx, dy, other):
+  """True if `box`, moved by (dx, dy), comes within CELL_MIN_GAP of `other`."""
+  gap = drc.CELL_MIN_GAP
+  return not (box[0] + dx + box[2] + gap <= other[0]
+              or other[0] + other[2] + gap <= box[0] + dx
+              or box[1] + dy + box[3] + gap <= other[1]
+              or other[1] + other[3] + gap <= box[1] + dy)
+
+
+def _arrange_all(doc, registry, gap_x, gap_y, margin):
   cells = [c for c in doc.cells if registry.for_cell(c) is not None]
   if not cells:
     return Result(0, 0, 0)

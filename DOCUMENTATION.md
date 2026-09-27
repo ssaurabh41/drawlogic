@@ -375,6 +375,7 @@ how many went.
 | `Ctrl+]` / `Ctrl+[` | bring to front / send to back |
 | `Delete`, `Esc` | delete, cancel and deselect |
 | `Ctrl+A`, `Ctrl+0` | select all, fit to window |
+| `F` | zoom to the selection, or to the sheet if nothing is selected |
 | `Alt`+drag | move without any alignment help |
 | `Ctrl+S`, `Ctrl+E` | save, export SVG |
 | `Ctrl+Shift+E` | copy the drawing as a picture, for pasting into a slide |
@@ -567,6 +568,7 @@ gains nothing from it has no such key at all.
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |
 | `ref` | path to another drawing this cell stands for; see Hierarchy |
+| `pinned` | `true` keeps auto layout from moving it; left out otherwise |
 
 ### nets
 
@@ -1045,6 +1047,22 @@ folds in wire length and area, and it refused the grid on three examples for
 about a tenth of a percent of wire with the violation counts identical either
 way -- a trade not worth making, since the thing the grid buys is not in the
 score at all.
+
+### Laying out part of a drawing
+
+With two or more cells selected, **Auto layout** arranges only those: they
+are laid out as a group of their own, from the wires between them, and the
+group goes back where those cells were -- moved down just far enough to
+clear everything that stayed. One cell selected lays out the whole drawing,
+because one selected cell is usually an accident rather than a request.
+
+A cell marked **Pinned** in the properties panel (`"pinned": true` in the
+file) is never moved by auto layout; everything else is arranged as a group
+around it the same way. Wires into cells that moved lose any hand-drawn
+bends, since a point chosen for where a cell used to be now means nothing.
+
+A layout that is taking too long can be abandoned with **Cancel layout** in
+the status bar, or `Esc`. The drawing is left exactly as it was.
 
 ### The drawing stays under its headings
 

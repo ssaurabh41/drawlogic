@@ -450,11 +450,16 @@ class Handler(BaseHTTPRequestHandler):
       sheets.resolve(document, registry, confine=self.root)
 
     options = payload.get("options") or {}
+    only = options.get("only")
+    if only is not None and not (isinstance(only, list)
+                                 and all(isinstance(i, str) for i in only)):
+      return self._fail(422, "options.only must be a list of cell ids")
     try:
       result = layout.arrange(
         document, registry,
         gap_x=float(options.get("gapX", layout.GAP_X)),
-        gap_y=float(options.get("gapY", layout.GAP_Y)))
+        gap_y=float(options.get("gapY", layout.GAP_Y)),
+        only=set(only) if only is not None else None)
     except (TypeError, ValueError) as exc:
       return self._fail(422, "cannot lay out: %s" % exc)
 

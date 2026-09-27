@@ -93,7 +93,9 @@ never restated), `cli.py`, `server.py` (stdlib HTTP server, no framework).
 `web/js/` mirrors this for the editor: `model.js` owns document state and
 undo (whole-document snapshots, not inverse ops) via `store.mutate`;
 `tools.js` is one class per interaction (select/wire/place/shape) with
-`onPointerDown/Move/Up`; `guides.js` is drag-time alignment and Tidy.
+`onPointerDown/Move/Up`; `guides.js` is drag-time alignment and Tidy;
+`recovery.js` keeps unsaved work in localStorage; `shortcuts.js` is the `?`
+list, held equal to DOCUMENTATION.md's Keys table by a test.
 
 **Security boundary:** `server.py` binds to loopback only and resolves every
 path (including hierarchy `ref`s) through `sheets.inside(candidate, root)`,

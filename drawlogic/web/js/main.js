@@ -580,6 +580,8 @@ const LIVE_DELAY = 400;
 // at, live checking switches itself off and says so.
 const LIVE_BUDGET = 250;
 
+// Set while a layout is in flight; aborting it stops waiting for the answer.
+let layoutAbort = null;
 let liveOn = true;
 let liveEra = 0;
 // Why live checking is off when it turned itself off, for the status bar.
@@ -901,9 +903,19 @@ async function autoLayout() {
   }
   // Auto layout is the slowest thing the editor does, by a wide margin, and
   // the button is the one people press twice when nothing appears to happen.
-  const done = busy("laying out...");
+  // Two or more cells selected: lay out just those, leaving the rest where
+  // it is. One selected is almost always an accident, not a request.
+  const chosen = store.doc.cells.filter((c) => selection.has(c.id)).map((c) => c.id);
+  const only = chosen.length >= 2 ? chosen : null;
+  const done = busy(only ? `laying out ${only.length} selected cells...`
+                         : "laying out...");
   const button = document.querySelector('[data-command="layout"]');
   if (button) button.disabled = true;
+  // A large drawing can take a while, and waiting was the only option. The
+  // server finishes its sum regardless; cancelling stops waiting for it and
+  // throws the answer away, which leaves the drawing exactly as it was.
+  layoutAbort = new AbortController();
+  ui.btnCancel.hidden = false;
   // Which drawing asked, and which version of it. The answer is a whole
   // document that replaces what is open, so both halves matter.
   //
@@ -924,7 +936,9 @@ async function autoLayout() {
     const result = await api("/api/layout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: store.doc, source: asked.path }),
+      body: JSON.stringify({ doc: store.doc, source: asked.path,
+                             options: only ? { only } : {} }),
+      signal: layoutAbort.signal,
     });
     if (!store.matches(asked, { edits: false })) return;
     if (!store.matches(asked)) {
@@ -933,24 +947,29 @@ async function autoLayout() {
       say("edited while laying out -- layout dropped, press it again", "bad");
       return;
     }
-    store.mutate("auto layout", (doc) => {
+    store.mutate(only ? "lay out selection" : "auto layout", (doc) => {
       // Replacing the contents rather than the object keeps every other
       // reference to the document valid.
       for (const key of Object.keys(doc)) delete doc[key];
       Object.assign(doc, result.doc);
     });
-    selection.clear();
+    // A partial layout keeps its cells selected and the view where it was:
+    // the point was to tidy one part of a drawing you are looking at.
+    if (!only) selection.clear();
     syncControls();
     redraw();
     inspector.render();
-    viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
-    const stranded = result.shapes
+    if (!only) viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
+    const stranded = result.shapes && !only
       ? `; ${result.shapes} shape(s) stayed put and may need nudging` : "";
     say(`${result.note}${stranded}`, "good");
   } catch (error) {
-    say(error.message, "bad");
+    if (error.name === "AbortError") say("layout cancelled; nothing changed", "warn");
+    else say(error.message, "bad");
   } finally {
     // In `finally` so a failure, a dropped answer and a success all clear it.
+    layoutAbort = null;
+    ui.btnCancel.hidden = true;
     done();
     if (button) button.disabled = false;
   }
@@ -1174,6 +1193,9 @@ function bindControls() {
   ui.btnCheck.addEventListener("click", () => runCheck());
   ui.drcLive.addEventListener("click", () => setLive(!liveOn));
   ui.statusKeys.addEventListener("click", toggleShortcuts);
+  ui.btnCancel.addEventListener("click", () => {
+    if (layoutAbort) layoutAbort.abort();
+  });
   ui.statusDrc.addEventListener("click", () => {
     // With no answer showing, the useful thing to do is get one.
     if (ui.statusDrc.classList.contains("off")) runCheck();
@@ -1258,6 +1280,8 @@ function bindKeyboard() {
     if (event.key === "Delete" || event.key === "Backspace") {
       event.preventDefault();
       deleteSelection();
+    } else if (event.key === "Escape" && layoutAbort) {
+      layoutAbort.abort();
     } else if (event.key === "Escape") {
       const tool = tools[activeTool];
       if (activeTool === "shape" && tools.shape.polygon) tools.shape.finishPolygon();
@@ -1277,7 +1301,8 @@ function bindKeyboard() {
     } else {
       const shapes = { l: "line", b: "rect", p: "polygon", t: "text" };
       const key = event.key.toLowerCase();
-      if (key === "v") setTool("select");
+      if (key === "f") zoomToSelection();
+      else if (key === "v") setTool("select");
       else if (key === "w") setTool("wire");
       else if (key === "e") setTool("erase");
       else if (shapes[key]) {
@@ -1294,6 +1319,17 @@ function bindKeyboard() {
     event.preventDefault();
     event.returnValue = "";
   });
+}
+
+// F: fill the view with what is selected, or with the sheet if nothing is.
+// Ctrl+0 only ever fitted the whole sheet, which on a big drawing leaves the
+// part you are working on a few pixels high.
+function zoomToSelection() {
+  const box = selection.size ? model.boundsOfIds(store.doc, selection.ids) : null;
+  // At most 200%: filling the view with one small port is not "showing the
+  // selection", it is losing where it is.
+  if (box && box[2] + box[3] > 0) viewport.fitBox(box[0], box[1], box[2], box[3], 120, 2);
+  else viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
 }
 
 function toggleShortcuts() {
@@ -1320,6 +1356,7 @@ async function start() {
     breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),
     shortcuts: $("shortcuts"),
+    btnCancel: $("btn-cancel"),
     statusKeys: $("status-keys"),
     undo: $("btn-undo"),
     redo: $("btn-redo"),

@@ -24,6 +24,7 @@ export const SHORTCUTS = [
   ["Ctrl+] / Ctrl+[", "bring to front / send to back"],
   ["Delete, Esc", "delete, cancel and deselect"],
   ["Ctrl+A, Ctrl+0", "select all, fit to window"],
+  ["F", "zoom to the selection, or to the sheet if nothing is selected"],
   ["Alt+drag", "move without any alignment help"],
   ["Ctrl+S, Ctrl+E", "save, export SVG"],
   ["Ctrl+Shift+E", "copy the drawing as a picture, for pasting into a slide"],

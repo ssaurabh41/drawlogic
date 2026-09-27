@@ -394,6 +394,42 @@ class TestTheDrawingStaysUnderItsHeadings(unittest.TestCase):
     self.assertEqual(crossed, [])
 
 
+class TestLayingOutPartOfADrawing(unittest.TestCase):
+  """Pinned cells stay put, and `only` arranges just the cells named."""
+
+  def setUp(self):
+    self.doc, self.registry, _ = open_example(
+      os.path.join(ROOT, "examples", "alu_slice.dlg"))
+    self.before = {c["id"]: (c["x"], c["y"]) for c in self.doc.cells}
+
+  def moved(self):
+    return sorted(c["id"] for c in self.doc.cells
+                  if (c["x"], c["y"]) != self.before[c["id"]])
+
+  def test_a_pinned_cell_is_never_moved(self):
+    pinned = self.doc.cells[3]
+    pinned["pinned"] = True
+    layout.arrange(self.doc, self.registry)
+    self.assertEqual((pinned["x"], pinned["y"]), self.before[pinned["id"]])
+    self.assertTrue(self.moved(), "nothing moved, so this proves nothing")
+    self.assertEqual(overlapping(self.doc, self.registry), [])
+
+  def test_only_the_named_cells_move(self):
+    named = set(c["id"] for c in self.doc.cells[:4])
+    layout.arrange(self.doc, self.registry, only=named)
+    self.assertTrue(self.moved())
+    self.assertLessEqual(set(self.moved()), named)
+    self.assertEqual(overlapping(self.doc, self.registry), [])
+
+  def test_the_group_goes_back_where_it_was(self):
+    named = [c for c in self.doc.cells[:4]]
+    left = min(self.before[c["id"]][0] for c in named)
+    layout.arrange(self.doc, self.registry, only=set(c["id"] for c in named))
+    boxes = [layout._box(self.registry, self.doc, c) for c in named]
+    self.assertLess(abs(min(b[0] for b in boxes) - left), 60,
+                    "the group should land near where its cells were")
+
+
 class TestAutoLayoutLeavesNoErrors(unittest.TestCase):
   """Every DRC error auto-layout has produced so far was the router drawing
   two nets as one; this holds the examples to none."""

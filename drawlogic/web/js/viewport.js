@@ -76,11 +76,16 @@ export class Viewport {
   }
 
   fit(canvasWidth, canvasHeight, margin = 40) {
+    this.fitBox(0, 0, canvasWidth, canvasHeight, margin);
+  }
+
+  // Zoom and pan so one rectangle of the drawing fills the view.
+  fitBox(x, y, width, height, margin = 40, most = MAX_ZOOM) {
     const [w, h] = this.size();
-    this.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(
-      (w - margin) / canvasWidth, (h - margin) / canvasHeight)));
-    this.panX = canvasWidth / 2 - w / this.zoom / 2;
-    this.panY = canvasHeight / 2 - h / this.zoom / 2;
+    this.zoom = Math.min(most, MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(
+      (w - margin) / Math.max(width, 1), (h - margin) / Math.max(height, 1))));
+    this.panX = x + width / 2 - w / this.zoom / 2;
+    this.panY = y + height / 2 - h / this.zoom / 2;
     this.apply();
   }
 

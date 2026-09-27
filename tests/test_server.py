@@ -463,6 +463,35 @@ class TestEndpoints(unittest.TestCase):
       self.get("/api/nothing")
     self.assertEqual(caught.exception.code, 404)
 
+  def test_import_draws_each_module_and_refuses_to_overwrite_unasked(self):
+    verilog = ("module imp_top (input a, output y);\n"
+               "  imp_leaf u (.a(a), .y(y));\nendmodule\n"
+               "module imp_leaf (input a, output y);\n"
+               "  not g (y, a);\nendmodule\n")
+    answer = self.post("/api/import", {"text": verilog})
+    self.assertEqual(answer["top"], "imp_top.dlg")
+    self.assertEqual(answer["written"], ["imp_leaf.dlg", "imp_top.dlg"])
+    self.assertTrue(os.path.exists(os.path.join(self.root, "imp_top.dlg")))
+    self.assertIn("imp_top.dlg", [f["path"] if isinstance(f, dict) else f
+                                  for f in self.get("/api/files")["files"]])
+
+    os.remove(os.path.join(self.root, "imp_top.dlg"))
+    with self.assertRaises(HTTPError) as caught:
+      self.post("/api/import", {"text": verilog})
+    self.assertEqual(caught.exception.code, 409)
+    self.assertIn("imp_leaf.dlg", caught.exception.read().decode("utf-8"))
+    self.assertFalse(os.path.exists(os.path.join(self.root, "imp_top.dlg")))
+
+    answer = self.post("/api/import", {"text": verilog, "overwrite": True})
+    self.assertEqual(answer["written"], ["imp_leaf.dlg", "imp_top.dlg"])
+
+  def test_import_reports_verilog_it_cannot_read(self):
+    with self.assertRaises(HTTPError) as caught:
+      self.post("/api/import", {"text": "module m (input a);\n  junk;\n"
+                                        "endmodule\n"})
+    self.assertEqual(caught.exception.code, 422)
+    self.assertIn("line 2", caught.exception.read().decode("utf-8"))
+
 
 if __name__ == "__main__":
   unittest.main()

@@ -250,3 +250,59 @@ class TestDoctor(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestImport(unittest.TestCase):
+  """`import` writes a drawing per module and never overwrites unasked."""
+
+  VERILOG = ("module top (input a, output y);\n"
+             "  leaf u (.a(a), .y(y));\n"
+             "endmodule\n"
+             "module leaf (input a, output y);\n"
+             "  not g (y, a);\n"
+             "endmodule\n")
+
+  def run_import(self, argv):
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+      try:
+        code = cli.main(argv)
+      except SystemExit as exc:
+        code = exc.code
+    return code, out.getvalue(), err.getvalue()
+
+  def test_it_writes_one_drawing_per_module_and_names_the_top(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      source = os.path.join(tmp, "design.v")
+      with open(source, "w") as handle:
+        handle.write(self.VERILOG)
+      code, out, _ = self.run_import(["import", source])
+      self.assertEqual(code, 0)
+      self.assertEqual(sorted(f for f in os.listdir(tmp) if f.endswith(".dlg")),
+                       ["leaf.dlg", "top.dlg"])
+      self.assertIn("top.dlg  (top)", out)
+
+  def test_it_refuses_to_overwrite_anything_without_force(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      source = os.path.join(tmp, "design.v")
+      with open(source, "w") as handle:
+        handle.write(self.VERILOG)
+      mine = os.path.join(tmp, "leaf.dlg")
+      with open(mine, "w") as handle:
+        handle.write("mine")
+      code, _, _ = self.run_import(["import", source])
+      self.assertIn("leaf.dlg", str(code))
+      self.assertFalse(os.path.exists(os.path.join(tmp, "top.dlg")))
+      with open(mine) as handle:
+        self.assertEqual(handle.read(), "mine")
+      code, _, _ = self.run_import(["import", source, "--force"])
+      self.assertEqual(code, 0)
+      self.assertTrue(os.path.exists(os.path.join(tmp, "top.dlg")))
+
+  def test_bad_verilog_is_reported_with_its_line(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      source = os.path.join(tmp, "bad.v")
+      with open(source, "w") as handle:
+        handle.write("module m (input a);\n  junk;\nendmodule\n")
+      code, _, _ = self.run_import(["import", source])
+      self.assertIn("bad.v: line 2: cannot read", str(code))

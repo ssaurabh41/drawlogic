@@ -10,6 +10,7 @@ Usage:
     drawlogic validate alu_ctrl.dlg     # references and DRCs; non-zero on errors
     drawlogic doctor                    # is this copy of drawlogic consistent?
     drawlogic info alu_ctrl.dlg
+    drawlogic import alu.v              # one drawing per Verilog module
     drawlogic symbols list
 
 Run with nothing, or with --help, for the same overview.
@@ -22,6 +23,7 @@ import re
 import sys
 
 from . import drc
+from . import hdl
 from . import render_svg
 from .doc import Document, DocumentError, write_file
 from . import layout
@@ -218,6 +220,39 @@ def cmd_layout(args):
       # caption belongs to.
       print("%d shape%s left where they were; they may need nudging"
             % (len(doc.shapes), "" if len(doc.shapes) == 1 else "s"))
+  return 0
+
+
+def cmd_import(args):
+  """Draw every module in a structural Verilog file, one drawing each."""
+  try:
+    with open(args.file) as handle:
+      text = handle.read()
+  except (IOError, OSError, UnicodeDecodeError) as exc:
+    raise SystemExit("%s: cannot read %s: %s" % (PROG, args.file, exc))
+  try:
+    top, drawings, warnings = hdl.import_verilog(text, _registry(args),
+                                                 args.top)
+  except hdl.HdlError as exc:
+    raise SystemExit("%s: %s: %s" % (PROG, args.file, exc))
+
+  folder = args.outdir or os.path.dirname(os.path.abspath(args.file))
+  try:
+    written = hdl.write_drawings(folder, drawings, args.force)
+  except FileExistsError as exc:
+    raise SystemExit("%s: would overwrite %s in %s; --force to replace them"
+                     % (PROG, exc, folder))
+  except OSError as exc:
+    raise SystemExit("%s: cannot write into %s: %s" % (PROG, folder, exc))
+
+  # Warnings go to stderr even with -q: each one is something in the
+  # Verilog that the drawing does not show.
+  for warning in warnings:
+    sys.stderr.write("warning: %s\n" % warning)
+  if not _quiet(args):
+    for path in written:
+      print("wrote %s%s" % (path, "  (top)" if os.path.basename(path)
+                             == top + ".dlg" else ""))
   return 0
 
 
@@ -612,6 +647,7 @@ examples:
 
   drawlogic validate alu_ctrl.dlg       references and DRCs; non-zero on errors
   drawlogic info alu_ctrl.dlg
+  drawlogic import alu.v                one drawing per Verilog module
   drawlogic symbols list
   drawlogic symbols show and2
   drawlogic symbols preview and2 -o and2.svg
@@ -717,6 +753,17 @@ def build_parser():
   arrange.add_argument("--gap-y", type=float, default=layout.GAP_Y,
                        metavar="N", help="room between cells in a column")
   arrange.set_defaults(func=cmd_layout)
+
+  importer = subs.add_parser("import", parents=[common],
+                             help="draw the modules of a Verilog netlist")
+  importer.add_argument("file", metavar="FILE.v")
+  importer.add_argument("--top", metavar="MODULE",
+                        help="the top module (default: the one nothing uses)")
+  importer.add_argument("-o", "--outdir", metavar="DIR",
+                        help="where the drawings go (default: beside FILE.v)")
+  importer.add_argument("--force", action="store_true",
+                        help="replace drawings that are already there")
+  importer.set_defaults(func=cmd_import)
 
   doctor = subs.add_parser("doctor", parents=[common],
                            help="check this copy of drawlogic is consistent")

@@ -25,6 +25,7 @@ Endpoints:
     POST /api/export       render to SVG, optionally writing it to disk
     POST /api/layout       rearrange a drawing and hand it back unwritten
     POST /api/symbol       turn the drawing into a symbol the palette offers
+    POST /api/import       draw the modules of a Verilog netlist into the root
 
 A drawing that references others comes back with a block symbol for each,
 under `sheets`, because those blocks are built from the referenced drawings'
@@ -46,6 +47,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import render_svg
 from . import drc
+from . import hdl
 from . import theme
 from . import authoring
 from . import layout
@@ -384,6 +386,8 @@ class Handler(BaseHTTPRequestHandler):
       return self._check(payload)
     if route == "/api/symbol":
       return self._save_symbol(payload)
+    if route == "/api/import":
+      return self._import(payload)
     return self._fail(404, "no such endpoint")
 
   def _save(self, payload):
@@ -542,6 +546,31 @@ class Handler(BaseHTTPRequestHandler):
                       source=os.path.join(self.root, FOLDER_FILE))
     return self._send_json({"id": symbol_id, "symbols": self.registry.as_data()})
 
+
+  def _import(self, payload):
+    """Draw each module of a Verilog netlist as `<module>.dlg` in the root.
+
+    Refused with 409, writing nothing, when any of those files is already
+    there and `overwrite` was not asked for: the editor asks first, the way
+    Save does for a new name.
+    """
+    text = payload.get("text")
+    if not isinstance(text, str):
+      return self._fail(400, "expected the Verilog as text")
+    try:
+      top, drawings, warnings = hdl.import_verilog(
+        text, self.registry, payload.get("top") or None)
+      written = hdl.write_drawings(self.root, drawings,
+                                   bool(payload.get("overwrite")))
+    except hdl.HdlError as exc:
+      return self._fail(422, str(exc))
+    except FileExistsError as exc:
+      return self._fail(409, "would overwrite %s" % exc)
+    except OSError as exc:
+      return self._fail(500, "cannot write: %s" % exc)
+    return self._send_json({
+      "top": top + ".dlg", "warnings": warnings,
+      "written": [os.path.basename(path) for path in written]})
 
   def _export(self, payload):
     try:

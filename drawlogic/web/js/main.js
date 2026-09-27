@@ -1357,6 +1357,83 @@ async function saveAsSymbol() {
   }
 }
 
+// A netlist becomes one drawing per module, written beside the others, and
+// the top one opens. The server does the reading and the layout; all this
+// has to settle is what happens to drawings already there.
+async function importVerilog(file) {
+  const text = await file.text();
+  const send = async (overwrite) => {
+    const done = busy(`drawing the modules in ${file.name}...`);
+    try {
+      return await api("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, overwrite }),
+      });
+    } finally {
+      done();
+    }
+  };
+
+  try {
+    let result;
+    try {
+      result = await send(false);
+    } catch (conflict) {
+      if (!/^would overwrite/i.test(conflict.message)) throw conflict;
+      const names = conflict.message.replace(/^would overwrite /i, "");
+      if (!window.confirm(`Importing ${file.name} would replace ${names}.\n\n`
+          + "Replace them? Any of them open in a tab is closed first, and "
+          + "unsaved changes to it are lost.")) return;
+      result = await send(true);
+    }
+
+    // A tab showing a drawing that was just replaced would show the old one,
+    // and saving it would put the old one back. Such tabs go; the drawing in
+    // front is dropped once the top one has taken its place.
+    const listed = [...ui.fileSelect.options].map((option) => option.value);
+    const stale = store.path && result.written.includes(store.path)
+      && store.path !== result.top ? store.path : null;
+    for (const name of result.written) {
+      const tab = findTab(name);
+      if (tab && name !== store.path) {
+        openTabs.splice(openTabs.indexOf(tab), 1);
+        recovery.discard(name);
+      }
+      if (!listed.includes(name)) {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        ui.fileSelect.appendChild(option);
+      }
+    }
+    // Already agreed to lose its changes above, so reopening it from disk
+    // should not ask a second time; the file now holds what is wanted.
+    if (result.top === store.path) store.markSaved();
+    await openDrawing(result.top);
+    if (stale && findTab(stale)) {
+      openTabs.splice(openTabs.indexOf(findTab(stale)), 1);
+      recovery.discard(stale);
+      renderTabs();
+    }
+
+    const count = result.written.length;
+    say(`${count} drawing${count === 1 ? "" : "s"} from ${file.name}`
+        + (result.warnings.length ? `; ${result.warnings.length} things in it are not drawn`
+          : ""), result.warnings.length ? "warn" : "good");
+    if (result.warnings.length) {
+      // Each is something in the Verilog the drawing does not show, which
+      // someone reading the drawing would otherwise never find out.
+      const shown = result.warnings.slice(0, 15);
+      const more = result.warnings.length - shown.length;
+      window.alert(`Not drawn, or drawn differently:\n\n${shown.join("\n")}`
+        + (more ? `\n\n...and ${more} more; \`drawlogic import\` lists them all.` : ""));
+    }
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
 function syncControls() {
   const canvas = store.doc.canvas || {};
   ui.gridSelect.value = (canvas.grid || {}).style || "dots";
@@ -1437,6 +1514,13 @@ function bindControls() {
   ui.btnNew.addEventListener("click", newDrawing);
   ui.btnTheme.addEventListener("click", cycleTheme);
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
+  ui.btnImport.addEventListener("click", () => ui.importFile.click());
+  ui.importFile.addEventListener("change", () => {
+    const file = ui.importFile.files[0];
+    // Cleared so choosing the same file again still counts as a change.
+    ui.importFile.value = "";
+    if (file) importVerilog(file);
+  });
   ui.undo.addEventListener("click", () => stepHistory(true));
   ui.redo.addEventListener("click", () => stepHistory(false));
 
@@ -1654,6 +1738,8 @@ async function start() {
     btnExport: $("btn-export"),
     btnPng: $("btn-png"),
     btnSymbol: $("btn-symbol"),
+    btnImport: $("btn-import"),
+    importFile: $("import-file"),
     breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),
     shortcuts: $("shortcuts"),

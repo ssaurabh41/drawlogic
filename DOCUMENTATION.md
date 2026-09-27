@@ -232,6 +232,40 @@ question.
 `validate` exits non-zero when it finds errors, so it drops into a pre-commit
 hook or a CI job unchanged.
 
+### import
+
+```bash
+drawlogic import alu.v                # one drawing per module, beside alu.v
+drawlogic import alu.v -o sheets/ --top alu_top
+drawlogic import alu.v --force        # replace drawings already there
+```
+
+Draws a structural Verilog netlist: every module becomes a drawing named
+`<module>.dlg`, its ports become port cells and each instance a cell, and each
+drawing is laid out. An instance of a gate primitive (`and`, `or`, `nand`,
+`nor`, `xor`, `xnor`, `not`, `buf`) or of a symbol in the library becomes that
+symbol; an instance of another module in the file becomes a block that opens
+onto that module's drawing (see [Hierarchy](#hierarchy)). The top module is
+the one nothing instantiates, unless `--top` names another. The editor's
+**Import Verilog** button does the same into the folder it serves and opens the
+top drawing.
+
+It is the part of Verilog a schematic can show. Headers in either style,
+`input`/`output`/`inout`, `wire`/`reg`/`logic`, vector ranges, connections by
+name or by position, and `assign a = b;` (which joins the two nets) are
+understood. One bit of a vector, `d[3]`, is its own one-bit net, joined to the
+vector by a `ripper` where the bit is taken off it or a `bus_join` where it is
+put on.
+
+Everything else is reported as a warning and left out rather than refused:
+`always` and `initial` blocks, other `assign`s, and expressions in connections.
+A slice such as `d[3:0]` connects the whole vector. An instance of a module
+defined nowhere gets a drawing holding only ports, named after the connections
+made to it and drawn as `inout`, because nothing says which way they face.
+
+Nothing is overwritten unless asked: if any of the drawings is already there,
+none is written. A parse error names its line.
+
 ### doctor
 
 ```bash
@@ -263,9 +297,9 @@ ok    route a wire
 ok    check the rules
 ok    lay it out
 ok    render to SVG
-35 built-in symbols
+36 built-in symbols
 ok     14 browser modules, 0 import mismatches
-ok     32 files against manifest.txt, 0 differ
+ok     33 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -783,7 +817,8 @@ A pin may declare `"width": 0`, meaning it accepts a bus of any width. Ports,
 generic block ports and the bus ripper use this. An ordinary gate pin is one
 bit and rejects a bus.
 
-`ripper` and `bus_tap` symbols are provided for pulling a bit off a bus.
+`ripper` and `bus_tap` symbols are provided for pulling a bit off a bus, and
+`bus_join` (a ripper facing the other way) for putting one on.
 
 A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
 is one bit, so wiring a bus to it is an error the checker will catch.
@@ -1439,10 +1474,11 @@ drawlogic/
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
+  hdl.py          structural Verilog to drawings, one per module
   authoring.py    turning a drawing of shapes and ports into a symbol
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
-  cli.py          serve, export, layout, symbols, info, validate, help
+  cli.py          serve, export, layout, import, symbols, info, validate, help
   server.py       stdlib HTTP server for the editor
   web/
     index.html, css/app.css

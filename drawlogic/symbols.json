@@ -2270,6 +2270,63 @@
       }
     ]
   },
+  "bus_join": {
+    "name": "Bus joiner",
+    "category": "bus",
+    "size": [
+      40,
+      30
+    ],
+    "pins": [
+      {
+        "name": "bit",
+        "x": 0,
+        "y": 15,
+        "dir": "inout"
+      },
+      {
+        "name": "bus",
+        "x": 40,
+        "y": 15,
+        "dir": "inout",
+        "width": 0
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 15,
+        "x2": 16,
+        "y2": 15,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 16,
+        "y1": 15,
+        "x2": 16,
+        "y2": 3,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 16,
+        "y1": 3,
+        "x2": 28,
+        "y2": 15,
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 28,
+        "y1": 15,
+        "x2": 40,
+        "y2": 15,
+        "role": "pin"
+      }
+    ]
+  },
   "bus_tap": {
     "name": "Bus tap",
     "category": "bus",

@@ -704,3 +704,25 @@ select {
 .status-drc.bad { color: var(--danger); }
 .status-drc.good { color: var(--accent); }
 .status-drc.stale { opacity: 0.45; }
+.status-drc.off { color: var(--ink-2); font-style: italic; }
+
+/* The ? list of keyboard shortcuts. */
+.status-keys {
+  background: none; border: 0; padding: 0 6px; cursor: pointer;
+  color: var(--ink-2); font: inherit;
+}
+.status-keys:hover { color: var(--accent); text-decoration: underline; }
+.shortcuts {
+  max-width: min(640px, calc(100vw - 32px)); max-height: 80vh; overflow: auto;
+  background: var(--chrome); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px;
+}
+.shortcuts::backdrop { background: rgb(0 0 0 / 0.35); }
+.shortcuts h2 { margin: 0 0 10px; font-size: 16px; }
+.shortcuts table { border-collapse: collapse; width: 100%; }
+.shortcuts th, .shortcuts td {
+  text-align: left; vertical-align: top; padding: 4px 8px;
+  border-top: 1px solid var(--line-soft); font-size: 13px;
+}
+.shortcuts th { white-space: nowrap; font-family: var(--mono, monospace); color: var(--accent); font-weight: 600; }
+.shortcuts-foot { margin: 10px 0 0; color: var(--ink-2); font-size: 12px; }

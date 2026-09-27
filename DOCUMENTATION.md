@@ -264,8 +264,8 @@ ok    check the rules
 ok    lay it out
 ok    render to SVG
 35 built-in symbols
-ok     11 browser modules, 0 import mismatches
-ok     29 files against manifest.txt, 0 differ
+ok     13 browser modules, 0 import mismatches
+ok     31 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -360,7 +360,7 @@ how many went.
 | `L` `B` `P` `T` | line, box, polygon, text |
 | click, `Ctrl`+click, drag a box | select one, add or remove one, marquee |
 | drag | move, snapped to the grid (a wire snaps to 5, so it can reach a pin) |
-| `Ctrl`+drag | duplicate as you drag |
+| `Ctrl`+drag, `Shift`+drag a cell | duplicate as you drag |
 | `Ctrl+N` | new drawing |
 | drag a wire | slide that run of it; the wire becomes hand-routed |
 | double-click a wire | hand it back to the router |
@@ -379,6 +379,7 @@ how many went.
 | `Ctrl+S`, `Ctrl+E` | save, export SVG |
 | `Ctrl+Shift+E` | copy the drawing as a picture, for pasting into a slide |
 | scroll, `Space`+drag, `Shift`+drag | zoom, pan, pan |
+| `?` | show or hide this list |
 
 `Ctrl` adds to the selection, not `Shift`, which is the slide-editor
 convention rather than the browser one. `Shift` is the pan modifier on empty
@@ -427,6 +428,13 @@ document, so they mark it unsaved; zoom does not.
 
 `Ctrl+S` saves; nothing else writes to disk. There is no autosave. The
 browser refuses to close a tab with unsaved changes.
+
+A crash is a different matter: a killed browser, or a laptop whose battery
+ran out, closes the page without asking. So while a drawing has unsaved
+changes the browser keeps a copy of them, and opening that drawing again
+offers them back. Restoring is one undo step and leaves the drawing unsaved;
+saving, or declining, throws the copy away. Nothing reaches the file on disk
+until you save.
 
 A save that changes the file keeps the version it replaced as
 `<name>.dlg.bak` beside it -- one step back, for the file itself. The new
@@ -1237,6 +1245,11 @@ degrading quietly. Very large drawings are the case this is for; **live** puts
 it back if you would rather have the lag. A check that fails outright does the
 same thing rather than filling the status bar with the same error at every
 pause.
+
+The status bar keeps saying so afterwards: whenever there is no current
+answer it reads **DRC not checked**, or **DRC paused (slow drawing)** after
+live mode stopped itself, and clicking it runs a check. A drawing that has
+not been checked no longer looks like one that passed.
 
 Only one check runs at a time. An edit that lands while one is in flight
 re-arms the timer instead of being dropped, so the last thing you did before

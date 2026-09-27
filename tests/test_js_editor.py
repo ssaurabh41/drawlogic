@@ -103,3 +103,33 @@ class TestEditorBehaviour(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestTheShortcutListMatchesTheManual(unittest.TestCase):
+  """The ? sheet and the Keys table in DOCUMENTATION.md are two copies of one
+  list, and a copy nobody checks drifts -- the manual already said Ctrl+drag
+  duplicates when Shift+drag does too. Needs no node: it reads the source."""
+
+  def rows_in_the_editor(self):
+    import re
+    with open(os.path.join(ROOT, "drawlogic", "web", "js", "shortcuts.js")) as f:
+      text = f.read()
+    return re.findall(r'^\s*\["(.*?)", "(.*?)"\],$', text, re.M)
+
+  def rows_in_the_manual(self):
+    with open(os.path.join(ROOT, "DOCUMENTATION.md")) as f:
+      text = f.read()
+    table = text.split("### Keys", 1)[1].split("\n\n", 2)[1]
+    rows = []
+    for line in table.splitlines():
+      cells = [c.strip() for c in line.strip().strip("|").split("|")]
+      if len(cells) != 2 or not cells[0] or set(cells[0]) <= set("-"):
+        continue
+      rows.append((cells[0].replace("`", "").replace(" +", "+")
+                   .replace("+ ", "+"), cells[1]))
+    return rows
+
+  def test_the_two_lists_are_the_same(self):
+    editor = self.rows_in_the_editor()
+    self.assertGreater(len(editor), 20, "the parse found almost nothing")
+    self.assertEqual(editor, self.rows_in_the_manual())

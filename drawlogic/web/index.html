@@ -179,10 +179,19 @@
   <span id="status-cursor">x &mdash; y &mdash;</span>
   <button id="status-drc" class="status-drc" type="button" hidden
           title="Design rule checks - click to show the list"></button>
+  <button id="status-keys" class="status-keys" type="button"
+          title="Keyboard shortcuts (?)">? keys</button>
   <span class="push" id="status-message">Shift-drag or hold Space to pan &middot; scroll to zoom</span>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">
+  <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+  <!-- Filled from js/shortcuts.js, the one list of them. -->
+  <table id="shortcuts-body"></table>
+  <p class="shortcuts-foot">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close.</p>
+</dialog>
 
 <script type="module" src="/js/main.js"></script>
 </body>

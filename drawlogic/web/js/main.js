@@ -7,6 +7,8 @@ import * as geometry from "./geometry.js";
 import * as model from "./model.js";
 import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
 import * as picture from "./picture.js";
+import * as recovery from "./recovery.js";
+import * as shortcuts from "./shortcuts.js";
 import * as render from "./render.js";
 import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
@@ -494,9 +496,13 @@ function runCommand(command) {
 // ---- files ----
 
 async function openDrawing(path) {
-  if (store.dirty && !window.confirm("Discard unsaved changes?")) {
-    ui.fileSelect.value = store.path || "";
-    return;
+  if (store.dirty) {
+    if (!window.confirm("Discard unsaved changes?")) {
+      ui.fileSelect.value = store.path || "";
+      return;
+    }
+    // Said no to them on purpose, so they are not offered back later.
+    recovery.discard(store.path);
   }
   try {
     const payload = await api(`/api/doc?path=${encodeURIComponent(path)}`);
@@ -516,6 +522,8 @@ async function openDrawing(path) {
     viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
     inspector.render();
     drawBreadcrumb();
+
+    if (offerRecovery(payload.path)) return;
 
     const problems = payload.problems || [];
     if (problems.length) {
@@ -574,6 +582,8 @@ const LIVE_BUDGET = 250;
 
 let liveOn = true;
 let liveEra = 0;
+// Why live checking is off when it turned itself off, for the status bar.
+let liveOffReason = "";
 let liveTimer = null;
 let liveBusy = false;
 let liveMarks = [];
@@ -641,6 +651,7 @@ async function runCheck({ quiet = false } = {}) {
     // next quiet check measures it honestly.
     if (quiet && took > LIVE_BUDGET && !busyNow) {
       setLive(false);
+      liveOffReason = "slow drawing";
       say(`this drawing takes ${took}ms to check, so live checking is off; `
           + "press Check when you want one", "warn");
     }
@@ -673,6 +684,7 @@ function afterEdit() {
 function setLive(on) {
   const was = liveOn;
   liveOn = Boolean(on);
+  liveOffReason = "";
   window.clearTimeout(liveTimer);
   // Anything automatic that is still in flight belongs to the mode being left.
   if (was !== liveOn) liveEra += 1;
@@ -796,8 +808,16 @@ function clearViolations() {
   liveMarks = [];
   drawOverlay(overlayOptions);
   if (ui.statusDrc) {
-    ui.statusDrc.hidden = true;
-    ui.statusDrc.textContent = "";
+    // Said, not hidden: with no answer on screen the one thing worth knowing
+    // is that the drawing has not been checked, and a count that simply
+    // vanished -- or live checking that turned itself off with a message
+    // that faded -- looked the same as a drawing with nothing wrong.
+    ui.statusDrc.hidden = false;
+    ui.statusDrc.className = "status-drc off";
+    if (liveOn) ui.statusDrc.textContent = "DRC checking...";
+    else if (liveOffReason) {
+      ui.statusDrc.textContent = `DRC paused (${liveOffReason}) - click to check`;
+    } else ui.statusDrc.textContent = "DRC not checked - click to check";
   }
   ui.drcCount.textContent = "";
   ui.drcCount.className = "drc-count";
@@ -986,8 +1006,35 @@ function cycleTheme() {
 
 // Start a fresh drawing. It needs a name up front because saving writes to a
 // path, and a drawing with nowhere to go is a drawing you lose.
+// Unsaved changes to this drawing that the browser kept when the page went
+// away without saving them -- see recovery.js. Taking them is one undo step,
+// and leaves the drawing unsaved, because nothing is on disk until Ctrl+S.
+function offerRecovery(path) {
+  const entry = recovery.pending(path, store.doc);
+  if (!entry) return false;
+  const when = new Date(entry.savedAt).toLocaleString();
+  if (!window.confirm(`${path} has unsaved changes from ${when} that were `
+                      + "never saved - the page closed first.\n\n"
+                      + "Restore them? (Cancel throws them away.)")) {
+    recovery.discard(path);
+    return false;
+  }
+  store.mutate("restore unsaved changes", (doc) => {
+    for (const key of Object.keys(doc)) delete doc[key];
+    Object.assign(doc, entry.doc);
+  });
+  syncControls();
+  redraw();
+  inspector.render();
+  say(`restored unsaved changes to ${path} - save to keep them`, "warn");
+  return true;
+}
+
 async function newDrawing() {
-  if (store.dirty && !window.confirm("Discard unsaved changes?")) return;
+  if (store.dirty) {
+    if (!window.confirm("Discard unsaved changes?")) return;
+    recovery.discard(store.path);
+  }
 
   const raw = window.prompt("Name for the new drawing:", "untitled.dlg");
   if (!raw) return;
@@ -1126,7 +1173,10 @@ function bindControls() {
   ui.btnPng.addEventListener("click", copyPng);
   ui.btnCheck.addEventListener("click", () => runCheck());
   ui.drcLive.addEventListener("click", () => setLive(!liveOn));
+  ui.statusKeys.addEventListener("click", toggleShortcuts);
   ui.statusDrc.addEventListener("click", () => {
+    // With no answer showing, the useful thing to do is get one.
+    if (ui.statusDrc.classList.contains("off")) runCheck();
     ui.drcBody.scrollIntoView({ block: "nearest" });
   });
   ui.btnNew.addEventListener("click", newDrawing);
@@ -1154,8 +1204,23 @@ function bindControls() {
 
 function bindKeyboard() {
   window.addEventListener("keydown", (event) => {
+    // While the list is open, keys belong to it: Esc closes it natively, and
+    // ? toggles it, but nothing reaches the drawing underneath.
+    if (ui.shortcuts.open) {
+      if (event.key === "?") {
+        event.preventDefault();
+        ui.shortcuts.close();
+      }
+      return;
+    }
     if (event.target.matches("input, select, textarea")) return;
     const mod = event.ctrlKey || event.metaKey;
+
+    if (event.key === "?" && !mod) {
+      event.preventDefault();
+      toggleShortcuts();
+      return;
+    }
 
     if (mod) {
       const handlers = {
@@ -1231,6 +1296,15 @@ function bindKeyboard() {
   });
 }
 
+function toggleShortcuts() {
+  if (ui.shortcuts.open) {
+    ui.shortcuts.close();
+    return;
+  }
+  shortcuts.fill($("shortcuts-body"));
+  ui.shortcuts.showModal();
+}
+
 // ---- start ----
 
 async function start() {
@@ -1245,6 +1319,8 @@ async function start() {
     btnSymbol: $("btn-symbol"),
     breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),
+    shortcuts: $("shortcuts"),
+    statusKeys: $("status-keys"),
     undo: $("btn-undo"),
     redo: $("btn-redo"),
     gridSelect: $("grid-select"),
@@ -1290,6 +1366,9 @@ async function start() {
   store.subscribe((_store, reason) => {
     if (reason !== "saved") afterEdit();
   });
+  recovery.watch(store, () => say(
+    "this drawing is too big for the browser to keep a recovery copy of; "
+    + "save often", "warn"));
 
   try {
     const [theme, library, listing, drcLimits] = await Promise.all([
@@ -1308,8 +1387,8 @@ async function start() {
       ui.fileSelect.appendChild(option);
     }
 
-    clearViolations();
     setLive(storedLive());
+    clearViolations();
     bindControls();
     bindCanvas();
     bindKeyboard();

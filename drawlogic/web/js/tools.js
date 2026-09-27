@@ -126,8 +126,7 @@ export class SelectTool {
       // is made on the first actual movement, not on the click. Shift can mean
       // this here because it only pans on empty canvas, and a press that
       // landed on a cell never reaches the viewport (see Viewport's canPan).
-      this.pendingDuplicate = prefs.get("dragDuplicate")
-        && (additive(event) || event.shiftKey);
+      this.pendingDuplicate = additive(event) || event.shiftKey;
       this.gestureLabel = this.pendingDuplicate ? "duplicate" : "move";
       return;
     }
@@ -189,7 +188,7 @@ export class SelectTool {
       const sdy = model.snap(dy, step);
       // Alt is the escape hatch: hold it to place a cell exactly where you
       // put it, with no help.
-      const helping = !event.altKey && prefs.get("guides");
+      const helping = !event.altKey;
       let lines = [];
 
       store.mutate(this.gestureLabel, (doc) => {

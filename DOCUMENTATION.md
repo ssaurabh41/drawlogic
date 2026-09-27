@@ -450,12 +450,17 @@ front and back -- are the icon buttons in the second toolbar row. Hover any
 of them for its name.
 
 **Theme** cycles the application's appearance between following the operating
-system, light, and dark, and remembers the choice. The drawing itself never
+system, light, and dark, and remembers the choice. It starts light. The drawing itself never
 changes with it: the sheet is a document, and a document is white. An
 exported file looks the same whichever is picked.
 
 Selecting one member of a group selects all of it, so a group drags and
 resizes as a single object.
+
+A port has no resize handles: ports are moved, never resized, and on
+something that small the handles covered most of it. A press anywhere on or
+just beside a port picks it up. Its size can still be typed in the
+properties panel.
 
 ### Autoshapes
 
@@ -478,7 +483,7 @@ back.
 The **Zoom**, **Text** and **Symbols** sliders control view scale,
 `canvas.font.scale` and `canvas.symbolScale`. The last two change the
 document, so they mark it unsaved; zoom does not. **Grid** picks dots, lines
-or a blank sheet for this drawing; the default for new drawings is in Preferences.
+or a blank sheet for this drawing; a new drawing starts blank.
 **Fit** (`Ctrl+0`) shows the whole sheet, and `F` zooms to what is selected.
 
 ### Tabs
@@ -494,21 +499,22 @@ way to discard its changes.
 
 ### Preferences
 
-**Preferences** in the toolbar (`Ctrl+,`) holds how you like to work. They
-are kept in this browser, not in the drawing, so a file handed to someone
-else does not change how their editor behaves. The switches marked
-*changes the drawing* are the ones that act without an explicit command, and
-each can be turned off:
+**Preferences** in the toolbar (`Ctrl+,`) holds the two things worth
+switching off. They are kept in this browser, not in the drawing, so a file
+handed to someone else does not change how their editor behaves.
 
 | Preference | Default |
 |---|---|
-| Auto-connect on drop | on |
-| Ctrl/Shift+drag duplicates | on |
-| Auto layout arranges only a selection (two or more cells) | on |
-| Alignment guides while dragging | on |
-| Keep unsaved work to recover after a crash | on |
+| Auto-connect on drop (*changes the drawing*) | on |
 | Check the drawing as you edit (live DRC) | on |
-| Grid style and step for new drawings | dots, 10 |
+
+The rest is simply how the editor works: `Ctrl`/`Shift`+drag duplicates,
+auto layout with two or more cells selected arranges only those, alignment
+guides help while dragging (hold `Alt` to drag without them), and unsaved
+work is kept for recovery after a crash.
+
+A new drawing is 1200 x 700 on a blank sheet with a grid step of 10; change
+the grid for that drawing with **Grid** in the toolbar.
 
 ### Auto-connect
 
@@ -527,7 +533,7 @@ Enter or clicking away keeps it, Esc leaves it as it was. It is the same edit
 as the properties panel's, so a bus name such as `d[7:0]` still sets the
 wire's width.
 
-**Painter** copies the selected item's style -- fill, line colour, line
+The **format painter** (the brush icon beside the shape tools) copies the selected item's style -- fill, line colour, line
 weight -- and the next item you click takes it; Shift+click to give it to
 several, Esc to stop. `Ctrl+Shift+C` and `Ctrl+Shift+V` do the same from the
 keyboard, onto everything selected. Only style is copied, never position or
@@ -1265,7 +1271,7 @@ change.
 | `HOP_TO_TEXT` | 6 | how far a bridge keeps from a name it would otherwise break up |
 | `SHEET_MARGIN` | 90 | space left around everything when a layout decides where the drawing starts |
 | `SHEET_EDGE` | 20 | the least clearance from the sheet edge before a printer's own margin eats into the drawing |
-| `SHEET_W`, `SHEET_H` | 1200 x 780 | the sheet a new drawing gets |
+| `SHEET_W`, `SHEET_H` | 1200 x 700 | the sheet a new drawing gets |
 
 Distances are in document units, the same units cells and wires use. A small
 logic gate is 40x40, so a unit is roughly a twentieth of a gate.

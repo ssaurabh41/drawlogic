@@ -149,6 +149,8 @@ function freePinLabel(symbol, cell, pinName, scale) {
   return [geometry.matrixFor(symbol, cell, scale).apply(local[0], local[1]), anchor];
 }
 
+const PORT_TYPES = new Set(["port_in", "port_out", "port_inout"]);
+
 function renderCell(symbol, cell, fontScale, scale, into) {
   const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
@@ -163,6 +165,17 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   into = outer;
 
   const group = el("g", { transform: matrix.toSvg() });
+  // A port is small and mostly outline, so a press a pixel off its shape
+  // missed it. An invisible pad around it makes the whole neighbourhood a
+  // handle for moving it; the canvas only, never the export.
+  if (PORT_TYPES.has(cell.type)) {
+    const pad = 4;
+    group.appendChild(el("rect", {
+      class: "dl-cell-pad", x: -pad, y: -pad,
+      width: symbol.size[0] + pad * 2, height: symbol.size[1] + pad * 2,
+      fill: "transparent", stroke: "none", "pointer-events": "all",
+    }));
+  }
   if (cell.image) {
     group.appendChild(el("image", {
       href: cell.image, x: 0, y: 0,

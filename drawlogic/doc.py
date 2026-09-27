@@ -64,7 +64,9 @@ DEFAULT_CANVAS = {
   "width": drc.SHEET_W,
   "height": drc.SHEET_H,
   "background": theme.PAPER,
-  "grid": {"style": "dots", "size": 10, "color": theme.COLORS["grid"]},
+  # A blank sheet: the grid is there to place by, and a new drawing reads
+  # cleaner without dots until someone asks for them.
+  "grid": {"style": "blank", "size": 10, "color": theme.COLORS["grid"]},
   "font": {"family": "IBM Plex Sans", "scale": 1.0},
   "symbolScale": 1.0,
   "arrows": True,

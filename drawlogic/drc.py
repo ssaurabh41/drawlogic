@@ -183,7 +183,7 @@ PIN_GRID = 5.0
 # them prints and pastes consistently; change it per drawing in the properties
 # panel when one needs more room.
 SHEET_W = 1200.0
-SHEET_H = 780.0
+SHEET_H = 700.0
 
 
 def as_data():

@@ -1138,7 +1138,7 @@ async function autoLayout() {
   // Two or more cells selected: lay out just those, leaving the rest where
   // it is. One selected is almost always an accident, not a request.
   const chosen = store.doc.cells.filter((c) => selection.has(c.id)).map((c) => c.id);
-  const only = prefs.get("layoutSelection") && chosen.length >= 2 ? chosen : null;
+  const only = chosen.length >= 2 ? chosen : null;
   const done = busy(only ? `laying out ${only.length} selected cells...`
                          : "laying out...");
   const button = document.querySelector('[data-command="layout"]');
@@ -1222,7 +1222,8 @@ function rebuildPalette() {
 // ---- appearance ----
 //
 // Three states, not two: "auto" follows the operating system, and the other
-// two override it. The drawing itself never changes -- the sheet is a
+// two override it. Light until someone picks otherwise: the sheet is white,
+// and chrome that matches it is the calmer default. The drawing itself never changes -- the sheet is a
 // document and a document is white -- so this is the chrome only, and an
 // exported file looks the same whichever is picked.
 const THEMES = ["auto", "light", "dark"];
@@ -1243,9 +1244,9 @@ function applyTheme(name) {
 function storedTheme() {
   try {
     const saved = window.localStorage.getItem(THEME_KEY);
-    return THEMES.includes(saved) ? saved : "auto";
+    return THEMES.includes(saved) ? saved : "light";
   } catch (error) {
-    return "auto";
+    return "light";
   }
 }
 
@@ -1690,28 +1691,7 @@ function openPrefs() {
     return label;
   });
 
-  // Defaults for a new drawing: an open drawing keeps its own grid.
-  const grid = document.createElement("div");
-  grid.className = "pref-row";
-  const style = ui.gridSelect.cloneNode(true);
-  style.removeAttribute("id");
-  style.value = prefs.get("gridStyle");
-  style.addEventListener("change", () => prefs.set("gridStyle", style.value));
-  const size = document.createElement("input");
-  size.type = "number";
-  size.min = "1";
-  size.value = prefs.get("gridSize");
-  size.addEventListener("change", () => {
-    const value = Number(size.value);
-    if (Number.isFinite(value) && value >= 1) prefs.set("gridSize", value);
-    else size.value = prefs.get("gridSize");
-  });
-  const gridText = document.createElement("span");
-  gridText.className = "pref-text";
-  gridText.innerHTML = "<strong>Grid for new drawings</strong>";
-  grid.append(gridText, style, size);
-
-  body.replaceChildren(...rows, grid);
+  body.replaceChildren(...rows);
   ui.prefsDialog.showModal();
 }
 

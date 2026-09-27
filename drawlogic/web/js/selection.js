@@ -87,6 +87,8 @@ export class Selection {
   }
 }
 
+const PORT_TYPES = new Set(["port_in", "port_out", "port_inout"]);
+
 export function handlePoints(x, y, w, h) {
   return {
     nw: [x, y], n: [x + w / 2, y], ne: [x + w, y],
@@ -146,6 +148,23 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     }));
   }
 
+  // Where a cell being placed will land: its outline, and the pin it has
+  // snapped to ringed, so the join can be judged before letting go.
+  if (options.ghost) {
+    const [gx, gy, gw, gh] = options.ghost.box;
+    layer.appendChild(el("rect", {
+      class: "dl-ghost", x: gx, y: gy, width: gw, height: gh,
+      "stroke-width": 1.2 / zoom,
+      "stroke-dasharray": `${4 / zoom} ${3 / zoom}`,
+    }));
+    if (options.ghost.target) {
+      const [tx, ty] = options.ghost.target;
+      layer.appendChild(el("circle", {
+        class: "dl-pin active", cx: tx, cy: ty, r: 5 / zoom, "stroke-width": 1.4 / zoom,
+      }));
+    }
+  }
+
   if (options.wirePreview && options.wirePreview.length > 1) {
     layer.appendChild(el("path", {
       class: "dl-wire-preview",
@@ -156,6 +175,11 @@ export function drawHandles(svg, selection, zoom, options = {}) {
 
   const box = selection.bounds();
   if (!box || options.hideHandles) return layer;
+  // Nobody resizes a port; they move it. Its box is so small that the grips
+  // covered most of it, and a press meant to drag it grabbed a corner.
+  const items = selection.items();
+  const onlyPorts = items.length > 0
+    && items.every((item) => PORT_TYPES.has(item.type));
 
   const pad = 5 / zoom;
   const x = box[0] - pad;
@@ -168,6 +192,7 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     "stroke-width": 1 / zoom,
     "stroke-dasharray": `${3 / zoom} ${2.5 / zoom}`,
   }));
+  if (onlyPorts) return layer;
 
   // Two rectangles per grip. The visible one is small enough not to hide the
   // corner it sits on; the transparent one behind it is twice the size,

@@ -13,8 +13,9 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-from drawlogic import drc, hdl, sheets
+from drawlogic import drc, hdl, sheets, yosys
 from drawlogic.symbols import default_registry
 
 import tests  # noqa: F401  (puts the repo on sys.path)
@@ -170,19 +171,20 @@ class TestWhatCannotBeDrawn(unittest.TestCase):
       "endmodule\n")
     self.assertIn("m line 2: part of a is connected", " ".join(warnings))
 
-  def test_assign_joins_two_names_and_anything_else_is_reported(self):
+  def test_assign_joins_two_names_and_logic_becomes_gates(self):
     _, drawings, warnings = hdl.import_verilog(
       "module m (input a, output y, output z);\n"
       "  assign y = a;\n"
       "  assign z = a & y;\n"
       "  always @(a) begin end\n"
-      "endmodule\n")
+      "endmodule\n", synth="builtin")
     net = nets_by_name(drawings["m"])
-    self.assertEqual(sorted(net), ["a"])
-    self.assertEqual(ends(net["a"]), [("p_a", "p"), ("p_y", "p")])
-    text = " ".join(warnings)
-    self.assertIn("m line 3: only `assign a = b;` can be drawn", text)
-    self.assertIn("m line 4: behavioural code is not drawn", text)
+    self.assertEqual(sorted(net), ["a", "z"])
+    self.assertEqual(ends(net["a"]), [("g1", "a"), ("g1", "b"), ("p_a", "p"),
+                                      ("p_y", "p")])
+    self.assertEqual(ends(net["z"]), [("g1", "y"), ("p_z", "p")])
+    self.assertIn("m line 4: a sensitivity list that is neither @(*) nor all "
+                  "edges", " ".join(warnings))
 
   def test_a_gate_with_no_symbol_is_drawn_as_a_block(self):
     top, drawings, warnings = hdl.import_verilog(
@@ -219,6 +221,231 @@ class TestErrorsAndChoices(unittest.TestCase):
     self.assertEqual(hdl.import_verilog(text, top="leaf")[0], "leaf")
     with self.assertRaises(hdl.HdlError):
       hdl.import_verilog(text, top="nowhere")
+
+
+
+# ---- behaviour -------------------------------------------------------------
+
+SHIFT_REGISTER = """\
+module shift_register_4bit (
+    input  wire       clk,
+    input  wire       reset,
+    input  wire       serial_in,
+    output reg  [3:0] q
+);
+
+always @(posedge clk or posedge reset) begin
+    if (reset)
+        q <= 4'b0000;
+    else
+        q <= {q[2:0], serial_in};
+end
+
+endmodule
+"""
+
+GATE_LOGIC = {
+  "inv": lambda p: 1 - p["a"], "buf": lambda p: p["a"],
+  "and2": lambda p: p["a"] & p["b"], "or2": lambda p: p["a"] | p["b"],
+  "xor2": lambda p: p["a"] ^ p["b"], "nand2": lambda p: 1 - (p["a"] & p["b"]),
+  "nor2": lambda p: 1 - (p["a"] | p["b"]), "xnor2": lambda p: 1 - (p["a"] ^ p["b"]),
+  "mux2": lambda p: p["d1"] if p["s"] else p["d0"],
+  "tie0": lambda p: 0, "tie1": lambda p: 1,
+}
+
+
+def simulate(doc, inputs):
+  """What the drawn one-bit gates compute, net by net, for `inputs`
+  ({port label: 0 or 1}). Flip-flop outputs can be given as inputs too."""
+  cells = {cell["id"]: cell for cell in doc.cells}
+  pin_net = {}
+  for net in doc.nets:
+    for end in [net["from"]] + net["to"]:
+      pin_net[(end["cell"], end["pin"])] = net["id"]
+  value = {}
+  for cell in doc.cells:
+    if cell["type"] == "port_in" and cell["label"] in inputs:
+      value[pin_net[(cell["id"], "p")]] = inputs[cell["label"]]
+  for (cell_id, pin), net in pin_net.items():
+    if cells[cell_id]["type"] in ("dff", "dffr") and pin == "q":
+      name = next(n["name"] for n in doc.nets if n["id"] == net)
+      if name in inputs:
+        value[net] = inputs[name]
+  for _ in range(len(doc.cells)):
+    for cell in doc.cells:
+      logic = GATE_LOGIC.get(cell["type"])
+      out = pin_net.get((cell["id"], "y"))
+      if logic is None or out is None or out in value:
+        continue
+      pins = {}
+      for pin in ("a", "b", "s", "d0", "d1"):
+        net = pin_net.get((cell["id"], pin))
+        if net is not None:
+          if net not in value:
+            break
+          pins[pin] = value[net]
+      else:
+        value[out] = logic(pins)
+  names = {net["id"]: net["name"] for net in doc.nets}
+  return {names[net]: bit for net, bit in value.items()}
+
+
+def output(doc, inputs, label):
+  port = next(c for c in doc.cells if c.get("label") == label)
+  net = next(n for n in doc.nets if any(t["cell"] == port["id"] for t in n["to"]))
+  return simulate(doc, inputs).get(net["name"])
+
+
+class TestBehaviour(unittest.TestCase):
+  """rtl.py: the RTL people write, drawn without Yosys."""
+
+  def draw(self, text):
+    top, drawings, warnings = hdl.import_verilog(text, synth="builtin")
+    return drawings[top], warnings
+
+  def test_a_shift_register_is_a_chain_of_flip_flops(self):
+    doc, warnings = self.draw(SHIFT_REGISTER)
+    self.assertEqual(warnings, [])
+    flops = {c["id"]: c for c in doc.cells if c["type"] == "dffr"}
+    self.assertEqual(sorted(flops), ["q_0_reg", "q_1_reg", "q_2_reg", "q_3_reg"])
+    source = {}
+    for net in doc.nets:
+      for end in net["to"]:
+        source[(end["cell"], end["pin"])] = net["name"]
+    self.assertEqual([source[("q_%d_reg" % i, "d")] for i in range(4)],
+                     ["serial_in", "q[0]", "q[1]", "q[2]"])
+    # posedge reset is active high; dffr's rn is active low: one inverter.
+    self.assertEqual(set(source[("q_%d_reg" % i, "rn")] for i in range(4)),
+                     {"reset_n"})
+    self.assertEqual(set(source[("q_%d_reg" % i, "ck")] for i in range(4)),
+                     {"clk"})
+    # The bits meet the bus in one column, not one column per flip-flop.
+    joins = [c["x"] for c in doc.cells if c["type"] == "bus_join"]
+    self.assertEqual((len(joins), len(set(joins))), (4, 1), joins)
+    registry = default_registry()
+    self.assertEqual([str(i) for i in list(doc.validate(registry))
+                      + list(drc.check(doc, registry)) if i.level == "error"], [])
+
+  def test_logic_computes_what_the_verilog_says(self):
+    doc, warnings = self.draw(
+      "module m (input a, b, c, s, output y, z, w);\n"
+      "  assign y = s ? a : (b & ~c);\n"
+      "  assign z = !(a || b) ^ c;\n"
+      "  assign w = {a, b} == 2'b10;\n"
+      "endmodule\n")
+    self.assertEqual(warnings, [])
+    for bits in range(16):
+      a, b, c, s = (bits >> 3) & 1, (bits >> 2) & 1, (bits >> 1) & 1, bits & 1
+      inputs = {"a": a, "b": b, "c": c, "s": s}
+      self.assertEqual(output(doc, inputs, "y"), a if s else (b & (1 - c)), inputs)
+      self.assertEqual(output(doc, inputs, "z"), (1 - (a | b)) ^ c, inputs)
+      self.assertEqual(output(doc, inputs, "w"), int(a == 1 and b == 0), inputs)
+
+  def test_if_and_case_become_the_next_state_logic(self):
+    doc, warnings = self.draw(
+      "module fsm (input clk, rst_n, go, en, d, output reg state, output reg r);\n"
+      "  localparam IDLE = 1'b0, RUN = 1'b1;\n"
+      "  always @(posedge clk or negedge rst_n)\n"
+      "    if (!rst_n) state <= IDLE;\n"
+      "    else case (state)\n"
+      "      IDLE: if (go) state <= RUN;\n"
+      "      default: if (!go) state <= IDLE;\n"
+      "    endcase\n"
+      "  always @(posedge clk) if (en) r <= d;\n"
+      "endmodule\n")
+    self.assertEqual(warnings, [])
+    types = {c["id"]: c["type"] for c in doc.cells}
+    self.assertEqual((types["state_reg"], types["r_reg"]), ("dffr", "dff"))
+    d_of = {}
+    for net in doc.nets:
+      for end in net["to"]:
+        d_of[(end["cell"], end["pin"])] = net["name"]
+    # negedge rst_n is already active low: straight onto rn.
+    self.assertEqual(d_of[("state_reg", "rn")], "rst_n")
+    for state in (0, 1):
+      for go in (0, 1):
+        got = simulate(doc, {"state": state, "go": go})[d_of[("state_reg", "d")]]
+        self.assertEqual(got, go, (state, go))   # this machine follows go
+    for r in (0, 1):
+      for en in (0, 1):
+        for d in (0, 1):
+          got = simulate(doc, {"r": r, "en": en, "d": d})[d_of[("r_reg", "d")]]
+          self.assertEqual(got, d if en else r, (r, en, d))
+
+  def test_what_has_no_drawing_is_reported_with_its_line(self):
+    _, warnings = self.draw(
+      "module m (input clk, en, a, output reg [3:0] n, output reg l);\n"
+      "  always @(posedge clk) n <= n + 1;\n"
+      "  always @(*) if (en) l = a;\n"
+      "endmodule\n")
+    text = " ".join(warnings)
+    self.assertIn("line 2: the operator +", text)
+    self.assertIn("m line 3: l keeps its value on some path, which is a latch",
+                  text)
+
+  def test_directives_and_an_else_on_its_own_line_are_read(self):
+    doc, _ = self.draw("`timescale 1ns/1ps\n" + SHIFT_REGISTER)
+    self.assertEqual(len([c for c in doc.cells if c["type"] == "dffr"]), 4)
+
+
+@unittest.skipUnless(yosys.available(), "yosys is not installed")
+class TestYosys(unittest.TestCase):
+
+  def test_behaviour_goes_through_yosys_when_it_is_there(self):
+    top, drawings, warnings = hdl.import_verilog(SHIFT_REGISTER)
+    self.assertTrue(warnings[0].startswith("note: synthesised with Yosys"), warnings)
+    doc = drawings[top]
+    self.assertEqual(len([c for c in doc.cells if c["type"] == "dffr"]), 4)
+    registry = default_registry()
+    self.assertEqual([str(i) for i in doc.validate(registry)
+                      if i.level == "error"], [])
+
+  def test_yosys_draws_arithmetic_the_built_in_reader_cannot(self):
+    top, drawings, warnings = hdl.import_verilog(
+      "module c (input clk, output reg [1:0] n);\n"
+      "  always @(posedge clk) n <= n + 1;\nendmodule\n", synth="yosys")
+    doc = drawings[top]
+    self.assertEqual(len([c for c in doc.cells if c["type"] == "dff"]), 2)
+    self.assertEqual(len(warnings), 1, warnings)
+
+  def test_a_port_wired_straight_through_keeps_its_own_name(self):
+    _, drawings, _ = hdl.import_verilog(
+      "module m (input a, output y, input [1:0] v, output [1:0] w);\n"
+      "  assign y = a;\n  assign w = v;\n"
+      "  always @(*) begin end\nendmodule\n", synth="yosys")
+    doc = drawings["m"]
+    self.assertEqual(sorted(c["label"] for c in doc.cells),
+                     ["a", "v[1:0]", "w[1:0]", "y"])
+    self.assertEqual(sorted(ends(n) for n in doc.nets),
+                     [[("p_a", "p"), ("p_y", "p")], [("p_v", "p"), ("p_w", "p")]])
+
+  def test_a_netlist_is_not_resynthesised(self):
+    _, drawings, warnings = hdl.import_verilog(FULL_ADDER)
+    self.assertEqual(warnings, [])
+    self.assertIn("x1", [c["id"] for c in drawings["full_adder"].cells])
+
+
+class TestChoosingASynthesiser(unittest.TestCase):
+
+  def test_insisting_on_yosys_without_it_is_an_error(self):
+    with mock.patch.object(yosys, "available", return_value=None):
+      with self.assertRaises(hdl.HdlError) as caught:
+        hdl.import_verilog(SHIFT_REGISTER, synth="yosys")
+    self.assertIn("yosys is not installed", str(caught.exception))
+
+  def test_without_yosys_behaviour_is_drawn_by_rtl(self):
+    with mock.patch.object(yosys, "available", return_value=None):
+      _, drawings, warnings = hdl.import_verilog(SHIFT_REGISTER)
+    self.assertEqual(warnings, [])
+
+  def test_a_yosys_failure_falls_back_and_says_so(self):
+    with mock.patch.object(yosys, "available", return_value="/bin/yosys"), \
+         mock.patch.object(yosys, "synthesize",
+                           side_effect=yosys.YosysError("boom")):
+      _, drawings, warnings = hdl.import_verilog(SHIFT_REGISTER)
+    self.assertIn("Yosys could not synthesise this (boom)", warnings[0])
+    doc = drawings["shift_register_4bit"]
+    self.assertEqual(len([c for c in doc.cells if c["type"] == "dffr"]), 4)
 
 
 if __name__ == "__main__":

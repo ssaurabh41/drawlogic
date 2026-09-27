@@ -14,7 +14,6 @@
 
 import * as geometry from "./geometry.js";
 import * as guides from "./guides.js";
-import * as prefs from "./prefs.js";
 import * as routing from "./routing.js";
 
 const UNDO_LIMIT = 120;
@@ -255,7 +254,7 @@ export function blankDocument(title) {
     canvas: {
       width: size.sheetW,
       height: size.sheetH,
-      grid: { style: prefs.get("gridStyle"), size: prefs.get("gridSize") },
+      grid: { style: "blank", size: 10 },
       font: { family: "IBM Plex Sans", scale: 1 },
       symbolScale: 1,
       arrows: true,
@@ -826,6 +825,116 @@ export function autoConnect(doc, cellIds) {
     }
   }
   return joined;
+}
+
+// Placing from the palette in one step: while a new cell is carried over the
+// sheet, a pin of it that comes near a free pin facing it snaps into line,
+// and dropping it there wires the two. Aimed by eye, with a preview showing
+// the result before the button is let go, so the reach is generous.
+const SNAP_REACH = 30;
+// The two snapped pins sit a short straight wire apart rather than on top of
+// each other: the join can be seen, and the cells do not touch -- which the
+// DRCs would rightly ring.
+export const SNAP_LEAD = 20;
+
+// Which way a pin leaves its cell, "left" or "right", or null for one on the
+// top or bottom edge. Read from where it sits on the placed cell, so a
+// rotated or mirrored cell answers for how it is drawn.
+function pinFacing(cell, at, scale) {
+  const symbol = geometry.forCell(cell);
+  const box = symbol && geometry.cellBounds(symbol, cell, scale);
+  if (!box || !at) return null;
+  if (Math.abs(at[0] - box[0]) < 0.5) return "left";
+  if (Math.abs(at[0] - (box[0] + box[2])) < 0.5) return "right";
+  return null;
+}
+
+// Where a cell of `type` let go at `point` would land, snapped to the nearest
+// free pin it could join, or null when none is in reach. `wire` is the join
+// to preview; `box` is the cell's outline there.
+export function snapPlacement(doc, type, point) {
+  const symbol = geometry.get(type);
+  if (!symbol) return null;
+  const step = gridStep(doc);
+  const scale = symbolScale(doc);
+  const probe = {
+    id: "\u0000probe", type, rotate: 0, mirror: false,
+    x: snap(point[0] - symbol.size[0] / 2, step),
+    y: snap(point[1] - symbol.size[1] / 2, step),
+    w: symbol.size[0], h: symbol.size[1],
+  };
+
+  const used = new Set();
+  const loose = [];
+  for (const net of doc.nets) {
+    for (const end of [net.from, ...routing.loadsOf(net)]) {
+      if (!end) continue;
+      if (end.cell !== undefined) used.add(`${end.cell}|${end.pin}`);
+      else if (end.x !== undefined && end.y !== undefined) loose.push([end.x, end.y]);
+    }
+  }
+  const targets = [];
+  for (const cell of doc.cells) {
+    const other = geometry.forCell(cell);
+    if (!other) continue;
+    for (const pin of other.pins) {
+      if (used.has(`${cell.id}|${pin.name}`)) continue;
+      const at = geometry.pinPosition(other, cell, pin.name, scale);
+      const facing = pinFacing(cell, at, scale);
+      if (facing) targets.push({ cell: cell.id, pin: pin.name, at, facing });
+    }
+  }
+
+  let best = null;
+  for (const pin of symbol.pins) {
+    const at = geometry.pinPosition(symbol, probe, pin.name, scale);
+    const facing = pinFacing(probe, at, scale);
+    if (!at) continue;
+    const offers = loose.map((end) => ({ want: end, target: { loose: end } }));
+    for (const target of targets) {
+      // Only pins that face each other: an input on the left of the new cell
+      // meets an output on the right of the old one, and the other way round.
+      if (facing === "left" && target.facing === "right") {
+        offers.push({ want: [target.at[0] + SNAP_LEAD, target.at[1]], target });
+      } else if (facing === "right" && target.facing === "left") {
+        offers.push({ want: [target.at[0] - SNAP_LEAD, target.at[1]], target });
+      }
+    }
+    for (const { want, target } of offers) {
+      const distance = Math.hypot(want[0] - at[0], want[1] - at[1]);
+      if (distance > SNAP_REACH || (best && distance >= best.distance)) continue;
+      const dx = want[0] - at[0];
+      const dy = want[1] - at[1];
+      best = {
+        distance, pin: pin.name, target,
+        x: probe.x + dx, y: probe.y + dy,
+        box: [probe.x + dx, probe.y + dy, probe.w, probe.h],
+        wire: [want, target.loose || target.at],
+      };
+    }
+  }
+  return best;
+}
+
+// Place a cell where it was let go -- snapped to a pin in reach when
+// `connect` is on -- and wire it to what it landed by. Returns the cell and
+// what was joined, as autoConnect does.
+export function placeCell(doc, type, point, connect = true) {
+  const snapped = connect ? snapPlacement(doc, type, point) : null;
+  const cell = addCell(doc, type, point[0], point[1]);
+  if (!cell) return { cell: null, joined: [] };
+  const joined = [];
+  if (snapped) {
+    cell.x = snapped.x;
+    cell.y = snapped.y;
+    const { target } = snapped;
+    if (!target.loose && addNet(doc, { cell: cell.id, pin: snapped.pin },
+                                { cell: target.cell, pin: target.pin })) {
+      joined.push(`${cell.id}.${snapped.pin} to ${target.cell}.${target.pin}`);
+    }
+  }
+  if (connect) joined.push(...autoConnect(doc, [cell.id]));
+  return { cell, joined };
 }
 
 export function addNet(doc, from, to) {

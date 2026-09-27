@@ -41,6 +41,8 @@ import shutil
 import tempfile
 
 from . import layout
+from . import rtl
+from . import yosys
 from . import sheets
 from .doc import Document, new_document
 from .symbols import default_registry
@@ -99,6 +101,8 @@ class _Module(object):
     self.ranges = {}            # net or port name -> (msb, lsb)
     self.instances = []
     self.aliases = []
+    self.behaviour = []         # rtl.Item: assigns with logic, processes
+    self.params = {}            # parameter name -> rtl constant tree
     self.stub = False
 
   def port(self, name):
@@ -130,7 +134,9 @@ def _strip_comments(text):
   def blank(match):
     return re.sub(r"[^\n]", " ", match.group(0))
   text = re.sub(r"/\*.*?\*/", blank, text, flags=re.S)
-  return re.sub(r"//[^\n]*", "", text)
+  text = re.sub(r"//[^\n]*", "", text)
+  # `timescale, `define and friends end at the line, not at a `;`.
+  return re.sub(r"(?m)^[ \t]*`[^\n]*", "", text)
 
 
 def _line_of(text, index):
@@ -286,44 +292,58 @@ def parse(text):
 
 
 def _parse_body(module, text, start, end):
-  body = text[start:end]
-  offset = 0
-  for statement in _split_top(body, ";"):
-    line = _line_of(text, start + offset + len(statement)
-                    - len(statement.lstrip()))
-    offset += len(statement) + 1
-    words = statement.split()
-    if not words:
+  try:
+    found = rtl.items(text, start, end, _line_of(text, start))
+  except rtl.LowerError as exc:
+    raise HdlError(str(exc) if str(exc).startswith("line") else
+                   "line %d: %s" % (_line_of(text, start), exc))
+  for item in found:
+    if item.kind == "skipped":
+      module.instances.append(_Instance("#skipped", item.text, None, None,
+                                        item.line))
       continue
-    first = words[0]
-    if first in SKIPPED or first.startswith("`"):
+    if item.kind == "process":
+      module.behaviour.append(item)
       continue
-    if first in BEHAVIOUR:
-      module.instances.append(_Instance("#behaviour", None, None, None, line))
+    if item.kind == "assign":
+      # `assign a = b;` between two whole nets joins them, as a wire does;
+      # anything else is logic, drawn by rtl.py.
+      logic = []
+      for lvalue, value, line in item.tree:
+        if lvalue[0] == "id" and value[0] == "id":
+          module.aliases.append((lvalue[1], value[1]))
+        else:
+          logic.append((lvalue, value, line))
+      if logic:
+        module.behaviour.append(rtl.Item("assign", item.line, tree=logic))
       continue
-    stripped = statement.strip()
-    declaration = DECLARATION.match(stripped)
-    if declaration and first in DIRECTIONS + NET_KINDS + ("signed",):
-      _declare(module, declaration.group("words").split(),
-               declaration.group("names"), declaration.group("ranges"))
-      continue
-    if first == "assign":
-      match = re.match(r"^assign\s+(%s)\s*=\s*(%s)\s*$" % (IDENT, IDENT),
-                       stripped, re.S)
-      if match:
-        module.aliases.append((match.group(1), match.group(2)))
-      else:
-        module.instances.append(_Instance("#assign", None, None, None, line))
-      continue
-    match = re.match(r"^(%s)\s*(#\s*\(.*?\)\s*)?(%s)?\s*\((.*)\)\s*$"
-                     % (IDENT, IDENT), stripped, re.S)
-    if not match:
-      raise HdlError("line %d: cannot read %r" % (line, " ".join(words[:6])))
-    kind, name, conns = match.group(1), match.group(3), match.group(4)
-    if name is None and kind not in PRIMITIVES:
-      raise HdlError("line %d: instance of %s has no name" % (line, kind))
-    named, positional = _parse_connections(conns)
-    module.instances.append(_Instance(kind, name, named, positional, line))
+    _parse_text_item(module, item.text.strip(), item.line)
+
+
+def _parse_text_item(module, statement, line):
+  words = statement.split()
+  if not words:
+    return
+  first = words[0]
+  if first in ("parameter", "localparam"):
+    module.params.update(rtl.parameters(statement))
+    return
+  if first in SKIPPED or first.startswith("`"):
+    return
+  declaration = DECLARATION.match(statement)
+  if declaration and first in DIRECTIONS + NET_KINDS + ("signed",):
+    _declare(module, declaration.group("words").split(),
+             declaration.group("names"), declaration.group("ranges"))
+    return
+  match = re.match(r"^(%s)\s*(#\s*\(.*?\)\s*)?(%s)?\s*\((.*)\)\s*$"
+                   % (IDENT, IDENT), statement, re.S)
+  if not match:
+    raise HdlError("line %d: cannot read %r" % (line, " ".join(words[:6])))
+  kind, name, conns = match.group(1), match.group(3), match.group(4)
+  if name is None and kind not in PRIMITIVES:
+    raise HdlError("line %d: instance of %s has no name" % (line, kind))
+  named, positional = _parse_connections(conns)
+  module.instances.append(_Instance(kind, name, named, positional, line))
 
 
 # ---- building --------------------------------------------------------------
@@ -420,15 +440,20 @@ def _build(module, modules, registry, warnings):
     role = {"input": "drive", "output": "load"}.get(direction, "either")
     connect(port.name, cell["id"], "p", role)
 
+  # Behaviour first becomes cells like any others: rtl.py lowers it to the
+  # library's gates and flip-flops, with named connections.
+  if module.behaviour:
+    lowered, notes = rtl.lower(module)
+    warnings.extend(notes)
+    for symbol, name, pins, line in lowered:
+      module.instances.append(_Instance(symbol, name, pins, None, line))
+    module.behaviour = []
+
   counter = [0]
   for inst in module.instances:
     where = "%s line %d" % (module.name, inst.line)
-    if inst.kind == "#behaviour":
-      warnings.append("%s: behavioural code is not drawn" % where)
-      continue
-    if inst.kind == "#assign":
-      warnings.append("%s: only `assign a = b;` can be drawn; this assign "
-                      "was left out" % where)
+    if inst.kind == "#skipped":
+      warnings.append("%s: %s is not drawn" % (where, inst.name))
       continue
     if inst.name is None:
       counter[0] += 1
@@ -436,7 +461,9 @@ def _build(module, modules, registry, warnings):
     cell_id = _safe_id(inst.name, taken)
     gate_role = lambda pin: "drive" if pin == "y" else "load"
 
-    if inst.kind in PRIMITIVES:
+    # A primitive is connected by position; a named `buf` is the library's
+    # buffer, which is what rtl.py and Yosys emit.
+    if inst.kind in PRIMITIVES and inst.named is None:
       terms = inst.positional or []
       symbol = GATES.get((inst.kind, len(terms) - 1))
       if symbol is None or inst.named:
@@ -532,6 +559,40 @@ def _build(module, modules, registry, warnings):
   return doc
 
 
+def _synthesize(text, top, parsed, modules, registry, warnings):
+  """The modules as Yosys synthesised them, ready for _build."""
+  stubs = {}
+  for module in parsed:
+    for inst in module.instances:
+      if inst.kind in modules or inst.kind in PRIMITIVES or inst.kind in stubs \
+          or inst.kind.startswith("#"):
+        continue
+      symbol = registry.get(inst.kind)
+      if symbol is not None:
+        stubs[inst.kind] = [(pin["name"], pin["dir"]) for pin in symbol.pins]
+      elif inst.named is not None:
+        stubs[inst.kind] = [(pin, "inout") for pin in inst.named]
+      else:
+        raise yosys.YosysError("%s is defined nowhere and connected by "
+                               "position" % inst.kind)
+  data = yosys.synthesize(text, top, stubs)
+  # A note, not a warning: nothing was left out. Callers tell the two apart
+  # by the prefix.
+  warnings.append("%ssynthesised with %s: its gates, and names it made up "
+                  "for internal signals" % (NOTE, yosys.version()))
+  found = {}
+  for name, spec in data.items():
+    module = _Module(name, 0)
+    module.ports = [_Port(port, direction) for port, direction in spec["ports"]]
+    module.ranges = dict(spec["ranges"])
+    module.aliases = list(spec["aliases"])
+    module.instances = [_Instance(kind, cell, pins, None, 0)
+                        for kind, cell, pins in spec["cells"]]
+    warnings.extend("%s: %s" % (name, note) for note in spec["notes"])
+    found[name] = module
+  return found
+
+
 def _stub(modules, name, pins, directions):
   """A module known only by what is plugged into it."""
   existing = modules.get(name)
@@ -573,12 +634,25 @@ def _children_first(modules):
   return order
 
 
-def import_verilog(text, registry=None, top=None):
+SYNTH_CHOICES = ("auto", "yosys", "builtin")
+# Starts a message that says how the drawing was made rather than what it
+# leaves out.
+NOTE = "note: "
+
+
+def import_verilog(text, registry=None, top=None, synth="auto"):
   """Drawings for the modules in `text`: (top name, {name: Document}, warnings).
 
   Each drawing is laid out, with the blocks for its child modules sized from
   those children, so the answer is ready to save and open.
+
+  `synth` says who turns behaviour into gates. "auto" uses Yosys when the
+  text has behaviour in it and Yosys is installed, and rtl.py otherwise;
+  "yosys" insists on Yosys; "builtin" never uses it. A netlist with no
+  behaviour is read as it stands either way, unless Yosys is insisted on.
   """
+  if synth not in SYNTH_CHOICES:
+    raise HdlError("line 1: synth must be one of %s" % ", ".join(SYNTH_CHOICES))
   registry = registry or default_registry()
   parsed = parse(text)
   modules = {}
@@ -596,6 +670,17 @@ def import_verilog(text, registry=None, top=None):
     raise HdlError("line 1: no module named %s" % top)
 
   warnings = []
+  behavioural = any(m.behaviour for m in parsed)
+  if synth == "yosys" or (synth == "auto" and behavioural
+                          and yosys.available()):
+    try:
+      modules = _synthesize(text, top, parsed, modules, registry, warnings)
+    except yosys.YosysError as exc:
+      if synth == "yosys":
+        raise HdlError("line 1: %s" % exc)
+      warnings.append("Yosys could not synthesise this (%s); drawn by "
+                      "drawlogic's own reader instead" % exc)
+
   built = {}
   for name in list(modules):
     if not modules[name].stub:

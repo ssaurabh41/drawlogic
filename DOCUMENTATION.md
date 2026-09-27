@@ -254,6 +254,7 @@ the previous version as `<name>.dlg.bak`.
 drawlogic import alu.v                # one drawing per module, beside alu.v
 drawlogic import alu.v -o sheets/ --top alu_top
 drawlogic import alu.v --force        # replace drawings already there
+drawlogic import alu.v --synth builtin   # never use Yosys, even if installed
 ```
 
 Draws a structural Verilog netlist: every module becomes a drawing named
@@ -266,18 +267,40 @@ the one nothing instantiates, unless `--top` names another. The editor's
 **Import Verilog** button does the same into the folder it serves and opens the
 top drawing.
 
-It is the part of Verilog a schematic can show. Headers in either style,
+**Netlists** are read as they stand: headers in either style,
 `input`/`output`/`inout`, `wire`/`reg`/`logic`, vector ranges, connections by
-name or by position, and `assign a = b;` (which joins the two nets) are
-understood. One bit of a vector, `d[3]`, is its own one-bit net, joined to the
-vector by a `ripper` where the bit is taken off it or a `bus_join` where it is
-put on.
+name or by position, and `assign a = b;` (which joins the two nets). One bit
+of a vector, `d[3]`, is its own one-bit net, joined to the vector by a
+`ripper` where the bit is taken off it or a `bus_join` where it is put on;
+the joiners onto one bus are lined up in one column.
 
-Everything else is reported as a warning and left out rather than refused:
-`always` and `initial` blocks, other `assign`s, and expressions in connections.
-A slice such as `d[3:0]` connects the whole vector. An instance of a module
-defined nowhere gets a drawing holding only ports, named after the connections
-made to it and drawn as `inout`, because nothing says which way they face.
+**RTL** -- `assign` with logic in it and `always` blocks -- is turned into
+gates and flip-flops, one per bit, the way a synthesiser does it:
+
+- With [Yosys](https://github.com/YosysHQ/yosys) installed (`yosys` on the
+  PATH), behavioural code goes through it: anything Yosys can synthesise is
+  drawn, arithmetic and state machines included, on 2-input gates, 2:1
+  muxes, `dff`, `dffr` and `dlatch`. The first warning says Yosys was used;
+  internal signals get the names Yosys gave them.
+- Without it, drawlogic's own reader (`rtl.py`) covers the common shapes:
+  `~ & | ^ ! && || ?: == !=`, `{..}` and `{n{..}}`, bit and part selects,
+  sized constants, `parameter`/`localparam` numbers, `if`/`else` and `case`,
+  in `assign`, `always @(*)` and `always @(posedge clk)` -- optionally
+  `or posedge rst` / `or negedge rst_n` with the reset tested first, which
+  gives a `dffr` (an active-high reset goes through one shared inverter,
+  `rst_n`). Arithmetic, `<`/`>`, `casez`, loops, functions and latches are
+  reported and left out.
+- A netlist with no behaviour is never resynthesised: its gates and names
+  are what you wrote. `--synth yosys` insists on Yosys (and fails without
+  it); `--synth builtin` never uses it. If Yosys fails, the import falls back
+  to the built-in reader and says why.
+
+A constant that survives is drawn as a `tie0` or `tie1` cell. Expressions in
+an instance's connections are still reported and left unconnected; a slice
+such as `d[3:0]` there connects the whole vector. An instance of a module
+defined nowhere gets a drawing holding only ports, named after the
+connections made to it and drawn as `inout`, because nothing says which way
+they face.
 
 Nothing is overwritten unless asked: if any of the drawings is already there,
 none is written. A parse error names its line.
@@ -313,9 +336,9 @@ ok    route a wire
 ok    check the rules
 ok    lay it out
 ok    render to SVG
-36 built-in symbols
+38 built-in symbols
 ok     14 browser modules, 0 import mismatches
-ok     33 files against manifest.txt, 0 differ
+ok     35 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -450,12 +473,17 @@ front and back -- are the icon buttons in the second toolbar row. Hover any
 of them for its name.
 
 **Theme** cycles the application's appearance between following the operating
-system, light, and dark, and remembers the choice. The drawing itself never
+system, light, and dark, and remembers the choice. It starts light. The drawing itself never
 changes with it: the sheet is a document, and a document is white. An
 exported file looks the same whichever is picked.
 
 Selecting one member of a group selects all of it, so a group drags and
 resizes as a single object.
+
+A port has no resize handles: ports are moved, never resized, and on
+something that small the handles covered most of it. A press anywhere on or
+just beside a port picks it up. Its size can still be typed in the
+properties panel.
 
 ### Autoshapes
 
@@ -478,7 +506,7 @@ back.
 The **Zoom**, **Text** and **Symbols** sliders control view scale,
 `canvas.font.scale` and `canvas.symbolScale`. The last two change the
 document, so they mark it unsaved; zoom does not. **Grid** picks dots, lines
-or a blank sheet for this drawing; the default for new drawings is in Preferences.
+or a blank sheet for this drawing; a new drawing starts blank.
 **Fit** (`Ctrl+0`) shows the whole sheet, and `F` zooms to what is selected.
 
 ### Tabs
@@ -494,31 +522,40 @@ way to discard its changes.
 
 ### Preferences
 
-**Preferences** in the toolbar (`Ctrl+,`) holds how you like to work. They
-are kept in this browser, not in the drawing, so a file handed to someone
-else does not change how their editor behaves. The switches marked
-*changes the drawing* are the ones that act without an explicit command, and
-each can be turned off:
+**Preferences** in the toolbar (`Ctrl+,`) holds the two things worth
+switching off. They are kept in this browser, not in the drawing, so a file
+handed to someone else does not change how their editor behaves.
 
 | Preference | Default |
 |---|---|
-| Auto-connect on drop | on |
-| Ctrl/Shift+drag duplicates | on |
-| Auto layout arranges only a selection (two or more cells) | on |
-| Alignment guides while dragging | on |
-| Keep unsaved work to recover after a crash | on |
+| Auto-connect on drop (*changes the drawing*) | on |
 | Check the drawing as you edit (live DRC) | on |
-| Grid style and step for new drawings | dots, 10 |
+
+The rest is simply how the editor works: `Ctrl`/`Shift`+drag duplicates,
+auto layout with two or more cells selected arranges only those, alignment
+guides help while dragging (hold `Alt` to drag without them), and unsaved
+work is kept for recovery after a crash.
+
+A new drawing is 1200 x 700 on a blank sheet with a grid step of 10; change
+the grid for that drawing with **Grid** in the toolbar.
 
 ### Auto-connect
 
-Drop a cell -- from the palette, or by dragging it -- so that one of its free
-pins lands on another cell's free pin, and the two are wired together, the
-way Logisim does it. A pin landing on a wire end that stops on nothing joins
-that wire too. Only pins with nothing on them are joined, cells dropped
-together are never joined to each other, and a pin has to land within about
-half a grid step of the other; the join is part of the same undo step as the
-drop, and the status bar says what was joined. Switch it off in Preferences.
+**From the palette, in one step.** Drag a part out of the palette, or click it
+and move over the sheet, and a dashed outline shows where it will land. Bring
+one of its pins near a free pin that faces it -- an input towards an output,
+or the other way round -- and the outline snaps into line with that pin, a
+short wire away, with the pin ringed and the wire drawn in. Let go and it is
+placed and wired, as one undo step. Away from any free pin it lands where it
+was let go, unwired.
+
+**Moving a cell already on the sheet** works the way Logisim does it: drop it
+so one of its free pins lands on another cell's free pin, or on a wire end
+that stops on nothing, and the two are joined. Only pins with nothing on them
+are joined, cells dropped together are never joined to each other, and a pin
+has to land within about half a grid step of the other.
+
+Either way the status bar says what was joined. Switch it off in Preferences.
 
 ### Renaming and the format painter
 
@@ -527,7 +564,7 @@ Enter or clicking away keeps it, Esc leaves it as it was. It is the same edit
 as the properties panel's, so a bus name such as `d[7:0]` still sets the
 wire's width.
 
-**Painter** copies the selected item's style -- fill, line colour, line
+The **format painter** (the brush icon beside the shape tools) copies the selected item's style -- fill, line colour, line
 weight -- and the next item you click takes it; Shift+click to give it to
 several, Esc to stop. `Ctrl+Shift+C` and `Ctrl+Shift+V` do the same from the
 keyboard, onto everything selected. Only style is copied, never position or
@@ -847,7 +884,8 @@ generic block ports and the bus ripper use this. An ordinary gate pin is one
 bit and rejects a bus.
 
 `ripper` and `bus_tap` symbols are provided for pulling a bit off a bus, and
-`bus_join` (a ripper facing the other way) for putting one on.
+`bus_join` (a ripper facing the other way) for putting one on. `tie0` and
+`tie1` are a constant 0 and 1.
 
 A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
 is one bit, so wiring a bus to it is an error the checker will catch.
@@ -1265,7 +1303,7 @@ change.
 | `HOP_TO_TEXT` | 6 | how far a bridge keeps from a name it would otherwise break up |
 | `SHEET_MARGIN` | 90 | space left around everything when a layout decides where the drawing starts |
 | `SHEET_EDGE` | 20 | the least clearance from the sheet edge before a printer's own margin eats into the drawing |
-| `SHEET_W`, `SHEET_H` | 1200 x 780 | the sheet a new drawing gets |
+| `SHEET_W`, `SHEET_H` | 1200 x 700 | the sheet a new drawing gets |
 
 Distances are in document units, the same units cells and wires use. A small
 logic gate is 40x40, so a unit is roughly a twentieth of a gate.
@@ -1503,7 +1541,9 @@ drawlogic/
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
-  hdl.py          structural Verilog to drawings, one per module
+  hdl.py          Verilog to drawings, one per module
+  rtl.py          behavioural Verilog lowered to gates and flip-flops
+  yosys.py        the same through Yosys, when it is installed
   authoring.py    turning a drawing of shapes and ports into a symbol
   render_svg.py   the only path from document to SVG
   theme.py        colours, line weights, font stacks
@@ -1607,7 +1647,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-439 tests, in fifteen parts:
+451 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|
@@ -1623,7 +1663,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
-| `tests/test_hdl.py` | Verilog import: gates, hierarchy, bit selects, errors |
+| `tests/test_hdl.py` | Verilog import: netlists, RTL lowered to gates, Yosys, errors |
 | `tests/test_manifest.py` | `manifest.txt` still describes the files here |
 | `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
 

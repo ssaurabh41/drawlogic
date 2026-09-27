@@ -232,7 +232,7 @@ def cmd_import(args):
     raise SystemExit("%s: cannot read %s: %s" % (PROG, args.file, exc))
   try:
     top, drawings, warnings = hdl.import_verilog(text, _registry(args),
-                                                 args.top)
+                                                 args.top, args.synth)
   except hdl.HdlError as exc:
     raise SystemExit("%s: %s: %s" % (PROG, args.file, exc))
 
@@ -248,7 +248,10 @@ def cmd_import(args):
   # Warnings go to stderr even with -q: each one is something in the
   # Verilog that the drawing does not show.
   for warning in warnings:
-    sys.stderr.write("warning: %s\n" % warning)
+    if warning.startswith(hdl.NOTE):
+      sys.stderr.write("%s\n" % warning)
+    else:
+      sys.stderr.write("warning: %s\n" % warning)
   if not _quiet(args):
     for path in written:
       print("wrote %s%s" % (path, "  (top)" if os.path.basename(path)
@@ -763,6 +766,10 @@ def build_parser():
                         help="where the drawings go (default: beside FILE.v)")
   importer.add_argument("--force", action="store_true",
                         help="replace drawings that are already there")
+  importer.add_argument("--synth", choices=hdl.SYNTH_CHOICES, default="auto",
+                        help="who turns always blocks into gates: yosys when "
+                             "installed (auto, the default), always yosys, "
+                             "or drawlogic's own reader (builtin)")
   importer.set_defaults(func=cmd_import)
 
   doctor = subs.add_parser("doctor", parents=[common],

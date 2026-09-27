@@ -126,8 +126,7 @@ export class SelectTool {
       // is made on the first actual movement, not on the click. Shift can mean
       // this here because it only pans on empty canvas, and a press that
       // landed on a cell never reaches the viewport (see Viewport's canPan).
-      this.pendingDuplicate = prefs.get("dragDuplicate")
-        && (additive(event) || event.shiftKey);
+      this.pendingDuplicate = additive(event) || event.shiftKey;
       this.gestureLabel = this.pendingDuplicate ? "duplicate" : "move";
       return;
     }
@@ -189,7 +188,7 @@ export class SelectTool {
       const sdy = model.snap(dy, step);
       // Alt is the escape hatch: hold it to place a cell exactly where you
       // put it, with no help.
-      const helping = !event.altKey && prefs.get("guides");
+      const helping = !event.altKey;
       let lines = [];
 
       store.mutate(this.gestureLabel, (doc) => {
@@ -469,11 +468,12 @@ export class PlaceTool {
     const { store, selection } = this.ctx;
     let joined = [];
     const cell = store.mutate("place", (doc) => {
-      const added = model.addCell(doc, this.type, point[0], point[1]);
       // In the same step as the placing, so one undo takes both back.
-      if (added && prefs.get("autoConnect")) joined = model.autoConnect(doc, [added.id]);
-      return added;
+      const placed = model.placeCell(doc, this.type, point, prefs.get("autoConnect"));
+      joined = placed.joined;
+      return placed.cell;
     });
+    this.ctx.drawOverlay();
     if (cell) {
       selection.set([cell.id]);
       this.ctx.say(joined.length ? `placed ${cell.label || cell.type}; joined ${joined.join(", ")}`
@@ -483,11 +483,38 @@ export class PlaceTool {
     if (!event.shiftKey) this.ctx.setTool("select");
   }
 
-  onPointerMove() { return false; }
+  // Show where the next click will put it, snapped to a pin if one is near.
+  onPointerMove(event, point) {
+    if (!this.type || !point) return false;
+    // The overlay is all that changes, so no full redraw is asked for.
+    this.ctx.drawOverlay(placementPreview(this.ctx.store.doc, this.type, point));
+    return false;
+  }
 
   onPointerUp() { return false; }
 
-  onDeactivate() { this.type = null; }
+  onDeactivate() {
+    this.type = null;
+    this.ctx.drawOverlay();
+  }
+}
+
+// The overlay for a cell about to be placed at `point`: its outline where it
+// would land and, when it would snap to a pin, the wire that would join them.
+// Shared by click-to-place and dragging from the palette, so both preview
+// the same thing they then do.
+export function placementPreview(doc, type, point) {
+  const snapped = prefs.get("autoConnect") ? model.snapPlacement(doc, type, point) : null;
+  if (snapped) {
+    return { ghost: { box: snapped.box, target: snapped.wire[1] },
+             wirePreview: snapped.wire };
+  }
+  const symbol = geometry.get(type);
+  if (!symbol) return {};
+  const step = model.gridStep(doc);
+  return { ghost: { box: [model.snap(point[0] - symbol.size[0] / 2, step),
+                          model.snap(point[1] - symbol.size[1] / 2, step),
+                          symbol.size[0], symbol.size[1]] } };
 }
 
 // ---- rubbing a wire out ----

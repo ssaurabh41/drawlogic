@@ -765,11 +765,16 @@ select {
 .pref-risk { color: var(--warm); font-style: normal; font-size: 11px; }
 
 /* A name being edited where it is drawn. */
+/* Black on white whatever the theme: the name is being typed onto the sheet,
+   and the sheet is always white, so chrome colours made it unreadable in dark. */
 .rename-in-place {
   position: fixed; z-index: 30; padding: 2px 6px; font: 600 13px var(--mono, monospace);
-  color: var(--ink); background: var(--paper); border: 1px solid var(--accent);
+  color: #000; background: #fff; caret-color: #000; border: 1px solid var(--accent);
   border-radius: var(--radius); box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
 }
+
+/* A cell being placed, before it is let go. */
+.dl-ghost { fill: none; stroke: var(--accent); pointer-events: none; }
 
 /* The format painter is armed: the next click takes the copied style. */
 #canvas.painting, #canvas.painting * { cursor: copy !important; }

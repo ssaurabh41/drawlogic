@@ -37,7 +37,7 @@
           title="Check the drawing against the DRCs: wires on wires, parts too close, names on wires">Check</button>
 
   <span class="divider"></span>
-  <button id="btn-theme" class="action" title="Appearance: follow the system, light, or dark">Theme: auto</button>
+  <button id="btn-theme" class="action" title="Appearance: follow the system, light, or dark">Theme: light</button>
   <button id="btn-prefs" class="action" title="Preferences (Ctrl+,)">Preferences</button>
   <span class="divider"></span>
   <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
@@ -53,6 +53,7 @@
 
 <svg class="sprite" aria-hidden="true" focusable="false">
   <defs>
+    <g id="i-painter"><rect x="2.5" y="2" width="10" height="4" rx="1"/><path d="M12.5 4h1.5v3.5H8V10"/><rect x="6.8" y="10" width="2.4" height="4.5" rx=".6"/></g>
     <g id="i-rotate"><path d="M13 6a5 5 0 1 0 1.2 3.4"/><path d="M13 2.5V6h-3.5"/></g>
     <g id="i-flip"><path d="M8 2v12"/><path d="M6 5 2.5 8 6 11z"/><path d="M10 5l3.5 3-3.5 3z"/></g>
     <g id="i-group"><rect x="2.5" y="2.5" width="6" height="6"/><rect x="7.5" y="7.5" width="6" height="6"/></g>
@@ -85,8 +86,8 @@
     <button class="tool" data-tool="shape" data-shape="rect" title="Box (B)">Box</button>
     <button class="tool" data-tool="shape" data-shape="polygon" title="Polygon (P) - click points, double-click to close">Polygon</button>
     <button class="tool" data-tool="shape" data-shape="text" title="Text (T)">Text</button>
-    <button id="btn-painter" class="tool" type="button" aria-pressed="false"
-            title="Format painter: copy the selected item's colours and line weight, then click items to give them the same (Shift+click for several, Esc to stop)">Painter</button>
+    <button id="btn-painter" class="tool icon" type="button" aria-pressed="false" aria-label="Format painter"
+            title="Format painter: copy the selected item's colours and line weight, then click items to give them the same (Shift+click for several, Esc to stop)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-painter"/></svg></button>
   </div>
 
   <div class="tgroup">

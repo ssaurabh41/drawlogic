@@ -35,7 +35,7 @@ let limits = {
   labelClearance: 5,
   labelHeadroom: 20,
   sheetW: 1200,
-  sheetH: 780,
+  sheetH: 700,
 };
 
 export function setLimits(data) {

@@ -39,6 +39,7 @@ const EXPECTED = [
   ["dragging a wire by one of its runs", 13],
   ["the step a wire is dragged on", 4],
   ["auto-connect on drop", 5],
+  ["placing onto a pin", 6],
   ["undo through a gesture", 5],
   ["duplicating a group", 6],
   ["stale answers", 8],
@@ -379,6 +380,55 @@ section("auto-connect on drop");
   both.cells[1].y += out[1] - into[1];
   check("two cells dropped together are not joined to each other",
         model.autoConnect(both, ["a", "b"]).length === 0, JSON.stringify(both.nets));
+}
+
+// ---- placing onto a pin ----
+section("placing onto a pin");
+//
+// Dropped from the palette near a free pin, a cell lands in line with it, a
+// short wire away, and is wired to it -- one gesture, where auto-connect on
+// its own needed a second drag to line the pins up.
+{
+  const inv = (id, x, y) => ({ id, type: "inv", x, y, w: 40, h: 30,
+                               rotate: 0, mirror: false });
+  const pin = (cell, name) =>
+    geometry.pinPosition(geometry.forCell(cell), cell, name, 1);
+  const fresh = () => ({
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 10 } },
+    cells: [inv("a", 100, 100)], nets: [], shapes: [], groups: [],
+  });
+
+  // Let go a little off to the right of a's output, and a little low.
+  let doc = fresh();
+  const out = pin(doc.cells[0], "y");
+  const placed = model.placeCell(doc, "inv", [out[0] + 45, out[1] + 8]);
+  const into = pin(placed.cell, "a");
+  check("a cell let go near a free output lands in line with it",
+        Math.abs(into[1] - out[1]) < 1e-9, `${into} vs ${out}`);
+  check("a short wire away rather than pin on pin",
+        Math.abs(into[0] - out[0] - model.SNAP_LEAD) < 1e-9, `${into} vs ${out}`);
+  check("and is wired to it, driver first", doc.nets.length === 1
+        && doc.nets[0].from.cell === "a" && doc.nets[0].from.pin === "y"
+        && doc.nets[0].to[0].cell === placed.cell.id, JSON.stringify(doc.nets));
+
+  // Near a free input: the new cell's output is the one that lines up.
+  doc = fresh();
+  const input = pin(doc.cells[0], "a");
+  const before = model.placeCell(doc, "inv", [input[0] - 45, input[1] - 6]);
+  check("near an input it lands on the left and drives it", doc.nets.length === 1
+        && doc.nets[0].from.cell === before.cell.id
+        && Math.abs(pin(before.cell, "y")[0] - (input[0] - model.SNAP_LEAD)) < 1e-9,
+        JSON.stringify(doc.nets));
+
+  doc = fresh();
+  model.placeCell(doc, "inv", [out[0] + 200, out[1] + 150]);
+  check("let go far from any pin, nothing is joined", doc.nets.length === 0,
+        JSON.stringify(doc.nets));
+
+  doc = fresh();
+  model.placeCell(doc, "inv", [out[0] + 45, out[1] + 8], false);
+  check("with auto-connect off it is only placed", doc.nets.length === 0
+        && doc.cells.length === 2, JSON.stringify(doc.nets));
 }
 
 // ---- dragging a wire by one of its runs ----

@@ -10,30 +10,21 @@ const KEY = "drawlogic.prefs";
 
 // What each preference is, in the order the panel lists them. `risk` marks
 // the ones that change a drawing without an explicit command for it.
+//
+// Only real choices are here. Drag-to-duplicate, laying out just a
+// selection, alignment guides and crash recovery were switches once; they
+// are simply how the editor works now, since nobody turned them off and each
+// switch was one more line to read past to find the ones that matter.
 export const PREFS = [
   { key: "autoConnect", label: "Auto-connect on drop", risk: true,
-    help: "Dropping a cell so one of its pins lands on a free wire end joins them." },
-  { key: "dragDuplicate", label: "Ctrl/Shift+drag duplicates", risk: true,
-    help: "Dragging a cell with Ctrl or Shift held drags a copy instead." },
-  { key: "layoutSelection", label: "Auto layout arranges only a selection", risk: true,
-    help: "With two or more cells selected, Auto layout leaves everything else alone." },
-  { key: "guides", label: "Alignment guides while dragging", risk: false,
-    help: "Snap to line up with nearby cells; Alt disables it for one drag." },
-  { key: "recovery", label: "Keep unsaved work to recover after a crash", risk: false,
-    help: "A copy of unsaved changes stays in this browser until you save." },
+    help: "A cell dropped with a pin near a free pin or wire end is wired to it." },
   { key: "live", label: "Check the drawing as you edit (live DRC)", risk: false,
     help: "Runs the design rule checks after each edit." },
 ];
 
 const DEFAULTS = {
   autoConnect: true,
-  dragDuplicate: true,
-  layoutSelection: true,
-  guides: true,
-  recovery: true,
   live: true,
-  gridStyle: "dots",
-  gridSize: 10,
 };
 
 let values = { ...DEFAULTS };

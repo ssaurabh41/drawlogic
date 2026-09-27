@@ -96,6 +96,92 @@
       }
     ]
   },
+  "tie0": {
+    "name": "Logic 0",
+    "category": "gates",
+    "size": [
+      30,
+      20
+    ],
+    "pins": [
+      {
+        "name": "y",
+        "x": 30,
+        "y": 10,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 2,
+        "w": 20,
+        "h": 16,
+        "role": "body"
+      },
+      {
+        "op": "text",
+        "x": 10,
+        "y": 14,
+        "text": "0",
+        "anchor": "middle",
+        "role": "pin_label",
+        "pin": "y"
+      },
+      {
+        "op": "line",
+        "x1": 20,
+        "y1": 10,
+        "x2": 30,
+        "y2": 10,
+        "role": "pin"
+      }
+    ]
+  },
+  "tie1": {
+    "name": "Logic 1",
+    "category": "gates",
+    "size": [
+      30,
+      20
+    ],
+    "pins": [
+      {
+        "name": "y",
+        "x": 30,
+        "y": 10,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "rect",
+        "x": 0,
+        "y": 2,
+        "w": 20,
+        "h": 16,
+        "role": "body"
+      },
+      {
+        "op": "text",
+        "x": 10,
+        "y": 14,
+        "text": "1",
+        "anchor": "middle",
+        "role": "pin_label",
+        "pin": "y"
+      },
+      {
+        "op": "line",
+        "x1": 20,
+        "y1": 10,
+        "x2": 30,
+        "y2": 10,
+        "role": "pin"
+      }
+    ]
+  },
   "and2": {
     "name": "2-input AND",
     "category": "gates",

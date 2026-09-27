@@ -13,7 +13,7 @@ import * as shortcuts from "./shortcuts.js";
 import * as render from "./render.js";
 import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
-import { makeTools } from "./tools.js";
+import { makeTools, placementPreview } from "./tools.js";
 import { Viewport } from "./viewport.js";
 
 const store = new model.Store();
@@ -265,19 +265,47 @@ function bindCanvas() {
   // Dropping a symbol from the palette. The drag gives a position the
   // click-then-click path never had, so the cell lands where it was let go
   // rather than where the next click happens to be.
+  //
+  // A drag only says what it carries on the drop, so the type is noted when
+  // it starts -- that is what lets the outline follow the pointer and snap to
+  // a pin before anything is let go.
+  let carrying = null;
+  ui.paletteBody.addEventListener("dragstart", (event) => {
+    const item = event.target.closest && event.target.closest(".palette-item");
+    carrying = item ? item.dataset.symbol : null;
+  });
+  const stopCarrying = () => {
+    carrying = null;
+    drawOverlay();
+  };
+  ui.paletteBody.addEventListener("dragend", stopCarrying);
+  ui.canvas.addEventListener("dragleave", (event) => {
+    if (!ui.canvas.contains(event.relatedTarget)) drawOverlay();
+  });
+
   ui.canvas.addEventListener("dragover", (event) => {
     if (![...event.dataTransfer.types].includes("application/x-drawlogic-symbol")) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
+    if (carrying && store.doc) {
+      drawOverlay(placementPreview(store.doc, carrying,
+                                   viewport.toDoc(event.clientX, event.clientY)));
+    }
   });
 
   ui.canvas.addEventListener("drop", (event) => {
     const type = event.dataTransfer.getData("application/x-drawlogic-symbol");
     if (!type) return;
     event.preventDefault();
+    stopCarrying();
     const point = viewport.toDoc(event.clientX, event.clientY);
-    const cell = store.mutate("place",
-                              (doc) => model.addCell(doc, type, point[0], point[1]));
+    let joined = [];
+    const cell = store.mutate("place", (doc) => {
+      // Placed and wired in one step, so one undo takes both back.
+      const placed = model.placeCell(doc, type, point, prefs.get("autoConnect"));
+      joined = placed.joined;
+      return placed.cell;
+    });
     if (!cell) {
       say(`could not place ${type}`, "bad");
       return;
@@ -287,7 +315,8 @@ function bindCanvas() {
     setTool("select");
     redraw();
     inspector.render();
-    say(`placed ${cell.label || cell.type}`, "good");
+    say(joined.length ? `placed ${cell.label || cell.type}; joined ${joined.join(", ")}`
+                      : `placed ${cell.label || cell.type}`, "good");
   });
 
   // Every mouse release anywhere in the window, because a drag that started
@@ -1138,7 +1167,7 @@ async function autoLayout() {
   // Two or more cells selected: lay out just those, leaving the rest where
   // it is. One selected is almost always an accident, not a request.
   const chosen = store.doc.cells.filter((c) => selection.has(c.id)).map((c) => c.id);
-  const only = prefs.get("layoutSelection") && chosen.length >= 2 ? chosen : null;
+  const only = chosen.length >= 2 ? chosen : null;
   const done = busy(only ? `laying out ${only.length} selected cells...`
                          : "laying out...");
   const button = document.querySelector('[data-command="layout"]');
@@ -1222,7 +1251,8 @@ function rebuildPalette() {
 // ---- appearance ----
 //
 // Three states, not two: "auto" follows the operating system, and the other
-// two override it. The drawing itself never changes -- the sheet is a
+// two override it. Light until someone picks otherwise: the sheet is white,
+// and chrome that matches it is the calmer default. The drawing itself never changes -- the sheet is a
 // document and a document is white -- so this is the chrome only, and an
 // exported file looks the same whichever is picked.
 const THEMES = ["auto", "light", "dark"];
@@ -1243,9 +1273,9 @@ function applyTheme(name) {
 function storedTheme() {
   try {
     const saved = window.localStorage.getItem(THEME_KEY);
-    return THEMES.includes(saved) ? saved : "auto";
+    return THEMES.includes(saved) ? saved : "light";
   } catch (error) {
-    return "auto";
+    return "light";
   }
 }
 
@@ -1418,14 +1448,20 @@ async function importVerilog(file) {
     }
 
     const count = result.written.length;
+    // "note: ..." says how it was drawn (through Yosys, say); the rest are
+    // things the drawing leaves out.
+    const notes = result.warnings.filter((w) => w.startsWith("note: "))
+      .map((w) => w.slice(6).split(":")[0]);
+    const warnings = result.warnings.filter((w) => !w.startsWith("note: "));
     say(`${count} drawing${count === 1 ? "" : "s"} from ${file.name}`
-        + (result.warnings.length ? `; ${result.warnings.length} things in it are not drawn`
-          : ""), result.warnings.length ? "warn" : "good");
-    if (result.warnings.length) {
+        + (notes.length ? ` (${notes.join("; ")})` : "")
+        + (warnings.length ? `; ${warnings.length} things in it are not drawn`
+          : ""), warnings.length ? "warn" : "good");
+    if (warnings.length) {
       // Each is something in the Verilog the drawing does not show, which
       // someone reading the drawing would otherwise never find out.
-      const shown = result.warnings.slice(0, 15);
-      const more = result.warnings.length - shown.length;
+      const shown = warnings.slice(0, 15);
+      const more = warnings.length - shown.length;
       window.alert(`Not drawn, or drawn differently:\n\n${shown.join("\n")}`
         + (more ? `\n\n...and ${more} more; \`drawlogic import\` lists them all.` : ""));
     }
@@ -1690,28 +1726,7 @@ function openPrefs() {
     return label;
   });
 
-  // Defaults for a new drawing: an open drawing keeps its own grid.
-  const grid = document.createElement("div");
-  grid.className = "pref-row";
-  const style = ui.gridSelect.cloneNode(true);
-  style.removeAttribute("id");
-  style.value = prefs.get("gridStyle");
-  style.addEventListener("change", () => prefs.set("gridStyle", style.value));
-  const size = document.createElement("input");
-  size.type = "number";
-  size.min = "1";
-  size.value = prefs.get("gridSize");
-  size.addEventListener("change", () => {
-    const value = Number(size.value);
-    if (Number.isFinite(value) && value >= 1) prefs.set("gridSize", value);
-    else size.value = prefs.get("gridSize");
-  });
-  const gridText = document.createElement("span");
-  gridText.className = "pref-text";
-  gridText.innerHTML = "<strong>Grid for new drawings</strong>";
-  grid.append(gridText, style, size);
-
-  body.replaceChildren(...rows, grid);
+  body.replaceChildren(...rows);
   ui.prefsDialog.showModal();
 }
 

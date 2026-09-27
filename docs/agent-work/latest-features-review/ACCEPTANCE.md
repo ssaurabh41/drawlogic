@@ -1,5 +1,26 @@
 # Review acceptance and handoff
 
+## Recheck accepted at main e594be8
+
+Root reviewed the test patch and report against merge baseline 01d5715.
+Finding 1 is fixed; findings 2 and 3 persist. Local-example parity failures
+also reproduce at 0f53171; their presence before this range does not prove
+the routing disagreement harmless.
+
+Independent verification outside the sandbox, without the worker's shim:
+`python -m unittest tests.test_hdl.TestWhatTheFirstReviewReported tests.test_js_editor -v`
+ran 9 tests, OK with one expected failure for the known initializer defect.
+Keep that regression marker until its fix removes the decorator.
+The worker's full-suite evidence is 457 tests, 5 failures, 9 skips and one
+expected failure, using the documented temporary-file shim. The suite is
+not green. Browser gestures and installed-Yosys execution remain unverified.
+No production fixes or example-walk exclusions are included.
+
+The worker used the host's astra_flash_builder role. Upstream provider
+request metadata remains unavailable, so provider routing is unverified.
+
+## Historical acceptance at 0f53171
+
 Root reviewed the report, source locations, probes, and full-suite evidence
 against baseline 0f53171. Independently reran probe_hdl.py: four tests,
 three expected failures reproducing the two importer defects, one positive

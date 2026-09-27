@@ -1,0 +1,57 @@
+test_a_shift_register_is_a_chain_of_flip_flops (tests.test_hdl.TestBehaviour.test_a_shift_register_is_a_chain_of_flip_flops) ... ok
+test_directives_and_an_else_on_its_own_line_are_read (tests.test_hdl.TestBehaviour.test_directives_and_an_else_on_its_own_line_are_read) ... ok
+test_if_and_case_become_the_next_state_logic (tests.test_hdl.TestBehaviour.test_if_and_case_become_the_next_state_logic) ... ok
+test_logic_computes_what_the_verilog_says (tests.test_hdl.TestBehaviour.test_logic_computes_what_the_verilog_says) ... ok
+test_what_has_no_drawing_is_reported_with_its_line (tests.test_hdl.TestBehaviour.test_what_has_no_drawing_is_reported_with_its_line) ... ok
+test_a_yosys_failure_falls_back_and_says_so (tests.test_hdl.TestChoosingASynthesiser.test_a_yosys_failure_falls_back_and_says_so) ... ok
+test_insisting_on_yosys_without_it_is_an_error (tests.test_hdl.TestChoosingASynthesiser.test_insisting_on_yosys_without_it_is_an_error) ... ok
+test_without_yosys_behaviour_is_drawn_by_rtl (tests.test_hdl.TestChoosingASynthesiser.test_without_yosys_behaviour_is_drawn_by_rtl) ... ok
+test_a_module_that_contains_itself_is_refused (tests.test_hdl.TestErrorsAndChoices.test_a_module_that_contains_itself_is_refused) ... ok
+test_an_error_names_its_line (tests.test_hdl.TestErrorsAndChoices.test_an_error_names_its_line) ... ok
+test_the_top_is_the_module_nothing_uses_unless_one_is_named (tests.test_hdl.TestErrorsAndChoices.test_the_top_is_the_module_nothing_uses_unless_one_is_named) ... ok
+test_a_primitive_is_driven_from_its_first_terminal (tests.test_hdl.TestGates.test_a_primitive_is_driven_from_its_first_terminal) ... ok
+test_every_gate_and_port_becomes_a_cell (tests.test_hdl.TestGates.test_every_gate_and_port_becomes_a_cell) ... ok
+test_the_drawing_is_valid_and_laid_out (tests.test_hdl.TestGates.test_the_drawing_is_valid_and_laid_out) ... ok
+test_a_child_is_a_block_wired_by_its_port_labels (tests.test_hdl.TestHierarchy.test_a_child_is_a_block_wired_by_its_port_labels) ... ok
+test_an_unknown_module_gets_a_drawing_of_the_ports_it_is_used_by (tests.test_hdl.TestHierarchy.test_an_unknown_module_gets_a_drawing_of_the_ports_it_is_used_by) ... ok
+test_each_module_is_a_drawing_and_the_top_is_found (tests.test_hdl.TestHierarchy.test_each_module_is_a_drawing_and_the_top_is_found) ... ok
+test_every_drawing_opens_with_its_blocks_resolved (tests.test_hdl.TestHierarchy.test_every_drawing_opens_with_its_blocks_resolved) ... ok
+test_one_bit_of_a_vector_goes_through_a_ripper_facing_the_signal (tests.test_hdl.TestHierarchy.test_one_bit_of_a_vector_goes_through_a_ripper_facing_the_signal) ... ok
+test_the_older_header_takes_directions_and_widths_from_the_body (tests.test_hdl.TestHierarchy.test_the_older_header_takes_directions_and_widths_from_the_body) ... ok
+test_a_gate_with_no_symbol_is_drawn_as_a_block (tests.test_hdl.TestWhatCannotBeDrawn.test_a_gate_with_no_symbol_is_drawn_as_a_block) ... ok
+test_a_slice_connects_the_whole_vector_and_says_so (tests.test_hdl.TestWhatCannotBeDrawn.test_a_slice_connects_the_whole_vector_and_says_so) ... ok
+test_assign_joins_two_names_and_logic_becomes_gates (tests.test_hdl.TestWhatCannotBeDrawn.test_assign_joins_two_names_and_logic_becomes_gates) ... ok
+test_a_case_statement_is_drawn_and_the_drawing_validates (tests.test_hdl.TestWhatTheFirstReviewReported.test_a_case_statement_is_drawn_and_the_drawing_validates) ... ok
+test_a_statement_after_a_behavioural_block_is_still_an_error (tests.test_hdl.TestWhatTheFirstReviewReported.test_a_statement_after_a_behavioural_block_is_still_an_error)
+Reading behaviour must not quieten the reader: a module-level ... ok
+test_an_expression_in_a_declaration_reaches_the_drawing (tests.test_hdl.TestWhatTheFirstReviewReported.test_an_expression_in_a_declaration_reaches_the_drawing)
+`wire x = a & b;` carries a driver, and the importer still reads it as ... expected failure
+test_an_if_else_without_begin_end_computes_the_next_state (tests.test_hdl.TestWhatTheFirstReviewReported.test_an_if_else_without_begin_end_computes_the_next_state) ... ok
+test_an_initial_block_is_reported_and_left_out (tests.test_hdl.TestWhatTheFirstReviewReported.test_an_initial_block_is_reported_and_left_out) ... ok
+test_the_same_logic_as_a_bare_assign_is_drawn (tests.test_hdl.TestWhatTheFirstReviewReported.test_the_same_logic_as_a_bare_assign_is_drawn)
+The positive control for the probe above: `assign x = a & b;` does ... ok
+test_a_netlist_is_not_resynthesised (tests.test_hdl.TestYosys.test_a_netlist_is_not_resynthesised) ... skipped 'yosys is not installed'
+test_a_port_wired_straight_through_keeps_its_own_name (tests.test_hdl.TestYosys.test_a_port_wired_straight_through_keeps_its_own_name) ... skipped 'yosys is not installed'
+test_behaviour_goes_through_yosys_when_it_is_there (tests.test_hdl.TestYosys.test_behaviour_goes_through_yosys_when_it_is_there) ... skipped 'yosys is not installed'
+test_yosys_draws_arithmetic_the_built_in_reader_cannot (tests.test_hdl.TestYosys.test_yosys_draws_arithmetic_the_built_in_reader_cannot) ... skipped 'yosys is not installed'
+test_a_save_that_changes_the_file_keeps_the_last_version (tests.test_model.TestSavingCannotLoseADrawing.test_a_save_that_changes_the_file_keeps_the_last_version) ... ok
+test_an_interrupted_save_leaves_the_old_file_whole (tests.test_model.TestSavingCannotLoseADrawing.test_an_interrupted_save_leaves_the_old_file_whole) ... ok
+test_it_keeps_the_file_readable_by_whoever_could_read_it (tests.test_model.TestSavingCannotLoseADrawing.test_it_keeps_the_file_readable_by_whoever_could_read_it) ... FAIL
+test_saving_the_same_text_does_not_overwrite_the_backup (tests.test_model.TestSavingCannotLoseADrawing.test_saving_the_same_text_does_not_overwrite_the_backup) ... ok
+test_alignment_and_tidy (tests.test_js_editor.TestEditorBehaviour.test_alignment_and_tidy) ... ok
+test_no_console_log_in_the_editor (tests.test_js_editor.TestNoDebuggingLeftIn.test_no_console_log_in_the_editor) ... ok
+test_the_two_lists_are_the_same (tests.test_js_editor.TestTheShortcutListMatchesTheManual.test_the_two_lists_are_the_same) ... ok
+
+======================================================================
+FAIL: test_it_keeps_the_file_readable_by_whoever_could_read_it (tests.test_model.TestSavingCannotLoseADrawing.test_it_keeps_the_file_readable_by_whoever_could_read_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\tests\test_model.py", line 94, in test_it_keeps_the_file_readable_by_whoever_could_read_it
+    self.assertEqual(stat.S_IMODE(os.stat(self.path).st_mode), 0o644)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 438 != 420
+
+----------------------------------------------------------------------
+Ran 40 tests in 9.283s
+
+FAILED (failures=1, skipped=4, expected failures=1)

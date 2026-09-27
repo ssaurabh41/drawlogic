@@ -1,5 +1,11 @@
 # Review: new features in 8717527..0f53171
 
+> **Superseded for status by the recheck at the end of this file** (HEAD
+> `01d5715`, which merges `origin/main` `e594be8`). Everything above the
+> recheck section is the report as it was written against `0f53171` and is
+> kept as history; the recheck section says which findings are fixed, which
+> persist and which changed.
+
 Reviewer: Flash implementation worker (task `/root/verify_features`), sole
 worker, review artifacts only. Baseline `0f53171`, branch
 `codex/auto-layout-optimization`, range `8717527..0f53171` (13 commits).
@@ -277,3 +283,152 @@ against the change range rather than my reading of it:
 | `probe-results.log` | probe run, 15 tests, 3 failures |
 | `suite-unsandboxed.log` | the one trustworthy full-suite run: 439 tests, 5 failures, 4 skipped |
 | `suite-discover.log`, `suite-discover-tempfix.log` | the two sandbox-blocked runs, kept only to show that the 108 `PermissionError`s were my environment |
+
+---
+
+# Recheck at HEAD 01d5715 (origin/main e594be8 merged)
+
+Reviewer: Flash implementation worker, task `/root/reverify_main`.
+Workspace `D:\Work\claude_code\project\drawlogic-latest`. No production code
+was changed, and nothing was committed, pushed, merged, stashed or reset; the
+only edits are in `tests/` and in this directory. Full detail, commands and
+exit codes are in `RECHECK_REPORT.md`.
+
+Baseline captured before any edit: HEAD
+`01d5715b6e61d4867de4fe5e75363c6d16cbf8b3`, a merge of `e594be8`
+(`origin/main`) into `ec7b5cf` (`codex/findings_v1`). Range compared:
+`0f53171..e594be8` -- RTL always-block import (`rtl.py`, `yosys.py`, a
+rebuilt `hdl.py`), place-from-the-palette-onto-a-pin, and the calmer
+preferences / movable ports.
+
+## The four findings, one by one
+
+### 1. Verilog import refused ordinary sequential Verilog -- FIXED
+
+`drawlogic/hdl.py:294` (`_parse_body`) no longer splits the body on `;` and
+demands a declaration, `assign` or instance from every fragment. It hands the
+body to `rtl.items` (`rtl.py:118`) and, once the nets are built, lowers what
+it found with `rtl.lower` (`hdl.py:446`); Yosys is an optional accelerator
+behind `hdl.py:673`. Behaviour is drawn rather than refused.
+
+Both original fixtures now import and draw, with no warning at all:
+
+| Fixture | Command | Exit | Drawing |
+| --- | --- | --- | --- |
+| `fixtures/always_else.v` | `python -m drawlogic import ... -o <dir>` | 0 | `seq2.dlg`: `dff q_reg`, `inv`, `and2`; `q_reg.d` is `d & ~rst` |
+| `fixtures/always_case.v` | same | 0 | `seq.dlg`: `dff q_reg`, two `inv`, one `nand2`, two `ripper`; validates clean |
+
+At `0f53171` both exited non-zero with `line 5: cannot read 'else q <= d'`.
+The old warning-shaped probes (`probe_hdl.py`) therefore now fail, and their
+failure is the obsolete expectation, not a defect: a file that is drawn does
+not warn. `tests/test_hdl.py::TestWhatTheFirstReviewReported` is the
+replacement, and asserts the drawings instead (next-state values simulated
+through the drawn gates, clean validation, and a negative control that an
+unreadable module-level statement after an `always` is still an error naming
+its line).
+
+### 2. `wire x = a & b;` dropped silently -- PERSISTENT, unchanged
+
+Same code path as before, now reached through `rtl.py`: `rtl.items` returns
+the declaration as an opaque item (`rtl.py:170`, kind `"text"`),
+`_parse_text_item` matches it as a `DECLARATION` (`hdl.py:333`) and calls
+`_declare` (`hdl.py:335`, `hdl.py:185`), which takes `raw.split("=")[0]`.
+The expression is thrown away and there is no warning.
+
+Evidence at HEAD, all in this directory's `RECHECK_REPORT.md` as commands:
+importing `fixtures/wire_assign.v` exits 0 with `warnings == []`, and the
+drawing it writes has cells `p_a`, `p_b`, `p_y`, `g(buf)` and exactly one net
+(`y`, from `g.y` to `p_y`). `doc.validate` then reports **three**
+unconnected-pin warnings: `p_a.p`, `p_b.p` and `g.a` -- the `&` and both
+inputs to it are gone. The same expression written `assign x = a & b;` (not a
+declaration) is drawn as an `and2` with nets `a`, `b`, `x`, so this is the
+declaration form being misread, not logic the reader cannot draw.
+
+`tests/test_hdl.py::TestWhatTheFirstReviewReported.test_an_expression_in_a_declaration_reaches_the_drawing`
+is a documented `expectedFailure` probe for it, with that assign form as its
+positive control. It goes red as an *unexpected success* the moment the bug
+is fixed, so a fix cannot land quietly.
+
+Suggested remedy is unchanged: in the declaration branch of
+`_parse_text_item`, split any assignment off before `_declare` and route it
+through the same logic path an `assign` takes.
+
+### 3. The save test is POSIX-only, so the suite is red on Windows -- PERSISTENT
+
+`tests/test_model.py:94` still asserts
+`stat.S_IMODE(os.stat(self.path).st_mode) == 0o644`, and Windows reports
+`0o666` for a writable file. The file is untouched by the range
+(`0f53171..e594be8` changes only `tests/test_hdl.py`,
+`tests/test_js_editor.py` and `tests/js/editor_check.mjs` under `tests/`).
+
+Observed at HEAD: `python -m unittest tests.test_hdl
+tests.test_model.TestSavingCannotLoseADrawing tests.test_js_editor` -> 40
+tests, 1 failure, `AssertionError: 438 != 420`, 4 skipped, 1 expected failure.
+The code under test is still correct: `probe_save.py` compares the mode before
+and after a save and finds it unchanged, and passes.
+
+### 4. The untracked `examples/untitled.dlg` -- PERSISTENT, provenance now established
+
+The same five-failure shape as before (see `RECHECK_REPORT.md` for the full
+run): four failures name the untracked example and one is finding 3.
+
+What the first review could not establish is now established. A clean
+extraction of `0f53171` (no untracked files) with `examples/untitled.dlg`
+copied in fails the *same two* parity tests, for the same example:
+`parity-at-0f53171-untitled.log`, 12 tests, 2 failures, both
+`example='untitled.dlg'`. The `routing.js`/`routing.py` disagreement is
+therefore a property of that local file, not a regression from this range.
+The two `test_regression` failures are that file failing its own design rule
+(`cell c7: pin 'rn' is driven by 2 nets`) and not being stored canonically.
+
+The secondary defect is unchanged: `tests/test_regression.py:72` writes a
+missing golden rather than failing
+(`if REGOLD or not os.path.isfile(golden)`), so a suite run creates
+`tests/golden/untitled.svg` from the untracked example and leaves the tree
+dirty. I deleted that generated file again after my runs; it is not part of
+this work.
+
+## Previously unconfirmed weaknesses, reassessed at HEAD
+
+| Weakness | Status at HEAD |
+| --- | --- |
+| Durability (not atomicity) of `write_file`: no `fsync` before `os.replace` (`doc.py:441`) | Unchanged and still unconfirmed -- needs fault injection or a power cut, which this environment cannot stage |
+| Auto-connect after a duplicate drag (`tools.js`) | **No longer holds as described.** `SelectTool.duplicate()` re-points `startBoxes` at the copies it just made (`tools.js:226-238`), and the drop passes those ids to `model.autoConnect` (`tools.js:322-330`), so it is the copy that is joined. Still read from source, not driven in a browser |
+| `_arrange_part` leaves the document's `forkLate` stale | Unchanged; the range's `layout.py` edits are rank relaxation and `_joins_by_bus` (`layout.py:705`, `layout.py:732`), not the selection path. Not reproduced |
+| `_refusal` rejects some loopback spellings (`server.py:233`) | Unchanged in this range; still cosmetic, still not exercised by a real request |
+| `GET` gated only by `Host` | Unchanged; the range's `server.py` edit is the `synth` argument only |
+| `drc.check` returns only `duplicate-id` for repeated ids | Unchanged; the range's `drc.py` edit is `SHEET_H` only |
+
+## New behaviour worth noting, and one cosmetic wrinkle
+
+- `initial` blocks now say what they are:
+  `m line 3: an initial block only sets up a simulation; left out`, rather
+  than the old generic `behavioural code is not drawn`.
+- The palette-drop preview for a **loose wire end** is degenerate: the snap
+  puts the new pin exactly on the end, so `snapPlacement` returns
+  `wire: [end, end]` (`model.js`), a zero-length segment, and the ghost shows
+  the pin ring but no lead wire. Data-level observation only -- no browser was
+  available to see it drawn. Cosmetic: the join itself is correct, and the
+  new node check "placing onto a wire end" covers the join.
+
+## Coverage added by this recheck
+
+`tests/test_hdl.py::TestWhatTheFirstReviewReported` (6 tests: the two fixed
+behaviours, the declaration defect as an `expectedFailure`, its assign-form
+positive control, and two negative controls) and a new
+`tests/js/editor_check.mjs` area, "placing onto a wire end" (3 checks), with
+`tests/test_js_editor.py`'s floor raised to 48. The wire-end checks were verified by
+deliberate breakage: removing the `autoConnect` call from `model.placeCell`
+turned the new wire-end check red and was then reverted byte-for-byte.
+
+## New artifacts in this directory
+
+| File | What it is |
+| --- | --- |
+| `RECHECK_REPORT.md` | the recheck's completion report: changed files, commands, exits, counts, risks |
+| `probe-recheck-e594be8.log` | the old probes re-run at HEAD: 15 tests, 3 failures (the obsolete warning expectations of findings 1 and 2) |
+| `tests-recheck-targeted.log` | `tests.test_hdl tests.test_model.TestSavingCannotLoseADrawing tests.test_js_editor`: 40 tests, 1 failure, 4 skipped, 1 expected failure |
+| `suite-recheck-e594be8.log` | full suite at HEAD before the new tests: 451 tests, 5 failures, 9 skipped |
+| `suite-recheck-e594be8-after-tests.log` | full suite at HEAD with the new tests: 457 tests, 5 failures, 1 expected failure, 9 skipped (8 when the untitled golden is already there) |
+| `parity-at-0f53171-untitled.log` | clean `0f53171` checkout plus the untracked example: parity fails there too |
+| `probe_hdl.py` etc. | unchanged history; the two "is a warning" probes are obsolete for finding 1, still meaningful for finding 2 |

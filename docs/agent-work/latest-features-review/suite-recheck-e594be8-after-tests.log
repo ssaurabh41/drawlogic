@@ -1,0 +1,676 @@
+test_a_refused_save_leaves_the_library_and_no_litter (test_authoring.TestConcurrentSaves.test_a_refused_save_leaves_the_library_and_no_litter)
+The failure path, which is the part of atomicity a test can reach. ... ok
+test_every_symbol_survives_being_saved_at_once (test_authoring.TestConcurrentSaves.test_every_symbol_survives_being_saved_at_once) ... ok
+test_each_one_converts_and_then_loads (test_authoring.TestEveryShapeTheEditorCanDraw.test_each_one_converts_and_then_loads) ... ok
+test_it_survives_being_written_and_read_back (test_authoring.TestEveryShapeTheEditorCanDraw.test_it_survives_being_written_and_read_back)
+add_to_file validates on the way in, which is where this first bit. ... ok
+test_the_converter_never_emits_an_op_the_loader_refuses (test_authoring.TestEveryShapeTheEditorCanDraw.test_the_converter_never_emits_an_op_the_loader_refuses)
+Stated directly, because it is the invariant that broke: whatever ... ok
+test_a_filled_shape_is_the_body_and_an_empty_one_is_a_mark_on_it (test_authoring.TestTheBody.test_a_filled_shape_is_the_body_and_an_empty_one_is_a_mark_on_it) ... ok
+test_an_open_run_of_points_becomes_a_path_not_a_polygon (test_authoring.TestTheBody.test_an_open_run_of_points_becomes_a_path_not_a_polygon) ... ok
+test_text_matching_a_pin_becomes_that_pin_s_label (test_authoring.TestTheBody.test_text_matching_a_pin_becomes_that_pin_s_label) ... ok
+test_text_rides_along_without_deciding_the_size (test_authoring.TestTheBody.test_text_rides_along_without_deciding_the_size) ... ok
+test_the_artwork_is_moved_to_the_symbol_s_own_origin (test_authoring.TestTheBody.test_the_artwork_is_moved_to_the_symbol_s_own_origin) ... ok
+test_the_shapes_set_the_size_not_the_ports (test_authoring.TestTheBody.test_the_shapes_set_the_size_not_the_ports) ... ok
+test_a_folder_s_symbols_are_found_without_being_asked_for (test_authoring.TestTheFileItIsWrittenTo.test_a_folder_s_symbols_are_found_without_being_asked_for) ... ok
+test_a_new_file_is_created (test_authoring.TestTheFileItIsWrittenTo.test_a_new_file_is_created) ... ok
+test_a_symbol_that_will_not_load_is_never_written (test_authoring.TestTheFileItIsWrittenTo.test_a_symbol_that_will_not_load_is_never_written) ... ok
+test_other_symbols_in_the_file_are_left_alone (test_authoring.TestTheFileItIsWrittenTo.test_other_symbols_in_the_file_are_left_alone) ... ok
+test_saving_again_replaces_rather_than_duplicates (test_authoring.TestTheFileItIsWrittenTo.test_saving_again_replaces_rather_than_duplicates) ... ok
+test_a_wire_reaches_its_pins_the_right_way_round (test_authoring.TestTheSymbolIsUsable.test_a_wire_reaches_its_pins_the_right_way_round) ... ok
+test_it_is_offered_in_the_palette (test_authoring.TestTheSymbolIsUsable.test_it_is_offered_in_the_palette) ... ok
+test_it_loads_as_a_symbol_at_all (test_authoring.TestTheSymbolIsUsable.test_it_loads_as_a_symbol_at_all) ... ok
+test_it_previews (test_authoring.TestTheSymbolIsUsable.test_it_previews) ... ok
+test_it_renders_inside_a_drawing (test_authoring.TestTheSymbolIsUsable.test_it_renders_inside_a_drawing) ... ok
+test_a_drawing_with_no_ports_says_so (test_authoring.TestWhenItCannotBeDone.test_a_drawing_with_no_ports_says_so) ... ok
+test_a_drawing_with_no_shapes_says_so (test_authoring.TestWhenItCannotBeDone.test_a_drawing_with_no_shapes_says_so) ... ok
+test_a_symbol_needs_an_id (test_authoring.TestWhenItCannotBeDone.test_a_symbol_needs_an_id) ... ok
+test_a_port_beside_the_body_lands_on_that_edge (test_authoring.TestWhereThePinsLand.test_a_port_beside_the_body_lands_on_that_edge) ... ok
+test_a_port_dropped_inside_the_body_goes_to_the_nearest_edge (test_authoring.TestWhereThePinsLand.test_a_port_dropped_inside_the_body_goes_to_the_nearest_edge) ... ok
+test_a_port_near_a_corner_still_means_the_side_it_is_outside (test_authoring.TestWhereThePinsLand.test_a_port_near_a_corner_still_means_the_side_it_is_outside) ... ok
+test_direction_comes_from_the_port_type (test_authoring.TestWhereThePinsLand.test_direction_comes_from_the_port_type) ... ok
+test_pins_take_any_bus_width (test_authoring.TestWhereThePinsLand.test_pins_take_any_bus_width) ... ok
+test_a_healthy_copy_passes (test_cli.TestDoctor.test_a_healthy_copy_passes) ... ok
+test_it_exercises_the_python_rather_than_inspecting_it (test_cli.TestDoctor.test_it_exercises_the_python_rather_than_inspecting_it) ... ok
+test_it_notices_a_browser_import_nothing_exports (test_cli.TestDoctor.test_it_notices_a_browser_import_nothing_exports)
+The blank editor: tools.js imported handlePoints from a selection.js ... ok
+test_it_notices_a_module_missing_a_function_another_calls (test_cli.TestDoctor.test_it_notices_a_module_missing_a_function_another_calls)
+The Check crash: drc asks render_svg for cell_label_box, and an older ... ok
+test_the_browser_check_can_actually_fail (test_cli.TestDoctor.test_the_browser_check_can_actually_fail)
+Otherwise it reports a clean bill on anything, which is the shape of ... ok
+test_the_documented_output_is_what_it_prints (test_cli.TestDoctor.test_the_documented_output_is_what_it_prints)
+DOCUMENTATION.md shows a sample run, and the counts in it had drifted ... ok
+test_arrows_off_in_the_document_stays_off_with_no_flag (test_cli.TestExportRespectsTheDocument.test_arrows_off_in_the_document_stays_off_with_no_flag) ... ok
+test_cli_and_direct_render_agree_for_every_combination (test_cli.TestExportRespectsTheDocument.test_cli_and_direct_render_agree_for_every_combination) ... ok
+test_no_arrows_flag_still_forces_it_off (test_cli.TestExportRespectsTheDocument.test_no_arrows_flag_still_forces_it_off) ... ok
+test_no_flag_and_no_override_keeps_the_default_on (test_cli.TestExportRespectsTheDocument.test_no_flag_and_no_override_keeps_the_default_on) ... ok
+test_bad_verilog_is_reported_with_its_line (test_cli.TestImport.test_bad_verilog_is_reported_with_its_line) ... ok
+test_it_refuses_to_overwrite_anything_without_force (test_cli.TestImport.test_it_refuses_to_overwrite_anything_without_force) ... ok
+test_it_writes_one_drawing_per_module_and_names_the_top (test_cli.TestImport.test_it_writes_one_drawing_per_module_and_names_the_top) ... ok
+test_a_clean_drawing_still_passes (test_cli.TestValidateRunsTheDrcs.test_a_clean_drawing_still_passes) ... ok
+test_a_drc_error_fails_the_command (test_cli.TestValidateRunsTheDrcs.test_a_drc_error_fails_the_command) ... ok
+test_no_drc_skips_them (test_cli.TestValidateRunsTheDrcs.test_no_drc_skips_them)
+The escape hatch has to actually let a drawing through, or it is not ... ok
+test_bus_is_drawn_like_any_other_wire (test_draw.TestBusWidth.test_bus_is_drawn_like_any_other_wire) ... ok
+test_a_cropped_render_keeps_the_whole_wire (test_draw.TestContentBounds.test_a_cropped_render_keeps_the_whole_wire) ... ok
+test_bounds_reach_the_far_end_of_a_detouring_wire (test_draw.TestContentBounds.test_bounds_reach_the_far_end_of_a_detouring_wire) ... ok
+test_a_long_wire_gets_more_so_direction_reads_along_it (test_draw.TestDirectionArrows.test_a_long_wire_gets_more_so_direction_reads_along_it) ... ok
+test_a_short_wire_gets_exactly_one (test_draw.TestDirectionArrows.test_a_short_wire_gets_exactly_one) ... ok
+test_a_single_net_can_opt_out (test_draw.TestDirectionArrows.test_a_single_net_can_opt_out) ... ok
+test_arrow_points_from_driver_to_load (test_draw.TestDirectionArrows.test_arrow_points_from_driver_to_load) ... ok
+test_arrows_can_be_switched_off_in_the_document (test_draw.TestDirectionArrows.test_arrows_can_be_switched_off_in_the_document) ... ok
+test_arrows_can_be_switched_off_per_render (test_draw.TestDirectionArrows.test_arrows_can_be_switched_off_per_render) ... ok
+test_every_wire_gets_at_least_one_arrow_by_default (test_draw.TestDirectionArrows.test_every_wire_gets_at_least_one_arrow_by_default) ... ok
+test_markup_in_labels_cannot_break_the_file (test_draw.TestEscaping.test_markup_in_labels_cannot_break_the_file) ... ok
+test_a_plain_corner_is_not_a_junction (test_draw.TestJunctions.test_a_plain_corner_is_not_a_junction) ... ok
+test_branch_gets_a_dot (test_draw.TestJunctions.test_branch_gets_a_dot) ... ok
+test_crossing_wires_are_not_joined (test_draw.TestJunctions.test_crossing_wires_are_not_joined) ... ok
+test_a_dot_survives_a_split_beside_a_body (test_draw.TestJunctionsAreNeverHidden.test_a_dot_survives_a_split_beside_a_body) ... ok
+test_an_arrow_gives_way_to_a_crossing_bridge_too (test_draw.TestJunctionsAreNeverHidden.test_an_arrow_gives_way_to_a_crossing_bridge_too)
+A bridge is the same problem as a dot in the other direction: the arrow ... ok
+test_an_arrow_gives_way_to_a_dot (test_draw.TestJunctionsAreNeverHidden.test_an_arrow_gives_way_to_a_dot)
+Both are small solid marks in the same ink, so one on the other reads ... ok
+test_dots_are_drawn_after_the_cells (test_draw.TestJunctionsAreNeverHidden.test_dots_are_drawn_after_the_cells)
+Cells used to be drawn after the nets, so a dot beside a gate was ... ok
+test_no_drawn_arrow_sits_on_a_bridge_in_any_example (test_draw.TestJunctionsAreNeverHidden.test_no_drawn_arrow_sits_on_a_bridge_in_any_example)
+The rule above is only worth anything if render() passes the bridges ... ok
+test_the_arrow_rule_actually_drops_something (test_draw.TestJunctionsAreNeverHidden.test_the_arrow_rule_actually_drops_something)
+Otherwise the test above passes on a drawing where no arrow was ever ... ok
+test_a_long_name_splits_at_an_underscore (test_draw.TestLongNamesWrap.test_a_long_name_splits_at_an_underscore) ... ok
+test_a_long_name_with_no_underscore_is_left_alone (test_draw.TestLongNamesWrap.test_a_long_name_with_no_underscore_is_left_alone)
+Breaking mid-word trades a name that overhangs for one that cannot be ... ok
+test_a_short_name_stays_on_one_line (test_draw.TestLongNamesWrap.test_a_short_name_stays_on_one_line)
+Single line is the preference, not the fallback. ... ok
+test_a_wire_keeps_clear_of_the_upper_line (test_draw.TestLongNamesWrap.test_a_wire_keeps_clear_of_the_upper_line)
+The room reserved above a cell has to grow with the name, or a wire ... ok
+test_it_picks_the_seam_that_makes_the_longer_line_shortest (test_draw.TestLongNamesWrap.test_it_picks_the_seam_that_makes_the_longer_line_shortest)
+Of several underscores, the one nearest the middle wins -- which is ... ok
+test_no_split_makes_the_longer_line_longer_than_the_name_would_be (test_draw.TestLongNamesWrap.test_no_split_makes_the_longer_line_longer_than_the_name_would_be)
+The property the choice above is for, stated directly. ... ok
+test_the_box_gets_narrower_and_taller (test_draw.TestLongNamesWrap.test_the_box_gets_narrower_and_taller)
+The DRCs and the renderer share this box, so wrapping has to move it. ... ok
+test_a_block_with_no_labels_of_its_own_gets_one (test_draw.TestPinLabels.test_a_block_with_no_labels_of_its_own_gets_one) ... ok
+test_a_mirrored_cell_flips_the_anchor (test_draw.TestPinLabels.test_a_mirrored_cell_flips_the_anchor) ... ok
+test_a_name_replaces_the_symbols_own_label (test_draw.TestPinLabels.test_a_name_replaces_the_symbols_own_label) ... ok
+test_an_empty_name_hides_the_symbols_label (test_draw.TestPinLabels.test_an_empty_name_hides_the_symbols_label) ... ok
+test_every_labelled_symbol_ties_its_labels_to_real_pins (test_draw.TestPinLabels.test_every_labelled_symbol_ties_its_labels_to_real_pins) ... ok
+test_naming_a_pin_that_does_not_exist_is_an_error (test_draw.TestPinLabels.test_naming_a_pin_that_does_not_exist_is_an_error) ... ok
+test_the_label_lands_inside_the_body_on_the_pins_own_face (test_draw.TestPinLabels.test_the_label_lands_inside_the_body_on_the_pins_own_face) ... ok
+test_a_free_endpoint_needs_no_stub (test_draw.TestPortStubs.test_a_free_endpoint_needs_no_stub)
+A wire end dragged into empty space faces nowhere in particular. ... ok
+test_a_port_always_gets_its_straight_run (test_draw.TestPortStubs.test_a_port_always_gets_its_straight_run) ... ok
+test_the_longer_stub_is_only_for_ports (test_draw.TestPortStubs.test_the_longer_stub_is_only_for_ports)
+A gate has a body doing the same job as a port's straight run, and ... ok
+test_bus_is_drawn_like_any_other_wire (test_draw.TestRender.test_bus_is_drawn_like_any_other_wire) ... ok
+test_every_cell_and_net_reaches_the_output (test_draw.TestRender.test_every_cell_and_net_reaches_the_output) ... ok
+test_font_scale_grows_every_label (test_draw.TestRender.test_font_scale_grows_every_label) ... ok
+test_full_canvas_is_the_default_and_crop_trims_to_content (test_draw.TestRender.test_full_canvas_is_the_default_and_crop_trims_to_content) ... ok
+test_grid_is_left_out_unless_asked_for (test_draw.TestRender.test_grid_is_left_out_unless_asked_for) ... ok
+test_renders_well_formed_svg (test_draw.TestRender.test_renders_well_formed_svg) ... ok
+test_symbol_scale_grows_cells_about_their_own_centre (test_draw.TestRender.test_symbol_scale_grows_cells_about_their_own_centre) ... ok
+test_title_is_drawn_and_can_be_suppressed (test_draw.TestRender.test_title_is_drawn_and_can_be_suppressed) ... ok
+test_transparent_background_omits_the_paper (test_draw.TestRender.test_transparent_background_omits_the_paper) ... ok
+test_width_overrides_zoom_and_keeps_the_aspect_ratio (test_draw.TestRender.test_width_overrides_zoom_and_keeps_the_aspect_ratio) ... ok
+test_zoom_scales_the_size_but_not_the_geometry (test_draw.TestRender.test_zoom_scales_the_size_but_not_the_geometry) ... ok
+test_aligned_pins_route_straight (test_draw.TestRouting.test_aligned_pins_route_straight) ... ok
+test_backward_target_does_not_route_through_the_cell (test_draw.TestRouting.test_backward_target_does_not_route_through_the_cell) ... ok
+test_every_segment_is_axis_aligned (test_draw.TestRouting.test_every_segment_is_axis_aligned) ... ok
+test_free_endpoint_is_honoured (test_draw.TestRouting.test_free_endpoint_is_honoured) ... ok
+test_moving_a_gate_carries_its_wire (test_draw.TestRouting.test_moving_a_gate_carries_its_wire) ... ok
+test_no_segment_crosses_an_unrelated_cell (test_draw.TestRouting.test_no_segment_crosses_an_unrelated_cell) ... ok
+test_offset_pins_route_with_two_corners (test_draw.TestRouting.test_offset_pins_route_with_two_corners) ... ok
+test_unresolvable_net_routes_to_nothing (test_draw.TestRouting.test_unresolvable_net_routes_to_nothing) ... ok
+test_enlarging_a_gate_keeps_its_line_weight (test_draw.TestStrokeWeight.test_enlarging_a_gate_keeps_its_line_weight) ... ok
+test_previews_a_single_symbol (test_draw.TestSymbolPreview.test_previews_a_single_symbol) ... ok
+test_a_name_wider_than_the_margin_still_fits_the_sheet (test_draw.TestTextInsideTheSheet.test_a_name_wider_than_the_margin_still_fits_the_sheet) ... ok
+test_the_bounds_cover_the_name_as_well_as_the_body (test_draw.TestTextInsideTheSheet.test_the_bounds_cover_the_name_as_well_as_the_body)
+Stated on content_bbox directly, since the crop uses the same box. ... ok
+test_the_name_sits_inside_the_margin_like_everything_else (test_draw.TestTextInsideTheSheet.test_the_name_sits_inside_the_margin_like_everything_else)
+Not merely on the sheet: auto layout puts the leftmost thing it draws ... ok
+test_the_sheet_grows_only_for_a_name_that_needs_it (test_draw.TestTextInsideTheSheet.test_the_sheet_grows_only_for_a_name_that_needs_it)
+The negative control: a short name must not inflate the canvas. ... ok
+test_it_moves_the_arrow_rather_than_losing_it (test_draw.TestTheArrowGivesWayToText.test_it_moves_the_arrow_rather_than_losing_it)
+Dropping every blocked arrow would pass the test above and be worse. ... ok
+test_no_arrow_is_drawn_on_a_name (test_draw.TestTheArrowGivesWayToText.test_no_arrow_is_drawn_on_a_name) ... ok
+test_the_fixture_really_does_put_an_arrow_on_the_name (test_draw.TestTheArrowGivesWayToText.test_the_fixture_really_does_put_an_arrow_on_the_name)
+Without this the two tests below prove nothing at all. ... ok
+test_cropping_leaves_room_for_the_title (test_draw.TestTheTitleKeepsOutOfTheDrawing.test_cropping_leaves_room_for_the_title)
+Cropping tight to the drawing must not crop the title off instead. ... ok
+test_the_title_sits_above_everything_drawn (test_draw.TestTheTitleKeepsOutOfTheDrawing.test_the_title_sits_above_everything_drawn) ... ok
+test_a_bigger_font_takes_more_room (test_draw.TestWrittenContentIsContentToo.test_a_bigger_font_takes_more_room) ... ok
+test_a_cropped_export_still_contains_it (test_draw.TestWrittenContentIsContentToo.test_a_cropped_export_still_contains_it) ... ok
+test_a_longer_annotation_takes_more_room (test_draw.TestWrittenContentIsContentToo.test_a_longer_annotation_takes_more_room)
+Otherwise any fixed guess would pass the test above. ... ok
+test_an_empty_annotation_does_not_invent_a_box (test_draw.TestWrittenContentIsContentToo.test_an_empty_annotation_does_not_invent_a_box)
+The other direction: text with nothing in it should not push the ... ok
+test_the_bounds_cover_the_whole_string (test_draw.TestWrittenContentIsContentToo.test_the_bounds_cover_the_whole_string) ... ok
+test_there_are_no_checkers_nothing_depends_on (test_drc.TestEveryCheckerIsReachable.test_there_are_no_checkers_nothing_depends_on) ... ok
+test_no_example_has_a_drc_error (test_drc.TestExamples.test_no_example_has_a_drc_error)
+Warnings are judgements about spacing and some are worth living with. ... ok
+test_a_bridge_on_a_corner_is_reported (test_drc.TestHops.test_a_bridge_on_a_corner_is_reported)
+A bridge over a corner deforms it, and a deformed corner is how a ... ok
+test_a_crowded_bridge_narrows_to_leave_wire_showing (test_drc.TestHops.test_a_crowded_bridge_narrows_to_leave_wire_showing)
+A bridge cannot be moved -- it is drawn where the wires actually cross ... ok
+test_a_lone_bridge_keeps_its_full_width (test_drc.TestHops.test_a_lone_bridge_keeps_its_full_width)
+The negative control: narrowing must only happen where it is needed. ... ok
+test_close_crossings_still_get_two_separate_bridges (test_drc.TestHops.test_close_crossings_still_get_two_separate_bridges)
+Never merged into one. Two crossings are two crossings, and the ... ok
+test_crossings_too_close_even_for_a_narrowed_bridge_are_reported (test_drc.TestHops.test_crossings_too_close_even_for_a_narrowed_bridge_are_reported)
+Below HOP_GAP the renderer has run out of room: both bridges are at ... ok
+test_two_bridges_with_wire_between_them_are_clean (test_drc.TestHops.test_two_bridges_with_wire_between_them_are_clean) ... ok
+test_a_clear_drawing_still_spreads_its_wires_out (test_drc.TestLegsGetOutOfEachOthersWay.test_a_clear_drawing_still_spreads_its_wires_out)
+The guard on the guard. Demanding full separation of the legs made the ... ok
+test_the_corridors_end_up_in_the_order_the_rows_demand (test_drc.TestLegsGetOutOfEachOthersWay.test_the_corridors_end_up_in_the_order_the_rows_demand)
+Stated as the constraint rather than as a coordinate, so the test says ... ok
+test_the_drawing_is_clean_altogether (test_drc.TestLegsGetOutOfEachOthersWay.test_the_drawing_is_clean_altogether)
+Not just free of shorts: the fix must not trade one error for another. ... ok
+test_two_nets_sharing_a_row_are_not_drawn_as_one (test_drc.TestLegsGetOutOfEachOthersWay.test_two_nets_sharing_a_row_are_not_drawn_as_one) ... ok
+test_a_note_clear_of_every_wire_is_not (test_drc.TestNotesAreText.test_a_note_clear_of_every_wire_is_not) ... ok
+test_a_wire_through_a_note_is_reported (test_drc.TestNotesAreText.test_a_wire_through_a_note_is_reported) ... ok
+test_a_label_that_is_not_text_does_not_stop_the_check (test_drc.TestOddDocuments.test_a_label_that_is_not_text_does_not_stop_the_check) ... ok
+test_a_number_typed_as_a_name_is_kept_as_text (test_drc.TestOddDocuments.test_a_number_typed_as_a_name_is_kept_as_text)
+Coerced rather than refused: `1` typed into the Name box is a name the ... ok
+test_shape_text_gets_the_same_treatment (test_drc.TestOddDocuments.test_shape_text_gets_the_same_treatment) ... ok
+test_something_with_no_sensible_text_is_dropped (test_drc.TestOddDocuments.test_something_with_no_sensible_text_is_dropped) ... ok
+test_lying_on_top_of_each_other_is_a_short_not_a_crowd (test_drc.TestParallelRuns.test_lying_on_top_of_each_other_is_a_short_not_a_crowd)
+Same measurement, different distance -- and a different severity, so ... ok
+test_two_nets_a_clear_gap_apart_are_left_alone (test_drc.TestParallelRuns.test_two_nets_a_clear_gap_apart_are_left_alone)
+The negative control: without it the rule could fire on everything and ... ok
+test_two_nets_closer_than_the_gap_are_reported (test_drc.TestParallelRuns.test_two_nets_closer_than_the_gap_are_reported) ... ok
+test_wires_that_only_cross_are_not_running_together (test_drc.TestParallelRuns.test_wires_that_only_cross_are_not_running_together)
+Perpendicular wires share one point, not a run. Reporting those would ... ok
+test_a_blocked_row_makes_the_wire_go_round_not_through (test_drc.TestRouterUnderPressure.test_a_blocked_row_makes_the_wire_go_round_not_through)
+A wire from a port to a block four columns away, with blocks standing ... ok
+test_a_full_band_crowds_wires_rather_than_merging_them (test_drc.TestRouterUnderPressure.test_a_full_band_crowds_wires_rather_than_merging_them)
+Eight wires through a band with room for five. ... ok
+test_a_wire_keeps_off_an_instance_name (test_drc.TestRouterUnderPressure.test_a_wire_keeps_off_an_instance_name)
+A name is worse to cross than a body: a body can still be read around ... ok
+test_wires_still_spread_out_when_there_is_room (test_drc.TestRouterUnderPressure.test_wires_still_spread_out_when_there_is_room)
+The last resort must stay a last resort. ... ok
+test_a_cell_just_inside_the_edge_is_a_warning (test_drc.TestSheet.test_a_cell_just_inside_the_edge_is_a_warning) ... ok
+test_a_cell_off_the_sheet_is_an_error (test_drc.TestSheet.test_a_cell_off_the_sheet_is_an_error)
+The exporter crops to the sheet, so this part is not in the file ... ok
+test_a_crossing_with_no_bridge_is_an_error (test_drc.TestShorts.test_a_crossing_with_no_bridge_is_an_error)
+The renderer skips a bridge whose crossing lands on a wire corner -- ... ok
+test_a_short_drawn_by_hand_is_reported (test_drc.TestShorts.test_a_short_drawn_by_hand_is_reported)
+Waypoints are honoured as drawn, so two wires put on one line by hand ... ok
+test_a_wire_end_dropped_on_another_wire_is_an_error (test_drc.TestShorts.test_a_wire_end_dropped_on_another_wire_is_an_error)
+The other way a drawing invents a connection: a wire end left on a ... ok
+test_the_same_two_nets_left_to_the_router_are_clean (test_drc.TestShorts.test_the_same_two_nets_left_to_the_router_are_clean)
+Without this the test above proves only that the checker says "short" ... ok
+test_the_same_two_nets_with_room_are_clean (test_drc.TestShorts.test_the_same_two_nets_with_room_are_clean)
+The same drawing, given room: the wires cross and bridge, not merge. ... ok
+test_two_nets_into_one_gate_must_not_merge (test_drc.TestShorts.test_two_nets_into_one_gate_must_not_merge)
+The reported case: in1 to B and in2 to A, squeezed two columns from ... ok
+test_two_nets_off_one_pin_are_a_rail_not_a_short (test_drc.TestShorts.test_two_nets_off_one_pin_are_a_rail_not_a_short)
+One pin driving two loads is one signal, so the overlap is the point. ... ok
+test_a_port_pressed_against_a_gate_is_reported (test_drc.TestSpacing.test_a_port_pressed_against_a_gate_is_reported) ... ok
+test_cells_a_gap_apart_are_clean (test_drc.TestSpacing.test_cells_a_gap_apart_are_clean) ... ok
+test_cells_closer_than_the_floor_are_reported (test_drc.TestSpacing.test_cells_closer_than_the_floor_are_reported) ... ok
+test_ports_are_held_to_their_own_rule (test_drc.TestSpacing.test_ports_are_held_to_their_own_rule)
+A port is smaller than a gate, so it gets a rule of its own rather ... ok
+test_an_instance_name_under_a_neighbour_is_reported (test_drc.TestText.test_an_instance_name_under_a_neighbour_is_reported)
+Stacked cells put each name against the body above it, so the name ... ok
+test_names_far_apart_are_clean (test_drc.TestText.test_names_far_apart_are_clean) ... ok
+test_a_violation_reads_like_a_validate_issue (test_drc.TestViolations.test_a_violation_reads_like_a_validate_issue)
+doc.Issue and Violation are printed by the same loop in cli.py, so ... ok
+test_a_violation_survives_the_trip_to_the_browser (test_drc.TestViolations.test_a_violation_survives_the_trip_to_the_browser) ... ok
+test_errors_are_listed_before_warnings (test_drc.TestViolations.test_errors_are_listed_before_warnings) ... ok
+test_every_violation_says_where_to_look (test_drc.TestViolations.test_every_violation_says_where_to_look) ... ok
+test_one_pair_is_reported_once (test_drc.TestViolations.test_one_pair_is_reported_once)
+A crowded wire is one problem to fix, not one per segment. ... ok
+test_a_few_units_of_step_is_reported (test_drc.TestWireShape.test_a_few_units_of_step_is_reported)
+Two ports five apart make the wire step five units halfway along. It ... ok
+test_two_ports_in_line_need_no_jog (test_drc.TestWireShape.test_two_ports_in_line_need_no_jog) ... ok
+test_a_wire_dragged_across_a_body_is_an_error (test_drc.TestWiresAndCells.test_a_wire_dragged_across_a_body_is_an_error)
+A wire over a gate reads either as stopping there or as passing ... ok
+test_the_same_wire_left_to_the_router_is_clean (test_drc.TestWiresAndCells.test_the_same_wire_left_to_the_router_is_clean)
+Without the waypoints the router goes round, and nothing is reported. ... ok
+test_a_shift_register_is_a_chain_of_flip_flops (test_hdl.TestBehaviour.test_a_shift_register_is_a_chain_of_flip_flops) ... ok
+test_directives_and_an_else_on_its_own_line_are_read (test_hdl.TestBehaviour.test_directives_and_an_else_on_its_own_line_are_read) ... ok
+test_if_and_case_become_the_next_state_logic (test_hdl.TestBehaviour.test_if_and_case_become_the_next_state_logic) ... ok
+test_logic_computes_what_the_verilog_says (test_hdl.TestBehaviour.test_logic_computes_what_the_verilog_says) ... ok
+test_what_has_no_drawing_is_reported_with_its_line (test_hdl.TestBehaviour.test_what_has_no_drawing_is_reported_with_its_line) ... ok
+test_a_yosys_failure_falls_back_and_says_so (test_hdl.TestChoosingASynthesiser.test_a_yosys_failure_falls_back_and_says_so) ... ok
+test_insisting_on_yosys_without_it_is_an_error (test_hdl.TestChoosingASynthesiser.test_insisting_on_yosys_without_it_is_an_error) ... ok
+test_without_yosys_behaviour_is_drawn_by_rtl (test_hdl.TestChoosingASynthesiser.test_without_yosys_behaviour_is_drawn_by_rtl) ... ok
+test_a_module_that_contains_itself_is_refused (test_hdl.TestErrorsAndChoices.test_a_module_that_contains_itself_is_refused) ... ok
+test_an_error_names_its_line (test_hdl.TestErrorsAndChoices.test_an_error_names_its_line) ... ok
+test_the_top_is_the_module_nothing_uses_unless_one_is_named (test_hdl.TestErrorsAndChoices.test_the_top_is_the_module_nothing_uses_unless_one_is_named) ... ok
+test_a_primitive_is_driven_from_its_first_terminal (test_hdl.TestGates.test_a_primitive_is_driven_from_its_first_terminal) ... ok
+test_every_gate_and_port_becomes_a_cell (test_hdl.TestGates.test_every_gate_and_port_becomes_a_cell) ... ok
+test_the_drawing_is_valid_and_laid_out (test_hdl.TestGates.test_the_drawing_is_valid_and_laid_out) ... ok
+test_a_child_is_a_block_wired_by_its_port_labels (test_hdl.TestHierarchy.test_a_child_is_a_block_wired_by_its_port_labels) ... ok
+test_an_unknown_module_gets_a_drawing_of_the_ports_it_is_used_by (test_hdl.TestHierarchy.test_an_unknown_module_gets_a_drawing_of_the_ports_it_is_used_by) ... ok
+test_each_module_is_a_drawing_and_the_top_is_found (test_hdl.TestHierarchy.test_each_module_is_a_drawing_and_the_top_is_found) ... ok
+test_every_drawing_opens_with_its_blocks_resolved (test_hdl.TestHierarchy.test_every_drawing_opens_with_its_blocks_resolved) ... ok
+test_one_bit_of_a_vector_goes_through_a_ripper_facing_the_signal (test_hdl.TestHierarchy.test_one_bit_of_a_vector_goes_through_a_ripper_facing_the_signal) ... ok
+test_the_older_header_takes_directions_and_widths_from_the_body (test_hdl.TestHierarchy.test_the_older_header_takes_directions_and_widths_from_the_body) ... ok
+test_a_gate_with_no_symbol_is_drawn_as_a_block (test_hdl.TestWhatCannotBeDrawn.test_a_gate_with_no_symbol_is_drawn_as_a_block) ... ok
+test_a_slice_connects_the_whole_vector_and_says_so (test_hdl.TestWhatCannotBeDrawn.test_a_slice_connects_the_whole_vector_and_says_so) ... ok
+test_assign_joins_two_names_and_logic_becomes_gates (test_hdl.TestWhatCannotBeDrawn.test_assign_joins_two_names_and_logic_becomes_gates) ... ok
+test_a_case_statement_is_drawn_and_the_drawing_validates (test_hdl.TestWhatTheFirstReviewReported.test_a_case_statement_is_drawn_and_the_drawing_validates) ... ok
+test_a_statement_after_a_behavioural_block_is_still_an_error (test_hdl.TestWhatTheFirstReviewReported.test_a_statement_after_a_behavioural_block_is_still_an_error)
+Reading behaviour must not quieten the reader: a module-level ... ok
+test_an_expression_in_a_declaration_reaches_the_drawing (test_hdl.TestWhatTheFirstReviewReported.test_an_expression_in_a_declaration_reaches_the_drawing)
+`wire x = a & b;` carries a driver, and the importer still reads it as ... expected failure
+test_an_if_else_without_begin_end_computes_the_next_state (test_hdl.TestWhatTheFirstReviewReported.test_an_if_else_without_begin_end_computes_the_next_state) ... ok
+test_an_initial_block_is_reported_and_left_out (test_hdl.TestWhatTheFirstReviewReported.test_an_initial_block_is_reported_and_left_out) ... ok
+test_the_same_logic_as_a_bare_assign_is_drawn (test_hdl.TestWhatTheFirstReviewReported.test_the_same_logic_as_a_bare_assign_is_drawn)
+The positive control for the probe above: `assign x = a & b;` does ... ok
+test_a_netlist_is_not_resynthesised (test_hdl.TestYosys.test_a_netlist_is_not_resynthesised) ... skipped 'yosys is not installed'
+test_a_port_wired_straight_through_keeps_its_own_name (test_hdl.TestYosys.test_a_port_wired_straight_through_keeps_its_own_name) ... skipped 'yosys is not installed'
+test_behaviour_goes_through_yosys_when_it_is_there (test_hdl.TestYosys.test_behaviour_goes_through_yosys_when_it_is_there) ... skipped 'yosys is not installed'
+test_yosys_draws_arithmetic_the_built_in_reader_cannot (test_hdl.TestYosys.test_yosys_draws_arithmetic_the_built_in_reader_cannot) ... skipped 'yosys is not installed'
+test_alignment_and_tidy (test_js_editor.TestEditorBehaviour.test_alignment_and_tidy) ... ok
+test_no_console_log_in_the_editor (test_js_editor.TestNoDebuggingLeftIn.test_no_console_log_in_the_editor) ... ok
+test_the_two_lists_are_the_same (test_js_editor.TestTheShortcutListMatchesTheManual.test_the_two_lists_are_the_same) ... ok
+test_js_defaults_match_drc_py (test_js_parity.TestDrcDefaults.test_js_defaults_match_drc_py) ... ok
+test_both_routers_agree_when_wires_fork_late (test_js_parity.TestForkingLateAgreesInBothRenderers.test_both_routers_agree_when_wires_fork_late) ... ok
+test_the_flag_actually_changes_what_is_drawn (test_js_parity.TestForkingLateAgreesInBothRenderers.test_the_flag_actually_changes_what_is_drawn)
+Otherwise the agreement above is between two idle code paths. ... ok
+test_a_wire_past_a_wrapped_name_routes_the_same_in_both (test_js_parity.TestRouterParity.test_a_wire_past_a_wrapped_name_routes_the_same_in_both)
+routing.js kept room above a cell for one line of its name, routing.py ... ok
+test_an_arrow_points_the_way_the_signal_travels (test_js_parity.TestRouterParity.test_an_arrow_points_the_way_the_signal_travels)
+Agreement is not correctness: both sides could be reversed together. ... ok
+test_every_example_dots_and_bridges_the_same (test_js_parity.TestRouterParity.test_every_example_dots_and_bridges_the_same) ... ok
+test_every_example_puts_its_arrows_in_the_same_place (test_js_parity.TestRouterParity.test_every_example_puts_its_arrows_in_the_same_place) ... 
+  test_every_example_puts_its_arrows_in_the_same_place (test_js_parity.TestRouterParity.test_every_example_puts_its_arrows_in_the_same_place) (example='untitled.dlg') ... FAIL
+test_every_example_puts_its_names_in_the_same_place (test_js_parity.TestRouterParity.test_every_example_puts_its_names_in_the_same_place) ... ok
+test_every_example_routes_the_same_in_both (test_js_parity.TestRouterParity.test_every_example_routes_the_same_in_both) ... 
+  test_every_example_routes_the_same_in_both (test_js_parity.TestRouterParity.test_every_example_routes_the_same_in_both) (example='untitled.dlg') ... FAIL
+test_a_crossing_gets_the_same_arrows_in_both (test_js_parity.TestWhatEachRendererActuallyDraws.test_a_crossing_gets_the_same_arrows_in_both) ... ok
+test_every_example_draws_the_same_arrows_in_both (test_js_parity.TestWhatEachRendererActuallyDraws.test_every_example_draws_the_same_arrows_in_both) ... ok
+test_the_bridge_really_does_move_an_arrow (test_js_parity.TestWhatEachRendererActuallyDraws.test_the_bridge_really_does_move_an_arrow)
+Otherwise the test above passes on a drawing where nothing is at stake ... ok
+test_no_example_comes_out_of_layout_with_an_error (test_layout.TestAutoLayoutLeavesNoErrors.test_no_example_comes_out_of_layout_with_an_error) ... ok
+test_a_drawing_with_no_wires_still_lays_out (test_layout.TestAwkwardDrawings.test_a_drawing_with_no_wires_still_lays_out) ... ok
+test_a_feedback_loop_is_reported_rather_than_followed (test_layout.TestAwkwardDrawings.test_a_feedback_loop_is_reported_rather_than_followed) ... ok
+test_an_empty_drawing_is_not_an_error (test_layout.TestAwkwardDrawings.test_an_empty_drawing_is_not_an_error) ... ok
+test_two_cells_wired_to_each_other_do_not_hang_it (test_layout.TestAwkwardDrawings.test_two_cells_wired_to_each_other_do_not_hang_it) ... ok
+test_a_larger_minimum_widens_the_actual_gap (test_layout.TestCellMinGap.test_a_larger_minimum_widens_the_actual_gap) ... ok
+test_a_chain_comes_out_in_order_left_to_right (test_layout.TestFlow.test_a_chain_comes_out_in_order_left_to_right) ... ok
+test_a_driver_always_sits_left_of_what_it_drives (test_layout.TestFlow.test_a_driver_always_sits_left_of_what_it_drives) ... ok
+test_output_ports_line_up_on_the_right_edge (test_layout.TestFlow.test_output_ports_line_up_on_the_right_edge) ... ok
+test_it_leaves_the_flag_off_when_it_buys_nothing (test_layout.TestForkingIsChosenByMeasuring.test_it_leaves_the_flag_off_when_it_buys_nothing)
+An unchanged drawing is written exactly as it was before this existed. ... ok
+test_laying_out_twice_gives_the_same_answer (test_layout.TestForkingIsChosenByMeasuring.test_laying_out_twice_gives_the_same_answer)
+The search has to start from a known state, whatever the file carried. ... ok
+test_the_choice_never_makes_a_drawing_worse (test_layout.TestForkingIsChosenByMeasuring.test_the_choice_never_makes_a_drawing_worse)
+Whatever it picks is at least as good as either answer alone. ... ok
+test_a_scrambled_drawing_comes_back_with_straight_wires (test_layout.TestItActuallyHelps.test_a_scrambled_drawing_comes_back_with_straight_wires) ... ok
+test_every_example_settles_after_one_pass (test_layout.TestItStaysPut.test_every_example_settles_after_one_pass) ... ok
+test_laying_out_a_laid_out_drawing_changes_nothing (test_layout.TestItStaysPut.test_laying_out_a_laid_out_drawing_changes_nothing) ... ok
+test_the_same_drawing_always_lays_out_the_same_way (test_layout.TestItStaysPut.test_the_same_drawing_always_lays_out_the_same_way) ... ok
+test_a_pinned_cell_is_never_moved (test_layout.TestLayingOutPartOfADrawing.test_a_pinned_cell_is_never_moved) ... ok
+test_only_the_named_cells_move (test_layout.TestLayingOutPartOfADrawing.test_only_the_named_cells_move) ... ok
+test_the_group_goes_back_where_it_was (test_layout.TestLayingOutPartOfADrawing.test_the_group_goes_back_where_it_was) ... ok
+test_no_two_cells_overlap (test_layout.TestNothingLandsOnAnythingElse.test_no_two_cells_overlap) ... ok
+test_no_two_cells_overlap_in_any_example (test_layout.TestNothingLandsOnAnythingElse.test_no_two_cells_overlap_in_any_example) ... ok
+test_the_sheet_grows_to_hold_the_result (test_layout.TestNothingLandsOnAnythingElse.test_the_sheet_grows_to_hold_the_result) ... ok
+test_a_wire_that_skips_a_column_gets_stand_ins (test_layout.TestOrderingChoice.test_a_wire_that_skips_a_column_gets_stand_ins) ... ok
+test_a_wire_to_the_next_column_gets_none (test_layout.TestOrderingChoice.test_a_wire_to_the_next_column_gets_none) ... ok
+test_crossings_are_counted (test_layout.TestOrderingChoice.test_crossings_are_counted) ... ok
+test_it_keeps_the_better_of_the_two_orderings (test_layout.TestOrderingChoice.test_it_keeps_the_better_of_the_two_orderings)
+Whichever way it goes, it is never worse than both tried alone. ... ok
+test_a_port_lands_level_with_the_pin_it_feeds (test_layout.TestPortsFollowTheirWire.test_a_port_lands_level_with_the_pin_it_feeds) ... ok
+test_ports_are_still_pushed_apart (test_layout.TestPortsFollowTheirWire.test_ports_are_still_pushed_apart)
+Following a wire must not let two ports land on top of each other -- ... ok
+test_settling_is_a_choice_the_drawing_makes (test_layout.TestPortsFollowTheirWire.test_settling_is_a_choice_the_drawing_makes)
+It is not always right, so it is not always done. ... ok
+test_settling_straightens_a_port_that_would_otherwise_bend (test_layout.TestPortsFollowTheirWire.test_settling_straightens_a_port_that_would_otherwise_bend)
+The case it exists for, asked directly. ... ok
+test_it_earns_its_place_on_a_real_drawing (test_layout.TestRefinement.test_it_earns_its_place_on_a_real_drawing)
+The pass has to actually find something, or it is cost with no gain. ... ok
+test_it_is_still_the_same_answer_every_time (test_layout.TestRefinement.test_it_is_still_the_same_answer_every_time)
+A layout that shuffles means nobody can tell whether the button did ... ok
+test_refining_never_makes_a_drawing_worse (test_layout.TestRefinement.test_refining_never_makes_a_drawing_worse)
+The one thing the pass must guarantee: it keeps a swap only when the ... ok
+test_refining_stops_when_it_finds_nothing (test_layout.TestRefinement.test_refining_stops_when_it_finds_nothing)
+The sweep count is a ceiling, not a target -- otherwise raising it for ... ok
+test_a_cell_listed_first_stays_on_top (test_layout.TestStackingKeepsTheColumnOrder.test_a_cell_listed_first_stays_on_top) ... ok
+test_a_cell_with_room_still_goes_where_its_wire_wants (test_layout.TestStackingKeepsTheColumnOrder.test_a_cell_with_room_still_goes_where_its_wire_wants) ... ok
+test_a_loose_cell_keeps_its_slot (test_layout.TestStackingKeepsTheColumnOrder.test_a_loose_cell_keeps_its_slot) ... ok
+test_ports_stack_as_close_as_the_drcs_allow (test_layout.TestStackingKeepsTheColumnOrder.test_ports_stack_as_close_as_the_drcs_allow)
+Reported: auto-layout spread a column of ports a cell gap apart -- ... ok
+test_soc_top_keeps_clear_of_its_title_and_subtitle (test_layout.TestTheDrawingStaysUnderItsHeadings.test_soc_top_keeps_clear_of_its_title_and_subtitle) ... ok
+test_a_drawing_whose_pins_do_not_is_left_alone (test_layout.TestTheLayoutSettlesOnTheGrid.test_a_drawing_whose_pins_do_not_is_left_alone)
+spi_master uses block8, whose pins sit at 26, 58, 102 and 134. ... ok
+test_a_drawing_whose_pins_suit_it_comes_back_on_the_grid (test_layout.TestTheLayoutSettlesOnTheGrid.test_a_drawing_whose_pins_suit_it_comes_back_on_the_grid) ... ok
+test_settling_never_costs_an_error_or_a_warning (test_layout.TestTheLayoutSettlesOnTheGrid.test_settling_never_costs_an_error_or_a_warning)
+The grid is worth a little wire, and nothing at all beyond that. ... ok
+test_it_leaves_an_order_that_is_already_right (test_layout.TestTransposeCutsCrossings.test_it_leaves_an_order_that_is_already_right)
+The negative control: a pass that always swaps would satisfy the test ... ok
+test_it_never_makes_a_real_drawing_worse (test_layout.TestTransposeCutsCrossings.test_it_never_makes_a_real_drawing_worse)
+Measured over the shipped examples rather than argued: the whole point ... ok
+test_it_undoes_a_swap_that_plainly_crosses (test_layout.TestTransposeCutsCrossings.test_it_undoes_a_swap_that_plainly_crosses)
+Two cells in the wrong order, each wired straight across: the only ... ok
+test_pair_crossings_counts_what_it_says (test_layout.TestTransposeCutsCrossings.test_pair_crossings_counts_what_it_says) ... ok
+test_cells_are_turned_to_face_forward (test_layout.TestWhatItTidiesAway.test_cells_are_turned_to_face_forward) ... ok
+test_waypoints_are_dropped (test_layout.TestWhatItTidiesAway.test_waypoints_are_dropped) ... ok
+test_a_crossing_costs_more_than_the_wire_it_saves (test_layout.TestWhatTheScoreCountsFor.test_a_crossing_costs_more_than_the_wire_it_saves)
+The whole reason crossings are priced at all: a drawing should accept ... ok
+test_a_drc_error_outweighs_a_handful_of_crossings (test_layout.TestWhatTheScoreCountsFor.test_a_drc_error_outweighs_a_handful_of_crossings)
+The score used to measure crossings, length and spread and nothing ... ok
+test_a_tighter_drawing_scores_better (test_layout.TestWhatTheScoreCountsFor.test_a_tighter_drawing_scores_better) ... ok
+test_spread_counts_for_something_beyond_the_wire_it_adds (test_layout.TestWhatTheScoreCountsFor.test_spread_counts_for_something_beyond_the_wire_it_adds)
+Otherwise SPREAD_COST is a constant nothing reads, which is the shape ... ok
+test_the_score_counts_what_the_checker_finds (test_layout.TestWhatTheScoreCountsFor.test_the_score_counts_what_the_checker_finds)
+Otherwise ERROR_COST is a constant nothing reads. ... ok
+test_a_wire_between_two_inputs_orders_nothing (test_layout.TestWhichWayTheSignalRuns.test_a_wire_between_two_inputs_orders_nothing)
+Two reset pins tied together says nothing about which comes first. ... ok
+test_a_wire_drawn_backwards_ranks_the_same_way (test_layout.TestWhichWayTheSignalRuns.test_a_wire_drawn_backwards_ranks_the_same_way)
+The gate stays left of the flop it feeds, whichever end was clicked. ... ok
+test_an_inout_port_lands_on_the_side_it_faces (test_layout.TestWhichWayTheSignalRuns.test_an_inout_port_lands_on_the_side_it_faces)
+An inout port is an input or an output by which way its connector faces. ... ok
+test_an_undeclared_pin_is_read_from_the_side_it_leaves (test_layout.TestWhichWayTheSignalRuns.test_an_undeclared_pin_is_read_from_the_side_it_leaves)
+`inout` -- which is what a pin that never said anything gets. ... ok
+test_a_changed_file_is_reported (test_manifest.TestCheckingFindsWhatItShould.test_a_changed_file_is_reported) ... ok
+test_a_clean_copy_has_nothing_to_report (test_manifest.TestCheckingFindsWhatItShould.test_a_clean_copy_has_nothing_to_report) ... ok
+test_a_file_nobody_asked_for_is_reported (test_manifest.TestCheckingFindsWhatItShould.test_a_file_nobody_asked_for_is_reported)
+Usually a leftover from an older copy, which Python will happily ... ok
+test_a_missing_file_is_reported (test_manifest.TestCheckingFindsWhatItShould.test_a_missing_file_is_reported) ... ok
+test_no_manifest_is_not_a_fault (test_manifest.TestCheckingFindsWhatItShould.test_no_manifest_is_not_a_fault)
+A copy without one is unchecked, not broken. ... ok
+test_a_blank_line_in_the_middle_still_counts (test_manifest.TestHashingIgnoresLineEndings.test_a_blank_line_in_the_middle_still_counts) ... ok
+test_a_byte_order_mark_hashes_the_same (test_manifest.TestHashingIgnoresLineEndings.test_a_byte_order_mark_hashes_the_same)
+Notepad has put one on the front of files for years. ... ok
+test_a_missing_trailing_newline_hashes_the_same (test_manifest.TestHashingIgnoresLineEndings.test_a_missing_trailing_newline_hashes_the_same)
+Pasting a file by hand -- viewing it on GitHub, selecting the text, ... ok
+test_a_real_difference_still_changes_the_hash (test_manifest.TestHashingIgnoresLineEndings.test_a_real_difference_still_changes_the_hash)
+Otherwise the forgiving part has quietly made it forgive everything. ... ok
+test_an_old_mac_line_ending_hashes_the_same_too (test_manifest.TestHashingIgnoresLineEndings.test_an_old_mac_line_ending_hashes_the_same_too) ... ok
+test_crlf_and_lf_hash_the_same (test_manifest.TestHashingIgnoresLineEndings.test_crlf_and_lf_hash_the_same) ... ok
+test_extra_trailing_blank_lines_hash_the_same (test_manifest.TestHashingIgnoresLineEndings.test_extra_trailing_blank_lines_hash_the_same) ... ok
+test_whitespace_inside_a_line_still_counts (test_manifest.TestHashingIgnoresLineEndings.test_whitespace_inside_a_line_still_counts) ... ok
+test_doctor_is_happy_with_this_copy (test_manifest.TestTheManifestIsCurrent.test_doctor_is_happy_with_this_copy) ... ok
+test_it_covers_every_file_that_has_to_be_right (test_manifest.TestTheManifestIsCurrent.test_it_covers_every_file_that_has_to_be_right) ... ok
+test_the_committed_manifest_matches_the_tree (test_manifest.TestTheManifestIsCurrent.test_the_committed_manifest_matches_the_tree) ... ok
+test_the_files_outside_the_package_are_covered_too (test_manifest.TestTheManifestIsCurrent.test_the_files_outside_the_package_are_covered_too)
+sample.txt is the fixture for trying verify.ps1 by hand: edit it and ... ok
+test_every_manifest_line_matches_what_the_script_parses (test_manifest.TestTheWindowsScriptAgrees.test_every_manifest_line_matches_what_the_script_parses)
+The script reads lines with ^([0-9a-fA-F]{64})\s+(.+)$ -- so every ... ok
+test_it_hashes_with_sha256 (test_manifest.TestTheWindowsScriptAgrees.test_it_hashes_with_sha256) ... ok
+test_it_normalises_line_endings_before_hashing (test_manifest.TestTheWindowsScriptAgrees.test_it_normalises_line_endings_before_hashing) ... ok
+test_it_normalises_trailing_newlines_before_hashing (test_manifest.TestTheWindowsScriptAgrees.test_it_normalises_trailing_newlines_before_hashing) ... ok
+test_no_path_in_the_manifest_needs_escaping (test_manifest.TestTheWindowsScriptAgrees.test_no_path_in_the_manifest_needs_escaping)
+Backslashes, spaces and quotes in a path would each be a way for the ... ok
+test_the_script_is_here (test_manifest.TestTheWindowsScriptAgrees.test_the_script_is_here) ... ok
+test_expansion_is_msb_first (test_model.TestBusNames.test_expansion_is_msb_first) ... ok
+test_illegal_names_are_rejected (test_model.TestBusNames.test_illegal_names_are_rejected) ... ok
+test_is_bus (test_model.TestBusNames.test_is_bus) ... ok
+test_width_from_name (test_model.TestBusNames.test_width_from_name) ... ok
+test_a_placed_pin_lands_on_the_grid_too (test_model.TestEveryPinSitsOnTheGrid.test_a_placed_pin_lands_on_the_grid_too)
+The offset is only half of it; the cell has to be on the grid as well. ... ok
+test_no_new_symbol_has_a_pin_off_the_grid (test_model.TestEveryPinSitsOnTheGrid.test_no_new_symbol_has_a_pin_off_the_grid) ... ok
+test_the_grandfathered_two_are_still_the_only_ones (test_model.TestEveryPinSitsOnTheGrid.test_the_grandfathered_two_are_still_the_only_ones)
+So the exemption shrinks when one of them is fixed, rather than hiding ... ok
+test_a_group_mixing_a_cell_and_a_shape_is_valid (test_model.TestGroupValidation.test_a_group_mixing_a_cell_and_a_shape_is_valid) ... ok
+test_a_group_of_shapes_is_valid (test_model.TestGroupValidation.test_a_group_of_shapes_is_valid) ... ok
+test_a_member_that_really_is_missing_is_still_reported (test_model.TestGroupValidation.test_a_member_that_really_is_missing_is_still_reported) ... ok
+test_a_document_that_is_not_an_object_is_refused (test_model.TestMalformedContainers.test_a_document_that_is_not_an_object_is_refused) ... ok
+test_a_wrong_typed_section_is_named (test_model.TestMalformedContainers.test_a_wrong_typed_section_is_named) ... ok
+test_a_cell_position_that_is_not_a_number_is_refused (test_model.TestNumbersMustBeNumbers.test_a_cell_position_that_is_not_a_number_is_refused) ... D:\Work\claude_code\project\drawlogic-latest\tests\test_model.py:102: ResourceWarning: unclosed file <_io.TextIOWrapper name='D:\\Work\\claude_code\\project\\drawlogic-latest\\examples\\dff_slice.dlg' mode='r' encoding='cp1252'>
+  data = json.loads(open(EXAMPLE).read())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_a_word_where_the_sheet_width_goes_is_refused_by_name (test_model.TestNumbersMustBeNumbers.test_a_word_where_the_sheet_width_goes_is_refused_by_name) ... ok
+test_the_examples_still_load (test_model.TestNumbersMustBeNumbers.test_the_examples_still_load) ... ok
+test_mirror_flips_left_to_right (test_model.TestPlacement.test_mirror_flips_left_to_right) ... ok
+test_pin_at_natural_size_is_the_local_position (test_model.TestPlacement.test_pin_at_natural_size_is_the_local_position) ... ok
+test_resize_scales_pins (test_model.TestPlacement.test_resize_scales_pins) ... ok
+test_rotation_keeps_the_centre_fixed (test_model.TestPlacement.test_rotation_keeps_the_centre_fixed) ... ok
+test_translation_moves_pins (test_model.TestPlacement.test_translation_moves_pins) ... ok
+test_unknown_pin_returns_none (test_model.TestPlacement.test_unknown_pin_returns_none) ... ok
+test_builtin_symbols_load (test_model.TestRegistry.test_builtin_symbols_load) ... ok
+test_every_symbol_has_at_least_one_pin (test_model.TestRegistry.test_every_symbol_has_at_least_one_pin) ... ok
+test_pins_sit_inside_the_symbol_box (test_model.TestRegistry.test_pins_sit_inside_the_symbol_box) ... ok
+test_rejects_bad_definitions (test_model.TestRegistry.test_rejects_bad_definitions) ... ok
+test_layout_refuses_rather_than_losing_a_cell (test_model.TestRepeatedIds.test_layout_refuses_rather_than_losing_a_cell) ... D:\Work\claude_code\project\drawlogic-latest\tests\test_model.py:125: ResourceWarning: unclosed file <_io.TextIOWrapper name='D:\\Work\\claude_code\\project\\drawlogic-latest\\examples\\dff_slice.dlg' mode='r' encoding='cp1252'>
+  data = json.loads(open(EXAMPLE).read())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_the_drcs_say_why_they_did_not_run (test_model.TestRepeatedIds.test_the_drcs_say_why_they_did_not_run) ... ok
+test_dumps_is_idempotent (test_model.TestRoundTrip.test_dumps_is_idempotent) ... ok
+test_key_order_is_stable_so_diffs_stay_readable (test_model.TestRoundTrip.test_key_order_is_stable_so_diffs_stay_readable) ... ok
+test_missing_size_is_filled_from_the_symbol (test_model.TestRoundTrip.test_missing_size_is_filled_from_the_symbol) ... ok
+test_new_document_round_trips (test_model.TestRoundTrip.test_new_document_round_trips) ... ok
+test_rejects_foreign_files (test_model.TestRoundTrip.test_rejects_foreign_files) ... ok
+test_a_save_that_changes_the_file_keeps_the_last_version (test_model.TestSavingCannotLoseADrawing.test_a_save_that_changes_the_file_keeps_the_last_version) ... ok
+test_an_interrupted_save_leaves_the_old_file_whole (test_model.TestSavingCannotLoseADrawing.test_an_interrupted_save_leaves_the_old_file_whole) ... ok
+test_it_keeps_the_file_readable_by_whoever_could_read_it (test_model.TestSavingCannotLoseADrawing.test_it_keeps_the_file_readable_by_whoever_could_read_it) ... FAIL
+test_saving_the_same_text_does_not_overwrite_the_backup (test_model.TestSavingCannotLoseADrawing.test_saving_the_same_text_does_not_overwrite_the_backup) ... ok
+test_a_bus_on_a_single_bit_pin_is_an_error (test_model.TestValidate.test_a_bus_on_a_single_bit_pin_is_an_error) ... ok
+test_a_bus_on_a_width_zero_pin_is_allowed (test_model.TestValidate.test_a_bus_on_a_width_zero_pin_is_allowed) ... ok
+test_bus_name_must_match_declared_width (test_model.TestValidate.test_bus_name_must_match_declared_width) ... ok
+test_duplicate_ids_are_an_error (test_model.TestValidate.test_duplicate_ids_are_an_error) ... ok
+test_example_has_no_errors (test_model.TestValidate.test_example_has_no_errors) ... ok
+test_group_member_must_exist (test_model.TestValidate.test_group_member_must_exist) ... ok
+test_net_to_a_missing_cell_is_an_error (test_model.TestValidate.test_net_to_a_missing_cell_is_an_error) ... ok
+test_net_to_a_pin_that_does_not_exist_is_an_error (test_model.TestValidate.test_net_to_a_pin_that_does_not_exist_is_an_error) ... ok
+test_unconnected_pin_is_only_a_warning (test_model.TestValidate.test_unconnected_pin_is_only_a_warning) ... ok
+test_unknown_cell_type_is_an_error (test_model.TestValidate.test_unknown_cell_type_is_an_error) ... ok
+test_a_wire_already_the_right_way_round_is_left_alone (test_nets.TestANetIsStoredDriverFirst.test_a_wire_already_the_right_way_round_is_left_alone) ... ok
+test_a_wire_drawn_back_to_front_is_turned_round (test_nets.TestANetIsStoredDriverFirst.test_a_wire_drawn_back_to_front_is_turned_round) ... ok
+test_the_branch_keeps_its_waypoints_the_right_way_round (test_nets.TestANetIsStoredDriverFirst.test_the_branch_keeps_its_waypoints_the_right_way_round)
+They run driver to load, and it is that end which just changed. ... ok
+test_two_drivers_on_one_net_are_left_for_validate_to_report (test_nets.TestANetIsStoredDriverFirst.test_two_drivers_on_one_net_are_left_for_validate_to_report)
+Picking one of them would hide a short behind a tidy-looking wire. ... ok
+test_at_least_one_of_them_has_a_net_with_several_loads (test_nets.TestEveryShippedExample.test_at_least_one_of_them_has_a_net_with_several_loads) ... ok
+test_they_are_all_version_2_on_disk (test_nets.TestEveryShippedExample.test_they_are_all_version_2_on_disk) ... ok
+test_a_name_arriving_second_is_still_kept (test_nets.TestTheUpgrade.test_a_name_arriving_second_is_still_kept) ... ok
+test_a_waypoint_moves_onto_the_branch_it_belonged_to (test_nets.TestTheUpgrade.test_a_waypoint_moves_onto_the_branch_it_belonged_to) ... ok
+test_an_old_file_still_opens (test_nets.TestTheUpgrade.test_an_old_file_still_opens) ... ok
+test_nets_from_different_pins_stay_apart (test_nets.TestTheUpgrade.test_nets_from_different_pins_stay_apart) ... ok
+test_nets_off_one_pin_become_one_net (test_nets.TestTheUpgrade.test_nets_off_one_pin_become_one_net) ... ok
+test_the_surviving_net_keeps_the_name_that_was_given (test_nets.TestTheUpgrade.test_the_surviving_net_keeps_the_name_that_was_given) ... ok
+test_two_different_names_are_left_as_two_nets (test_nets.TestTheUpgrade.test_two_different_names_are_left_as_two_nets) ... ok
+test_upgrading_twice_is_the_same_as_once (test_nets.TestTheUpgrade.test_upgrading_twice_is_the_same_as_once) ... ok
+test_a_fan_out_still_gets_its_junction_dots (test_nets.TestWhatTheModelBuys.test_a_fan_out_still_gets_its_junction_dots) ... ok
+test_a_net_that_drives_nothing_is_an_error (test_nets.TestWhatTheModelBuys.test_a_net_that_drives_nothing_is_an_error) ... ok
+test_a_rail_is_one_net_that_routes_to_one_path_per_load (test_nets.TestWhatTheModelBuys.test_a_rail_is_one_net_that_routes_to_one_path_per_load) ... ok
+test_a_rail_round_trips_through_a_file (test_nets.TestWhatTheModelBuys.test_a_rail_round_trips_through_a_file) ... ok
+test_branches_of_one_net_are_drawn_as_one_thing (test_nets.TestWhatTheModelBuys.test_branches_of_one_net_are_drawn_as_one_thing) ... ok
+test_the_whole_rail_carries_one_name (test_nets.TestWhatTheModelBuys.test_the_whole_rail_carries_one_name) ... ok
+test_two_nets_driving_one_pin_is_now_an_error (test_nets.TestWhatTheModelBuys.test_two_nets_driving_one_pin_is_now_an_error) ... ok
+test_every_file_parses_under_the_oldest_supported_python (test_python_floor.TestTheCodeStaysInsideTheFloor.test_every_file_parses_under_the_oldest_supported_python)
+One walrus in a comprehension, one `match`, one `int | None` and the ... ok
+test_no_standard_library_call_newer_than_the_floor (test_python_floor.TestTheCodeStaysInsideTheFloor.test_no_standard_library_call_newer_than_the_floor)
+Syntax is only half of it: `str.removeprefix` parses fine on 3.8 and ... ok
+test_the_check_would_notice_something_newer (test_python_floor.TestTheCodeStaysInsideTheFloor.test_the_check_would_notice_something_newer)
+The negative control. A parse check that cannot fail is exactly the ... ok
+test_no_document_still_advertises_an_older_floor (test_python_floor.TestTheDocumentationAgrees.test_no_document_still_advertises_an_older_floor)
+The specific way this went wrong: the number was corrected in one ... ok
+test_the_manual_names_the_same_version (test_python_floor.TestTheDocumentationAgrees.test_the_manual_names_the_same_version) ... ok
+test_a_hop_sits_on_a_real_crossing (test_regression.TestCrossingHops.test_a_hop_sits_on_a_real_crossing) ... ok
+test_a_junction_never_gets_a_hop (test_regression.TestCrossingHops.test_a_junction_never_gets_a_hop) ... ok
+test_crossings_become_arcs_in_the_output (test_regression.TestCrossingHops.test_crossings_become_arcs_in_the_output) ... ok
+test_hops_can_be_switched_off (test_regression.TestCrossingHops.test_hops_can_be_switched_off) ... ok
+test_the_example_actually_has_crossings (test_regression.TestCrossingHops.test_the_example_actually_has_crossings) ... ok
+test_image_reaches_the_exported_svg (test_regression.TestEmbeddedImages.test_image_reaches_the_exported_svg) ... ok
+test_image_survives_a_save_and_reload (test_regression.TestEmbeddedImages.test_image_survives_a_save_and_reload) ... ok
+test_no_xlink_namespace_when_there_are_no_images (test_regression.TestEmbeddedImages.test_no_xlink_namespace_when_there_are_no_images) ... ok
+test_xlink_namespace_is_declared_when_needed (test_regression.TestEmbeddedImages.test_xlink_namespace_is_declared_when_needed) ... ok
+test_documents_round_trip_unchanged (test_regression.TestEveryExample.test_documents_round_trip_unchanged) ... ok
+test_every_net_resolves (test_regression.TestEveryExample.test_every_net_resolves) ... ok
+test_every_segment_is_axis_aligned (test_regression.TestEveryExample.test_every_segment_is_axis_aligned) ... ok
+test_no_validation_errors (test_regression.TestEveryExample.test_no_validation_errors) ... 
+  test_no_validation_errors (test_regression.TestEveryExample.test_no_validation_errors) (example='untitled') ... FAIL
+test_no_wire_crosses_an_unrelated_cell (test_regression.TestEveryExample.test_no_wire_crosses_an_unrelated_cell) ... ok
+test_rendering_is_reproducible (test_regression.TestEveryExample.test_rendering_is_reproducible) ... ok
+test_saved_file_is_already_canonical (test_regression.TestEveryExample.test_saved_file_is_already_canonical) ... 
+  test_saved_file_is_already_canonical (test_regression.TestEveryExample.test_saved_file_is_already_canonical) (example='untitled') ... FAIL
+test_every_symbol_places_and_renders (test_regression.TestEverySymbol.test_every_symbol_places_and_renders) ... ok
+test_every_symbol_previews (test_regression.TestEverySymbol.test_every_symbol_previews) ... ok
+test_pins_resolve_inside_the_drawn_shape (test_regression.TestEverySymbol.test_pins_resolve_inside_the_drawn_shape) ... ok
+test_rotation_is_reversible (test_regression.TestEverySymbol.test_rotation_is_reversible) ... ok
+test_the_complex_example_is_present (test_regression.TestExamplesExist.test_the_complex_example_is_present) ... ok
+test_there_are_examples_to_check (test_regression.TestExamplesExist.test_there_are_examples_to_check) ... ok
+test_crop_is_smaller_than_the_sheet (test_regression.TestExportOptions.test_crop_is_smaller_than_the_sheet) ... ok
+test_every_cell_and_net_reaches_the_output (test_regression.TestExportOptions.test_every_cell_and_net_reaches_the_output) ... ok
+test_grid_and_arrows_are_opt_out (test_regression.TestExportOptions.test_grid_and_arrows_are_opt_out) ... ok
+test_zoom_changes_size_but_not_geometry (test_regression.TestExportOptions.test_zoom_changes_size_but_not_geometry) ... ok
+test_examples_match_their_golden (test_regression.TestGoldenSvg.test_examples_match_their_golden) ... skipped 'wrote new goldens for: untitled; re-run to check them'
+test_a_handler_that_raises_still_answers (test_server.TestEndpoints.test_a_handler_that_raises_still_answers)
+Without this the socket closes with nothing written and the browser ... C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 500: 'Internal Server Error'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_a_reference_fault_still_arrives_in_the_shape_the_pane_draws (test_server.TestEndpoints.test_a_reference_fault_still_arrives_in_the_shape_the_pane_draws)
+It lists beside rule failures, so it has to carry the same fields -- ... ok
+test_check_finds_a_short_the_editor_would_have_to_show (test_server.TestEndpoints.test_check_finds_a_short_the_editor_would_have_to_show) ... ok
+test_check_refuses_a_document_it_cannot_parse (test_server.TestEndpoints.test_check_refuses_a_document_it_cannot_parse) ... C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 422: 'Unprocessable Content'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_check_reports_the_drcs_for_the_drawing_in_the_body (test_server.TestEndpoints.test_check_reports_the_drcs_for_the_drawing_in_the_body)
+The editor checks what is on the canvas, unsaved edits included, so ... ok
+test_check_reports_what_validate_would_reject (test_server.TestEndpoints.test_check_reports_what_validate_would_reject)
+Check and `drawlogic validate` have to agree on whether a drawing is ... ok
+test_create_allows_a_name_that_is_free (test_server.TestEndpoints.test_create_allows_a_name_that_is_free) ... ok
+test_create_refuses_a_file_that_is_already_there (test_server.TestEndpoints.test_create_refuses_a_file_that_is_already_there)
+New must not be able to replace a drawing without being told to. ... C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 409: 'Conflict'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_drc_limits_are_served_so_the_browser_need_not_restate_them (test_server.TestEndpoints.test_drc_limits_are_served_so_the_browser_need_not_restate_them) ... ok
+test_export_without_a_path_returns_the_svg (test_server.TestEndpoints.test_export_without_a_path_returns_the_svg) ... ok
+test_export_writes_svg_through_the_python_renderer (test_server.TestEndpoints.test_export_writes_svg_through_the_python_renderer) ... ok
+test_import_draws_each_module_and_refuses_to_overwrite_unasked (test_server.TestEndpoints.test_import_draws_each_module_and_refuses_to_overwrite_unasked) ... ok
+test_import_reports_verilog_it_cannot_read (test_server.TestEndpoints.test_import_reports_verilog_it_cannot_read) ... ok
+test_lists_drawings (test_server.TestEndpoints.test_lists_drawings) ... ok
+test_malformed_bodies_answer_rather_than_dropping_the_connection (test_server.TestEndpoints.test_malformed_bodies_answer_rather_than_dropping_the_connection)
+A bad shape must come back as a status code, not a dead socket. ... ok
+test_opening_reports_a_revision (test_server.TestEndpoints.test_opening_reports_a_revision) ... ok
+test_opens_a_drawing (test_server.TestEndpoints.test_opens_a_drawing) ... ok
+test_refuses_non_dlg_targets (test_server.TestEndpoints.test_refuses_non_dlg_targets) ... ok
+test_refuses_to_read_outside_the_root (test_server.TestEndpoints.test_refuses_to_read_outside_the_root) ... ok
+test_refuses_to_write_outside_the_root (test_server.TestEndpoints.test_refuses_to_write_outside_the_root) ... ok
+test_rejects_a_document_it_cannot_parse (test_server.TestEndpoints.test_rejects_a_document_it_cannot_parse) ... ok
+test_save_round_trips_and_stays_canonical (test_server.TestEndpoints.test_save_round_trips_and_stays_canonical) ... ok
+test_saving_without_create_still_overwrites (test_server.TestEndpoints.test_saving_without_create_still_overwrites)
+Ordinary Ctrl+S is not a create, and must keep working. ... ok
+test_serves_the_editor_page (test_server.TestEndpoints.test_serves_the_editor_page) ... ok
+test_symbols_match_the_python_registry (test_server.TestEndpoints.test_symbols_match_the_python_registry) ... ok
+test_the_net_does_not_swallow_ordinary_failures (test_server.TestEndpoints.test_the_net_does_not_swallow_ordinary_failures)
+A 404 must stay a 404, not become a 500 with a stack trace. ... C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_theme_is_served_so_the_browser_need_not_restate_it (test_server.TestEndpoints.test_theme_is_served_so_the_browser_need_not_restate_it) ... ok
+test_unknown_endpoint_is_a_404 (test_server.TestEndpoints.test_unknown_endpoint_is_a_404) ... ok
+test_a_cross_origin_json_post_is_refused (test_server.TestOnlyTheEditorMayWrite.test_a_cross_origin_json_post_is_refused) ... C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 403: 'Forbidden'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_a_cross_site_form_post_is_refused (test_server.TestOnlyTheEditorMayWrite.test_a_cross_site_form_post_is_refused) ... ok
+test_a_request_to_a_rebound_host_name_is_refused (test_server.TestOnlyTheEditorMayWrite.test_a_request_to_a_rebound_host_name_is_refused) ... ok
+test_the_editor_itself_still_saves (test_server.TestOnlyTheEditorMayWrite.test_the_editor_itself_still_saves) ... ok
+test_a_directory_link_does_not_lead_out_of_the_root (test_server.TestSafeJoin.test_a_directory_link_does_not_lead_out_of_the_root)
+The check is on where a path lands, not on how it is spelled. ... skipped 'symlinks are not available here'
+test_a_file_that_does_not_exist_yet_is_judged_by_its_parent (test_server.TestSafeJoin.test_a_file_that_does_not_exist_yet_is_judged_by_its_parent)
+Saving creates the file, so there is nothing to resolve but the folder. ... skipped 'symlinks are not available here'
+test_a_link_that_stays_inside_the_root_is_still_fine (test_server.TestSafeJoin.test_a_link_that_stays_inside_the_root_is_still_fine)
+Confinement, not a ban on links -- otherwise this would be a fix that ... skipped 'symlinks are not available here'
+test_a_prefix_match_is_not_inside_the_root (test_server.TestSafeJoin.test_a_prefix_match_is_not_inside_the_root) ... ok
+test_absolute_paths_are_treated_as_root_relative (test_server.TestSafeJoin.test_absolute_paths_are_treated_as_root_relative) ... ok
+test_allows_paths_inside_the_root (test_server.TestSafeJoin.test_allows_paths_inside_the_root) ... ok
+test_rejects_empty (test_server.TestSafeJoin.test_rejects_empty) ... ok
+test_rejects_traversal (test_server.TestSafeJoin.test_rejects_traversal) ... ok
+test_a_ref_inside_the_folder_still_resolves_when_confined (test_sheets.TestConfinement.test_a_ref_inside_the_folder_still_resolves_when_confined) ... ok
+test_a_ref_out_of_the_served_folder_is_refused (test_sheets.TestConfinement.test_a_ref_out_of_the_served_folder_is_refused) ... ok
+test_a_symlink_pointing_out_does_not_slip_through (test_sheets.TestConfinement.test_a_symlink_pointing_out_does_not_slip_through)
+The check resolves links, or a name inside the root is enough. ... skipped 'symlinks are not available here'
+test_the_command_line_still_follows_a_ref_anywhere (test_sheets.TestConfinement.test_the_command_line_still_follows_a_ref_anywhere)
+No confinement without one asked for: the CLI is not a sandbox. ... ok
+test_resolving_leaves_the_shared_library_alone (test_sheets.TestOneDrawingCannotAffectAnother.test_resolving_leaves_the_shared_library_alone) ... ok
+test_the_same_ref_in_two_folders_means_two_different_drawings (test_sheets.TestOneDrawingCannotAffectAnother.test_the_same_ref_in_two_folders_means_two_different_drawings) ... ok
+test_a_ports_label_is_its_name (test_sheets.TestPorts.test_a_ports_label_is_its_name) ... ok
+test_an_unlabelled_port_falls_back_to_its_id (test_sheets.TestPorts.test_an_unlabelled_port_falls_back_to_its_id) ... ok
+test_direction_comes_from_the_port_type (test_sheets.TestPorts.test_direction_comes_from_the_port_type) ... ok
+test_ports_are_ordered_down_the_sheet (test_sheets.TestPorts.test_ports_are_ordered_down_the_sheet) ... ok
+test_two_ports_of_one_name_are_reported (test_sheets.TestPorts.test_two_ports_of_one_name_are_reported) ... ok
+test_a_sheet_block_is_not_offered_in_the_palette (test_sheets.TestTheDerivedBlock.test_a_sheet_block_is_not_offered_in_the_palette) ... ok
+test_inputs_sit_on_the_left_and_outputs_on_the_right (test_sheets.TestTheDerivedBlock.test_inputs_sit_on_the_left_and_outputs_on_the_right) ... ok
+test_renaming_a_port_renames_the_pin (test_sheets.TestTheDerivedBlock.test_renaming_a_port_renames_the_pin) ... ok
+test_the_blocks_pins_are_the_childs_ports (test_sheets.TestTheDerivedBlock.test_the_blocks_pins_are_the_childs_ports) ... ok
+test_the_pins_have_names_drawn_on_them (test_sheets.TestTheDerivedBlock.test_the_pins_have_names_drawn_on_them) ... ok
+test_wires_reach_the_derived_pins (test_sheets.TestTheDerivedBlock.test_wires_reach_the_derived_pins) ... ok
+test_the_hierarchy_is_reported (test_sheets.TestTheShippedExample.test_the_hierarchy_is_reported) ... ok
+test_the_top_sheet_resolves_and_routes_straight (test_sheets.TestTheShippedExample.test_the_top_sheet_resolves_and_routes_straight) ... ok
+test_a_loop_is_caught_rather_than_followed (test_sheets.TestWhenItGoesWrong.test_a_loop_is_caught_rather_than_followed) ... ok
+test_a_missing_drawing_is_an_error (test_sheets.TestWhenItGoesWrong.test_a_missing_drawing_is_an_error) ... ok
+test_an_unresolved_reference_reads_as_a_validation_error (test_sheets.TestWhenItGoesWrong.test_an_unresolved_reference_reads_as_a_validation_error) ... ok
+test_and_is_still_drawn_so_it_can_be_selected_and_fixed (test_sheets.TestWhenItGoesWrong.test_and_is_still_drawn_so_it_can_be_selected_and_fixed) ... ok
+
+======================================================================
+FAIL: test_every_example_puts_its_arrows_in_the_same_place (test_js_parity.TestRouterParity.test_every_example_puts_its_arrows_in_the_same_place) (example='untitled.dlg')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\tests\test_js_parity.py", line 324, in test_every_example_puts_its_arrows_in_the_same_place
+    self.assertEqual(actual, expected,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+                     "%s: direction arrows differ in place or direction"
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     % name)
+                     ^^^^^^^
+AssertionError: {'n1'[3078 chars]: [[[1240.0, 1243.75, 0.0, -1.0], [1240.0, 100[1240 chars]0]]]} != {'n1'[3078 chars]: [[[2170.0, 1537.5, 0.0, -1.0], [2170.0, 1297[1259 chars]0]]]}
+Diff is 6826 characters long. Set self.maxDiff to None to see it. : untitled.dlg: direction arrows differ in place or direction
+
+======================================================================
+FAIL: test_every_example_routes_the_same_in_both (test_js_parity.TestRouterParity.test_every_example_routes_the_same_in_both) (example='untitled.dlg')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\tests\test_js_parity.py", line 229, in test_every_example_routes_the_same_in_both
+    self.assertEqual(actual, expected,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+                     "%s: routing.js and routing.py disagree" % name)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [['n1[916 chars], [[[1293.75, 1430.0], [1240.0, 1430.0], [1240[341 chars]]]]]] != [['n1[916 chars], [[[2072.5, 1680.0], [2170.0, 1680.0], [2170.[341 chars]]]]]]
+
+First differing element 5:
+['n6', [[[1293.75, 1430.0], [1240.0, 1430.0], [1240[61 chars]0]]]]
+['n6', [[[2072.5, 1680.0], [2170.0, 1680.0], [2170.[61 chars]0]]]]
+
+Diff is 1895 characters long. Set self.maxDiff to None to see it. : untitled.dlg: routing.js and routing.py disagree
+
+======================================================================
+FAIL: test_it_keeps_the_file_readable_by_whoever_could_read_it (test_model.TestSavingCannotLoseADrawing.test_it_keeps_the_file_readable_by_whoever_could_read_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\tests\test_model.py", line 94, in test_it_keeps_the_file_readable_by_whoever_could_read_it
+    self.assertEqual(stat.S_IMODE(os.stat(self.path).st_mode), 0o644)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 438 != 420
+
+======================================================================
+FAIL: test_no_validation_errors (test_regression.TestEveryExample.test_no_validation_errors) (example='untitled')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\tests\test_regression.py", line 119, in test_no_validation_errors
+    self.assertEqual(errors, [], "%s has validation errors" % name)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [Issue('error', 'cell c7', "pin 'rn' is driven by 2 nets (n3, n7)")] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+Issue('error', 'cell c7', "pin 'rn' is driven by 2 nets (n3, n7)")
+
+- [Issue('error', 'cell c7', "pin 'rn' is driven by 2 nets (n3, n7)")]
++ [] : untitled has validation errors
+
+======================================================================
+FAIL: test_saved_file_is_already_canonical (test_regression.TestEveryExample.test_saved_file_is_already_canonical) (example='untitled')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\tests\test_regression.py", line 187, in test_saved_file_is_already_canonical
+    self.assertEqual(Document.load(path).dumps(), on_disk,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     "%s is not in canonical form; open and save it"
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     % os.path.basename(path))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '{\n [6597 chars]": "c2",\n        "pin": "y"\n      },\n      [1799 chars]n}\n' != '{\n [6597 chars]": "c1",\n        "pin": "d"\n      },\n      [1799 chars]n}\n'
+Diff is 9404 characters long. Set self.maxDiff to None to see it. : untitled.dlg is not in canonical form; open and save it
+
+----------------------------------------------------------------------
+Ran 457 tests in 101.527s
+
+FAILED (failures=5, skipped=9, expected failures=1)

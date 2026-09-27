@@ -1,6 +1,47 @@
 # Checkpoint
 
-STATUS: ready_for_review (review artifacts only; no production code touched)
+STATUS: accepted (recheck at e594be8 done; tests/ plus review
+artifacts only, no production code touched)
+
+## Recheck at HEAD 01d5715 (task `/root/reverify_main`)
+
+Rechecked the four findings of the first review against latest main
+(`01d5715`, merging `origin/main` `e594be8`) and left the answer in
+`RECHECK_REPORT.md`, with the classification appended to `FINDINGS.md`:
+
+- Finding 1 (importer refused `always` bodies) -- **fixed**; both fixtures
+  draw, with new tests asserting the drawings.
+- Finding 2 (`wire x = a & b;` dropped silently) -- **persistent**; pinned by
+  an `expectedFailure` test with a positive control.
+- Finding 3 (Windows-red save test) -- **persistent**; file untouched by the
+  range.
+- Finding 4 (untracked `examples/untitled.dlg`) -- **persistent**, and the
+  parity half is now shown to pre-date the range
+  (`parity-at-0f53171-untitled.log`).
+
+Added `tests/test_hdl.py::TestWhatTheFirstReviewReported` (6 tests) and a
+`tests/js/editor_check.mjs` area "placing onto a wire end" (3 checks, floor in
+`tests/test_js_editor.py` raised to 48), both checked by deliberate breakage.
+Suite at HEAD with the new tests: 457 tests, 5 failures (all pre-existing,
+four from the untracked example and one finding 3), 9 skipped, 1 expected
+failure. New logs are named `*-recheck-*` and sit beside the historical ones.
+
+Environment note for whoever runs this next: this sandbox refuses writes
+inside any directory whose name starts with `tmp`, which is exactly what
+`tempfile.mkdtemp` makes, so every temp-file test fails without the
+`PYTHONPATH` shim at `.recheck-tmp/site/sitecustomize.py` -- see the report.
+No browser and no Yosys here, so those two paths are still unverified.
+
+Scratch left behind on purpose: `.recheck-tmp/site/sitecustomize.py` (the
+shim) and one empty, undeletable directory
+`.recheck-scratch/scratchg8_7eclf` made by the stock `mkdtemp` before the shim
+existed. Both are scratch; neither is part of the diff. The `tests/golden/
+untitled.svg` that the suite regenerates from the untracked example was
+deleted again after the last run.
+
+---
+
+## First review (task `/root/verify_features`, baseline 0f53171)
 
 Task: `/root/verify_features` -- verify the new features in
 `8717527..0f53171` of `D:\Work\claude_code\project\drawlogic-latest`

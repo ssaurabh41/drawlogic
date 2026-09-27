@@ -1,0 +1,54 @@
+test_js_defaults_match_drc_py (tests.test_js_parity.TestDrcDefaults.test_js_defaults_match_drc_py) ... ok
+test_both_routers_agree_when_wires_fork_late (tests.test_js_parity.TestForkingLateAgreesInBothRenderers.test_both_routers_agree_when_wires_fork_late) ... ok
+test_the_flag_actually_changes_what_is_drawn (tests.test_js_parity.TestForkingLateAgreesInBothRenderers.test_the_flag_actually_changes_what_is_drawn)
+Otherwise the agreement above is between two idle code paths. ... ok
+test_a_wire_past_a_wrapped_name_routes_the_same_in_both (tests.test_js_parity.TestRouterParity.test_a_wire_past_a_wrapped_name_routes_the_same_in_both)
+routing.js kept room above a cell for one line of its name, routing.py ... ok
+test_an_arrow_points_the_way_the_signal_travels (tests.test_js_parity.TestRouterParity.test_an_arrow_points_the_way_the_signal_travels)
+Agreement is not correctness: both sides could be reversed together. ... ok
+test_every_example_dots_and_bridges_the_same (tests.test_js_parity.TestRouterParity.test_every_example_dots_and_bridges_the_same) ... ok
+test_every_example_puts_its_arrows_in_the_same_place (tests.test_js_parity.TestRouterParity.test_every_example_puts_its_arrows_in_the_same_place) ... 
+  test_every_example_puts_its_arrows_in_the_same_place (tests.test_js_parity.TestRouterParity.test_every_example_puts_its_arrows_in_the_same_place) (example='untitled.dlg') ... FAIL
+test_every_example_puts_its_names_in_the_same_place (tests.test_js_parity.TestRouterParity.test_every_example_puts_its_names_in_the_same_place) ... ok
+test_every_example_routes_the_same_in_both (tests.test_js_parity.TestRouterParity.test_every_example_routes_the_same_in_both) ... 
+  test_every_example_routes_the_same_in_both (tests.test_js_parity.TestRouterParity.test_every_example_routes_the_same_in_both) (example='untitled.dlg') ... FAIL
+test_a_crossing_gets_the_same_arrows_in_both (tests.test_js_parity.TestWhatEachRendererActuallyDraws.test_a_crossing_gets_the_same_arrows_in_both) ... ok
+test_every_example_draws_the_same_arrows_in_both (tests.test_js_parity.TestWhatEachRendererActuallyDraws.test_every_example_draws_the_same_arrows_in_both) ... ok
+test_the_bridge_really_does_move_an_arrow (tests.test_js_parity.TestWhatEachRendererActuallyDraws.test_the_bridge_really_does_move_an_arrow)
+Otherwise the test above passes on a drawing where nothing is at stake ... ok
+
+======================================================================
+FAIL: test_every_example_puts_its_arrows_in_the_same_place (tests.test_js_parity.TestRouterParity.test_every_example_puts_its_arrows_in_the_same_place) (example='untitled.dlg')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\.recheck-scratch\old\tests\test_js_parity.py", line 324, in test_every_example_puts_its_arrows_in_the_same_place
+    self.assertEqual(actual, expected,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+                     "%s: direction arrows differ in place or direction"
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     % name)
+                     ^^^^^^^
+AssertionError: {'n1'[3078 chars]: [[[1240.0, 1243.75, 0.0, -1.0], [1240.0, 100[1240 chars]0]]]} != {'n1'[3078 chars]: [[[2170.0, 1537.5, 0.0, -1.0], [2170.0, 1297[1259 chars]0]]]}
+Diff is 6826 characters long. Set self.maxDiff to None to see it. : untitled.dlg: direction arrows differ in place or direction
+
+======================================================================
+FAIL: test_every_example_routes_the_same_in_both (tests.test_js_parity.TestRouterParity.test_every_example_routes_the_same_in_both) (example='untitled.dlg')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\.recheck-scratch\old\tests\test_js_parity.py", line 229, in test_every_example_routes_the_same_in_both
+    self.assertEqual(actual, expected,
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+                     "%s: routing.js and routing.py disagree" % name)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [['n1[916 chars], [[[1293.75, 1430.0], [1240.0, 1430.0], [1240[341 chars]]]]]] != [['n1[916 chars], [[[2072.5, 1680.0], [2170.0, 1680.0], [2170.[341 chars]]]]]]
+
+First differing element 5:
+['n6', [[[1293.75, 1430.0], [1240.0, 1430.0], [1240[61 chars]0]]]]
+['n6', [[[2072.5, 1680.0], [2170.0, 1680.0], [2170.[61 chars]0]]]]
+
+Diff is 1895 characters long. Set self.maxDiff to None to see it. : untitled.dlg: routing.js and routing.py disagree
+
+----------------------------------------------------------------------
+Ran 12 tests in 14.475s
+
+FAILED (failures=2)

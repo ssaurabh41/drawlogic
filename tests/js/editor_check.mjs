@@ -40,6 +40,7 @@ const EXPECTED = [
   ["the step a wire is dragged on", 4],
   ["auto-connect on drop", 5],
   ["placing onto a pin", 6],
+  ["placing onto a wire end", 3],
   ["undo through a gesture", 5],
   ["duplicating a group", 6],
   ["stale answers", 8],
@@ -429,6 +430,47 @@ section("placing onto a pin");
   model.placeCell(doc, "inv", [out[0] + 45, out[1] + 8], false);
   check("with auto-connect off it is only placed", doc.nets.length === 0
         && doc.cells.length === 2, JSON.stringify(doc.nets));
+}
+
+// ---- placing onto a wire end ----
+section("placing onto a wire end");
+//
+// A wire that stops on nothing is a free pin too. Dropped near it, the cell
+// lands on the end and the wire is joined to it -- the same one gesture, with
+// the snap doing the aiming rather than auto-connect's six units.
+{
+  const gate = (id, x, y) => ({ id, type: "inv", x, y, w: 40, h: 30,
+                                rotate: 0, mirror: false });
+  const pin = (cell, name) =>
+    geometry.pinPosition(geometry.forCell(cell), cell, name, 1);
+  const end = { x: 200, y: 115, waypoints: [] };
+  const fresh = () => ({
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 10 } },
+    cells: [gate("a", 100, 100)],
+    // A fresh loose end each time: joining one rewrites it in place.
+    nets: [{ id: "n1", from: { cell: "a", pin: "y" },
+             to: [{ x: end.x, y: end.y, waypoints: [] }] }],
+    shapes: [], groups: [],
+  });
+
+  let doc = fresh();
+  const placed = model.placeCell(doc, "inv", [end.x + 45, end.y + 8]);
+  check("a cell let go near a loose wire end lands on it", doc.nets.length === 1
+        && doc.nets[0].to.length === 1 && doc.nets[0].to[0].cell === placed.cell.id
+        && doc.nets[0].to[0].pin === "a", JSON.stringify(doc.nets));
+  const driver = doc.nets[0].from;
+  const joinedAt = pin(placed.cell, "a");
+  check("the wire keeps its driver and reaches the new pin",
+        driver.cell === "a" && driver.pin === "y"
+        && Math.abs(joinedAt[0] - end.x) < 1e-9
+        && Math.abs(joinedAt[1] - end.y) < 1e-9,
+        `${JSON.stringify(driver)} ${joinedAt}`);
+
+  doc = fresh();
+  model.placeCell(doc, "inv", [end.x + 45, end.y + 8], false);
+  check("with auto-connect off the wire end is left alone",
+        doc.nets.length === 1 && doc.nets[0].to[0].x === end.x
+        && doc.nets[0].to[0].y === end.y, JSON.stringify(doc.nets));
 }
 
 // ---- dragging a wire by one of its runs ----

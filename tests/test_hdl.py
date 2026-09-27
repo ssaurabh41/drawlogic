@@ -448,5 +448,131 @@ class TestChoosingASynthesiser(unittest.TestCase):
     self.assertEqual(len([c for c in doc.cells if c["type"] == "dffr"]), 4)
 
 
+# ---- what the first review of the importer reported ------------------------
+
+# The Verilog of the first review's fixtures
+# (`docs/agent-work/latest-features-review/fixtures/`), written out here so
+# these tests stand on their own. The first two were refused outright at
+# 0f53171 -- `python -m drawlogic import` failed with
+# `line 5: cannot read 'else q <= d'` -- though both are ordinary sequential
+# Verilog; the third imported quietly with its expression thrown away.
+ALWAYS_ELSE = """\
+module seq2 (input clk, input rst, input d, output reg q);
+  always @(posedge clk)
+    if (rst) q <= 1'b0;
+    else q <= d;
+endmodule
+"""
+
+ALWAYS_CASE = """\
+module seq (input clk, input [1:0] sel, output reg q);
+  always @(posedge clk) begin
+    case (sel)
+      2'd0: q <= 1'b0;
+      default: q <= 1'b1;
+    endcase
+  end
+endmodule
+"""
+
+DECLARED_EXPRESSION = """\
+module cont (input a, input b, output y);
+  wire x = a & b;
+  buf g (y, x);
+endmodule
+"""
+
+ASSIGNED_EXPRESSION = """\
+module cont (input a, input b, output x);
+  assign x = a & b;
+endmodule
+"""
+
+
+class TestWhatTheFirstReviewReported(unittest.TestCase):
+  """The importer defects recorded in the first review, checked against the
+  drawing the importer makes now rather than against the warning it used to
+  raise. The warning-shaped probes that used to reproduce them are kept in
+  that review's directory as history; they fail here, and rightly so."""
+
+  def draw(self, text):
+    top, drawings, warnings = hdl.import_verilog(text, synth="builtin")
+    return drawings[top], warnings
+
+  def driver_of(self, doc, cell_id, pin):
+    """(source endpoint, net name) of whatever drives `cell_id`.`pin`."""
+    for net in doc.nets:
+      for end in net["to"]:
+        if end["cell"] == cell_id and end["pin"] == pin:
+          return net["from"], net["name"]
+    return None, None
+
+  def test_an_if_else_without_begin_end_computes_the_next_state(self):
+    doc, warnings = self.draw(ALWAYS_ELSE)
+    self.assertEqual(warnings, [])
+    types = {cell["id"]: cell["type"] for cell in doc.cells}
+    self.assertEqual(types.get("q_reg"), "dff")
+    _source, next_state = self.driver_of(doc, "q_reg", "d")
+    self.assertTrue(next_state, "the flip-flop's D pin is driven by nothing")
+    for rst in (0, 1):
+      for d in (0, 1):
+        self.assertEqual(simulate(doc, {"rst": rst, "d": d})[next_state],
+                         0 if rst else d, (rst, d))
+
+  def test_a_case_statement_is_drawn_and_the_drawing_validates(self):
+    doc, warnings = self.draw(ALWAYS_CASE)
+    self.assertEqual(warnings, [])
+    types = {cell["id"]: cell["type"] for cell in doc.cells}
+    self.assertEqual(types.get("q_reg"), "dff")
+    source, _net = self.driver_of(doc, "q_reg", "d")
+    # The next state is the `case`, not the clock or the selector itself.
+    self.assertNotIn(source["cell"], ("p_clk", "p_sel"), source)
+    registry = default_registry()
+    errors = [str(i) for i in list(doc.validate(registry))
+              + list(drc.check(doc, registry)) if i.level == "error"]
+    self.assertEqual(errors, [])
+
+  @unittest.expectedFailure
+  def test_an_expression_in_a_declaration_reaches_the_drawing(self):
+    """`wire x = a & b;` carries a driver, and the importer still reads it as
+    a plain declaration: the `&` is thrown away without a word and `x` is
+    left with nothing driving it. Written as an expected failure so that
+    fixing it turns this suite red rather than passing unnoticed."""
+    doc, warnings = self.draw(DECLARED_EXPRESSION)
+    self.assertEqual(warnings, [])
+    self.assertIn("and2", [cell["type"] for cell in doc.cells],
+                  "the `&` was dropped: %r"
+                  % sorted((c["id"], c["type"]) for c in doc.cells))
+
+  def test_the_same_logic_as_a_bare_assign_is_drawn(self):
+    """The positive control for the probe above: `assign x = a & b;` does
+    become a gate, so the missing one there is the declaration form being
+    misread, not logic the reader cannot draw."""
+    doc, warnings = self.draw(ASSIGNED_EXPRESSION)
+    self.assertEqual(warnings, [])
+    self.assertIn("and2", [cell["type"] for cell in doc.cells])
+    self.assertIn("x", [net["name"] for net in doc.nets])
+
+  def test_a_statement_after_a_behavioural_block_is_still_an_error(self):
+    """Reading behaviour must not quieten the reader: a module-level
+    statement it cannot read is still an error naming its line."""
+    text = ("module m (input clk, output reg y);\n"
+            "  always @(posedge clk) y <= 1'b1;\n"
+            "  oops nonsense;\n"
+            "endmodule\n")
+    with self.assertRaises(hdl.HdlError) as caught:
+      self.draw(text)
+    self.assertIn("line 3: cannot read 'oops nonsense'", str(caught.exception))
+
+  def test_an_initial_block_is_reported_and_left_out(self):
+    doc, warnings = self.draw("module m (input a, output y);\n"
+                              "  assign y = a;\n"
+                              "  initial $display(\"hi\");\n"
+                              "endmodule\n")
+    self.assertIn("m line 3: an initial block only sets up a simulation",
+                  " ".join(warnings))
+    self.assertEqual([c for c in doc.cells if c["type"] == "dff"], [])
+
+
 if __name__ == "__main__":
   unittest.main()

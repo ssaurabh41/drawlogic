@@ -518,13 +518,21 @@ the grid for that drawing with **Grid** in the toolbar.
 
 ### Auto-connect
 
-Drop a cell -- from the palette, or by dragging it -- so that one of its free
-pins lands on another cell's free pin, and the two are wired together, the
-way Logisim does it. A pin landing on a wire end that stops on nothing joins
-that wire too. Only pins with nothing on them are joined, cells dropped
-together are never joined to each other, and a pin has to land within about
-half a grid step of the other; the join is part of the same undo step as the
-drop, and the status bar says what was joined. Switch it off in Preferences.
+**From the palette, in one step.** Drag a part out of the palette, or click it
+and move over the sheet, and a dashed outline shows where it will land. Bring
+one of its pins near a free pin that faces it -- an input towards an output,
+or the other way round -- and the outline snaps into line with that pin, a
+short wire away, with the pin ringed and the wire drawn in. Let go and it is
+placed and wired, as one undo step. Away from any free pin it lands where it
+was let go, unwired.
+
+**Moving a cell already on the sheet** works the way Logisim does it: drop it
+so one of its free pins lands on another cell's free pin, or on a wire end
+that stops on nothing, and the two are joined. Only pins with nothing on them
+are joined, cells dropped together are never joined to each other, and a pin
+has to land within about half a grid step of the other.
+
+Either way the status bar says what was joined. Switch it off in Preferences.
 
 ### Renaming and the format painter
 

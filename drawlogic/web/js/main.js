@@ -13,7 +13,7 @@ import * as shortcuts from "./shortcuts.js";
 import * as render from "./render.js";
 import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
-import { makeTools } from "./tools.js";
+import { makeTools, placementPreview } from "./tools.js";
 import { Viewport } from "./viewport.js";
 
 const store = new model.Store();
@@ -265,19 +265,47 @@ function bindCanvas() {
   // Dropping a symbol from the palette. The drag gives a position the
   // click-then-click path never had, so the cell lands where it was let go
   // rather than where the next click happens to be.
+  //
+  // A drag only says what it carries on the drop, so the type is noted when
+  // it starts -- that is what lets the outline follow the pointer and snap to
+  // a pin before anything is let go.
+  let carrying = null;
+  ui.paletteBody.addEventListener("dragstart", (event) => {
+    const item = event.target.closest && event.target.closest(".palette-item");
+    carrying = item ? item.dataset.symbol : null;
+  });
+  const stopCarrying = () => {
+    carrying = null;
+    drawOverlay();
+  };
+  ui.paletteBody.addEventListener("dragend", stopCarrying);
+  ui.canvas.addEventListener("dragleave", (event) => {
+    if (!ui.canvas.contains(event.relatedTarget)) drawOverlay();
+  });
+
   ui.canvas.addEventListener("dragover", (event) => {
     if (![...event.dataTransfer.types].includes("application/x-drawlogic-symbol")) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
+    if (carrying && store.doc) {
+      drawOverlay(placementPreview(store.doc, carrying,
+                                   viewport.toDoc(event.clientX, event.clientY)));
+    }
   });
 
   ui.canvas.addEventListener("drop", (event) => {
     const type = event.dataTransfer.getData("application/x-drawlogic-symbol");
     if (!type) return;
     event.preventDefault();
+    stopCarrying();
     const point = viewport.toDoc(event.clientX, event.clientY);
-    const cell = store.mutate("place",
-                              (doc) => model.addCell(doc, type, point[0], point[1]));
+    let joined = [];
+    const cell = store.mutate("place", (doc) => {
+      // Placed and wired in one step, so one undo takes both back.
+      const placed = model.placeCell(doc, type, point, prefs.get("autoConnect"));
+      joined = placed.joined;
+      return placed.cell;
+    });
     if (!cell) {
       say(`could not place ${type}`, "bad");
       return;
@@ -287,7 +315,8 @@ function bindCanvas() {
     setTool("select");
     redraw();
     inspector.render();
-    say(`placed ${cell.label || cell.type}`, "good");
+    say(joined.length ? `placed ${cell.label || cell.type}; joined ${joined.join(", ")}`
+                      : `placed ${cell.label || cell.type}`, "good");
   });
 
   // Every mouse release anywhere in the window, because a drag that started

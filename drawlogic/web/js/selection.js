@@ -148,6 +148,23 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     }));
   }
 
+  // Where a cell being placed will land: its outline, and the pin it has
+  // snapped to ringed, so the join can be judged before letting go.
+  if (options.ghost) {
+    const [gx, gy, gw, gh] = options.ghost.box;
+    layer.appendChild(el("rect", {
+      class: "dl-ghost", x: gx, y: gy, width: gw, height: gh,
+      "stroke-width": 1.2 / zoom,
+      "stroke-dasharray": `${4 / zoom} ${3 / zoom}`,
+    }));
+    if (options.ghost.target) {
+      const [tx, ty] = options.ghost.target;
+      layer.appendChild(el("circle", {
+        class: "dl-pin active", cx: tx, cy: ty, r: 5 / zoom, "stroke-width": 1.4 / zoom,
+      }));
+    }
+  }
+
   if (options.wirePreview && options.wirePreview.length > 1) {
     layer.appendChild(el("path", {
       class: "dl-wire-preview",

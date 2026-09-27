@@ -773,5 +773,8 @@ select {
   border-radius: var(--radius); box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
 }
 
+/* A cell being placed, before it is let go. */
+.dl-ghost { fill: none; stroke: var(--accent); pointer-events: none; }
+
 /* The format painter is armed: the next click takes the copied style. */
 #canvas.painting, #canvas.painting * { cursor: copy !important; }

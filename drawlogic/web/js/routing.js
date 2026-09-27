@@ -8,6 +8,8 @@ import * as geometry from "./geometry.js";
 
 const STUB = 12;
 const EPSILON = 1e-6;
+// One more line of a wrapped instance name; routing.py's LABEL_LINE.
+const LABEL_LINE = 16;
 
 // Cell types that stand for the edge of the sheet rather than for a part.
 const PORT_CATEGORY = "ports";
@@ -119,10 +121,15 @@ export function obstacleBoxes(doc, exclude = new Set()) {
       .map(([px, py]) => matrix.apply(px, py));
     const xs = points.map((p) => p[0]);
     const ys = points.map((p) => p[1]);
+    // A name that wraps reaches a line higher per extra line, as in
+    // routing.py; without it a wire dragged here ran through the second line
+    // of a long name that the exported file routed around.
+    const lines = cell.label ? geometry.labelLines(cell.label).length : 0;
     boxes.push([
       Math.min(...xs) - limits.wireToCell,
-      Math.min(...ys) - (cell.label ? limits.labelHeadroom + limits.textToWire
-                                    : limits.wireToCell),
+      Math.min(...ys) - (lines ? limits.labelHeadroom + limits.textToWire
+                                 + (lines - 1) * LABEL_LINE
+                               : limits.wireToCell),
       Math.max(...xs) + limits.wireToCell, Math.max(...ys) + limits.wireToCell,
     ]);
   }
@@ -296,12 +303,16 @@ export function stubFor(doc, endpoint) {
   return limits.portStub;
 }
 
+// Two points are one when they agree to three places, as routing.py's _key
+// has it. Comparing within EPSILON instead kept a point a thousandth away as
+// a separate vertex, so the canvas could draw a jog the export did not have.
+const pointKey = (point) => `${Math.round(point[0] * 1000)},${Math.round(point[1] * 1000)}`;
+
 export function clean(points) {
   const out = [];
   for (const point of points) {
     const last = out[out.length - 1];
-    if (last && Math.abs(last[0] - point[0]) < EPSILON
-        && Math.abs(last[1] - point[1]) < EPSILON) continue;
+    if (last && pointKey(last) === pointKey(point)) continue;
     out.push(point);
   }
   if (out.length < 3) return out;

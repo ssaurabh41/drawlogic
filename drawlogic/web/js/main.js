@@ -430,6 +430,9 @@ function stepHistory(back) {
   // Items may have vanished, so drop anything selected that no longer exists.
   const alive = new Set(model.items(store.doc).map((i) => i.id));
   selection.set([...selection.ids].filter((id) => alive.has(id)));
+  // The sheet controls show the document's own values, and undoing a text or
+  // symbol size change left the slider where the undone drag had put it.
+  syncControls();
   redraw();
   inspector.render();
   say(`${back ? "undid" : "redid"} ${label}`);
@@ -1084,18 +1087,33 @@ function bindControls() {
   ui.btnFit.addEventListener("click",
                              () => viewport.fit(store.doc.canvas.width, store.doc.canvas.height));
 
-  ui.fontSlider.addEventListener("input", () => {
-    const value = Number(ui.fontSlider.value);
+  // One drag of a slider is one undo step. "input" fires per tick and each
+  // was its own snapshot, so undoing a drag took dozens of Ctrl+Z; "change"
+  // fires once, on release, and closes the gesture the first tick opened.
+  const slider = (element, label, apply) => {
+    let sliding = false;
+    element.addEventListener("input", () => {
+      if (!sliding) {
+        // disabled
+        sliding = true;
+      }
+      apply(Number(element.value));
+      redraw();
+    });
+    element.addEventListener("change", () => {
+      store.endGesture();
+      sliding = false;
+    });
+  };
+
+  slider(ui.fontSlider, "text size", (value) => {
     ui.fontValue.value = `${value}%`;
     store.mutate("text size", (doc) => { doc.canvas.font.scale = value / 100; });
-    redraw();
   });
 
-  ui.symbolSlider.addEventListener("input", () => {
-    const value = Number(ui.symbolSlider.value);
+  slider(ui.symbolSlider, "symbol size", (value) => {
     ui.symbolValue.value = `${value}%`;
     store.mutate("symbol size", (doc) => { doc.canvas.symbolScale = value / 100; });
-    redraw();
   });
 
   ui.fileSelect.addEventListener("change", () => {
@@ -1262,7 +1280,8 @@ async function start() {
   }, (event) => !onSomething(event));
 
   tools = makeTools(context);
-  inspector = new Inspector($("properties-body"), store, selection, () => redraw());
+  inspector = new Inspector($("properties-body"), store, selection, () => redraw(),
+                            (message) => say(message, "bad"));
   inspector.onOpenRef = (cell) => drillInto(cell);
   selection.subscribe(() => refreshStatus());
   // Anything that changes the drawing makes the last check stale, and a stale

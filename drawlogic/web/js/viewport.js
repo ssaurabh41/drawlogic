@@ -125,8 +125,14 @@ export class Viewport {
     }, { passive: false });
 
     window.addEventListener("keydown", (event) => {
-      if (event.code === "Space" && !event.repeat
-          && event.target === document.body) {
+      if (event.code === "Space" && !event.repeat && !typingIn(event.target)) {
+        // Only while typing does Space belong to something else. It used to
+        // need focus on the page itself, so after clicking any toolbar
+        // button it stopped panning until the canvas was clicked. A focused
+        // button would take Space as a click, so it gives the focus up.
+        if (event.target !== document.body && event.target.blur) {
+          event.target.blur();
+        }
         this.spaceHeld = true;
         this.svg.classList.add("grabbable");
         event.preventDefault();
@@ -141,4 +147,11 @@ export class Viewport {
 
     window.addEventListener("resize", () => this.apply());
   }
+}
+
+function typingIn(target) {
+  if (!target || !target.tagName) return false;
+  const tag = target.tagName.toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select"
+    || target.isContentEditable === true;
 }

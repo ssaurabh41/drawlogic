@@ -241,11 +241,12 @@ export function clearPaletteSelection(root) {
 // ---- properties ----
 
 export class Inspector {
-  constructor(root, store, selection, onChange) {
+  constructor(root, store, selection, onChange, onRefuse = () => {}) {
     this.root = root;
     this.store = store;
     this.selection = selection;
     this.onChange = onChange;
+    this.onRefuse = onRefuse;
   }
 
   render() {
@@ -286,8 +287,21 @@ export class Inspector {
     let committed = field.value;
     field.addEventListener("change", () => {
       if (field.value === committed) return;
+      let accepted = false;
+      this.store.mutate(label, (doc) => {
+        const result = apply(doc, field.value);
+        accepted = result !== false;
+        return result;
+      });
+      // A value the document refused -- a width of "abc" -- used to stay in
+      // the box as if it had been taken, and typing it again did nothing
+      // because it already matched. Put back what the drawing holds.
+      if (!accepted) {
+        this.onRefuse(`"${field.value}" is not a usable value`);
+        field.value = committed;
+        return;
+      }
       committed = field.value;
-      this.store.mutate(label, (doc) => apply(doc, field.value));
       this.onChange();
     });
     return field;
@@ -298,7 +312,7 @@ export class Inspector {
       if (item[key] === undefined) continue;
       const field = input(Math.round(item[key]), "number");
       this.bind(field, (doc, value) => {
-        const number = Number(value);
+        const number = numberFrom(value);
         if (!Number.isFinite(number)) return false;
         const target = model.itemById(doc, item.id);
         if (target) {
@@ -459,8 +473,11 @@ export class Inspector {
     const weight = input(first.strokeWidth || 1.6, "number");
     weight.step = "0.1";
     weight.min = "0.2";
-    this.bind(weight, (doc, value) =>
-      model.setStyle(doc, this.selection.ids, "strokeWidth", Number(value)), "weight");
+    this.bind(weight, (doc, value) => {
+      const number = numberFrom(value);
+      if (!(number > 0)) return false;
+      model.setStyle(doc, this.selection.ids, "strokeWidth", number);
+    }, "weight");
     root.appendChild(row("Weight", weight));
   }
 
@@ -511,7 +528,7 @@ export class Inspector {
     for (const [key, label] of [["width", "Sheet W"], ["height", "Sheet H"]]) {
       const field = input(doc.canvas[key], "number");
       this.bind(field, (d, value) => {
-        const number = Number(value);
+        const number = numberFrom(value);
         if (!Number.isFinite(number) || number < 50) return false;
         d.canvas[key] = number;
       }, "sheet");
@@ -521,7 +538,7 @@ export class Inspector {
     const step = input(model.gridStep(doc), "number");
     step.min = "1";
     this.bind(step, (d, value) => {
-      const number = Number(value);
+      const number = numberFrom(value);
       if (!Number.isFinite(number) || number < 1) return false;
       d.canvas.grid.size = number;
     }, "grid");
@@ -537,4 +554,11 @@ export class Inspector {
     });
     root.appendChild(row("Arrows", arrows));
   }
+}
+
+// A number field holding anything but a number reports "", and Number("") is
+// 0 -- so clearing the X box moved the cell to the edge of the sheet, and
+// clearing the weight drew its lines at width 0. Blank is not a number.
+function numberFrom(value) {
+  return String(value).trim() === "" ? NaN : Number(value);
 }

@@ -229,6 +229,29 @@ class TestRouterParity(unittest.TestCase):
         self.assertEqual(actual, expected,
                          "%s: routing.js and routing.py disagree" % name)
 
+  def test_a_wire_past_a_wrapped_name_routes_the_same_in_both(self):
+    """routing.js kept room above a cell for one line of its name, routing.py
+    for as many as the name wraps to -- and no example has a name long enough
+    to wrap, so the parity check above could not see it. This wire runs level
+    with the second line of such a name."""
+    doc = new_document("wrapped", 700, 400)
+    doc.cells.append({"id": "g", "type": "and2", "x": 300, "y": 200,
+                      "label": "a_very_long_instance_name_that_wraps"})
+    doc.nets.append({"id": "n", "from": {"x": 50, "y": 165},
+                     "to": [{"x": 650, "y": 165}]})
+    doc.normalize()
+    registry = default_registry()
+    routes = routing.route_all(doc, registry)
+    self.assertGreater(len(routes[0][1][0]), 2,
+                       "the wire went straight, so the name is not in its way "
+                       "and this proves nothing")
+    with tempfile.TemporaryDirectory() as folder:
+      path = os.path.join(folder, "wrapped.dlg")
+      doc.save(path)
+      browser = _browser_result(path, registry)
+    self.assertEqual([[i, _rounded(b)] for i, b in browser["routes"]],
+                     [["n", _rounded(routes[0][1])]])
+
   def test_every_example_dots_and_bridges_the_same(self):
     for name, path in self.examples():
       with self.subTest(example=name):

@@ -1,0 +1,87 @@
+test_a_case_statement_is_a_warning (probe_hdl.TestBehaviourIsWarnedNotRefused.test_a_case_statement_is_a_warning) ... FAIL
+test_an_expression_in_a_declaration_is_a_warning (probe_hdl.TestBehaviourIsWarnedNotRefused.test_an_expression_in_a_declaration_is_a_warning) ... FAIL
+test_an_if_else_is_a_warning (probe_hdl.TestBehaviourIsWarnedNotRefused.test_an_if_else_is_a_warning) ... FAIL
+test_a_flat_netlist_round_trips_clean (probe_hdl.TestTheDrawingSaysWhatTheVerilogSays.test_a_flat_netlist_round_trips_clean) ... ok
+test_layout_refuses_and_says_which (probe_layout_pin.TestDuplicateIds.test_layout_refuses_and_says_which) ... ok
+test_the_drcs_stop_rather_than_guess (probe_layout_pin.TestDuplicateIds.test_the_drcs_stop_rather_than_guess) ... ok
+test_a_pinned_cell_is_never_moved (probe_layout_pin.TestSelectionKeepsTheRest.test_a_pinned_cell_is_never_moved) ... ok
+test_a_selection_layout_leaves_a_valid_drawing (probe_layout_pin.TestSelectionKeepsTheRest.test_a_selection_layout_leaves_a_valid_drawing) ... ok
+test_a_selection_layout_takes_the_grid_back_to_tidy_first (probe_layout_pin.TestSelectionKeepsTheRest.test_a_selection_layout_takes_the_grid_back_to_tidy_first)
+Two runs of the same selection layout must agree, the way the whole ... ok
+test_an_unknown_only_name_changes_nothing (probe_layout_pin.TestSelectionKeepsTheRest.test_an_unknown_only_name_changes_nothing) ... ok
+test_the_cells_outside_a_selection_are_never_moved (probe_layout_pin.TestSelectionKeepsTheRest.test_the_cells_outside_a_selection_are_never_moved) ... ok
+test_a_save_that_cannot_be_renamed_leaves_the_old_file_and_no_litter (probe_save.TestAtomicSave.test_a_save_that_cannot_be_renamed_leaves_the_old_file_and_no_litter) ... ok
+test_the_mode_is_kept_as_the_platform_reports_it (probe_save.TestAtomicSave.test_the_mode_is_kept_as_the_platform_reports_it)
+The docstring promises the save does not change who can read the file. ... ok
+test_the_posting_style_write_of_the_editor_makes_one_backup (probe_save.TestAtomicSave.test_the_posting_style_write_of_the_editor_makes_one_backup) ... ok
+test_saving_a_document_makes_a_backup_beside_it (probe_save.TestDocumentSaveUsesIt.test_saving_a_document_makes_a_backup_beside_it) ... ok
+
+======================================================================
+FAIL: test_a_case_statement_is_a_warning (probe_hdl.TestBehaviourIsWarnedNotRefused.test_a_case_statement_is_a_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 42, in test_a_case_statement_is_a_warning
+    _top, _drawings, warnings = self.imported("always_case.v")
+                                ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 38, in imported
+    return hdl.import_verilog(read(name), default_registry())
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Work\claude_code\project\drawlogic-latest\drawlogic\hdl.py", line 583, in import_verilog
+    parsed = parse(text)
+  File "D:\Work\claude_code\project\drawlogic-latest\drawlogic\hdl.py", line 280, in parse
+    _parse_body(module, clean, cursor, finish.start())
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Work\claude_code\project\drawlogic-latest\drawlogic\hdl.py", line 321, in _parse_body
+    raise HdlError("line %d: cannot read %r" % (line, " ".join(words[:6])))
+drawlogic.hdl.HdlError: line 8: cannot read "default: q <= 1'b1"
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 44, in test_a_case_statement_is_a_warning
+    self.fail("refused the file instead of warning: %s" % exc)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: refused the file instead of warning: line 8: cannot read "default: q <= 1'b1"
+
+======================================================================
+FAIL: test_an_expression_in_a_declaration_is_a_warning (probe_hdl.TestBehaviourIsWarnedNotRefused.test_an_expression_in_a_declaration_is_a_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 58, in test_an_expression_in_a_declaration_is_a_warning
+    self.assertTrue(any("x" in w for w in warnings),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "wire x = a & b; was dropped without a word: %r" % warnings)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : wire x = a & b; was dropped without a word: []
+
+======================================================================
+FAIL: test_an_if_else_is_a_warning (probe_hdl.TestBehaviourIsWarnedNotRefused.test_an_if_else_is_a_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 50, in test_an_if_else_is_a_warning
+    _top, _drawings, warnings = self.imported("always_else.v")
+                                ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 38, in imported
+    return hdl.import_verilog(read(name), default_registry())
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Work\claude_code\project\drawlogic-latest\drawlogic\hdl.py", line 583, in import_verilog
+    parsed = parse(text)
+  File "D:\Work\claude_code\project\drawlogic-latest\drawlogic\hdl.py", line 280, in parse
+    _parse_body(module, clean, cursor, finish.start())
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Work\claude_code\project\drawlogic-latest\drawlogic\hdl.py", line 321, in _parse_body
+    raise HdlError("line %d: cannot read %r" % (line, " ".join(words[:6])))
+drawlogic.hdl.HdlError: line 5: cannot read 'else q <= d'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Work\claude_code\project\drawlogic-latest\docs\agent-work\latest-features-review\probe_hdl.py", line 52, in test_an_if_else_is_a_warning
+    self.fail("refused the file instead of warning: %s" % exc)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: refused the file instead of warning: line 5: cannot read 'else q <= d'
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.441s
+
+FAILED (failures=3)

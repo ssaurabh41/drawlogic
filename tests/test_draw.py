@@ -119,6 +119,80 @@ class TestRouting(unittest.TestCase):
     self.assertAlmostEqual(points[-1][1], 200)
 
 
+def _through_body(points, box):
+  """Does the path run through the inside of `box` (a body, x0 y0 x1 y1)?
+  Touching its edge -- where the pins are -- does not count."""
+  x0, y0, x1, y1 = box
+  for (ax, ay), (bx, by) in zip(points, points[1:]):
+    lo_x, hi_x = sorted((ax, bx))
+    lo_y, hi_y = sorted((ay, by))
+    if (min(hi_x, x1) - max(lo_x, x0) > 0.5 and y0 < ay < y1
+        and ay == by):
+      return True
+    if (min(hi_y, y1) - max(lo_y, y0) > 0.5 and x0 < ax < x1
+        and ax == bx):
+      return True
+  return False
+
+
+class TestFeedbackLoops(unittest.TestCase):
+  """A gate's output wired back into the flip-flop that feeds it.
+
+  The flip-flop's D and Q sit on one row and so do the gate's pins, so the
+  two stub ends of the loop face away from each other on that row. The
+  straight line between them was taken as the route: back through the gate,
+  back through the flip-flop, and along the Q wire the other way -- a short
+  the DRCs reported on every imported counter.
+  """
+
+  def loop(self):
+    doc = new_document("loop", 700, 300)
+    doc.cells.append({"id": "ff", "type": "dff", "x": 235, "y": 115})
+    doc.cells.append({"id": "g", "type": "inv", "x": 425, "y": 110})
+    doc.cells.append({"id": "k", "type": "port_in", "x": 105, "y": 150,
+                      "label": "clk"})
+    doc.nets.append({"id": "q", "from": {"cell": "ff", "pin": "q"},
+                     "to": {"cell": "g", "pin": "a"}})
+    doc.nets.append({"id": "back", "from": {"cell": "g", "pin": "y"},
+                     "to": {"cell": "ff", "pin": "d"}})
+    doc.nets.append({"id": "clk", "from": {"cell": "k", "pin": "p"},
+                     "to": {"cell": "ff", "pin": "ck"}})
+    doc.normalize()
+    return doc
+
+  def test_the_wire_back_goes_round_both_cells(self):
+    doc = self.loop()
+    registry = default_registry()
+    routes = dict((net["id"], branches)
+                  for net, branches in routing.route_all(doc, registry))
+    [points] = routes["back"]
+    bodies = dict(zip([c["id"] for c in doc.cells],
+                      routing.body_boxes(doc, registry)))
+    for cell_id in ("ff", "g"):
+      self.assertFalse(_through_body(points, bodies[cell_id]),
+                       "the loop runs through %s: %r" % (cell_id, points))
+
+  def test_the_loop_passes_the_drcs(self):
+    doc = self.loop()
+    registry = default_registry()
+    errors = [str(v) for v in drc.check(doc, registry) if v.level == "error"]
+    self.assertEqual(errors, [])
+
+  def test_a_line_touching_another_nets_wire_end_is_not_free(self):
+    """Half a unit past the end of another net's stub is on it, as far as
+    the DRCs are concerned; the router used to call it free."""
+    sheet = routing.Sheet()
+    sheet.reserve(frozenset([("ff", "rn")]), [(750.0, 380.0), (750.0, 392.0)],
+                  "reset")
+    view = sheet.for_net((), frozenset([("g", "y")]), "other")
+    self.assertFalse(view.free(True, 392.5, 300.0, 800.0, False,
+                               routing.TOUCHING))
+    self.assertFalse(view.free(False, 750.5, 300.0, 400.0, False,
+                               routing.TOUCHING))
+    self.assertTrue(view.free(True, 400.0, 300.0, 800.0, False,
+                              routing.TOUCHING))
+
+
 class TestJunctions(unittest.TestCase):
 
   def test_branch_gets_a_dot(self):

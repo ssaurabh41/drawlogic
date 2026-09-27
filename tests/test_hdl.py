@@ -388,6 +388,68 @@ class TestBehaviour(unittest.TestCase):
     self.assertEqual(len([c for c in doc.cells if c["type"] == "dffr"]), 4)
 
 
+FEEDBACK = {
+  "accumulate": """\
+module acc (input clk, input rst_n, input en, input [1:0] d, output reg [1:0] s);
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) s <= 2'd0;
+    else if (en) s <= s ^ d;
+endmodule
+""",
+  "state machine": """\
+module fsm (input clk, input rst_n, input a, input b, output reg [1:0] st,
+            output busy);
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) st <= 2'd0;
+    else case (st)
+      2'd0: if (a) st <= 2'd1;
+      2'd1: if (b) st <= 2'd2; else st <= 2'd0;
+      2'd2: st <= 2'd3;
+      default: st <= 2'd0;
+    endcase
+  assign busy = st[0] | st[1];
+endmodule
+""",
+  "mixed": """\
+module mix (input clk, rst_n, en, sel, input [1:0] a, b, input go,
+            output [1:0] y, output reg [1:0] r, output reg busy);
+  reg state;
+  assign y = sel ? a : b;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) r <= 2'b00;
+    else if (en) r <= a ^ b;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) state <= 1'b0;
+    else case (state)
+      1'b0: if (go) state <= 1'b1;
+      1'b1: if (!go) state <= 1'b0;
+    endcase
+  always @(*) begin
+    busy = 1'b0;
+    if (state) busy = 1'b1;
+  end
+endmodule
+""",
+}
+
+
+class TestFeedbackIsDrawnCleanly(unittest.TestCase):
+  """Registers whose next state depends on themselves: every one is a wire
+  looping back from a gate to the flip-flop feeding it. These drew with
+  wire shorts and wires across cells until the router learned to go round
+  a loop rather than straight back through it."""
+
+  def test_each_design_passes_the_drcs(self):
+    registry = default_registry()
+    for name, text in sorted(FEEDBACK.items()):
+      with self.subTest(design=name):
+        top, drawings, _warnings = hdl.import_verilog(text, synth="builtin")
+        doc = drawings[top]
+        errors = [str(v) for v in drc.check(doc, registry)
+                  if v.level == "error"]
+        self.assertEqual(errors, [])
+
+
 @unittest.skipUnless(yosys.available(), "yosys is not installed")
 class TestYosys(unittest.TestCase):
 

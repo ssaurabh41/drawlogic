@@ -25,9 +25,12 @@ def _export(argv):
 def _wired_document(title, **canvas):
   doc = new_document(title)
   doc.data["canvas"].update(canvas)
+  # a drives b, and their pins face each other. (These were once the other
+  # way round, which looked clean only while the router drew the wire
+  # straight back through both ports.)
   doc.cells.extend([
-    {"id": "a", "type": "port_out", "x": 10, "y": 10},
-    {"id": "b", "type": "port_in", "x": 200, "y": 10},
+    {"id": "a", "type": "port_in", "x": 30, "y": 30},
+    {"id": "b", "type": "port_out", "x": 200, "y": 30},
   ])
   doc.nets.append({
     "id": "n1", "name": "sig", "width": 1,

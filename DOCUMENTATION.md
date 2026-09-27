@@ -1162,16 +1162,24 @@ drawn at the same weight as wires, so the joint reads as one continuous line
 rather than two lines meeting.
 
 **Clear every cell.** No leg of a route is drawn without checking it misses
-every cell the net is not connected to -- including a run that happens to be
-dead straight, which is where a wire is most likely to be quietly laid across
-a block. When the straight line is blocked the router sidesteps around it.
+every cell -- including a run that happens to be dead straight, which is
+where a wire is most likely to be quietly laid across a block. Past the pin
+stubs that includes the cells the net connects to, so a feedback wire (a
+gate's output back into the flip-flop feeding it) goes round both rather than
+straight back through them. When the straight line is blocked the router
+sidesteps around it; when both ways round a single corner are blocked -- a
+reset wire to the `rn` pin of a flip-flop in a crowded column -- it tries a
+column and a row of its own before giving up.
 
 **Stay off other wires.** Nets are routed in document order and each one
 remembers where it ran, so a later wire prefers a corridor that neither
 shadows nor crosses an earlier one. Wires that share a pin are exempt: a
 fanned-out clock is *meant* to lie on top of itself and show up as one rail
 with junction dots. Both are preferences -- in a crowded drawing the router
-falls back to any corridor that clears the cells.
+falls back to any corridor that clears the cells, after first trying for one
+that avoids the two things the DRCs call a short: lying within half a unit of
+another net, and passing across the end of another net's wire, which draws a
+junction dot.
 
 Order therefore matters: the first net stated gets the straightest run. Drag a
 wire to add a waypoint the route must pass through, which is the way to draw
@@ -1650,7 +1658,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-458 tests, in fifteen parts:
+463 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|

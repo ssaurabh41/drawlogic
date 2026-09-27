@@ -205,8 +205,18 @@ export class Sheet {
       if (netId !== null && netId === this.net) return false;
       for (const key of keys) if (this.keys.has(key)) return false;
       if (runH === horizontal) {
-        if (Math.abs(runFixed - fixed) >= gap) return false;
+        // Within touching is on top, whatever gap was asked for: the DRCs
+        // call that a short. Mirrors routing.py.
+        const distance = Math.abs(runFixed - fixed);
+        if (distance >= gap && distance > limits.touching) return false;
         return !(hi + EPSILON < runLo || lo - EPSILON > runHi);
+      }
+      // Another net's wire stopping on this line reads as a junction, whether
+      // crossings are counted or not.
+      const t = limits.touching;
+      if (lo - t <= runFixed && runFixed <= hi + t
+          && (Math.abs(runLo - fixed) <= t || Math.abs(runHi - fixed) <= t)) {
+        return true;
       }
       return crossings && runLo + EPSILON < fixed && fixed < runHi - EPSILON
         && lo < runFixed && runFixed < hi;
@@ -463,7 +473,11 @@ function routeCorner(a, b, aDir, bDir, sheet, aHorizontal) {
   for (const corner of clear) {
     if (legFree(a, corner, sheet) && legFree(corner, b, sheet)) return [a, corner, b];
   }
-  if (!clear.length) return [a, alongA, b];
+  if (!clear.length) {
+    const around = aHorizontal ? detour(a, b, bDir, sheet)
+      : (detour(b, a, aDir, sheet) || []).reverse();
+    return around && around.length ? around : [a, alongA, b];
+  }
 
   const [side, facing, other] = aHorizontal ? [a, aDir, b] : [b, bDir, a];
   const x = legColumn(side, facing[0], other[1], sheet);
@@ -473,6 +487,39 @@ function routeCorner(a, b, aDir, bDir, sheet, aHorizontal) {
     return [a, [x, a[1]], [x, b[1]], b];
   }
   return [a, clear[0], b];
+}
+
+// A corner route for when neither single corner is clear: out of `side`
+// (facing sideways) to a column of its own, along a row level with or beyond
+// `end` (facing up or down), and into it -- the way round a crowded
+// flip-flop, rather than through it. Mirrors routing.py.
+function detour(side, end, endDir, sheet) {
+  const { boxes } = sheet;
+  const middle = (side[0] + end[0]) / 2;
+  const columns = [middle, side[0], end[0]];
+  for (let step = 1; step <= limits.corridorTries; step += 1) {
+    for (const base of [middle, side[0], end[0]]) {
+      columns.push(base + step * limits.corridorStep,
+                   base - step * limits.corridorStep);
+    }
+  }
+  let fallback = null;
+  for (let step = 0; step <= limits.corridorTries; step += 1) {
+    const y = end[1] + step * limits.corridorStep * endDir[1];
+    // The leg into `end` does not depend on the column, and only grows.
+    if (!verticalClear(end[0], y, end[1], boxes)) break;
+    for (const x of columns) {
+      const points = [side, [x, side[1]], [x, y], [end[0], y], end];
+      if (![0, 1, 2, 3].every((i) => legClear(points[i], points[i + 1], boxes))) {
+        continue;
+      }
+      if ([0, 1, 2, 3].every((i) => legFree(points[i], points[i + 1], sheet))) {
+        return points;
+      }
+      fallback = fallback || points;
+    }
+  }
+  return fallback;
 }
 
 function legFree(p, q, sheet) {
@@ -699,8 +746,12 @@ function branchTo(doc, net, load, start, startDir, sheet, keys, fromPin = true) 
     }
     const others = new Set(doc.cells.map((cell) => cell.id)
       .filter((id) => !exclude.has(id)));
-    const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id,
-                              bodyBoxes(doc, others));
+    // Between the stub ends the net's own cells are in the way like any
+    // other; leaving them out let a feedback wire run straight back through
+    // the gate and the flip-flop it loops round. Mirrors routing.py.
+    const own = bodyBoxes(doc, others);
+    const view = sheet.forNet([...obstacleBoxes(doc, exclude), ...own], keys,
+                              net.id, own);
     return clean(directRoute(start, end, startDir,
                              endpointDirection(doc, load), view,
                              fromPin ? stubFor(doc, net.from) : 0,

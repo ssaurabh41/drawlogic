@@ -355,21 +355,33 @@ class Sheet:
     for key in range(int((fixed - gap) // RUN_BUCKET),
                      int((fixed + gap) // RUN_BUCKET) + 1):
       nearby.extend(self._lines.get((horizontal, key), ()))
-    if crossings:
-      for key in range(int(lo // RUN_BUCKET), int(hi // RUN_BUCKET) + 1):
-        nearby.extend(self._lines.get((not horizontal, key), ()))
+    # Runs across this line are always looked at, crossings or not: one
+    # that stops on it is a T, which is drawn as a connection.
+    for key in range(int((lo - TOUCHING) // RUN_BUCKET),
+                     int((hi + TOUCHING) // RUN_BUCKET) + 1):
+      nearby.extend(self._lines.get((not horizontal, key), ()))
     for net_id, keys, run_h, run_fixed, run_lo, run_hi in nearby:
       # A net never crowds itself, and neither does anything sharing a pin
       # with it: two wires off one pin are one signal, drawn as one rail.
       if (net_id is not None and net_id == self._net) or (keys & self._keys):
         continue
       if run_h == horizontal:
-        if abs(run_fixed - fixed) >= gap:
+        # Within TOUCHING is on top, whatever gap was asked for: the DRCs
+        # call that a short, so the router must not call it free.
+        distance = abs(run_fixed - fixed)
+        if distance >= gap and distance > TOUCHING:
           continue
         # Meeting end to end counts: two unrelated wires that share a single
         # point are drawn with a junction dot, which says they are connected.
         if hi + EPSILON < run_lo or lo - EPSILON > run_hi:
           continue
+        return False
+      # Another net's wire stopping on this line reads as a junction. (This
+      # line's own ends are not asked about: an end here is often only where
+      # the path carries straight on into a stub.)
+      if (lo - TOUCHING <= run_fixed <= hi + TOUCHING
+          and (abs(run_lo - fixed) <= TOUCHING
+               or abs(run_hi - fixed) <= TOUCHING)):
         return False
       if crossings and run_lo + EPSILON < fixed < run_hi - EPSILON \
           and lo < run_fixed < hi:
@@ -649,7 +661,12 @@ def _route_corner(a, b, a_dir, b_dir, sheet, a_horizontal):
     if _leg_free(a, corner, sheet) and _leg_free(corner, b, sheet):
       return [a, corner, b]
   if not clear:
-    return [a, along_a, b]
+    if a_horizontal:
+      around = _detour(a, b, b_dir, sheet)
+    else:
+      around = _detour(b, a, a_dir, sheet)
+      around = around[::-1] if around else None
+    return around or [a, along_a, b]
 
   side, facing, other = (a, a_dir, b) if a_horizontal else (b, b_dir, a)
   x = _leg_column(side, facing[0], other[1], sheet)
@@ -658,6 +675,40 @@ def _route_corner(a, b, a_dir, b_dir, sheet, a_horizontal):
       and _leg_free((x, other[1]), other, sheet)):
     return [a, (x, a[1]), (x, b[1]), b]
   return [a, clear[0], b]
+
+
+def _detour(side, end, end_dir, sheet):
+  """A corner route for when neither single corner is clear: out of `side`
+  (which faces sideways) to a column of its own, along a row level with or
+  beyond `end` (which faces up or down), and into it.
+
+  This is the way round a crowded flip-flop: a reset wire coming to an `rn`
+  pin underneath found both corners blocked -- one by the flip-flop's own
+  body, now that the net's own cells count, the other by a neighbour -- and
+  used to be drawn straight through the body. The first shape that is clear
+  and lies on no other wire wins, else the first clear one; None if no shape
+  within reach is clear."""
+  boxes = sheet.boxes
+  middle = (side[0] + end[0]) / 2.0
+  columns = [middle, side[0], end[0]]
+  for step in range(1, CORRIDOR_TRIES + 1):
+    for base in (middle, side[0], end[0]):
+      columns += [base + step * CORRIDOR_STEP, base - step * CORRIDOR_STEP]
+  fallback = None
+  for step in range(CORRIDOR_TRIES + 1):
+    y = end[1] + step * CORRIDOR_STEP * end_dir[1]
+    # The leg into `end` does not depend on the column, and only grows.
+    if not _vertical_clear(end[0], y, end[1], boxes):
+      break
+    for x in columns:
+      points = [side, (x, side[1]), (x, y), (end[0], y), end]
+      if not all(_leg_clear(points[i], points[i + 1], boxes)
+                 for i in range(4)):
+        continue
+      if all(_leg_free(points[i], points[i + 1], sheet) for i in range(4)):
+        return points
+      fallback = fallback or points
+  return fallback
 
 
 def _leg_free(p, q, sheet):
@@ -928,7 +979,12 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
       if isinstance(endpoint, dict) and "cell" in endpoint:
         exclude.add(endpoint["cell"])
     boxes, own, _bodies = _boxes_for(doc, registry, sheet, exclude)
-    view = sheet.for_net(boxes, keys, net.get("id"), own)
+    # The middle of a route runs between the stub ends, which stand outside
+    # every cell, so from there on the net's own cells are in the way like
+    # any other. Leaving them out is what let a feedback wire -- out of a
+    # gate and back into the flip-flop feeding it -- run straight back
+    # through both bodies and along the wire the other way.
+    view = sheet.for_net(boxes + own, keys, net.get("id"), own)
     return _clean(_direct_route(
       start, end, start_dir, end_dir, view,
       stub_for(doc, net.get("from"), registry) if from_pin else 0.0,

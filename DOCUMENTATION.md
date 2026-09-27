@@ -274,8 +274,11 @@ of a vector, `d[3]`, is its own one-bit net, joined to the vector by a
 `ripper` where the bit is taken off it or a `bus_join` where it is put on;
 the joiners onto one bus are lined up in one column.
 
-**RTL** -- `assign` with logic in it and `always` blocks -- is turned into
-gates and flip-flops, one per bit, the way a synthesiser does it:
+**RTL** -- `assign` with logic in it (or a `wire x = a & b;` declaration,
+which is the same thing) and `always` blocks -- is turned into gates and
+flip-flops, one per bit, the way a synthesiser does it. A starting value on
+a `reg` (`reg r = 0;`) only matters to a simulation; it is reported and left
+out:
 
 - With [Yosys](https://github.com/YosysHQ/yosys) installed (`yosys` on the
   PATH), behavioural code goes through it: anything Yosys can synthesise is
@@ -1647,7 +1650,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-451 tests, in fifteen parts:
+458 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|

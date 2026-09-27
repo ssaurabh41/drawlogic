@@ -88,6 +88,7 @@ class TestSavingCannotLoseADrawing(unittest.TestCase):
     docmod.write_file(self.path, "the new version\n", backup=True)
     self.assertEqual(self.read(self.path + ".bak"), "the good version\n")
 
+  @unittest.skipIf(os.name == "nt", "Windows has no owner/group/other modes")
   def test_it_keeps_the_file_readable_by_whoever_could_read_it(self):
     os.chmod(self.path, 0o644)
     docmod.write_file(self.path, "the new version\n")

@@ -306,18 +306,53 @@ def _parse_body(module, text, start, end):
       module.behaviour.append(item)
       continue
     if item.kind == "assign":
-      # `assign a = b;` between two whole nets joins them, as a wire does;
-      # anything else is logic, drawn by rtl.py.
-      logic = []
-      for lvalue, value, line in item.tree:
-        if lvalue[0] == "id" and value[0] == "id":
-          module.aliases.append((lvalue[1], value[1]))
-        else:
-          logic.append((lvalue, value, line))
-      if logic:
-        module.behaviour.append(rtl.Item("assign", item.line, tree=logic))
+      _add_assign(module, item)
       continue
     _parse_text_item(module, item.text.strip(), item.line)
+
+
+def _add_assign(module, item):
+  # `assign a = b;` between two whole nets joins them, as a wire does;
+  # anything else is logic, drawn by rtl.py.
+  logic = []
+  for lvalue, value, line in item.tree:
+    if lvalue[0] == "id" and value[0] == "id":
+      module.aliases.append((lvalue[1], value[1]))
+    else:
+      logic.append((lvalue, value, line))
+  if logic:
+    module.behaviour.append(rtl.Item("assign", item.line, tree=logic))
+
+
+def _declared_values(module, words, names_text, line):
+  """`wire x = a & b;` declares x and drives it, exactly as `assign` would.
+  On a reg or logic the value is only where a simulation starts, which a
+  drawing has no place for, so it is reported and left out."""
+  values = []
+  for raw in _split_top(names_text, ","):
+    name, equals, value = raw.partition("=")
+    if equals:
+      values.append("%s = %s" % (name.strip(), value.strip()))
+  if not values:
+    return
+  if set(words) & {"reg", "logic", "var"}:
+    for value in values:
+      module.instances.append(_Instance(
+        "#skipped", "the starting value of %s" % value.split(" =")[0],
+        None, None, line))
+    return
+  text = "assign %s;" % ", ".join(values)
+  try:
+    found = rtl.items(text, 0, len(text), line)
+  except rtl.LowerError as exc:
+    raise HdlError(str(exc) if str(exc).startswith("line") else
+                   "line %d: %s" % (line, exc))
+  for item in found:
+    if item.kind == "assign":
+      _add_assign(module, item)
+    else:
+      module.instances.append(_Instance("#skipped", item.text, None, None,
+                                        item.line))
 
 
 def _parse_text_item(module, statement, line):
@@ -332,8 +367,10 @@ def _parse_text_item(module, statement, line):
     return
   declaration = DECLARATION.match(statement)
   if declaration and first in DIRECTIONS + NET_KINDS + ("signed",):
-    _declare(module, declaration.group("words").split(),
-             declaration.group("names"), declaration.group("ranges"))
+    words = declaration.group("words").split()
+    _declare(module, words, declaration.group("names"),
+             declaration.group("ranges"))
+    _declared_values(module, words, declaration.group("names"), line)
     return
   match = re.match(r"^(%s)\s*(#\s*\(.*?\)\s*)?(%s)?\s*\((.*)\)\s*$"
                    % (IDENT, IDENT), statement, re.S)

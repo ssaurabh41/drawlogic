@@ -29,7 +29,7 @@ class TestEditorBehaviour(unittest.TestCase):
 
   # Raising this when checks are added is the point: it is the one number
   # that notices if a whole area of the editor quietly stops being tested.
-  MINIMUM_CHECKS = 34
+  MINIMUM_CHECKS = 39
 
   # The areas the browser-only code must keep being tested for, held here
   # rather than only in the runner. The runner has its own table of expected
@@ -45,6 +45,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "nets with more than one load",
     "dragging a wire by one of its runs",
     "the step a wire is dragged on",
+    "auto-connect on drop",
     "undo through a gesture",
     "duplicating a group",
     "stale answers",

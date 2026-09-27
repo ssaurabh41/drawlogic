@@ -317,6 +317,19 @@ export class SelectTool {
     }
 
     const changed = this.moved;
+    // A drop that lands a free pin on another is a connection, the way it is
+    // in Logisim. Made inside the drag's own gesture, so it is part of the
+    // same undo step as the move -- and off entirely in Preferences.
+    if (changed && this.startBoxes && prefs.get("autoConnect")) {
+      const cellIds = [...this.startBoxes.keys()]
+        .filter((id) => store.doc.cells.some((c) => c.id === id));
+      let joined = [];
+      store.mutate(this.gestureLabel || "move", (doc) => {
+        joined = model.autoConnect(doc, cellIds);
+        if (!joined.length) return false;
+      });
+      if (joined.length) this.ctx.say(`joined ${joined.join(", ")}`);
+    }
     store.endGesture();
     this.reset();
     this.ctx.drawOverlay();
@@ -454,11 +467,17 @@ export class PlaceTool {
   onPointerDown(event, point) {
     if (!this.type) return;
     const { store, selection } = this.ctx;
-    const cell = store.mutate("place",
-                              (doc) => model.addCell(doc, this.type, point[0], point[1]));
+    let joined = [];
+    const cell = store.mutate("place", (doc) => {
+      const added = model.addCell(doc, this.type, point[0], point[1]);
+      // In the same step as the placing, so one undo takes both back.
+      if (added && prefs.get("autoConnect")) joined = model.autoConnect(doc, [added.id]);
+      return added;
+    });
     if (cell) {
       selection.set([cell.id]);
-      this.ctx.say(`placed ${cell.label || cell.type}`);
+      this.ctx.say(joined.length ? `placed ${cell.label || cell.type}; joined ${joined.join(", ")}`
+                                 : `placed ${cell.label || cell.type}`);
     }
     // Shift keeps placing; a plain click drops one and returns to selecting.
     if (!event.shiftKey) this.ctx.setTool("select");

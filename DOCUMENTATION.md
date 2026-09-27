@@ -446,6 +446,16 @@ each can be turned off:
 | Check the drawing as you edit (live DRC) | on |
 | Grid style and step for new drawings | dots, 10 |
 
+### Auto-connect
+
+Drop a cell -- from the palette, or by dragging it -- so that one of its free
+pins lands on another cell's free pin, and the two are wired together, the
+way Logisim does it. A pin landing on a wire end that stops on nothing joins
+that wire too. Only pins with nothing on them are joined, cells dropped
+together are never joined to each other, and a pin has to land within about
+half a grid step of the other; the join is part of the same undo step as the
+drop, and the status bar says what was joined. Switch it off in Preferences.
+
 ### Renaming and the format painter
 
 Double-click a cell's name or a net's name to edit it where it is drawn;

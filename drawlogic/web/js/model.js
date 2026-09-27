@@ -745,6 +745,67 @@ function pinDir(doc, endpoint) {
 
 // Wiring a second load onto a pin that already drives one extends that net
 // rather than making another. That is what a net is: one driver, many loads.
+// How near a dropped cell's pin has to land to join something. Cells snap to
+// the cell grid (10) while pins sit on the pin grid (5), so a drop can land a
+// pin up to 5 from the one it was aimed at; just over that reaches it, and
+// stays well short of the next pin along a side.
+const JOIN_REACH = 6;
+
+// Join a just-dropped cell's free pins to whatever they landed on: another
+// cell's free pin, or a wire end that stops on nothing. Only pins with nothing
+// on them yet are joined, and never two cells of the same drop to each other,
+// since a group that was already side by side has not landed on anything.
+// Returns what was joined, as ["u1.y to ff1.d", ...], for the caller to say.
+export function autoConnect(doc, cellIds) {
+  const moving = new Set(cellIds);
+  const scale = symbolScale(doc);
+  const used = new Set();
+  const loose = [];
+  for (const net of doc.nets) {
+    for (const end of [net.from, ...routing.loadsOf(net)]) {
+      if (!end) continue;
+      if (end.cell !== undefined) used.add(`${end.cell}|${end.pin}`);
+      else if (end.x !== undefined && end.y !== undefined) loose.push(end);
+    }
+  }
+  const pinsOf = (cell) => {
+    const symbol = geometry.forCell(cell);
+    if (!symbol) return [];
+    return symbol.pins.map((pin) => ({
+      cell: cell.id, pin: pin.name,
+      at: geometry.pinPosition(symbol, cell, pin.name, scale),
+    })).filter((p) => p.at && !used.has(`${p.cell}|${p.pin}`));
+  };
+  const near = (a, b) => Math.abs(a[0] - b[0]) <= JOIN_REACH
+    && Math.abs(a[1] - b[1]) <= JOIN_REACH;
+
+  const others = doc.cells.filter((c) => !moving.has(c.id)).flatMap(pinsOf);
+  const joined = [];
+  for (const cell of doc.cells.filter((c) => moving.has(c.id))) {
+    for (const mine of pinsOf(cell)) {
+      const end = loose.find((e) => near([e.x, e.y], mine.at));
+      if (end) {
+        delete end.x;
+        delete end.y;
+        end.cell = mine.cell;
+        end.pin = mine.pin;
+        loose.splice(loose.indexOf(end), 1);
+        joined.push(`${mine.cell}.${mine.pin} to a loose wire end`);
+        continue;
+      }
+      const other = others.find((p) => !used.has(`${p.cell}|${p.pin}`)
+                                        && near(p.at, mine.at));
+      if (!other) continue;
+      if (addNet(doc, { cell: mine.cell, pin: mine.pin },
+                 { cell: other.cell, pin: other.pin })) {
+        used.add(`${other.cell}|${other.pin}`);
+        joined.push(`${mine.cell}.${mine.pin} to ${other.cell}.${other.pin}`);
+      }
+    }
+  }
+  return joined;
+}
+
 export function addNet(doc, from, to) {
   // Clicking the flip-flop's D and then the gate that feeds it is an ordinary
   // way to draw a wire, and it is the same connection either way -- but the

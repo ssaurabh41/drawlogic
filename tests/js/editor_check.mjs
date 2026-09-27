@@ -38,6 +38,7 @@ const EXPECTED = [
   ["nets with more than one load", 10],
   ["dragging a wire by one of its runs", 13],
   ["the step a wire is dragged on", 4],
+  ["auto-connect on drop", 5],
   ["undo through a gesture", 5],
   ["duplicating a group", 6],
   ["stale answers", 8],
@@ -335,6 +336,49 @@ section("the step a wire is dragged on");
   doc.canvas.grid.size = 2;
   check("a finer grid than the pins is honoured as it stands",
         model.wireStep(doc) === 2, `wire ${model.wireStep(doc)}`);
+}
+
+// ---- auto-connect on drop ----
+//
+// A cell dropped so one of its free pins lands on another's is joined to it,
+// Logisim style -- but only free pins, only across the drop, and only within
+// a grid half-step, or a drop near something would wire it on its own.
+section("auto-connect on drop");
+
+{
+  const inv = (id, x, y) => ({ id, type: "inv", x, y, w: 40, h: 30,
+                               rotate: 0, mirror: false });
+  const pin = (cell, name) =>
+    geometry.pinPosition(geometry.forCell(cell), cell, name, 1);
+  const doc = {
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 10 } },
+    cells: [inv("a", 100, 100), inv("b", 300, 100)], nets: [], shapes: [], groups: [],
+  };
+  // Put b's input exactly on a's output.
+  const [out, into] = [pin(doc.cells[0], "y"), pin(doc.cells[1], "a")];
+  doc.cells[1].x += out[0] - into[0];
+  doc.cells[1].y += out[1] - into[1];
+  const joined = model.autoConnect(doc, ["b"]);
+  const net = doc.nets[0];
+  check("a pin dropped on a free pin is joined to it", joined.length === 1
+        && net && net.from.cell === "a" && net.to[0].cell === "b",
+        JSON.stringify(doc.nets));
+  check("the driver ends up as the net's source", net && net.from.pin === "y",
+        net && JSON.stringify(net.from));
+  check("dropping it there again joins nothing more",
+        model.autoConnect(doc, ["b"]).length === 0 && doc.nets.length === 1);
+
+  const far = { ...doc, nets: [], cells: [inv("a", 100, 100), inv("b", 300, 100)] };
+  far.cells[1].x += out[0] - into[0] + 10;
+  far.cells[1].y += out[1] - into[1];
+  check("a pin landing a grid step away is left alone",
+        model.autoConnect(far, ["b"]).length === 0, JSON.stringify(far.nets));
+
+  const both = { ...doc, nets: [], cells: [inv("a", 100, 100), inv("b", 300, 100)] };
+  both.cells[1].x += out[0] - into[0];
+  both.cells[1].y += out[1] - into[1];
+  check("two cells dropped together are not joined to each other",
+        model.autoConnect(both, ["a", "b"]).length === 0, JSON.stringify(both.nets));
 }
 
 // ---- dragging a wire by one of its runs ----

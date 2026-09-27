@@ -307,6 +307,11 @@ export function arrowMarks(junctions, hops) {
 // render_svg.text_marks; `spots` is what labelSpots already worked out, so
 // the net names are the ones actually being drawn rather than a second guess.
 export function textMarks(doc, spots, routes, fontScale) {
+  return namedTextMarks(doc, spots, routes, fontScale).map((mark) => mark.box);
+}
+
+// The same boxes, each with whose name it is: { kind, id, box }.
+function namedTextMarks(doc, spots, routes, fontScale) {
   const scale = routing.symbolScale(doc);
   const boxes = [];
   for (const cell of doc.cells || []) {
@@ -320,17 +325,34 @@ export function textMarks(doc, spots, routes, fontScale) {
     const top = bounds[1] - 5 - (lines.length - 1) * size * LINE_STEP;
     const width = Math.max(...lines.map((line) => line.length), 1)
       * size * LABEL_CHAR;
-    boxes.push([middle - width / 2,
-                top - size * 0.8 - (lines.length - 1) * size * LINE_STEP,
-                middle + width / 2, top + size * 0.2]);
+    boxes.push({ kind: "cell", id: cell.id, box: [
+      middle - width / 2,
+      top - size * 0.8 - (lines.length - 1) * size * LINE_STEP,
+      middle + width / 2, top + size * 0.2] });
   }
   const size = theme.fontSizes.net_label * fontScale;
   for (const { net } of routes) {
     if (!net.name || !spots.has(net.id)) continue;
     const [spot, anchor] = spots.get(net.id);
-    boxes.push(labelBox(spot, anchor, net.name, size));
+    boxes.push({ kind: "net", id: net.id,
+                 box: labelBox(spot, anchor, net.name, size) });
   }
   return boxes;
+}
+
+// Which name, if any, is drawn at a point in document coordinates: the name
+// of a cell or of a net, as { kind, id, box }. Worked out the way the names
+// are placed when drawn, so it finds the text that is actually on screen.
+export function nameAt(doc, point) {
+  const canvas = doc.canvas || {};
+  const fontScale = Number((canvas.font || {}).scale) || 1;
+  const routes = routing.routeAll(doc);
+  const spots = labelSpots(routes, cellBoxes(doc),
+                           [canvas.width, canvas.height], fontScale);
+  const pad = 3;
+  return namedTextMarks(doc, spots, routes, fontScale).find(({ box }) =>
+    point[0] >= box[0] - pad && point[0] <= box[2] + pad
+    && point[1] >= box[1] - pad && point[1] <= box[3] + pad) || null;
 }
 
 // How far along the wire an arrow will shuffle looking for a clear spot, and

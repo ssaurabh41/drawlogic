@@ -264,8 +264,8 @@ ok    check the rules
 ok    lay it out
 ok    render to SVG
 35 built-in symbols
-ok     13 browser modules, 0 import mismatches
-ok     31 files against manifest.txt, 0 differ
+ok     14 browser modules, 0 import mismatches
+ok     32 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -364,11 +364,13 @@ how many went.
 | `Ctrl+N` | new drawing |
 | drag a wire | slide that run of it; the wire becomes hand-routed |
 | double-click a wire | hand it back to the router |
+| double-click a name | rename a cell or a net where it is drawn |
 | drag a wire | bend it: the drag point becomes a waypoint |
 | handles, `Alt`+handle | resize with ratio locked / free |
 | arrows, `Shift`+arrows | nudge one grid step / ten |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | undo / redo |
 | `Ctrl+C` `Ctrl+X` `Ctrl+V` `Ctrl+D` | copy, cut, paste, duplicate |
+| `Ctrl+Shift+C` / `Ctrl+Shift+V` | copy a style / give it to the selection |
 | `Ctrl+G` / `Ctrl+Shift+G` | group / ungroup |
 | `Ctrl+R` / `Ctrl+Shift+R` | rotate 90 clockwise / anticlockwise |
 | `Ctrl+H` / `Ctrl+Shift+H` | flip horizontal / vertical |
@@ -380,6 +382,7 @@ how many went.
 | `Ctrl+S`, `Ctrl+E` | save, export SVG |
 | `Ctrl+Shift+E` | copy the drawing as a picture, for pasting into a slide |
 | scroll, `Space`+drag, `Shift`+drag | zoom, pan, pan |
+| `Ctrl+,` | preferences |
 | `?` | show or hide this list |
 
 `Ctrl` adds to the selection, not `Shift`, which is the slide-editor
@@ -424,6 +427,37 @@ and moves things front or back.
 The **Zoom**, **Text** and **Symbols** sliders control view scale,
 `canvas.font.scale` and `canvas.symbolScale`. The last two change the
 document, so they mark it unsaved; zoom does not.
+
+### Preferences
+
+**Preferences** in the toolbar (`Ctrl+,`) holds how you like to work. They
+are kept in this browser, not in the drawing, so a file handed to someone
+else does not change how their editor behaves. The switches marked
+*changes the drawing* are the ones that act without an explicit command, and
+each can be turned off:
+
+| Preference | Default |
+|---|---|
+| Auto-connect on drop | on |
+| Ctrl/Shift+drag duplicates | on |
+| Auto layout arranges only a selection (two or more cells) | on |
+| Alignment guides while dragging | on |
+| Keep unsaved work to recover after a crash | on |
+| Check the drawing as you edit (live DRC) | on |
+| Grid style and step for new drawings | dots, 10 |
+
+### Renaming and the format painter
+
+Double-click a cell's name or a net's name to edit it where it is drawn;
+Enter or clicking away keeps it, Esc leaves it as it was. It is the same edit
+as the properties panel's, so a bus name such as `d[7:0]` still sets the
+wire's width.
+
+**Painter** copies the selected item's style -- fill, line colour, line
+weight -- and the next item you click takes it; Shift+click to give it to
+several, Esc to stop. `Ctrl+Shift+C` and `Ctrl+Shift+V` do the same from the
+keyboard, onto everything selected. Only style is copied, never position or
+names.
 
 ### Saving
 

@@ -14,6 +14,7 @@
 
 import * as geometry from "./geometry.js";
 import * as guides from "./guides.js";
+import * as prefs from "./prefs.js";
 import * as routing from "./routing.js";
 
 const UNDO_LIMIT = 120;
@@ -232,7 +233,7 @@ export function blankDocument(title) {
     canvas: {
       width: size.sheetW,
       height: size.sheetH,
-      grid: { style: "dots", size: 10 },
+      grid: { style: prefs.get("gridStyle"), size: prefs.get("gridSize") },
       font: { family: "IBM Plex Sans", scale: 1 },
       symbolScale: 1,
       arrows: true,

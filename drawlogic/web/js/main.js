@@ -7,6 +7,7 @@ import * as geometry from "./geometry.js";
 import * as model from "./model.js";
 import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
 import * as picture from "./picture.js";
+import * as prefs from "./prefs.js";
 import * as recovery from "./recovery.js";
 import * as shortcuts from "./shortcuts.js";
 import * as render from "./render.js";
@@ -218,7 +219,22 @@ function bindCanvas() {
       && Math.abs(event.clientX - lastPress.x) < DOUBLE_CLICK_SLOP
       && Math.abs(event.clientY - lastPress.y) < DOUBLE_CLICK_SLOP;
     lastPress = { at: now, x: event.clientX, y: event.clientY };
-    if (again && onDoubleClick(event)) return;
+    if (again && onDoubleClick(event)) {
+      // Anything the double-click opened -- a rename box -- keeps the focus
+      // the browser would otherwise hand back to the canvas.
+      event.preventDefault();
+      return;
+    }
+
+    if (painting) {
+      const node = event.target.closest(".dl-cell, .dl-shape");
+      if (node && pasteStyle([node.getAttribute("data-id")], copiedStyle)) {
+        if (!event.shiftKey) setPainting(false);
+      } else {
+        setPainting(false);
+      }
+      return;
+    }
 
     const tool = tools[activeTool];
     if (tool && tool.onPointerDown) {
@@ -399,6 +415,16 @@ function onDoubleClick(event) {
     inspector.render();
     return true;
   }
+  // A name is edited where it is drawn. Checked before the wire, because a
+  // net's name sits on its wire and the name is what was aimed at.
+  console.log("DBL", activeTool);
+  const named = activeTool === "select" && store.doc
+    ? render.nameAt(store.doc, viewport.toDoc(event.clientX, event.clientY)) : null;
+  console.log("NAMED", JSON.stringify(named), JSON.stringify(viewport.toDoc(event.clientX, event.clientY)));
+  if (named) {
+    renameInPlace(named);
+    return true;
+  }
   // Double-clicking a wire hands it back to the router, which is the way out
   // of a hand-routed wire you no longer want.
   const wire = event.target.closest(".dl-net, .dl-hit");
@@ -424,6 +450,101 @@ function onDoubleClick(event) {
   if (!cell || !cell.ref) return false;
   drillInto(cell);
   return true;
+}
+
+// ---- format painter ----
+
+// The style copied from an item, waiting to be pasted: Ctrl+Shift+C / V, or
+// the Painter button, which applies it to the next item clicked. Only the
+// style is copied -- colours, line weight, text size -- never geometry or
+// names, the way a format painter works in every office tool.
+let copiedStyle = null;
+let painting = false;
+
+function styleOfSelection() {
+  const first = selection.items()[0];
+  return first ? JSON.parse(JSON.stringify(first.style || {})) : null;
+}
+
+function pasteStyle(ids, style) {
+  const targets = [...ids];
+  if (!targets.length || !style) return false;
+  store.mutate("paste style", (doc) => {
+    for (const id of targets) {
+      const item = model.itemById(doc, id);
+      if (item) item.style = JSON.parse(JSON.stringify(style));
+    }
+  });
+  redraw();
+  inspector.render();
+  return true;
+}
+
+function setPainting(on) {
+  painting = on;
+  ui.btnPainter.setAttribute("aria-pressed", String(on));
+  ui.canvas.classList.toggle("painting", on);
+}
+
+function startPainter() {
+  if (painting) {
+    setPainting(false);
+    return;
+  }
+  const style = styleOfSelection();
+  if (!style) {
+    say("select the item whose style you want to copy first", "warn");
+    return;
+  }
+  copiedStyle = style;
+  setPainting(true);
+  say("click an item to give it this style (Shift+click for several, Esc to stop)");
+}
+
+// A text box over the name, in the name's own place: Enter or clicking away
+// keeps it, Esc leaves it as it was. The same edit the properties panel makes,
+// so it is one undo step and a bus name still sets the wire's width.
+function renameInPlace({ kind, id, box }) {
+  const doc = store.doc;
+  const current = kind === "cell"
+    ? (doc.cells.find((c) => c.id === id) || {}).label
+    : (doc.nets.find((n) => n.id === id) || {}).name;
+  const rect = ui.canvas.getBoundingClientRect();
+  const field = document.createElement("input");
+  field.className = "rename-in-place";
+  field.value = current || "";
+  field.style.left = `${rect.left + (box[0] - viewport.panX) * viewport.zoom - 4}px`;
+  field.style.top = `${rect.top + (box[1] - viewport.panY) * viewport.zoom - 4}px`;
+  field.style.minWidth = `${Math.max(80, (box[2] - box[0]) * viewport.zoom + 24)}px`;
+  document.body.appendChild(field);
+
+  let finished = false;
+  const finish = (keep) => {
+    if (finished) return;
+    finished = true;
+    const value = field.value.trim();
+    field.remove();
+    if (!keep || value === (current || "")) return;
+    store.mutate("rename", (d) => {
+      if (kind === "cell") model.setLabel(d, id, value);
+      else model.setNetName(d, id, value);
+    });
+    redraw();
+    inspector.render();
+  };
+  field.addEventListener("keydown", (event) => {
+    event.stopPropagation();
+    if (event.key === "Enter") finish(true);
+    else if (event.key === "Escape") finish(false);
+  });
+  // Focused a tick later, and only then listening for blur: the press that
+  // opened it is still being handled, and would otherwise take the focus
+  // straight back and close the box before anything could be typed.
+  window.setTimeout(() => {
+    field.focus();
+    field.select();
+    field.addEventListener("blur", () => finish(true));
+  }, 0);
 }
 
 function stepHistory(back) {
@@ -697,21 +818,14 @@ function setLive(on) {
       ? "checking as you draw; click to check only when you press Check"
       : "checking only when you press Check; click to check as you draw";
   }
-  try {
-    window.localStorage.setItem("drawlogic.live", liveOn ? "1" : "0");
-  } catch (error) {
-    // A browser with storage turned off still gets the toggle, just not the
-    // memory of it.
-  }
+  // Remembered as a preference; the DRC panel's toggle and the Preferences
+  // panel are two switches for the same thing.
+  if (prefs.get("live") !== liveOn) prefs.set("live", liveOn);
   if (liveOn) afterEdit();
 }
 
 function storedLive() {
-  try {
-    return window.localStorage.getItem("drawlogic.live") !== "0";
-  } catch (error) {
-    return true;
-  }
+  return prefs.get("live");
 }
 
 // The count goes grey while a fresh answer is on its way, so a number on
@@ -906,7 +1020,7 @@ async function autoLayout() {
   // Two or more cells selected: lay out just those, leaving the rest where
   // it is. One selected is almost always an accident, not a request.
   const chosen = store.doc.cells.filter((c) => selection.has(c.id)).map((c) => c.id);
-  const only = chosen.length >= 2 ? chosen : null;
+  const only = prefs.get("layoutSelection") && chosen.length >= 2 ? chosen : null;
   const done = busy(only ? `laying out ${only.length} selected cells...`
                          : "laying out...");
   const button = document.querySelector('[data-command="layout"]');
@@ -1193,6 +1307,11 @@ function bindControls() {
   ui.btnCheck.addEventListener("click", () => runCheck());
   ui.drcLive.addEventListener("click", () => setLive(!liveOn));
   ui.statusKeys.addEventListener("click", toggleShortcuts);
+  ui.btnPrefs.addEventListener("click", openPrefs);
+  ui.btnPainter.addEventListener("click", startPainter);
+  prefs.subscribe((key, value) => {
+    if (key === "live" && value !== liveOn) setLive(value);
+  });
   ui.btnCancel.addEventListener("click", () => {
     if (layoutAbort) layoutAbort.abort();
   });
@@ -1226,6 +1345,12 @@ function bindControls() {
 
 function bindKeyboard() {
   window.addEventListener("keydown", (event) => {
+    if (ui.prefsDialog.open) return;
+    if ((event.ctrlKey || event.metaKey) && event.key === ",") {
+      event.preventDefault();
+      openPrefs();
+      return;
+    }
     // While the list is open, keys belong to it: Esc closes it natively, and
     // ? toggles it, but nothing reaches the drawing underneath.
     if (ui.shortcuts.open) {
@@ -1254,9 +1379,13 @@ function bindKeyboard() {
         z: () => stepHistory(!event.shiftKey),
         y: () => stepHistory(false),
         a: () => { selection.selectAll(); redraw(); inspector.render(); },
-        c: () => copySelection(false),
+        c: () => {
+          if (!event.shiftKey) return copySelection(false);
+          copiedStyle = styleOfSelection();
+          if (copiedStyle) say("style copied; Ctrl+Shift+V gives it to the selection");
+        },
         x: () => copySelection(true),
-        v: () => paste(),
+        v: () => (event.shiftKey ? pasteStyle(selection.ids, copiedStyle) : paste()),
         d: () => {
           if (!selection.size) return;
           clipboard = model.copyItems(store.doc, selection.ids);
@@ -1280,6 +1409,8 @@ function bindKeyboard() {
     if (event.key === "Delete" || event.key === "Backspace") {
       event.preventDefault();
       deleteSelection();
+    } else if (event.key === "Escape" && painting) {
+      setPainting(false);
     } else if (event.key === "Escape" && layoutAbort) {
       layoutAbort.abort();
     } else if (event.key === "Escape") {
@@ -1332,6 +1463,58 @@ function zoomToSelection() {
   else viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
 }
 
+function openPrefs() {
+  const body = $("prefs-body");
+  const rows = prefs.PREFS.map((pref) => {
+    const label = document.createElement("label");
+    label.className = "pref-row";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = prefs.get(pref.key);
+    box.addEventListener("change", () => prefs.set(pref.key, box.checked));
+    const text = document.createElement("span");
+    text.className = "pref-text";
+    const name = document.createElement("strong");
+    name.textContent = pref.label;
+    text.append(name);
+    if (pref.risk) {
+      const tag = document.createElement("em");
+      tag.className = "pref-risk";
+      tag.textContent = "changes the drawing";
+      text.append(" ", tag);
+    }
+    const help = document.createElement("small");
+    help.textContent = pref.help;
+    text.append(help);
+    label.append(box, text);
+    return label;
+  });
+
+  // Defaults for a new drawing: an open drawing keeps its own grid.
+  const grid = document.createElement("div");
+  grid.className = "pref-row";
+  const style = ui.gridSelect.cloneNode(true);
+  style.removeAttribute("id");
+  style.value = prefs.get("gridStyle");
+  style.addEventListener("change", () => prefs.set("gridStyle", style.value));
+  const size = document.createElement("input");
+  size.type = "number";
+  size.min = "1";
+  size.value = prefs.get("gridSize");
+  size.addEventListener("change", () => {
+    const value = Number(size.value);
+    if (Number.isFinite(value) && value >= 1) prefs.set("gridSize", value);
+    else size.value = prefs.get("gridSize");
+  });
+  const gridText = document.createElement("span");
+  gridText.className = "pref-text";
+  gridText.innerHTML = "<strong>Grid for new drawings</strong>";
+  grid.append(gridText, style, size);
+
+  body.replaceChildren(...rows, grid);
+  ui.prefsDialog.showModal();
+}
+
 function toggleShortcuts() {
   if (ui.shortcuts.open) {
     ui.shortcuts.close();
@@ -1344,6 +1527,8 @@ function toggleShortcuts() {
 // ---- start ----
 
 async function start() {
+  // First: everything below may ask a preference.
+  prefs.load();
   Object.assign(ui, {
     canvas: $("canvas"),
     fileSelect: $("file-select"),
@@ -1356,6 +1541,9 @@ async function start() {
     breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),
     shortcuts: $("shortcuts"),
+    prefsDialog: $("prefs-dialog"),
+    btnPrefs: $("btn-prefs"),
+    btnPainter: $("btn-painter"),
     btnCancel: $("btn-cancel"),
     statusKeys: $("status-keys"),
     undo: $("btn-undo"),

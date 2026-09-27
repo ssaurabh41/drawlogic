@@ -35,6 +35,7 @@
 
   <span class="divider"></span>
   <button id="btn-theme" class="action" title="Appearance: follow the system, light, or dark">Theme: auto</button>
+  <button id="btn-prefs" class="action" title="Preferences (Ctrl+,)">Preferences</button>
   <span class="divider"></span>
   <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
   <button id="btn-redo" class="action" title="Redo (Ctrl+Shift+Z)">Redo</button>
@@ -81,6 +82,8 @@
     <button class="tool" data-tool="shape" data-shape="rect" title="Box (B)">Box</button>
     <button class="tool" data-tool="shape" data-shape="polygon" title="Polygon (P) - click points, double-click to close">Polygon</button>
     <button class="tool" data-tool="shape" data-shape="text" title="Text (T)">Text</button>
+    <button id="btn-painter" class="tool" type="button" aria-pressed="false"
+            title="Format painter: copy the selected item's colours and line weight, then click items to give them the same (Shift+click for several, Esc to stop)">Painter</button>
   </div>
 
   <div class="tgroup">
@@ -187,6 +190,13 @@
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<dialog id="prefs-dialog" class="shortcuts prefs" aria-labelledby="prefs-title">
+  <h2 id="prefs-title">Preferences</h2>
+  <!-- Filled from js/prefs.js. Kept in this browser, not in the drawing. -->
+  <div id="prefs-body"></div>
+  <p class="shortcuts-foot">Saved in this browser as you change them. Press <kbd>Esc</kbd> to close.</p>
+</dialog>
 
 <dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">
   <h2 id="shortcuts-title">Keyboard shortcuts</h2>

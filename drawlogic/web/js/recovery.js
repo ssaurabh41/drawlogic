@@ -9,6 +9,8 @@
 // It is a safety net, not autosave: nothing is written to the file on disk
 // that the user did not save.
 
+import * as prefs from "./prefs.js";
+
 const PREFIX = "drawlogic.recover:";
 const DELAY = 800;
 
@@ -37,6 +39,7 @@ export function discard(path) {
 
 // The kept copy for a drawing, if it says something the file does not.
 export function pending(path, doc) {
+  if (!prefs.get("recovery")) return null;
   const entry = read(path);
   if (!entry || !entry.doc) return null;
   if (JSON.stringify(entry.doc) === JSON.stringify(doc)) {
@@ -55,7 +58,7 @@ export function watch(store, onFull) {
 
   const keep = () => {
     timer = null;
-    if (!store.doc || !store.path || !store.dirty) return;
+    if (!store.doc || !store.path || !store.dirty || !prefs.get("recovery")) return;
     try {
       window.localStorage.setItem(key(store.path), JSON.stringify({
         savedAt: Date.now(), doc: store.doc,

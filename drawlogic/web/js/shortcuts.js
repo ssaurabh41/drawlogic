@@ -13,11 +13,13 @@ export const SHORTCUTS = [
   ["Ctrl+N", "new drawing"],
   ["drag a wire", "slide that run of it; the wire becomes hand-routed"],
   ["double-click a wire", "hand it back to the router"],
+  ["double-click a name", "rename a cell or a net where it is drawn"],
   ["drag a wire", "bend it: the drag point becomes a waypoint"],
   ["handles, Alt+handle", "resize with ratio locked / free"],
   ["arrows, Shift+arrows", "nudge one grid step / ten"],
   ["Ctrl+Z / Ctrl+Shift+Z", "undo / redo"],
   ["Ctrl+C Ctrl+X Ctrl+V Ctrl+D", "copy, cut, paste, duplicate"],
+  ["Ctrl+Shift+C / Ctrl+Shift+V", "copy a style / give it to the selection"],
   ["Ctrl+G / Ctrl+Shift+G", "group / ungroup"],
   ["Ctrl+R / Ctrl+Shift+R", "rotate 90 clockwise / anticlockwise"],
   ["Ctrl+H / Ctrl+Shift+H", "flip horizontal / vertical"],
@@ -29,6 +31,7 @@ export const SHORTCUTS = [
   ["Ctrl+S, Ctrl+E", "save, export SVG"],
   ["Ctrl+Shift+E", "copy the drawing as a picture, for pasting into a slide"],
   ["scroll, Space+drag, Shift+drag", "zoom, pan, pan"],
+  ["Ctrl+,", "preferences"],
   ["?", "show or hide this list"],
 ];
 

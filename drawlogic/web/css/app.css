@@ -726,3 +726,26 @@ select {
 }
 .shortcuts th { white-space: nowrap; font-family: var(--mono, monospace); color: var(--accent); font-weight: 600; }
 .shortcuts-foot { margin: 10px 0 0; color: var(--ink-2); font-size: 12px; }
+
+/* Preferences: one row per switch. */
+.prefs { width: min(560px, calc(100vw - 32px)); }
+.pref-row {
+  display: flex; gap: 10px; align-items: flex-start; padding: 8px 0;
+  border-top: 1px solid var(--line-soft); cursor: pointer;
+}
+.pref-row input[type=checkbox] { margin-top: 3px; }
+.pref-row select, .pref-row input[type=number] { margin-left: auto; }
+.pref-row input[type=number] { width: 64px; margin-left: 6px; }
+.pref-text { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.pref-text small { color: var(--ink-2); font-size: 12px; }
+.pref-risk { color: var(--warm); font-style: normal; font-size: 11px; }
+
+/* A name being edited where it is drawn. */
+.rename-in-place {
+  position: fixed; z-index: 30; padding: 2px 6px; font: 600 13px var(--mono, monospace);
+  color: var(--ink); background: var(--paper); border: 1px solid var(--accent);
+  border-radius: var(--radius); box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+}
+
+/* The format painter is armed: the next click takes the copied style. */
+#canvas.painting, #canvas.painting * { cursor: copy !important; }

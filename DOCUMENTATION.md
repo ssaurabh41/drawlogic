@@ -172,6 +172,13 @@ pointing out of it is refused and drawn as a broken-reference box. The command
 line has no such limit -- it is run by somebody who already has the
 filesystem, so a block kept one directory up resolves normally there.
 
+A running server is reachable by any page open in the same browser, since
+loopback is not a boundary a web page respects. So it answers only requests
+that name it as `127.0.0.1` or `localhost`, and writes only JSON sent from
+its own page; anything else gets a 403. That is what stops a page on another
+site from overwriting a drawing, or re-pointing its own domain at your
+machine to read one.
+
 **If the machine is remote, tunnel rather than opening it up with `--host`:**
 
 ```bash
@@ -418,9 +425,14 @@ document, so they mark it unsaved; zoom does not.
 
 ### Saving
 
-`Ctrl+S` saves; nothing else writes to disk. There is no autosave and no
-backup file. The one automatic behaviour is the browser refusing to close a
-tab with unsaved changes.
+`Ctrl+S` saves; nothing else writes to disk. There is no autosave. The
+browser refuses to close a tab with unsaved changes.
+
+A save that changes the file keeps the version it replaced as
+`<name>.dlg.bak` beside it -- one step back, for the file itself. The new
+version is written beside the old one and moved into place, so a crash or a
+full disk part way through leaves the drawing as it was rather than half
+written. `drawlogic layout`, which rewrites its input, does the same.
 
 `Ctrl+E` exports. **Export is rendered by Python**, the same code path the CLI
 uses, so a file exported from the browser is byte-for-byte what
@@ -1124,6 +1136,7 @@ point to look at.
 |---|---|
 | `wire-short` | two different nets drawn as one -- lying on top of each other, or one ending on the middle of the other where a junction dot is then drawn |
 | `wire-crossing` | a crossing the renderer left unbridged, so it reads as a connection |
+| `duplicate-id` | a cell or net id used twice; every check looks things up by id, so none of the others run until each has its own |
 | `wire-over-cell` | a wire drawn across a body it does not connect to, which reads either as stopping there or as passing behind it |
 | `cell-overlap` | two bodies in the same place |
 | `off-sheet` | drawing outside the sheet, which the exporter crops away |

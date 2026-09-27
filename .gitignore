@@ -14,3 +14,6 @@ venv/
 !examples/*.svg
 !tests/golden/*.svg
 benchmarks/.cache/
+
+# The previous version of a drawing, kept by every save that changes it.
+*.bak

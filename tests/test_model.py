@@ -1,8 +1,12 @@
 """Document format, symbol library and bus naming."""
 
 import json
+import os
 import re
+import stat
+import tempfile
 import unittest
+from unittest import mock
 
 from drawlogic import doc as docmod
 from drawlogic.doc import Document, DocumentError, new_document
@@ -50,6 +54,89 @@ class TestRoundTrip(unittest.TestCase):
       Document.loads("not json at all")
     with self.assertRaises(DocumentError):
       Document.loads('{"format": "drawlogic", "version": 99}')
+
+
+class TestSavingCannotLoseADrawing(unittest.TestCase):
+  """Saving used to empty the file and then write it, so an interruption in
+  between left nothing where the drawing had been."""
+
+  def setUp(self):
+    self.folder = tempfile.mkdtemp()
+    self.path = os.path.join(self.folder, "d.dlg")
+    with open(self.path, "w") as handle:
+      handle.write("the good version\n")
+
+  def read(self, path=None):
+    with open(path or self.path) as handle:
+      return handle.read()
+
+  def test_an_interrupted_save_leaves_the_old_file_whole(self):
+    with mock.patch("os.replace", side_effect=OSError("disk full")):
+      with self.assertRaises(OSError):
+        docmod.write_file(self.path, "the new version\n", backup=True)
+    self.assertEqual(self.read(), "the good version\n")
+    leftovers = [f for f in os.listdir(self.folder) if f.endswith(".tmp")]
+    self.assertEqual(leftovers, [])
+
+  def test_a_save_that_changes_the_file_keeps_the_last_version(self):
+    docmod.write_file(self.path, "the new version\n", backup=True)
+    self.assertEqual(self.read(), "the new version\n")
+    self.assertEqual(self.read(self.path + ".bak"), "the good version\n")
+
+  def test_saving_the_same_text_does_not_overwrite_the_backup(self):
+    docmod.write_file(self.path, "the new version\n", backup=True)
+    docmod.write_file(self.path, "the new version\n", backup=True)
+    self.assertEqual(self.read(self.path + ".bak"), "the good version\n")
+
+  def test_it_keeps_the_file_readable_by_whoever_could_read_it(self):
+    os.chmod(self.path, 0o644)
+    docmod.write_file(self.path, "the new version\n")
+    self.assertEqual(stat.S_IMODE(os.stat(self.path).st_mode), 0o644)
+
+
+class TestNumbersMustBeNumbers(unittest.TestCase):
+  """A sheet width of "wide" loaded, validated clean, then crashed validate,
+  info and export with a traceback. The file is wrong, so the file is named."""
+
+  def load(self, change):
+    data = json.loads(open(EXAMPLE).read())
+    change(data)
+    return Document.from_data(data)
+
+  def test_a_word_where_the_sheet_width_goes_is_refused_by_name(self):
+    with self.assertRaises(DocumentError) as caught:
+      self.load(lambda d: d["canvas"].__setitem__("width", "wide"))
+    self.assertIn("canvas.width", str(caught.exception))
+
+  def test_a_cell_position_that_is_not_a_number_is_refused(self):
+    with self.assertRaises(DocumentError) as caught:
+      self.load(lambda d: d["cells"][0].__setitem__("x", None))
+    self.assertIn(".x", str(caught.exception))
+
+  def test_the_examples_still_load(self):
+    self.load(lambda d: None)
+
+
+class TestRepeatedIds(unittest.TestCase):
+  """Layout and the DRCs look things up by id; a repeated one used to fold
+  two cells into one without a word."""
+
+  def doubled(self):
+    data = json.loads(open(EXAMPLE).read())
+    twin = dict(data["cells"][0])
+    data["cells"].append(twin)
+    return Document.from_data(data)
+
+  def test_layout_refuses_rather_than_losing_a_cell(self):
+    from drawlogic import layout
+    with self.assertRaises(ValueError) as caught:
+      layout.arrange(self.doubled())
+    self.assertIn("more than once", str(caught.exception))
+
+  def test_the_drcs_say_why_they_did_not_run(self):
+    from drawlogic import drc
+    found = drc.check(self.doubled())
+    self.assertEqual([v.rule for v in found], ["duplicate-id"])
 
 
 class TestValidate(unittest.TestCase):

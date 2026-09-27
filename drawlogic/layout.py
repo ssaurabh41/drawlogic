@@ -36,7 +36,7 @@ Usage:
 
 from . import drc
 from . import routing
-from .doc import loads_of
+from .doc import loads_of, repeated_ids
 from .geometry import corners
 from .symbols import default_registry
 
@@ -77,6 +77,10 @@ class Result(object):
 def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN):
   """Lay the drawing out left to right. Modifies `doc` and returns a Result."""
   registry = registry or default_registry()
+  repeated = repeated_ids(doc)
+  if repeated:
+    raise ValueError("ids must be unique to lay a drawing out: %s is used "
+                     "more than once" % ", ".join(repeated))
   cells = [c for c in doc.cells if registry.for_cell(c) is not None]
   if not cells:
     return Result(0, 0, 0)

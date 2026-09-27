@@ -23,7 +23,7 @@ import sys
 
 from . import drc
 from . import render_svg
-from .doc import Document, DocumentError
+from .doc import Document, DocumentError, write_file
 from . import layout
 from . import sheets
 from .symbols import SymbolError, load_registry
@@ -120,8 +120,7 @@ def cmd_export(args):
       continue
 
     target = _output_path(source, args, len(args.files))
-    with open(target, "w") as handle:
-      handle.write(svg)
+    write_file(target, svg)
     if not _quiet(args):
       sys.stderr.write("wrote %s\n" % target)
   return 0
@@ -202,7 +201,10 @@ def cmd_layout(args):
   doc, registry, problems = _open(args.file, registry)
   _report_refs(args.file, problems)
 
-  result = layout.arrange(doc, registry, gap_x=args.gap_x, gap_y=args.gap_y)
+  try:
+    result = layout.arrange(doc, registry, gap_x=args.gap_x, gap_y=args.gap_y)
+  except ValueError as exc:
+    raise SystemExit("%s: %s: %s" % (PROG, args.file, exc))
   target = args.output or args.file
   try:
     doc.save(target)
@@ -255,8 +257,7 @@ def cmd_doctor(args):
   """
   if getattr(args, "write_manifest", False):
     target = os.path.join(_repo_root(), MANIFEST_NAME)
-    with open(target, "w") as handle:
-      handle.write(manifest_text())
+    write_file(target, manifest_text())
     print("wrote %s (%d files)" % (target, len(manifest_files())))
     return 0
 
@@ -592,8 +593,7 @@ def cmd_symbols(args):
   if args.output in (None, "-"):
     sys.stdout.write(svg)
   else:
-    with open(args.output, "w") as handle:
-      handle.write(svg)
+    write_file(args.output, svg)
     if not _quiet(args):
       sys.stderr.write("wrote %s\n" % args.output)
   return 0

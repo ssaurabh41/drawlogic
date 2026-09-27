@@ -97,6 +97,72 @@ class TestSafeJoin(unittest.TestCase):
     self.assertIsNotNone(server._safe_join(self.root, "alias/a.dlg"))
 
 
+class TestOnlyTheEditorMayWrite(unittest.TestCase):
+  """A page on another site could overwrite a drawing while serve ran: a form
+  or a plain fetch to 127.0.0.1 needs no permission from anyone. Each test
+  replays one such request and checks the file on disk did not change."""
+
+  @classmethod
+  def setUpClass(cls):
+    cls.root = tempfile.mkdtemp()
+    handler = type("BoundHandler", (server.Handler,), {
+      "root": cls.root, "registry": default_registry(), "quiet": True,
+    })
+    cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    cls.base = "http://127.0.0.1:%d" % cls.httpd.server_port
+    threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+  @classmethod
+  def tearDownClass(cls):
+    cls.httpd.shutdown()
+    cls.httpd.server_close()
+    shutil.rmtree(cls.root, ignore_errors=True)
+
+  def setUp(self):
+    self.target = os.path.join(self.root, "slice.dlg")
+    shutil.copy(EXAMPLE, self.target)
+    with open(self.target) as handle:
+      self.before = handle.read()
+
+  def attempt(self, headers, method="POST"):
+    doc = json.loads(self.before)
+    doc["title"] = "OWNED"
+    body = json.dumps({"doc": doc}).encode("utf-8")
+    request = Request(self.base + "/api/doc?path=slice.dlg",
+                      data=body if method == "POST" else None,
+                      headers=headers, method=method)
+    try:
+      with urlopen(request) as response:
+        status = response.status
+    except HTTPError as caught:
+      status = caught.code
+    with open(self.target) as handle:
+      return status, handle.read() == self.before
+
+  def test_a_cross_site_form_post_is_refused(self):
+    status, untouched = self.attempt(
+      {"Content-Type": "text/plain", "Origin": "http://evil.example"})
+    self.assertEqual((status, untouched), (403, True))
+
+  def test_a_cross_origin_json_post_is_refused(self):
+    status, untouched = self.attempt(
+      {"Content-Type": "application/json", "Origin": "http://evil.example"})
+    self.assertEqual((status, untouched), (403, True))
+
+  def test_a_request_to_a_rebound_host_name_is_refused(self):
+    status, untouched = self.attempt(
+      {"Content-Type": "application/json", "Host": "evil.example:80"})
+    self.assertEqual((status, untouched), (403, True))
+    status, _ = self.attempt({"Host": "evil.example:80"}, method="GET")
+    self.assertEqual(status, 403, "a read must not answer another name")
+
+  def test_the_editor_itself_still_saves(self):
+    host = self.base.split("//")[1]
+    status, untouched = self.attempt(
+      {"Content-Type": "application/json", "Origin": "http://" + host})
+    self.assertEqual((status, untouched), (200, False))
+
+
 class TestEndpoints(unittest.TestCase):
 
   @classmethod

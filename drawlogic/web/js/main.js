@@ -501,6 +501,11 @@ async function openDrawing(path) {
     geometry.setSheets(payload.sheets);
     store.load(payload.doc, payload.path);
     selection.clear();
+    // A tool keeps state between clicks -- the wire tool holds the pin a wire
+    // started from -- and cell ids repeat between drawings, so a wire begun
+    // in the last drawing finished on whatever cell in this one had the same
+    // id. Every drawing starts with the select tool and nothing half-done.
+    setTool("select");
     ui.filePath.textContent = payload.path;
     ui.fileSelect.value = payload.path;
     syncControls();

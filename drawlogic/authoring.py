@@ -31,10 +31,9 @@ Usage:
 
 import json
 import os
-import tempfile
 import threading
 
-from .doc import loads_of
+from .doc import loads_of, write_file
 from .symbols import Symbol, SymbolError
 
 PORT_DIRECTIONS = {"port_in": "in", "port_out": "out", "port_inout": "inout"}
@@ -279,22 +278,6 @@ def _add_to_file(path, symbol_id, data):
   if parent and not os.path.isdir(parent):
     os.makedirs(parent)
 
-  # Written beside the target and moved into place, because os.replace is
-  # atomic: a reader either sees the library as it was or as it now is, never
-  # the half of it that had been written when the power went. Opening the
-  # target directly for writing truncates it first, so an interruption there
-  # leaves a file the palette cannot load at all.
-  handle, temporary = tempfile.mkstemp(
-    dir=parent or ".", prefix=".%s." % os.path.basename(path), suffix=".tmp")
-  try:
-    with os.fdopen(handle, "w") as out:
-      json.dump(library, out, indent=2, sort_keys=True)
-      out.write("\n")
-    os.replace(temporary, path)
-  except BaseException:
-    try:
-      os.unlink(temporary)
-    except OSError:
-      pass
-    raise
+  # Atomic, so the palette never finds half a library -- see write_file.
+  write_file(path, json.dumps(library, indent=2, sort_keys=True) + "\n")
   return library

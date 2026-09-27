@@ -492,6 +492,15 @@ def check(doc, registry=None, routes=None, labels=None):
   Every pair of things is reported once, at the tightest point between them,
   rather than once per segment; one crowded wire is one problem to fix.
   """
+  from .doc import repeated_ids
+
+  repeated = repeated_ids(doc)
+  if repeated:
+    # Every check looks things up by id, so with one repeated the answers
+    # would be about the wrong wire or cell. Better to say why there are none.
+    return [Violation("duplicate-id", "error", ", ".join(repeated),
+                      "used more than once, so the DRCs did not run; "
+                      "give each its own id")]
   scene = _Scene(doc, registry, routes, labels)
   report = _Report()
   _check_wire_spacing(scene, report)

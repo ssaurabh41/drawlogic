@@ -27,7 +27,11 @@ This module also owns bus naming: net_name_width("d[7:0]") is 8.
 """
 
 import json
+import math
+import os
 import re
+import shutil
+import uuid
 
 from . import drc
 from . import theme
@@ -273,6 +277,40 @@ def _object(data, key, where=None):
   return value
 
 
+def repeated_ids(doc):
+  """Cell and net ids used more than once, as ["cell u1", ...].
+
+  Layout and the DRCs look everything up by id, so a repeated one silently
+  folds two things into one: one of the cells is never placed, one of the
+  nets is checked as if it were the other. validate() reports the fault;
+  this is for the code that would otherwise give a wrong answer about it.
+  """
+  found = []
+  for kind, items in (("cell", doc.cells), ("net", doc.nets)):
+    seen = set()
+    for item in items:
+      item_id = item.get("id")
+      if item_id in seen and "%s %s" % (kind, item_id) not in found:
+        found.append("%s %s" % (kind, item_id))
+      seen.add(item_id)
+  return found
+
+
+def _number(item, key, where, positive=False):
+  """Refuse a field that has to be a number and is not.
+
+  A sheet width of "wide" loaded, validated clean and then crashed validate,
+  info and export with a traceback from arithmetic far away. It is the file
+  that is wrong, so it is the file that gets named.
+  """
+  value = item.get(key)
+  good = (isinstance(value, (int, float)) and not isinstance(value, bool)
+          and math.isfinite(value) and (value > 0 or not positive))
+  if not good:
+    raise DocumentError("%s must be a %snumber, not %r"
+                        % (where, "positive " if positive else "", value))
+
+
 def _text_field(item, key):
   """Make sure a field meant to be written on the drawing really is text.
 
@@ -365,6 +403,47 @@ def new_document(title="untitled", width=None, height=None):
   })
 
 
+
+def write_file(path, text, backup=False):
+  """Write text to a file so that an interruption cannot leave half of it.
+
+  Opening the target for writing empties it first, so a crash, a kill or a
+  full disk part way through left an empty or truncated drawing with the good
+  one gone. The text goes to a file beside it and is moved into place, which
+  is atomic: the file is either as it was or as it now is.
+
+  `backup` keeps the version being replaced as <path>.bak, once per save that
+  changes something -- one step of undo for the file itself.
+  """
+  target = os.path.abspath(path)
+  exists = os.path.isfile(target)
+  if backup and exists:
+    try:
+      with open(target) as handle:
+        changed = handle.read() != text
+    except (OSError, ValueError):
+      changed = True
+    if changed:
+      shutil.copyfile(target, target + ".bak")
+
+  # Not tempfile.mkstemp: that makes the file readable by its owner alone,
+  # and moving it into place would quietly change who can read the drawing.
+  temporary = os.path.join(
+    os.path.dirname(target),
+    ".%s.%s.tmp" % (os.path.basename(target), uuid.uuid4().hex[:12]))
+  try:
+    with open(temporary, "x") as handle:
+      handle.write(text)
+    if exists:
+      shutil.copymode(target, temporary)
+    os.replace(temporary, target)
+  except BaseException:
+    try:
+      os.unlink(temporary)
+    except OSError:
+      pass
+    raise
+
 class Document(object):
   """A schematic. Thin wrapper over the JSON structure, not a hiding layer."""
 
@@ -420,8 +499,7 @@ class Document(object):
     target = path or self.path
     if not target:
       raise DocumentError("no path to save to")
-    with open(target, "w") as handle:
-      handle.write(self.dumps())
+    write_file(target, self.dumps(), backup=True)
     self.path = target
     return target
 
@@ -520,6 +598,8 @@ class Document(object):
     canvas = _object(data, "canvas")
     for key in ("width", "height", "background", "symbolScale", "arrows", "hops"):
       canvas.setdefault(key, DEFAULT_CANVAS[key])
+    for key in ("width", "height", "symbolScale"):
+      _number(canvas, key, "canvas.%s" % key, positive=True)
     grid = _object(canvas, "grid", "canvas.grid")
     for key, value in DEFAULT_CANVAS["grid"].items():
       grid.setdefault(key, value)
@@ -538,6 +618,12 @@ class Document(object):
       cell.setdefault("mirror", False)
       cell.setdefault("style", {})
       _text_field(cell, "label")
+      where = "cell %s" % cell.get("id")
+      for key in ("x", "y", "rotate"):
+        _number(cell, key, "%s.%s" % (where, key))
+      for key in ("w", "h"):
+        if key in cell:
+          _number(cell, key, "%s.%s" % (where, key), positive=True)
 
     by_id = {cell.get("id"): cell for cell in _list_of_objects(data, "cells")}
     for net in _list_of_objects(data, "nets"):

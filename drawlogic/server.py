@@ -50,7 +50,7 @@ from . import theme
 from . import authoring
 from . import layout
 from . import sheets
-from .doc import Document, DocumentError
+from .doc import Document, DocumentError, write_file
 from .symbols import (FOLDER_FILE, Symbol, SymbolError,
                       default_registry, load_folder)
 
@@ -135,6 +135,8 @@ class Handler(BaseHTTPRequestHandler):
   root = "."
   registry = None
   quiet = False
+  # The names this server answers to. See _refusal.
+  hosts = frozenset(("127.0.0.1", "localhost", "::1"))
 
   def log_message(self, fmt, *args):
     if not self.quiet:
@@ -169,7 +171,8 @@ class Handler(BaseHTTPRequestHandler):
       return None
     try:
       return json.loads(self.rfile.read(length).decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):
+      # RecursionError: JSON nested deeper than the parser's stack.
       return None
 
   def _query(self):
@@ -212,10 +215,50 @@ class Handler(BaseHTTPRequestHandler):
   # ---- GET ----
 
   def do_GET(self):
-    self._guard(self._get)
+    self._guard(self._checked(self._get))
 
   def do_POST(self):
-    self._guard(self._post)
+    self._guard(self._checked(self._post))
+
+  def _checked(self, handler):
+    def run():
+      reason = self._refusal()
+      if reason:
+        return self._fail(403, reason)
+      return handler()
+    return run
+
+  def _refusal(self):
+    """Why a request did not come from this editor, or None if it did.
+
+    The server listens on loopback, but loopback is not a boundary a web page
+    respects: any page open in the same browser can send a form or a plain
+    fetch to 127.0.0.1, and one did overwrite a drawing in review. So a write
+    has to be JSON -- which a cross-site page cannot send without a preflight
+    this server never approves -- and, where the browser says where it came
+    from, from this origin. Every request, reads included, has to name this
+    server by a loopback name, which is what stops a hostile domain that
+    re-points its DNS at 127.0.0.1 from reading drawings back.
+    """
+    host = self.headers.get("Host") or ""
+    name = host.rsplit(":", 1)[0] if not host.endswith("]") else host
+    name = name.strip("[]").lower()
+    # hosts is None when bound to every interface: whoever asked for that has
+    # opened the server to other names on purpose, as the manual warns.
+    if self.hosts is not None and name not in self.hosts:
+      return "unexpected Host header %r" % host
+    if self.command != "POST":
+      return None
+    kind = (self.headers.get("Content-Type") or "").split(";")[0].strip()
+    if kind.lower() != "application/json":
+      return "expected Content-Type application/json"
+    origin = self.headers.get("Origin")
+    if origin and urlparse(origin).netloc.lower() != host.lower():
+      return "cross-origin request from %s" % origin
+    site = self.headers.get("Sec-Fetch-Site")
+    if site and site not in ("same-origin", "none"):
+      return "cross-site request"
+    return None
 
   def _get(self):
     route = urlparse(self.path).path
@@ -374,8 +417,7 @@ class Handler(BaseHTTPRequestHandler):
       parent = os.path.dirname(target)
       if parent and not os.path.isdir(parent):
         os.makedirs(parent)
-      with open(target, "w") as handle:
-        handle.write(text)
+      write_file(target, text, backup=True)
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
 
@@ -541,8 +583,7 @@ class Handler(BaseHTTPRequestHandler):
     if not target.endswith(".svg"):
       return self._fail(400, "exports must be written as .svg")
     try:
-      with open(target, "w") as handle:
-        handle.write(svg)
+      write_file(target, svg)
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
     return self._send_json({"path": relative, "bytes": len(svg)})
@@ -562,6 +603,8 @@ def serve(root=".", host="127.0.0.1", port=8080, registry=None,
     "root": root,
     "registry": registry,
     "quiet": quiet,
+    "hosts": (None if host in ("", "0.0.0.0", "::")
+              else Handler.hosts | frozenset((host.lower(),))),
   })
 
   httpd = ThreadingHTTPServer((host, port), handler)

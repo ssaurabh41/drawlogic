@@ -26,7 +26,7 @@ width/height attributes, so output stays vector-perfect at any size.
 from . import routing
 from . import drc
 from . import theme
-from .geometry import corners, fmt, hop_radii, label_lines
+from .geometry import Buckets, corners, fmt, hop_radii, label_lines
 from .symbols import default_registry
 
 DEFAULT_MARGIN = 24.0
@@ -757,6 +757,8 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
   size = theme.FONT_SIZES["net_label"] * font_scale
   segments = [(net_id, _segment_box(a, b))
               for net_id, a, b in routing.segments_of(routes)]
+  cell_index = Buckets(list(cell_boxes))
+  segment_index = Buckets([box for _, box in segments])
 
   placed = []
   spots = {}
@@ -776,12 +778,9 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
       if sheet and (box[0] < 2 or box[1] < 2
                     or box[2] > sheet[0] - 2 or box[3] > sheet[1] - 2):
         score += 500
-      for cell_box in cell_boxes:
-        if _boxes_overlap(near, cell_box):
-          score += 120
-      for other_id, seg_box in segments:
-        if other_id != net_id and _boxes_overlap(near, seg_box):
-          score += 45
+      score += 120 * cell_index.count(near)
+      score += 45 * segment_index.count(
+        near, lambda i: segments[i][0] != net_id)
       for other in placed:
         if _boxes_overlap(near, other):
           score += 220

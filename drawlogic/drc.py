@@ -28,7 +28,7 @@ Usage:
 
 import math
 
-from .geometry import corners
+from .geometry import Buckets, corners
 
 # ---- wires ----------------------------------------------------------------
 
@@ -304,6 +304,13 @@ def _box_gap(a, b):
   return math.hypot(dx, dy)
 
 
+def _grow(box, limit):
+  """A box grown by a limit and a margin: anything nearer than the limit
+  overlaps it, so it is the neighbourhood worth measuring against."""
+  reach = limit + 1.0
+  return (box[0] - reach, box[1] - reach, box[2] + reach, box[3] + reach)
+
+
 def _boxes_overlap(a, b):
   return not (a[2] <= b[0] or a[0] >= b[2] or a[3] <= b[1] or a[1] >= b[3])
 
@@ -414,6 +421,7 @@ class _Scene(object):
 
     self.net_pins = {}
     self.net_cells = {}
+    self._same = {}
     for net in doc.nets:
       pins = set()
       touched = set()
@@ -461,9 +469,16 @@ class _Scene(object):
 
     Two wires off one pin are one signal drawn as a rail, so they are allowed
     to lie on top of each other -- the router relies on the same exemption.
+    Remembered per pair: the checks ask it millions of times on a large
+    drawing, about a few hundred pairs.
     """
-    return bool(self.net_pins.get(one, frozenset())
-                & self.net_pins.get(other, frozenset()))
+    key = (one, other)
+    answer = self._same.get(key)
+    if answer is None:
+      answer = bool(self.net_pins.get(one, frozenset())
+                    & self.net_pins.get(other, frozenset()))
+      self._same[key] = answer
+    return answer
 
   def connects(self, net_id, cell_id):
     return cell_id in self.net_cells.get(net_id, ())
@@ -541,13 +556,15 @@ def _check_wire_spacing(scene, report):
   runs = scene.runs
   for index, one in enumerate(runs):
     for other in runs[index + 1:]:
-      if one.horizontal != other.horizontal or not _unrelated(scene, one, other):
+      # Cheapest test first: whether the nets are related is the expensive
+      # question, and almost every pair is ruled out by distance before it.
+      if one.horizontal != other.horizontal:
         continue
       gap = abs(one.fixed - other.fixed)
       if gap >= WIRE_GAP:
         continue
       shared = _overlap(one.lo, one.hi, other.lo, other.hi)
-      if shared <= TOUCHING:
+      if shared <= TOUCHING or not _unrelated(scene, one, other):
         continue
 
       key = _pair_key(one.net_id, other.net_id)
@@ -581,13 +598,27 @@ def _check_wire_contact(scene, report):
   for run in scene.runs:
     by_net.setdefault(run.net_id, []).append(run)
 
+  # Runs filed by the line they lie on, so a point is compared only with runs
+  # it could possibly be touching rather than with every run in the drawing.
+  lines = {}
+  for index, run in enumerate(scene.runs):
+    lines.setdefault((run.horizontal, int(run.fixed // 1)), []).append(index)
+
+  def near(point):
+    found = []
+    for horizontal, across in ((True, point[1]), (False, point[0])):
+      base = int(across // 1)
+      for key in (base - 1, base, base + 1):
+        found.extend(lines.get((horizontal, key), ()))
+    return [scene.runs[i] for i in sorted(found)]
+
   for net_id, runs in sorted(by_net.items()):
     points = set()
     for run in runs:
       points.add(run.a)
       points.add(run.b)
     for point in sorted(points):
-      for other in scene.runs:
+      for other in near(point):
         if other.net_id == net_id or scene.same_node(net_id, other.net_id):
           continue
         along, across = (point[0], point[1]) if other.horizontal \
@@ -625,12 +656,14 @@ def _check_wire_crossings(scene, report):
     if not one.horizontal:
       continue
     for other in scene.runs:
-      if other.horizontal or not _unrelated(scene, one, other):
+      if other.horizontal:
         continue
       x, y = other.fixed, one.fixed
       if not (one.lo + TOUCHING < x < one.hi - TOUCHING):
         continue
       if not (other.lo + TOUCHING < y < other.hi - TOUCHING):
+        continue
+      if not _unrelated(scene, one, other):
         continue
       if (one.net_id, round(x, 3), round(y, 3)) in bridged:
         continue
@@ -651,9 +684,15 @@ def _check_wires_and_cells(scene, report):
   written down anywhere. A wire merely grazing one is milder, but it still
   suggests a connection that is not there.
   """
+  # A cell further away than the larger of the two limits cannot be reported,
+  # so only the ones within it are looked at -- in the same order as before.
+  reach = max(PORT_TO_WIRE, WIRE_TO_CELL) + 1.0
+  cells = Buckets([placed.box for placed in scene.cells])
   for run in scene.runs:
     box = run.box()
-    for placed in scene.cells:
+    grown = (box[0] - reach, box[1] - reach, box[2] + reach, box[3] + reach)
+    for index in cells.overlapping(grown):
+      placed = scene.cells[index]
       if scene.connects(run.net_id, placed.id):
         continue
       limit = PORT_TO_WIRE if placed.port else WIRE_TO_CELL
@@ -739,6 +778,11 @@ def _check_text(scene, report):
   gone, and no amount of squinting recovers which word it was.
   """
   wires = [(run, run.box()) for run in scene.runs]
+  # Only what lies within a limit of a name can be reported against it, so
+  # each name is measured against its neighbourhood -- the same things, in
+  # the same order, as measuring it against the whole drawing.
+  wire_index = Buckets([run_box for _, run_box in wires])
+  cell_index = Buckets([placed.box for placed in scene.cells])
 
   for placed in scene.cells:
     if not placed.label_box:
@@ -746,7 +790,8 @@ def _check_text(scene, report):
     box = placed.label_box
     where = "name of %s" % placed.name()
 
-    for run, run_box in wires:
+    for index in wire_index.overlapping(_grow(box, TEXT_TO_WIRE)):
+      run, run_box = wires[index]
       gap = _box_gap(box, run_box)
       if gap >= TEXT_TO_WIRE:
         continue
@@ -756,7 +801,8 @@ def _check_text(scene, report):
         "the name sits %.1f from the wire, and text needs %.0f of air to stay "
         "readable" % (gap, TEXT_TO_WIRE), _midpoint(run.a, run.b)))
 
-    for other in scene.cells:
+    for index in cell_index.overlapping(_grow(box, TEXT_TO_CELL)):
+      other = scene.cells[index]
       if other is placed:
         continue
       gap = _box_gap(box, other.box)
@@ -769,8 +815,12 @@ def _check_text(scene, report):
         % gap, (box[0], box[1])))
 
   texts = scene.text_boxes()
+  text_index = Buckets([box for _, box in texts])
   for index, (what, box) in enumerate(texts):
-    for other_what, other_box in texts[index + 1:]:
+    for later in text_index.overlapping(_grow(box, TEXT_TO_TEXT)):
+      if later <= index:
+        continue
+      other_what, other_box = texts[later]
       gap = _box_gap(box, other_box)
       if gap >= TEXT_TO_TEXT:
         continue
@@ -779,9 +829,9 @@ def _check_text(scene, report):
         "two names sit %.1f apart and run into each other" % gap,
         (box[0], box[1])))
 
-  cell_boxes = [(placed, placed.box) for placed in scene.cells]
   for net_id, box in sorted(scene.net_label_boxes.items()):
-    for run, run_box in wires:
+    for index in wire_index.overlapping(_grow(box, LABEL_CLEARANCE)):
+      run, run_box = wires[index]
       if run.net_id == net_id or _box_gap(box, run_box) >= LABEL_CLEARANCE:
         continue
       report.add(("net-label", net_id, run.net_id), 0.0, Violation(
@@ -789,7 +839,9 @@ def _check_text(scene, report):
         "there was nowhere clear to write it, so it sits on net %s"
         % scene.net_name(run.net_id), _midpoint((box[0], box[1]),
                                                 (box[2], box[3]))))
-    for placed, cell_box in cell_boxes:
+    for index in cell_index.overlapping(_grow(box, LABEL_CLEARANCE)):
+      placed = scene.cells[index]
+      cell_box = placed.box
       if _box_gap(box, cell_box) >= LABEL_CLEARANCE:
         continue
       report.add(("net-label", net_id, placed.id), 0.0, Violation(
@@ -807,8 +859,18 @@ def _check_hops(scene, report):
   how a junction is drawn, so the reader loses the connection as well.
   """
   hops = scene.hops
+  # Each bridge is measured against its neighbourhood only; see _check_text.
+  texts = scene.text_boxes()
+  hop_index = Buckets([_point_box(spot) for _, spot in hops])
+  vertex_index = Buckets([_point_box(point) for point in scene.vertices])
+  cell_index = Buckets([placed.box for placed in scene.cells])
+  text_index = Buckets([box for _, box in texts])
   for index, (net_id, spot) in enumerate(hops):
-    for other_id, other in hops[index + 1:]:
+    around = _point_box(spot)
+    for later in hop_index.overlapping(_grow(around, HOP_GAP)):
+      if later <= index:
+        continue
+      other_id, other = hops[later]
       gap = math.hypot(spot[0] - other[0], spot[1] - other[1])
       if gap >= HOP_GAP:
         continue
@@ -820,9 +882,11 @@ def _check_hops(scene, report):
         "two crossing bridges %.1f apart merge into one squiggle; %.0f keeps "
         "them separate" % (gap, HOP_GAP), spot))
 
-    corners_near = [point for point in scene.vertices
-                    if math.hypot(spot[0] - point[0],
-                                  spot[1] - point[1]) < HOP_TO_CORNER]
+    corners_near = [scene.vertices[i] for i in
+                    vertex_index.overlapping(_grow(around, HOP_TO_CORNER))
+                    if math.hypot(spot[0] - scene.vertices[i][0],
+                                  spot[1] - scene.vertices[i][1])
+                    < HOP_TO_CORNER]
     if corners_near:
       nearest = min(math.hypot(spot[0] - p[0], spot[1] - p[1])
                     for p in corners_near)
@@ -833,8 +897,9 @@ def _check_hops(scene, report):
         "deformed corner is a junction the reader stops trusting" % nearest,
         spot))
 
-    for placed in scene.cells:
-      gap = _box_gap(_point_box(spot), placed.box)
+    for near in cell_index.overlapping(_grow(around, HOP_TO_CELL)):
+      placed = scene.cells[near]
+      gap = _box_gap(around, placed.box)
       if gap >= HOP_TO_CELL:
         continue
       report.add(("hop-to-cell", round(spot[0]), round(spot[1]), placed.id),
@@ -844,8 +909,9 @@ def _check_hops(scene, report):
         "a crossing bridge sits %.1f from the body, with nothing behind it to "
         "be seen against" % gap, spot))
 
-    for what, text_box in scene.text_boxes():
-      gap = _box_gap(_point_box(spot), text_box)
+    for near in text_index.overlapping(_grow(around, HOP_TO_TEXT)):
+      what, text_box = texts[near]
+      gap = _box_gap(around, text_box)
       if gap >= HOP_TO_TEXT:
         continue
       report.add(("hop-to-text", round(spot[0]), round(spot[1]), what), gap,

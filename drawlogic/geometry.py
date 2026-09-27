@@ -237,3 +237,55 @@ def hop_radii(positions, radius, flat, smallest):
       continue
     radii.append(max(smallest, min(radius, (room - flat) / 2.0)))
   return radii
+
+
+def _overlap(a, b):
+  return not (a[2] <= b[0] or a[0] >= b[2] or a[3] <= b[1] or a[1] >= b[3])
+
+
+class Buckets(object):
+  """Boxes filed by where they are, so "what does this box overlap" looks
+  only at the neighbourhood instead of the whole drawing.
+
+  Placing names and the DRCs both asked that question of everything in the
+  drawing for every candidate, which made them most of what an auto-layout
+  spent. Boxes are (x0, y0, x1, y1); the answer is the same set either way,
+  in the order the boxes were given.
+  """
+
+  SIZE = 64.0
+
+  def __init__(self, boxes):
+    self.boxes = boxes
+    self.cells = {}
+    for index, box in enumerate(boxes):
+      for key in self._keys(box):
+        self.cells.setdefault(key, []).append(index)
+
+  def _keys(self, box):
+    size = self.SIZE
+    for i in range(int(box[0] // size), int(box[2] // size) + 1):
+      for j in range(int(box[1] // size), int(box[3] // size) + 1):
+        yield (i, j)
+
+  def count(self, box, keep=None):
+    """How many boxes overlap `box` -- of those whose index `keep` accepts."""
+    seen = set()
+    total = 0
+    for key in self._keys(box):
+      for index in self.cells.get(key, ()):
+        if index in seen:
+          continue
+        seen.add(index)
+        if (keep is None or keep(index)) and _overlap(box, self.boxes[index]):
+          total += 1
+    return total
+
+  def overlapping(self, box):
+    """Indices of the boxes that overlap `box`."""
+    seen = set()
+    for key in self._keys(box):
+      for index in self.cells.get(key, ()):
+        if index not in seen:
+          seen.add(index)
+    return sorted(i for i in seen if _overlap(box, self.boxes[i]))

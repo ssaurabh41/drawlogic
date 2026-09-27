@@ -51,6 +51,9 @@ TOUCHING = drc.TOUCHING
 # with visible wire between, instead of one squiggle.
 HOP_GAP = drc.HOP_GAP
 
+# How finely a sheet files the runs it has reserved, in drawing units.
+RUN_BUCKET = 32.0
+
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")
 POS_SPAN = float("inf")
@@ -236,6 +239,26 @@ def body_boxes(doc, registry=None, exclude=()):
   return boxes
 
 
+def _boxes_for(doc, registry, sheet, exclude):
+  """The boxes one branch routes against: (padded, own bodies, other bodies).
+
+  The same as obstacle_boxes(exclude), body_boxes of the excluded cells and
+  body_boxes(exclude), in the same order -- but every cell's matrix was being
+  worked out again for every branch of every net, which was a quarter of the
+  time auto-layout spends. They are measured once per sheet and filtered.
+  """
+  if sheet._cells is None:
+    # Zipped rather than keyed by id: both functions skip the same cells in
+    # the same order, and a drawing with a repeated id still has two boxes.
+    ids = [c.get("id") for c in doc.cells if registry.for_cell(c) is not None]
+    sheet._cells = list(zip(ids, obstacle_boxes(doc, registry),
+                            body_boxes(doc, registry)))
+  cells = sheet._cells
+  return ([box for cell_id, box, _ in cells if cell_id not in exclude],
+          [body for cell_id, _, body in cells if cell_id in exclude],
+          [body for cell_id, _, body in cells if cell_id not in exclude])
+
+
 def _vertical_clear(x, y0, y1, boxes):
   lo, hi = min(y0, y1), max(y0, y1)
   for bx0, by0, bx1, by1 in boxes:
@@ -270,6 +293,11 @@ class Sheet:
     # stub looks at these: nothing else can wander into its own cells.
     self.own = own
     self._runs = []
+    # The same runs filed by orientation and position -- see free().
+    self._lines = {}
+    # (cell id, padded box, body box) for every cell, worked out once per
+    # routing pass rather than once per branch -- see _boxes_for.
+    self._cells = None
     self._keys = frozenset()
     self._net = None
 
@@ -279,11 +307,14 @@ class Sheet:
       a = points[index]
       b = points[index + 1]
       if abs(a[1] - b[1]) < EPSILON:
-        self._runs.append((net_id, keys, True, a[1],
-                           min(a[0], b[0]), max(a[0], b[0])))
+        run = (net_id, keys, True, a[1], min(a[0], b[0]), max(a[0], b[0]))
       elif abs(a[0] - b[0]) < EPSILON:
-        self._runs.append((net_id, keys, False, a[0],
-                           min(a[1], b[1]), max(a[1], b[1])))
+        run = (net_id, keys, False, a[0], min(a[1], b[1]), max(a[1], b[1]))
+      else:
+        continue
+      self._runs.append(run)
+      self._lines.setdefault((run[2], int(run[3] // RUN_BUCKET)),
+                             []).append(run)
 
   def for_net(self, boxes, keys, net_id=None, own=()):
     """A view of this sheet for one net: its own obstacles, shared history.
@@ -294,6 +325,8 @@ class Sheet:
     """
     view = Sheet(boxes, own)
     view._runs = self._runs
+    view._lines = self._lines
+    view._cells = self._cells
     view._keys = keys
     view._net = net_id
     return view
@@ -314,7 +347,18 @@ class Sheet:
     if gap is None:
       gap = WIRE_GAP
     lo, hi = min(v0, v1), max(v0, v1)
-    for net_id, keys, run_h, run_fixed, run_lo, run_hi in self._runs:
+    # Only runs that could answer "no" are looked at: those lying within `gap`
+    # of this line, and -- when crossings count -- those running across its
+    # span. The answer is the same as asking every run, which is what this did
+    # once per corridor tried and was the most expensive thing in a layout.
+    nearby = []
+    for key in range(int((fixed - gap) // RUN_BUCKET),
+                     int((fixed + gap) // RUN_BUCKET) + 1):
+      nearby.extend(self._lines.get((horizontal, key), ()))
+    if crossings:
+      for key in range(int(lo // RUN_BUCKET), int(hi // RUN_BUCKET) + 1):
+        nearby.extend(self._lines.get((not horizontal, key), ()))
+    for net_id, keys, run_h, run_fixed, run_lo, run_hi in nearby:
       # A net never crowds itself, and neither does anything sharing a pin
       # with it: two wires off one pin are one signal, drawn as one rail.
       if (net_id is not None and net_id == self._net) or (keys & self._keys):
@@ -842,9 +886,8 @@ def _lands_clear(points, doc, net, load, registry, sheet, keys, terminals):
   for endpoint in (net.get("from"), load):
     if isinstance(endpoint, dict) and "cell" in endpoint:
       exclude.add(endpoint["cell"])
-  view = sheet.for_net(obstacle_boxes(doc, registry, exclude), keys,
-                       net.get("id"))
-  bodies = body_boxes(doc, registry, exclude)
+  padded, _own, bodies = _boxes_for(doc, registry, sheet, exclude)
+  view = sheet.for_net(padded, keys, net.get("id"))
   for index in range(len(points) - 1):
     a, b = points[index], points[index + 1]
     # Cells, wires and the pins other wires stop at, in that order: a corridor
@@ -884,10 +927,8 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
     for endpoint in (net.get("from"), load):
       if isinstance(endpoint, dict) and "cell" in endpoint:
         exclude.add(endpoint["cell"])
-    boxes = obstacle_boxes(doc, registry, exclude)
-    others = set(cell.get("id") for cell in doc.cells) - exclude
-    view = sheet.for_net(boxes, keys, net.get("id"),
-                         body_boxes(doc, registry, others))
+    boxes, own, _bodies = _boxes_for(doc, registry, sheet, exclude)
+    view = sheet.for_net(boxes, keys, net.get("id"), own)
     return _clean(_direct_route(
       start, end, start_dir, end_dir, view,
       stub_for(doc, net.get("from"), registry) if from_pin else 0.0,
@@ -1012,9 +1053,26 @@ def junctions(routes):
       for point in points:
         candidates.setdefault(_key(point), point)
 
+  # Segments filed by the line they lie on, so each point is counted against
+  # the few segments that could touch it rather than every one in the
+  # drawing -- this ran for every candidate an auto-layout scored. _rays_at
+  # answers with a set, so which segments it is shown first cannot matter.
+  lines = {}
+  for segment in segments:
+    (ax, ay), (bx, by) = segment
+    if abs(ax - bx) < EPSILON:
+      lines.setdefault((False, int(ax // 1)), []).append(segment)
+    elif abs(ay - by) < EPSILON:
+      lines.setdefault((True, int(ay // 1)), []).append(segment)
+
   found = []
   for _, point in sorted(candidates.items()):
-    if len(_rays_at(point, segments)) >= 3:
+    near = []
+    for flat, across in ((False, point[0]), (True, point[1])):
+      base = int(across // 1)
+      for key in (base - 1, base, base + 1):
+        near.extend(lines.get((flat, key), ()))
+    if len(_rays_at(point, near)) >= 3:
       found.append(point)
   return found
 

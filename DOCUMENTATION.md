@@ -428,6 +428,17 @@ The **Zoom**, **Text** and **Symbols** sliders control view scale,
 `canvas.font.scale` and `canvas.symbolScale`. The last two change the
 document, so they mark it unsaved; zoom does not.
 
+### Tabs
+
+Every drawing you open gets a tab above the canvas, and opening another no
+longer asks you to throw away unsaved work: the drawing you were on stays
+open in its tab, undo history and all, and a dot marks the ones with unsaved
+changes. Clicking a tab goes back to it exactly as it was left -- the view,
+the selection, what Ctrl+Z will undo. Closing a tab with unsaved changes
+asks first; the last tab cannot be closed. Choosing the drawing that is
+already in front from the file list reloads it from disk, which is the one
+way to discard its changes.
+
 ### Preferences
 
 **Preferences** in the toolbar (`Ctrl+,`) holds how you like to work. They

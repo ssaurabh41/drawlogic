@@ -82,6 +82,28 @@ export class Store {
     this.emit("load");
   }
 
+  // Everything about the open drawing that belongs to it rather than to the
+  // editor, so a tab can put it away and bring it back as it was -- history
+  // included, which is the difference between a tab and reopening the file.
+  capture() {
+    return { doc: this.doc, path: this.path, dirty: this.dirty,
+             undo: this._undo, redo: this._redo };
+  }
+
+  restore(state) {
+    this.doc = state.doc;
+    this.path = state.path;
+    this.dirty = state.dirty;
+    this._undo = state.undo;
+    this._redo = state.redo;
+    // A different drawing is open now, so an answer still on its way for the
+    // one before -- a layout, a check -- must be recognised as stale.
+    this.opening += 1;
+    this.generation += 1;
+    this._gesture = null;
+    this.emit("load");
+  }
+
   snapshot() {
     return JSON.parse(JSON.stringify(this.doc));
   }

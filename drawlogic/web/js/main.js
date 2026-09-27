@@ -545,6 +545,113 @@ function renameInPlace({ kind, id, box }) {
   }, 0);
 }
 
+// ---- tabs ----
+
+// Every drawing open in this window. The one in front lives in the store; the
+// others are kept here whole -- document, undo history, unsaved flag, the
+// block symbols their hierarchy needs, and where the view was -- so going
+// back to one is exactly as it was left, not the file read again.
+const openTabs = [];
+
+function findTab(path) {
+  return openTabs.find((tab) => tab.path === path) || null;
+}
+
+function captureActive() {
+  const tab = store.doc ? findTab(store.path) : null;
+  if (!tab) return;
+  Object.assign(tab, store.capture(), {
+    view: { zoom: viewport.zoom, panX: viewport.panX, panY: viewport.panY },
+    selection: [...selection.ids],
+  });
+}
+
+function switchTab(path, { keepTrail = false } = {}) {
+  if (path === store.path) return;
+  const tab = findTab(path);
+  if (!tab || !tab.doc) return;
+  captureActive();
+  geometry.setSheets(tab.sheets);
+  store.restore(tab);
+  // A different drawing: nothing half-done carries over (see openDrawing).
+  setTool("select");
+  selection.set(tab.selection || []);
+  if (!keepTrail) trail.length = 0;
+  ui.filePath.textContent = path;
+  ui.fileSelect.value = path;
+  syncControls();
+  redraw();
+  if (tab.view) {
+    viewport.zoom = tab.view.zoom;
+    viewport.panX = tab.view.panX;
+    viewport.panY = tab.view.panY;
+    viewport.apply();
+  } else {
+    viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
+  }
+  inspector.render();
+  drawBreadcrumb();
+  renderTabs();
+  refreshStatus();
+}
+
+function closeTab(path) {
+  const tab = findTab(path);
+  if (!tab || openTabs.length < 2) return;
+  const dirty = path === store.path ? store.dirty : tab.dirty;
+  if (dirty && !window.confirm(`${path} has unsaved changes. Close it and lose them?`)) {
+    return;
+  }
+  if (dirty) recovery.discard(path);
+  const index = openTabs.indexOf(tab);
+  openTabs.splice(index, 1);
+  if (path === store.path) {
+    switchTab(openTabs[Math.min(index, openTabs.length - 1)].path);
+  } else {
+    renderTabs();
+  }
+}
+
+function renderTabs() {
+  const bar = ui.tabs;
+  if (!bar) return;
+  const buttons = openTabs.map((tab) => {
+    const active = tab.path === store.path;
+    const dirty = active ? store.dirty : tab.dirty;
+    const button = document.createElement("div");
+    button.className = "tab";
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(active));
+    button.title = tab.path;
+    const name = document.createElement("span");
+    name.className = "tab-name";
+    name.textContent = tab.path.split("/").pop();
+    button.append(name);
+    if (dirty) {
+      const mark = document.createElement("span");
+      mark.className = "tab-dirty";
+      mark.textContent = "\u25CF";
+      mark.title = "unsaved changes";
+      button.append(mark);
+    }
+    if (openTabs.length > 1) {
+      const close = document.createElement("button");
+      close.className = "tab-close";
+      close.type = "button";
+      close.textContent = "\u00D7";
+      close.title = `close ${tab.path}`;
+      close.addEventListener("click", (event) => {
+        event.stopPropagation();
+        closeTab(tab.path);
+      });
+      button.append(close);
+    }
+    button.addEventListener("click", () => switchTab(tab.path));
+    return button;
+  });
+  bar.replaceChildren(...buttons);
+}
+
 function stepHistory(back) {
   const label = back ? store.undo() : store.redo();
   if (label === false) return;
@@ -615,8 +722,16 @@ function runCommand(command) {
 // ---- files ----
 
 async function openDrawing(path) {
-  if (store.dirty) {
-    if (!window.confirm("Discard unsaved changes?")) {
+  // Open in a tab already: go to it, with its history and unsaved work as
+  // they were, rather than reading the file again over them.
+  if (path !== store.path && findTab(path)) {
+    switchTab(path, { keepTrail: true });
+    return;
+  }
+  // Only reopening the drawing in front of you throws anything away; any
+  // other drawing opens in a tab of its own beside it.
+  if (path === store.path && store.dirty) {
+    if (!window.confirm("Reload it from disk and discard unsaved changes?")) {
       ui.fileSelect.value = store.path || "";
       return;
     }
@@ -625,9 +740,14 @@ async function openDrawing(path) {
   }
   try {
     const payload = await api(`/api/doc?path=${encodeURIComponent(path)}`);
+    captureActive();
     // Blocks for the drawings this one references, built from their ports.
     geometry.setSheets(payload.sheets);
     store.load(payload.doc, payload.path);
+    const tab = findTab(payload.path);
+    if (tab) tab.sheets = payload.sheets;
+    else openTabs.push({ path: payload.path, sheets: payload.sheets });
+    renderTabs();
     selection.clear();
     // A tool keeps state between clicks -- the wire tool holds the pin a wire
     // started from -- and cell ids repeat between drawings, so a wire begun
@@ -1162,10 +1282,6 @@ function offerRecovery(path) {
 }
 
 async function newDrawing() {
-  if (store.dirty) {
-    if (!window.confirm("Discard unsaved changes?")) return;
-    recovery.discard(store.path);
-  }
 
   const raw = window.prompt("Name for the new drawing:", "untitled.dlg");
   if (!raw) return;
@@ -1444,7 +1560,9 @@ function bindKeyboard() {
   // Saving is manual, so the one thing done automatically is refusing to let
   // the tab close on unsaved work.
   window.addEventListener("beforeunload", (event) => {
-    if (!store.dirty) return;
+    const anyDirty = store.dirty
+      || openTabs.some((tab) => tab.path !== store.path && tab.dirty);
+    if (!anyDirty) return;
     event.preventDefault();
     event.returnValue = "";
   });
@@ -1540,6 +1658,7 @@ async function start() {
     btnFit: $("btn-fit"),
     shortcuts: $("shortcuts"),
     prefsDialog: $("prefs-dialog"),
+    tabs: $("tabs"),
     btnPrefs: $("btn-prefs"),
     btnPainter: $("btn-painter"),
     btnCancel: $("btn-cancel"),
@@ -1588,6 +1707,15 @@ async function start() {
   // Saving is the one thing that changes nothing on the canvas.
   store.subscribe((_store, reason) => {
     if (reason !== "saved") afterEdit();
+  });
+  // The dot on a tab follows the drawing's unsaved flag. Redrawn only when
+  // that flag changes, not on every pointer move of a drag.
+  let shownDirty = null;
+  store.subscribe((_store, reason) => {
+    if (reason === "load" || reason === "saved" || store.dirty !== shownDirty) {
+      shownDirty = store.dirty;
+      renderTabs();
+    }
   });
   recovery.watch(store, () => say(
     "this drawing is too big for the browser to keep a recovery copy of; "

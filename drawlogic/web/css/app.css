@@ -462,13 +462,37 @@ select {
   min-width: 0;
   background: var(--sunken);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 #canvas {
   display: block;
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
+
+/* One tab per open drawing. */
+.tabs {
+  display: flex; gap: 2px; padding: 4px 6px 0; overflow-x: auto;
+  background: var(--chrome-2); border-bottom: 1px solid var(--line);
+  flex: none; min-height: 30px;
+}
+.tab {
+  display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px;
+  border: 1px solid var(--line); border-bottom: none; border-radius: 5px 5px 0 0;
+  background: var(--chrome-2); color: var(--ink-2); font: inherit; font-size: 12px;
+  cursor: pointer; white-space: nowrap; max-width: 220px;
+}
+.tab[aria-selected="true"] { background: var(--sunken); color: var(--ink); font-weight: 600; }
+.tab .tab-name { overflow: hidden; text-overflow: ellipsis; }
+.tab .tab-dirty { color: var(--warm); }
+.tab .tab-close {
+  border: none; background: none; color: var(--ink-3); cursor: pointer;
+  padding: 0 3px; font-size: 13px; line-height: 1; border-radius: 3px;
+}
+.tab .tab-close:hover { color: var(--danger); background: var(--line-soft); }
 #canvas.grabbable { cursor: grab; }
 #canvas.panning { cursor: grabbing; }
 

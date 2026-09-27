@@ -433,6 +433,91 @@ endmodule
 }
 
 
+# The loop-based shift register template synthesis tools ship, cut to four
+# bits so the test stays quick. The reader used to fail on it outright --
+# with Yosys installed too -- because `for (i = 0; ...;` was split at its
+# first `;`.
+LOOPED = """\
+module shift_registers_1 (clk, clken, SI, SO);
+parameter WIDTH = 4;
+input clk, clken, SI;
+output SO;
+reg [WIDTH-1:0] shreg;
+integer i;
+always @(posedge clk)
+begin
+if (clken)
+begin
+for (i = 0; i < WIDTH-1; i = i+1)
+shreg[i+1] <= shreg[i];
+shreg[0] <= SI;
+end
+end
+assign SO = shreg[WIDTH-1];
+endmodule
+"""
+
+
+class TestLoopsAndParameters(unittest.TestCase):
+  """A `for` loop with constant bounds is unrolled, the way a synthesiser
+  does it, and ranges and selects may be written in parameters."""
+
+  def draw(self, text):
+    top, drawings, warnings = hdl.import_verilog(text, synth="builtin")
+    return drawings[top], warnings
+
+  def next_state(self, doc, inputs):
+    """{flip-flop id: the value its D pin is given} for `inputs`."""
+    values = simulate(doc, inputs)
+    found = {}
+    for net in doc.nets:
+      for end in net["to"]:
+        if end["pin"] == "d":
+          found[end["cell"]] = values.get(net["name"])
+    return found
+
+  def test_the_loop_becomes_one_stage_per_bit(self):
+    doc, warnings = self.draw(LOOPED)
+    self.assertEqual(warnings, [])
+    flops = sorted(c["id"] for c in doc.cells if c["type"] == "dff")
+    self.assertEqual(flops, ["shreg_%d_reg" % i for i in range(4)])
+    now = {"shreg[%d]" % i: bit for i, bit in enumerate((1, 0, 1, 1))}
+    shifted = self.next_state(doc, dict(now, clken=1, SI=0))
+    self.assertEqual([shifted["shreg_%d_reg" % i] for i in range(4)],
+                     [0, 1, 0, 1])
+    held = self.next_state(doc, dict(now, clken=0, SI=0))
+    self.assertEqual([held["shreg_%d_reg" % i] for i in range(4)],
+                     [1, 0, 1, 1])
+
+  def test_a_vector_used_only_bit_by_bit_gets_no_joiners(self):
+    doc, _ = self.draw(LOOPED)
+    self.assertEqual([c["id"] for c in doc.cells
+                      if c["type"] in ("bus_join", "ripper")], [])
+
+  def test_a_range_in_a_header_parameter(self):
+    doc, warnings = self.draw(
+      "module m #(parameter W = 3) (input [W-1:0] a, output [W-1:0] y);\n"
+      "  assign y = ~a;\n"
+      "endmodule\n")
+    self.assertEqual(warnings, [])
+    self.assertEqual(len([c for c in doc.cells if c["type"] == "inv"]), 3)
+
+  def test_a_loop_it_cannot_unroll_is_reported_not_fatal(self):
+    doc, warnings = self.draw(
+      "module m (input clk, input a, output reg q, output y);\n"
+      "  always @(posedge clk) while (a) q <= 1'b1;\n"
+      "  assign y = ~a;\n"
+      "endmodule\n")
+    self.assertIn("`while` is not drawn", " ".join(warnings))
+    self.assertIn("inv", [c["type"] for c in doc.cells])
+
+  @unittest.skipUnless(yosys.available(), "yosys is not installed")
+  def test_yosys_draws_it_too(self):
+    top, drawings, _ = hdl.import_verilog(LOOPED, synth="yosys")
+    self.assertEqual(len([c for c in drawings[top].cells
+                          if c["type"] == "dff"]), 4)
+
+
 class TestFeedbackIsDrawnCleanly(unittest.TestCase):
   """Registers whose next state depends on themselves: every one is a wire
   looping back from a gate to the flip-flop feeding it. These drew with

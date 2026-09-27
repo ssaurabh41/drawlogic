@@ -272,7 +272,9 @@ top drawing.
 name or by position, and `assign a = b;` (which joins the two nets). One bit
 of a vector, `d[3]`, is its own one-bit net, joined to the vector by a
 `ripper` where the bit is taken off it or a `bus_join` where it is put on;
-the joiners onto one bus are lined up in one column.
+the joiners onto one bus are lined up in one column. A vector that is only
+ever used bit by bit -- a shift register's stages -- is drawn as its bits
+alone, with no bus.
 
 **RTL** -- `assign` with logic in it (or a `wire x = a & b;` declaration,
 which is the same thing) and `always` blocks -- is turned into gates and
@@ -287,12 +289,14 @@ out:
   internal signals get the names Yosys gave them.
 - Without it, drawlogic's own reader (`rtl.py`) covers the common shapes:
   `~ & | ^ ! && || ?: == !=`, `{..}` and `{n{..}}`, bit and part selects,
-  sized constants, `parameter`/`localparam` numbers, `if`/`else` and `case`,
+  sized constants, `parameter`/`localparam` numbers (and ranges or selects
+  written in them, such as `[WIDTH-1:0]`), `if`/`else`, `case`, and `for`
+  loops with constant bounds (unrolled, up to 1024 turns),
   in `assign`, `always @(*)` and `always @(posedge clk)` -- optionally
   `or posedge rst` / `or negedge rst_n` with the reset tested first, which
   gives a `dffr` (an active-high reset goes through one shared inverter,
-  `rst_n`). Arithmetic, `<`/`>`, `casez`, loops, functions and latches are
-  reported and left out.
+  `rst_n`). Arithmetic, `<`/`>` on signals, `casez`, `while` and `repeat`
+  loops, functions and latches are reported and left out.
 - A netlist with no behaviour is never resynthesised: its gates and names
   are what you wrote. `--synth yosys` insists on Yosys (and fails without
   it); `--synth builtin` never uses it. If Yosys fails, the import falls back
@@ -1658,7 +1662,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-463 tests, in fifteen parts:
+468 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|

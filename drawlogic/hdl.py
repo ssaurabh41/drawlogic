@@ -143,15 +143,18 @@ def _line_of(text, index):
   return text.count("\n", 0, index) + 1
 
 
-def _range(range_text):
-  """(msb, lsb) from a `[msb:lsb]`, or None when there is none to read."""
+def _range(range_text, params=None):
+  """(msb, lsb) from a `[msb:lsb]`, or None when there is none to read.
+  The bounds may be constant expressions of parameters, as in
+  `[WIDTH-1:0]`."""
   match = RANGE.search(range_text or "")
   if not match:
     return None
-  try:
-    return int(match.group(1)), int(match.group(2))
-  except ValueError:
-    return None   # a parameter in the range: drawn one bit wide
+  msb = rtl.constant(match.group(1), params or {})
+  lsb = rtl.constant(match.group(2), params or {})
+  if msb is None or lsb is None:
+    return None   # not a number even so: drawn one bit wide
+  return msb, lsb
 
 
 def _split_top(text, separator):
@@ -184,7 +187,7 @@ def _balanced(text, start):
 
 def _declare(module, words, names_text, ranges_text):
   direction = words[0] if words and words[0] in DIRECTIONS else None
-  bits = _range(ranges_text)
+  bits = _range(ranges_text, module.params)
   for raw in _split_top(names_text, ","):
     name = raw.split("=")[0].strip()
     if not re.match(r"^%s$" % IDENT, name):
@@ -264,6 +267,10 @@ def parse(text):
       if end < 0:
         raise HdlError("line %d: unclosed #( in module %s"
                        % (module.line, module.name))
+      # `#(parameter WIDTH = 8)`: needed before the ports, whose ranges
+      # may be written in it.
+      module.params.update(rtl.parameters(
+        clean[cursor + skip.end():end - 1]))
       cursor = end
     opening = re.match(r"\s*\(", clean[cursor:])
     if opening:
@@ -361,7 +368,7 @@ def _parse_text_item(module, statement, line):
     return
   first = words[0]
   if first in ("parameter", "localparam"):
-    module.params.update(rtl.parameters(statement))
+    module.params.update(rtl.parameters(statement, module.params))
     return
   if first in SKIPPED or first.startswith("`"):
     return
@@ -557,8 +564,21 @@ def _build(module, modules, registry, warnings):
   # ripper where the bit is taken off it, or a joiner where it is put on.
   # Layout reads an inout pin's direction from the side it is on and turns
   # every cell to face forward, so which way round it goes is chosen here.
+  #
+  # A vector only ever used bit by bit, every bit driven by something of its
+  # own, is not drawn as a bus at all: joining each bit onto a bus that
+  # nothing reads would only be clutter -- 32 joiners and 32 wires across
+  # the sheet for a 32-bit shift register.
+  bitwise = set()
+  for name in set(k[0] for k in ends if isinstance(k, tuple)):
+    keys = [k for k in ends if isinstance(k, tuple) and k[0] == name]
+    if name not in ends and all(any(end[2] == "drive" for end in ends[k])
+                                for k in keys):
+      bitwise.add(name)
   for key in sorted(k for k in ends if isinstance(k, tuple)):
     name, bit = key
+    if name in bitwise:
+      continue
     driven = any(end[2] == "drive" for end in ends[key])
     rip = _safe_id("%s_%s_%d" % ("join" if driven else "rip", name, bit), taken)
     add_cell({"id": rip, "type": "bus_join" if driven else "ripper",

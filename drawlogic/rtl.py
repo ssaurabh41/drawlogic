@@ -174,16 +174,20 @@ def items(text, start, end, first_line):
 def _resync(stream):
   """After a statement that could not be read, skip to where the next item
   plausibly starts: past the next `;` or `end` at the outermost level."""
-  depth = 0
+  depth = brackets = 0
   while not stream.done():
     word = stream.take().text
-    if word in ("begin", "case", "casez", "casex", "fork"):
+    if word in "([{":
+      brackets += 1
+    elif word in ")]}":
+      brackets -= 1
+    elif word in ("begin", "case", "casez", "casex", "fork"):
       depth += 1
     elif word in ("end", "endcase", "join"):
       depth -= 1
       if depth <= 0:
         return
-    elif word == ";" and depth <= 0:
+    elif word == ";" and depth <= 0 and brackets <= 0:
       return
 
 
@@ -264,8 +268,17 @@ def _statement(stream):
   if word == ";":
     stream.take()
     return ("block", [])
-  if word in ("casez", "casex", "for", "while", "repeat", "forever", "fork",
-              "wait", "disable") or word.startswith("$") or word == "#":
+  if word == "for":
+    return _for(stream)
+  if word in ("while", "repeat", "forever"):
+    # Skipped whole -- header and body -- so what follows is read as itself.
+    stream.take()
+    if stream.text() == "(":
+      _skip_brackets(stream)
+    _statement(stream)
+    return ("unsupported", "`%s`" % word, token.line)
+  if word in ("casez", "casex", "fork", "wait", "disable") \
+      or word.startswith("$") or word == "#":
     _resync(stream)
     return ("unsupported", "`%s`" % word, token.line)
   lvalue = _primary(stream)
@@ -279,6 +292,47 @@ def _statement(stream):
   value = _expression(stream)
   stream.take(";")
   return ("set", lvalue, value, operator.text == "=", token.line)
+
+
+def _for(stream):
+  """`for (i = a; cond; i = step) body` -> ("for", i, a, cond, step, body,
+  line). `i++`, `i--`, `i += n` and `i -= n` are read as the step too."""
+  line = stream.take("for").line
+  stream.take("(")
+  var = stream.take().text
+  stream.take("=")
+  start = _expression(stream)
+  stream.take(";")
+  condition = _expression(stream)
+  stream.take(";")
+  if stream.take().text != var:
+    raise LowerError("line %d: a for loop stepping another variable" % line)
+  operator = stream.take().text
+  if operator == "=":
+    step = _expression(stream)
+  elif operator in ("+", "-") and stream.text() == operator:
+    stream.take()
+    step = ("bin", operator, ("id", var), ("num", None, "1"))
+  elif operator in ("+", "-") and stream.text() == "=":
+    stream.take()
+    step = ("bin", operator, ("id", var), _expression(stream))
+  else:
+    raise LowerError("line %d: cannot read the step of a for loop" % line)
+  stream.take(")")
+  return ("for", var, start, condition, step, _statement(stream), line)
+
+
+def _skip_brackets(stream):
+  """Past one balanced ( ... ) group."""
+  depth = 0
+  while not stream.done():
+    word = stream.take().text
+    if word == "(":
+      depth += 1
+    elif word == ")":
+      depth -= 1
+      if depth == 0:
+        return
 
 
 def _case(stream):
@@ -530,9 +584,7 @@ class _Scope(object):
     return [("n", (name, index)) for index in range(lsb, msb + step, step)]
 
   def index(self, name, expr):
-    if expr[0] == "id" and expr[1] in self.module.params:
-      expr = self.module.params[expr[1]]
-    value = constant_value(expr)
+    value = fold(expr, self.module.params)
     if value is None:
       raise LowerError("a select on %s by something that is not a number"
                        % name)
@@ -560,13 +612,70 @@ class _Scope(object):
 def constant_value(expr):
   if expr[0] == "num":
     return int(expr[2], 2)
+  if expr[0] == "int":
+    return expr[1]
   return None
+
+
+FOLD = {
+  "+": lambda a, b: a + b, "-": lambda a, b: a - b, "*": lambda a, b: a * b,
+  "/": lambda a, b: a // b if b else None, "%": lambda a, b: a % b if b else None,
+  "**": lambda a, b: a ** b if 0 <= b < 64 else None,
+  "<<": lambda a, b: a << b if 0 <= b < 64 else None,
+  ">>": lambda a, b: a >> b if b >= 0 else None,
+  "<": lambda a, b: int(a < b), "<=": lambda a, b: int(a <= b),
+  ">": lambda a, b: int(a > b), ">=": lambda a, b: int(a >= b),
+  "==": lambda a, b: int(a == b), "!=": lambda a, b: int(a != b),
+  "&&": lambda a, b: int(bool(a) and bool(b)),
+  "||": lambda a, b: int(bool(a) or bool(b)),
+}
+
+
+def fold(expr, params):
+  """The whole-number value of a constant expression -- numbers,
+  parameters, arithmetic and comparisons, as in `WIDTH-1` or `i < N` -- or
+  None for anything else."""
+  kind = expr[0]
+  if kind in ("num", "int"):
+    return constant_value(expr)
+  if kind == "id":
+    value = params.get(expr[1])
+    return fold(value, params) if value is not None else None
+  if kind == "un" and expr[1] in ("-", "+", "!"):
+    value = fold(expr[2], params)
+    if value is None:
+      return None
+    return {"-": -value, "+": value, "!": int(not value)}[expr[1]]
+  if kind == "bin" and expr[1] in FOLD:
+    a, b = fold(expr[2], params), fold(expr[3], params)
+    return None if a is None or b is None else FOLD[expr[1]](a, b)
+  if kind == "tern":
+    test = fold(expr[1], params)
+    if test is None:
+      return None
+    return fold(expr[2] if test else expr[3], params)
+  return None
+
+
+def constant(text, params):
+  """fold() for source text, e.g. the `WIDTH-1` of a range; None when it is
+  not a constant expression."""
+  try:
+    stream = _Stream(tokenize(text))
+    expr = _expression(stream)
+  except LowerError:
+    return None
+  return fold(expr, params) if stream.done() else None
 
 
 def evaluate(expr, scope, read):
   """The bits of `expr`, least significant first. `read(bit)` gives what a
   net currently holds -- itself, or an earlier blocking assignment's value."""
   kind = expr[0]
+  if kind == "int":
+    if expr[1] < 0:
+      raise LowerError("a negative number used as bits")
+    return [("c", int(b)) for b in reversed(format(expr[1], "b"))]
   if kind == "num":
     bits = [("c", int(b)) for b in reversed(expr[2])]
     if expr[1] is not None:
@@ -660,6 +769,40 @@ def _fit(bits, width):
   return (bits + [ZERO] * width)[:width]
 
 
+# More turns than this is a loop that is not meant to be drawn gate by gate.
+MAX_UNROLL = 1024
+
+
+def _unroll(statement, scope, state, blocking_reads):
+  """A for loop with constant bounds, run once per turn with the loop
+  variable standing in as a number -- the way a synthesiser unrolls it."""
+  _, var, start, condition, step, body, line = statement
+  params = scope.module.params
+  saved = params.get(var)
+  try:
+    value = fold(start, params)
+    for _ in range(MAX_UNROLL + 1):
+      if value is None:
+        raise LowerError("line %d: a for loop whose bounds are not numbers"
+                         % line)
+      params[var] = ("int", value)
+      going = fold(condition, params)
+      if going is None:
+        raise LowerError("line %d: a for loop whose bounds are not numbers"
+                         % line)
+      if not going:
+        return state
+      state = execute(body, scope, state, blocking_reads)
+      value = fold(step, params)
+    raise LowerError("line %d: a for loop of more than %d turns"
+                     % (line, MAX_UNROLL))
+  finally:
+    if saved is None:
+      params.pop(var, None)
+    else:
+      params[var] = saved
+
+
 def execute(statement, scope, state, blocking_reads):
   """Run `statement` symbolically. `state` maps a target key to the node it
   holds now; returns the state after. Branches become muxes."""
@@ -670,6 +813,8 @@ def execute(statement, scope, state, blocking_reads):
     return state
   if kind == "unsupported":
     raise LowerError("line %d: %s is not drawn" % (statement[2], statement[1]))
+  if kind == "for":
+    return _unroll(statement, scope, state, blocking_reads)
   read = _reader(state, blocking_reads)
   if kind == "set":
     _, lvalue, value, _, line = statement
@@ -940,11 +1085,13 @@ def _clock_and_reset(edges, body):
   return clock, condition[1], low, {"run": inner[3], "reset": inner[2]}
 
 
-def parameters(text):
+def parameters(text, known=None):
   """`localparam IDLE = 2'b00, RUN = 2'b01` -> {name: constant tree}.
 
-  Only values that are plain numbers are kept; an expression of other
-  parameters is left for whoever reads it to report.
+  Values are kept when they come to a number: a plain one, or arithmetic on
+  numbers and the parameters before it (`known`, then this statement's own),
+  as in `MSB = WIDTH - 1`. Anything else is left for whoever reads it to
+  report.
   """
   stream = _Stream(tokenize(text))
   found = {}
@@ -959,7 +1106,11 @@ def parameters(text):
         value = None
         while not stream.done() and stream.text() != ",":
           stream.take()
-      if value is not None and value[0] == "num":
+      if value is not None and value[0] != "num":
+        number = fold(value, dict(known or {}, **found))
+        value = ("int", number) if number is not None and number >= 0 \
+            else None
+      if value is not None:
         found[token.text] = value
       continue
     stream.take()

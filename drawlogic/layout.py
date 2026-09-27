@@ -35,6 +35,7 @@ Usage:
 """
 
 import json
+import math
 
 from . import drc
 from . import routing
@@ -51,6 +52,17 @@ MARGIN = drc.SHEET_MARGIN
 # How many back-and-forth passes the ordering gets. Past about four it stops
 # finding anything.
 SWEEPS = 4
+
+# A very long chain -- a 32-bit shift register is 66 columns and 11,000
+# units wide -- is wrapped onto rows, like text onto lines. Only a very long
+# one: a drawing needs at least this many columns and this much width before
+# it is wrapped, so every ordinary drawing is laid out exactly as before.
+# The widest drawing in examples/ and benchmarks/ is 19 columns and 3,300
+# units.
+WRAP_COLUMNS = 24
+WRAP_WIDTH = 3 * drc.SHEET_W
+# The shape the wrapped rows aim for, width over height: the sheet's own.
+WRAP_ASPECT = drc.SHEET_W / drc.SHEET_H
 
 PORT_IN = ("port_in", "port_inout")
 PORT_OUT = ("port_out",)
@@ -988,6 +1000,72 @@ def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y,
     _settle_followers(doc, registry, by_id,
                       {c["id"]: _box(registry, doc, c) for c in by_id.values()},
                       order, ranks, edges, gap_y, ports)
+  _wrap(doc, registry, by_id, order, gap_x, gap_y)
+
+
+def _bands(widths, gap_x, heights, gap_y):
+  """Where to break the columns into rows: a list of (first, last) column
+  indices, or None to leave the drawing as one row.
+
+  Only for a very long chain (WRAP_COLUMNS, WRAP_WIDTH). How many rows is
+  chosen so the wrapped drawing comes out about the shape of the sheet, and
+  the breaks so the rows come out about the same width. It is worked out
+  from the column widths and how tall each column's cells are stacked, not
+  from where they happen to be, so every arrangement _refine tries is
+  wrapped the same way.
+  """
+  width = sum(widths) + gap_x * (len(widths) - 1)
+  if len(widths) < WRAP_COLUMNS or width < WRAP_WIDTH:
+    return None
+  height = max(heights) + gap_y
+  rows = int(round(math.sqrt(width / (height * WRAP_ASPECT))))
+  rows = min(rows, len(widths) // 2)
+  if rows < 2:
+    return None
+  bands, first, done = [], 0, 0.0
+  for index, column in enumerate(widths):
+    done += column + gap_x
+    if len(bands) < rows - 1 and done >= width * (len(bands) + 1) / rows:
+      bands.append((first, index))
+      first = index + 1
+  bands.append((first, len(widths) - 1))
+  return bands
+
+
+def _wrap(doc, registry, by_id, order, gap_x, gap_y):
+  """Wrap a very long drawing onto rows, each under the one before.
+
+  Each row starts back at the left and keeps its own cells' heights, so the
+  wires inside a row are exactly as they were. The wire from the end of one
+  row to the start of the next runs back through the room left between them.
+  """
+  boxes = {cell_id: _box(registry, doc, cell) for cell_id, cell in by_id.items()}
+  widths = [max([boxes[c][2] for c in column] or [0]) for column in order]
+  heights = [sum(boxes[c][3] + gap_y + _headroom(by_id[c]) for c in column)
+             for column in order]
+  bands = _bands(widths, gap_x, heights, gap_y)
+  if bands is None:
+    return
+  # Between two rows: the gap cells keep, twice over -- once for the wires
+  # leaving the row above and once for those entering the row below -- and
+  # a name's room.
+  between = 3 * gap_y + drc.LABEL_HEADROOM
+  top = None
+  for first, last in bands:
+    members = [c for column in order[first:last + 1] for c in column]
+    if not members:
+      continue
+    left = min(boxes[c][0] for c in members)
+    high = min(boxes[c][1] - _headroom(by_id[c]) for c in members)
+    low = max(boxes[c][1] + boxes[c][3] for c in members)
+    dx = 0.0 if top is None else origin - left
+    dy = 0.0 if top is None else top - high
+    if top is None:
+      origin = left
+    for cell_id in members:
+      by_id[cell_id]["x"] += dx
+      by_id[cell_id]["y"] += dy
+    top = low + dy + between
 
 
 def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y,

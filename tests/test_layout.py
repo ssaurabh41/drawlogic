@@ -1017,6 +1017,72 @@ class TestForkingIsChosenByMeasuring(unittest.TestCase):
                          "%s moved when laid out a second time" % name)
 
 
+def _inverter_chain(length):
+  """An input port, `length` inverters in a row, and an output port."""
+  doc = new_document("chain")
+  doc.cells.append({"id": "pi", "type": "port_in", "x": 0, "y": 0,
+                    "label": "a"})
+  previous = ("pi", "p")
+  for index in range(length):
+    doc.cells.append({"id": "g%d" % index, "type": "inv", "x": 0, "y": 0})
+    doc.nets.append({"id": "n%d" % index,
+                     "from": {"cell": previous[0], "pin": previous[1]},
+                     "to": [{"cell": "g%d" % index, "pin": "a"}]})
+    previous = ("g%d" % index, "y")
+  doc.cells.append({"id": "po", "type": "port_out", "x": 0, "y": 0,
+                    "label": "y"})
+  doc.nets.append({"id": "last",
+                   "from": {"cell": previous[0], "pin": previous[1]},
+                   "to": [{"cell": "po", "pin": "p"}]})
+  doc.normalize()
+  return doc
+
+
+class TestAVeryLongChainIsWrapped(unittest.TestCase):
+  """A 32-bit shift register came out 66 columns and 11,000 units wide:
+  one row, to be scrolled along rather than read. A very long chain is
+  wrapped onto rows instead -- and only a very long one."""
+
+  def rows(self, doc):
+    return sorted(set(round(c["y"], -2) for c in doc.cells
+                      if c["type"] == "inv"))
+
+  def test_a_very_long_chain_goes_onto_rows(self):
+    doc = _inverter_chain(40)
+    layout.arrange(doc, default_registry())
+    self.assertGreater(len(self.rows(doc)), 1)
+    self.assertLess(doc.canvas["width"], 3 * drc.SHEET_W)
+    # Row by row, left to right: each row starts back at the left.
+    firsts = [c["x"] for c in doc.cells if c["type"] == "inv"]
+    self.assertLess(min(firsts[10:]), max(firsts[:10]))
+
+  def test_the_wrapped_chain_passes_the_drcs(self):
+    doc = _inverter_chain(40)
+    registry = default_registry()
+    layout.arrange(doc, registry)
+    errors = [str(v) for v in drc.check(doc, registry) if v.level == "error"]
+    self.assertEqual(errors, [])
+
+  def test_a_chain_short_of_the_limit_stays_on_one_row(self):
+    doc = _inverter_chain(layout.WRAP_COLUMNS - 3)
+    layout.arrange(doc, default_registry())
+    ys = [c["y"] for c in doc.cells if c["type"] == "inv"]
+    self.assertEqual(max(ys), min(ys))
+
+  def test_no_example_is_wrapped(self):
+    """The widest example is nowhere near the limit, which is the point."""
+    registry = default_registry()
+    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
+      if not name.endswith(".dlg"):
+        continue
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+        cells = [c for c in doc.cells if registry.for_cell(c)]
+        edges, _ = layout._edges(doc, registry, cells)
+        ranks = layout._ranks(doc, registry, cells, edges)
+        self.assertLess(max(ranks.values()) + 1, layout.WRAP_COLUMNS)
+
+
 class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
   """A laid-out drawing lands on the step its pins use, where that is safe.
 

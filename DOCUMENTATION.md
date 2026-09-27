@@ -1036,7 +1036,13 @@ Five passes:
    height that makes its incoming wire straight -- following one driver
    rather than the average of several, because one wire dead straight beats
    two half-straight -- then cells are pushed apart where two want the same
-   room.
+   room. A *very* long chain -- at least `WRAP_COLUMNS` (24) columns and
+   three sheet widths (3,600 units) across, such as a 32-bit shift register
+   at 66 columns -- is then wrapped onto rows like text onto lines: each row
+   starts back at the left, under the one before, with room between for
+   the wire that carries on into the next row. How many rows is chosen so
+   the result comes out about the shape of the sheet. Anything shorter is
+   left as one row; the widest example here is 19 columns.
 4. **Refine.** The whole place-and-route is run twice -- once following wires
    through the columns they skip, once not -- and the better result is kept.
    Then the winner is improved by trial: swap two neighbours in a column,
@@ -1662,7 +1668,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-468 tests, in fifteen parts:
+472 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|

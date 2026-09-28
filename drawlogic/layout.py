@@ -172,9 +172,8 @@ def _extent(registry, doc, cells):
   return (min(b[0] for b in boxes), min(b[1] for b in boxes))
 
 
-def _near(box, dx, dy, other):
-  """True if `box`, moved by (dx, dy), comes within CELL_MIN_GAP of `other`."""
-  gap = drc.CELL_MIN_GAP
+def _near(box, dx, dy, other, gap=drc.CELL_MIN_GAP):
+  """True if `box`, moved by (dx, dy), comes within `gap` of `other`."""
   return not (box[0] + dx + box[2] + gap <= other[0]
               or other[0] + other[2] + gap <= box[0] + dx
               or box[1] + dy + box[3] + gap <= other[1]
@@ -237,8 +236,16 @@ def _arrange_all(doc, registry, gap_x, gap_y, margin):
   # Then improve the winner by hand, so to speak: the median ordering is a
   # good guess at which cell goes where in a column, and a good guess is not
   # the same as the best arrangement. Swapping two neighbours and measuring is.
+  # Whether wires share a trunk changes the drawing a great deal, so it is
+  # settled once on the arrangement about to be refined and the swaps are
+  # measured with it -- they were measured with trunks off, and the answer
+  # then changed under them at the end, sometimes for the worse.
+  _place(doc, registry, cells, edges, ranks, best[1], gap_x, gap_y, best[2])
+  _normalise(doc, registry, cells, margin, top_at)
+  _choose_forking(doc, registry)
   order = _refine(doc, registry, cells, edges, ranks, best[1],
                   gap_x, gap_y, margin, best[2], top_at)
+  _level_ports(doc, registry, cells, margin, top_at)
   _fit(doc, registry, margin)
   # Onto the grid first, because moving a cell changes which way its wires
   # want to fork, and then the forking, on the arrangement that is staying.
@@ -391,24 +398,196 @@ def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
   def lay_out(candidate):
     _place(doc, registry, cells, edges, ranks, candidate, gap_x, gap_y, settle)
     _normalise(doc, registry, cells, margin, top_at)
-    return _score(doc, registry, margin)
+    return _judge(doc, registry, margin)
 
-  best = lay_out(order)
-  for _sweep in range(REFINE_SWEEPS):
-    improved = False
-    for column in range(len(order)):
-      for index in range(len(order[column]) - 1):
-        candidate = [list(group) for group in order]
-        candidate[column][index], candidate[column][index + 1] = (
-          candidate[column][index + 1], candidate[column][index])
-        score = lay_out(candidate)
-        if score < best - EPSILON:
-          best, order, improved = score, candidate, True
-    if not improved:
-      break
+  # A step is taken only if it makes the drawing better and adds no DRC
+  # error. Priced in with everything else, an error could be bought: a swap
+  # that saved enough wire and corners elsewhere was taken with a short in
+  # it. A drawing that says something untrue is not better for being tidier.
+  def better(found, than):
+    return found[1] <= than[1] and found[0] < than[0] - EPSILON
 
-  lay_out(order)
+  # Placing is not quite a pure function of the order: a cell with no wire
+  # to follow keeps the height it had. So the winner is kept as it was
+  # measured, rather than laid out again at the end -- laying it out again
+  # after a string of rejected candidates could land somewhere else, and
+  # somewhere never scored: a drawing with a short in it, once.
+  state = {"best": lay_out(order), "order": order, "kept": _snapshot(cells)}
+
+  def keep(score, candidate):
+    state["best"], state["order"] = score, candidate
+    state["kept"] = _snapshot(cells)
+
+  def swaps(columns=None, sweeps=REFINE_SWEEPS):
+    for _sweep in range(sweeps):
+      improved = False
+      current = state["order"]
+      for column in (range(len(current)) if columns is None else columns):
+        for index in range(len(current[column]) - 1):
+          candidate = [list(group) for group in state["order"]]
+          candidate[column][index], candidate[column][index + 1] = (
+            candidate[column][index + 1], candidate[column][index])
+          score = lay_out(candidate)
+          if better(score, state["best"]):
+            keep(score, candidate)
+            improved = True
+      if not improved:
+        return
+
+  # Turning a gate over puts its inputs the other way up. A gate is the
+  # same shape either way up, so this changes nothing but which wire meets
+  # which pin -- and two inputs arriving the wrong way round cross in front
+  # of it, or one comes round the long way. Tried only once the swaps have
+  # settled, and the swaps tried again after: mixed in from the start, an
+  # early turn steered the swaps somewhere worse than they found without it.
+  def turns():
+    turned = set()
+    _restore(cells, state["kept"])
+    crossed = _crossed_inputs(doc, registry, cells, edges)
+    for cell in cells:
+      if cell["id"] not in crossed:
+        continue
+      _turn_over(cell)
+      score = lay_out(state["order"])
+      if better(score, state["best"]):
+        keep(score, state["order"])
+        turned.add(ranks[cell["id"]])
+      else:
+        _turn_over(cell)
+    return turned
+
+  swaps()
+  # A turned gate changes what suits the cells either side of it, so those
+  # columns get their swaps again -- only those: the rest of the drawing
+  # has not changed, and sweeping it again doubled the time for nothing.
+  turned = turns()
+  if turned:
+    swaps(sorted(set(c for rank in turned for c in (rank - 1, rank, rank + 1)
+                     if 0 <= c < len(state["order"]))), sweeps=1)
+  order, kept = state["order"], state["kept"]
+
+  _restore(cells, kept)
+  _normalise(doc, registry, cells, margin, top_at)
   return order
+
+
+PORT_ROWS = 3
+
+
+def _level_ports(doc, registry, cells, margin, top_at=None):
+  """Move each port level with the wire that reaches it, where that helps.
+
+  A port is first placed level with the pin at the other end of its wire,
+  which is right when the wire can run straight across. When it cannot --
+  something stands in the way, so the router takes the wire over the top on
+  a row of its own -- the port is left where the straight wire would have
+  been, and the wire has to come back down to it: two corners and a drop
+  for nothing. Reported on a drawing whose output ran along the top, over a
+  flip-flop, then down to a port level with the flip-flop's D pin.
+
+  So each port is tried at the height of every row its own wire runs along,
+  and kept there if the drawing measures better and nothing new is wrong.
+  Two passes, because moving one port can free the place another wants.
+  """
+  ports = [cell for cell in cells
+           if registry.for_cell(cell).category == drc.PORT_CATEGORY]
+  if not ports:
+    return
+  best = _judge(doc, registry, margin)
+  for _sweep in range(2):
+    moved = False
+    for port in ports:
+      pin = registry.for_cell(port).pins[0]["name"]
+      at = _pin_offset(registry, doc, port, pin)[1] + port["y"]
+      rows = set()
+      for net, branches in routing.route_all(doc, registry):
+        if not any(end.get("cell") == port["id"]
+                   for end in [net.get("from")] + loads_of(net)
+                   if isinstance(end, dict)):
+          continue
+        for points in branches:
+          for a, b in zip(points, points[1:]):
+            if abs(a[1] - b[1]) < EPSILON and abs(a[1] - at) > EPSILON:
+              rows.add(round(a[1], 6))
+      home = port["y"]
+      # Two ports may stand closer than two blocks (drc.PORT_GAP); whether
+      # the names still clear each other is the DRCs' to say, in the score.
+      others = [(_box(registry, doc, c), c in ports)
+                for c in cells if c is not port]
+      # The nearest few: a row far away is a long way from where the
+      # port's neighbours were placed to suit it.
+      for row in sorted(rows, key=lambda y: abs(y - at))[:PORT_ROWS]:
+        port["y"] = home + (row - at)
+        box = _box(registry, doc, port)
+        # Not up into a title written above the drawing. (Above the other
+        # cells is fine otherwise: the sheet is sized to the drawing after.)
+        if top_at is not None and box[1] - _headroom(port) < top_at:
+          continue
+        if any(_near(box, 0, 0, other,
+                     drc.PORT_GAP if both_ports else drc.CELL_MIN_GAP)
+               for other, both_ports in others):
+          continue
+        score = _judge(doc, registry, margin)
+        # Tidying, so it may not make anything else wrong: no new finding
+        # of any kind, not even one the saving would pay for -- a port moved
+        # up to its wire took the wire through the drawing's subtitle.
+        if (score[1] <= best[1] and score[2] <= best[2]
+            and score[0] < best[0] - EPSILON):
+          best, home, moved = score, port["y"], True
+          break
+      port["y"] = home
+    if not moved:
+      return
+
+
+def _snapshot(cells):
+  return {cell["id"]: (cell["x"], cell["y"], cell.get("rotate", 0),
+                       cell.get("mirror", False)) for cell in cells}
+
+
+def _restore(cells, kept):
+  for cell in cells:
+    cell["x"], cell["y"], cell["rotate"], cell["mirror"] = kept[cell["id"]]
+
+
+def _crossed_inputs(doc, registry, cells, edges):
+  """The gates worth turning over: those whose inputs arrive crossed, the
+  wire into the top pin coming from lower down than the wire into the one
+  below it. Turning any other gate over can only cross what was straight,
+  and trying every gate made a seventy-cell layout four times slower."""
+  by_id = {cell["id"]: cell for cell in cells}
+  arriving = {}
+  for source, target, source_pin, target_pin in edges:
+    cell = by_id.get(target)
+    if cell is None or not _can_turn_over(registry, cell):
+      continue
+    driver = by_id[source]
+    at = cell["y"] + _pin_offset(registry, doc, cell, target_pin)[1]
+    come = driver["y"] + _pin_offset(registry, doc, driver, source_pin)[1]
+    arriving.setdefault(target, []).append((at, come))
+  crossed = set()
+  for target, pairs in arriving.items():
+    pairs.sort()
+    if any(later[1] < earlier[1] - EPSILON
+           for earlier, later in zip(pairs, pairs[1:])):
+      crossed.add(target)
+  return crossed
+
+
+def _can_turn_over(registry, cell):
+  """A gate with more than one input: symmetric top to bottom, so it reads
+  the same turned over, and turning it over swaps where its inputs are."""
+  symbol = registry.for_cell(cell)
+  return (symbol is not None and symbol.category == "gates"
+          and sum(1 for pin in symbol.pins if pin.get("dir") == "in") > 1)
+
+
+def _turn_over(cell):
+  """Flip a cell top to bottom -- half a turn, then mirrored -- or back."""
+  if cell.get("rotate") == 180 and cell.get("mirror"):
+    cell["rotate"], cell["mirror"] = 0, False
+  else:
+    cell["rotate"], cell["mirror"] = 180, True
 
 
 # What a layout is trying to make small, priced against each other in units of
@@ -426,6 +605,11 @@ def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
 # soc_top, 27 and 26 on spi_master). Costing both would be counting one fault
 # twice and calling it two rules.
 CROSSING_COST = 320.0
+
+# A corner costs about as much as this much wire. A wire that turns twice to
+# save a few units reads worse than a straight one a little longer: every
+# corner is a place the eye has to stop and find where the line went.
+CORNER_COST = 20.0
 
 # How much a drawing pays for the room it takes, per unit of width plus
 # height. Small on purpose: a sprawling drawing is worth tightening, but not
@@ -469,7 +653,13 @@ EPSILON = 1e-9
 
 
 def _score(doc, registry, margin=None):
-  """How hard the laid-out drawing is to read. Lower is better.
+  return _judge(doc, registry, margin)[0]
+
+
+def _judge(doc, registry, margin=None):
+  """(score, errors, warnings): _score, and the DRC findings in it.
+
+  How hard the laid-out drawing is to read. Lower is better.
 
   Four things a reader pays for. Every crossing is a moment of doubt about
   which line is which, and a bridge drawn over it is the same doubt with a
@@ -495,7 +685,7 @@ def _score(doc, registry, margin=None):
   routes = routing.route_all(doc, registry)
   labels = render_svg.net_label_boxes(doc, registry, routes)
   segments = list(routing.segments_of(routes))
-  length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, a, b in segments)
+  length, corners = drawn_wire(routes)
 
   box = doc.content_bbox(registry, routes, labels)
   spread = (box[2] + box[3]) if box else 0.0
@@ -511,9 +701,52 @@ def _score(doc, registry, margin=None):
 
   return (_crossings(segments) * CROSSING_COST
           + length
+          + corners * CORNER_COST
           + spread * SPREAD_COST
           + errors * ERROR_COST
-          + warnings * WARNING_COST)
+          + warnings * WARNING_COST), errors, warnings
+
+
+def drawn_wire(routes):
+  """(length, corners) of the wire as it is drawn.
+
+  A net with several loads is routed as one branch per load, and the
+  branches lie on top of each other from the driver to where they part.
+  Adding up the branches counted that shared trunk once per load -- a clock
+  to four flip-flops paid four times for the same line -- so the score
+  steered away from exactly the shared trunks a reader wants. This counts
+  each net's ink once: runs on one line are merged, and a corner the
+  branches share is one corner.
+  """
+  length = 0.0
+  corners = 0
+  for _net, branches in routes:
+    lines = {}
+    bends = set()
+    for points in branches:
+      for a, b in zip(points, points[1:]):
+        if abs(a[1] - b[1]) < EPSILON and abs(a[0] - b[0]) > EPSILON:
+          key, span = (True, round(a[1], 6)), sorted((a[0], b[0]))
+        elif abs(a[0] - b[0]) < EPSILON and abs(a[1] - b[1]) > EPSILON:
+          key, span = (False, round(a[0], 6)), sorted((a[1], b[1]))
+        else:
+          continue
+        lines.setdefault(key, []).append(span)
+      for p, q, r in zip(points, points[1:], points[2:]):
+        if (abs(p[0] - q[0]) < EPSILON) != (abs(q[0] - r[0]) < EPSILON):
+          bends.add((round(q[0], 6), round(q[1], 6)))
+    for spans in lines.values():
+      spans.sort()
+      low, high = spans[0]
+      for start, end in spans[1:]:
+        if start > high:
+          length += high - low
+          low, high = start, end
+        else:
+          high = max(high, end)
+      length += high - low
+    corners += len(bends)
+  return length, corners
 
 
 def _crossings(segments):

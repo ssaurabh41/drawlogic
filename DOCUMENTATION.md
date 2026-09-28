@@ -1021,7 +1021,7 @@ drawing from what it is wired to. It is the difference between a correct
 drawing and a readable one, and it is the thing hand-placing cells cannot
 give you.
 
-Five passes:
+Six passes:
 
 1. **Rank.** Each cell goes one column right of everything that drives it.
    Feedback loops make that impossible, so the edges that close a loop are
@@ -1049,15 +1049,26 @@ Five passes:
    re-route, measure, and keep the swap if the drawing got better. The median
    in pass 2 answers "which cell is roughly where"; only trying a swap answers
    "is this the best arrangement", and on the shipped examples this pass alone
-   takes the crossings from 72 down to 63.
-5. **Fit.** The sheet is resized to what is actually drawn, wires included.
+   takes the crossings from 72 down to 63. Whether wires share a trunk and
+   fork near their loads is settled first, so the swaps are measured on the
+   wiring the drawing will actually have. Once the swaps settle, any gate
+   whose inputs arrive crossed is tried turned over (flipped top to bottom
+   -- a gate is the same shape either way up), and the columns beside it are
+   swapped again. A step is never taken if it adds a DRC error, however much
+   it saves elsewhere.
+5. **Level the ports.** A port starts level with the pin at the other end
+   of its wire. When the wire cannot run straight -- it goes over a block on
+   a row of its own -- the port is tried level with that row instead, and
+   moved if that measures better and adds no DRC finding of any kind.
+6. **Fit.** The sheet is resized to what is actually drawn, wires included.
 
 **What "better" means** is one function, `_score` in `layout.py`, and it is the
 whole of the layout's taste:
 
 | Term | Weight | Why |
 |---|---|---|
-| wire length | 1 per unit | distance the eye has to travel |
+| wire length | 1 per unit | distance the eye has to travel. Measured as drawn: a trunk several branches of one net share is one line, not one per branch |
+| corners | `CORNER_COST`, 20 | a place the eye has to stop and find where the line went |
 | crossings | `CROSSING_COST`, 320 | a moment of doubt about which line is which. This is also the price of a crossing bridge, because a bridge is what a crossing is *drawn as* -- costing both would be counting one fault twice |
 | spread | `SPREAD_COST`, 0.35 per unit of width plus height | drawing that has to be scrolled or shrunk to be seen |
 
@@ -1668,7 +1679,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-472 tests, in fifteen parts:
+480 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|

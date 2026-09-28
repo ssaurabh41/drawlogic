@@ -1083,6 +1083,159 @@ class TestAVeryLongChainIsWrapped(unittest.TestCase):
         self.assertLess(max(ranks.values()) + 1, layout.WRAP_COLUMNS)
 
 
+def _user1():
+  """A drawing reported as laid out with a wasted port position, a fork in
+  the wrong place and wire to spare: three gates in a row, a flip-flop, four
+  input ports and two outputs."""
+  doc = new_document("user1")
+  # In the order the reported file has them: the order is where layout
+  # starts from, so a different one is a different test.
+  for cell_id, kind, label in (("c1", "and3", "U1"), ("c2", "inv", "U2"),
+                               ("c3", "xnor2", "U3"),
+                               ("c4", "port_in", "in1"),
+                               ("c5", "port_in", "in2"),
+                               ("c6", "port_in", "in3"),
+                               ("c7", "port_out", "out1"),
+                               ("c8", "port_in", "in4"),
+                               ("c9", "dffr", "FF1"),
+                               ("c10", "port_out", "out2")):
+    doc.cells.append({"id": cell_id, "type": kind, "x": 0, "y": 0,
+                      "label": label})
+  for net_id, source, loads in (
+      ("n1", ("c1", "y"), [("c2", "a")]),
+      ("n2", ("c2", "y"), [("c3", "a")]),
+      ("n3", ("c4", "p"), [("c1", "a")]),
+      ("n4", ("c5", "p"), [("c1", "b"), ("c9", "rn")]),
+      ("n5", ("c6", "p"), [("c1", "c"), ("c9", "ck")]),
+      ("n6", ("c3", "y"), [("c7", "p"), ("c9", "d")]),
+      ("n7", ("c8", "p"), [("c3", "b")]),
+      ("n8", ("c9", "q"), [("c10", "p")])):
+    doc.nets.append({"id": net_id,
+                     "from": {"cell": source[0], "pin": source[1]},
+                     "to": [{"cell": c, "pin": p} for c, p in loads]})
+  doc.normalize()
+  return doc
+
+
+class TestWireIsMeasuredAsDrawn(unittest.TestCase):
+  """The layout's wire length is the ink on the sheet: a trunk shared by a
+  net's branches is one line, and a corner they share is one corner."""
+
+  def test_a_shared_trunk_counts_once(self):
+    net = {"id": "n"}
+    routes = [(net, [[(0.0, 0.0), (100.0, 0.0), (100.0, 50.0)],
+                     [(0.0, 0.0), (100.0, 0.0), (100.0, 80.0)]])]
+    self.assertEqual(layout.drawn_wire(routes), (180.0, 1))
+
+  def test_two_nets_on_one_line_are_two_wires(self):
+    routes = [({"id": "a"}, [[(0.0, 0.0), (100.0, 0.0)]]),
+              ({"id": "b"}, [[(0.0, 0.0), (100.0, 0.0)]])]
+    self.assertEqual(layout.drawn_wire(routes), (200.0, 0))
+
+
+class TestTurningAGateOver(unittest.TestCase):
+
+  def test_a_gate_turned_over_swaps_its_inputs(self):
+    registry = default_registry()
+    doc = new_document("t")
+    doc.cells.append({"id": "g", "type": "xnor2", "x": 100, "y": 100})
+    doc.normalize()
+    gate = doc.cells[0]
+    symbol = registry.for_cell(gate)
+    before = {pin: symbol.pin_position(gate, pin) for pin in ("a", "b", "y")}
+    layout._turn_over(gate)
+    after = {pin: symbol.pin_position(gate, pin) for pin in ("a", "b", "y")}
+    self.assertAlmostEqual(after["a"][1], before["b"][1])
+    self.assertAlmostEqual(after["b"][1], before["a"][1])
+    self.assertEqual([round(v, 6) for v in after["y"]],
+                     [round(v, 6) for v in before["y"]])
+    layout._turn_over(gate)
+    self.assertEqual((gate["rotate"], gate["mirror"]), (0, False))
+
+  def test_only_gates_with_several_inputs_are_turned(self):
+    registry = default_registry()
+    kinds = {"xnor2": True, "and3": True, "inv": False, "dff": False,
+             "mux2": False, "port_in": False}
+    for kind, expected in kinds.items():
+      with self.subTest(kind=kind):
+        self.assertEqual(
+          layout._can_turn_over(registry, {"id": "x", "type": kind}),
+          expected)
+
+
+class TestRefiningNeverBuysAnError(unittest.TestCase):
+  """Priced in with everything else, a DRC error could be bought: a swap
+  that saved enough wire elsewhere was once taken with a short in it."""
+
+  def test_a_cheaper_arrangement_with_an_error_is_refused(self):
+    doc = _user1()
+    registry = default_registry()
+    real = layout._judge
+    calls = []
+
+    def judge(doc, registry, margin=None):
+      score, errors, warnings = real(doc, registry, margin)
+      calls.append(1)
+      # Every candidate after the first looks far cheaper -- with an error.
+      if len(calls) == 1:
+        return score, errors, warnings
+      return score / 10, errors + 1, warnings
+
+    layout._judge = judge
+    try:
+      cells = [c for c in doc.cells if registry.for_cell(c)]
+      edges, _ = layout._edges(doc, registry, cells)
+      ranks = layout._ranks(doc, registry, cells, edges)
+      order = layout._order(cells, edges, ranks)
+      turned = [c["id"] for c in cells if c.get("mirror")]
+      kept = layout._refine(doc, registry, cells, edges, ranks, order,
+                            layout.GAP_X, layout.GAP_Y, layout.MARGIN)
+    finally:
+      layout._judge = real
+    self.assertGreater(len(calls), 1, "nothing was tried")
+    self.assertEqual(kept, order)
+    self.assertEqual([c["id"] for c in cells if c.get("mirror")], turned)
+
+
+class TestTheReportedDrawing(unittest.TestCase):
+  """The drawing reported with an output port away from its wire. Numbers
+  are the layout's own at the time of the fix, with a little room: the
+  point is that it does not slide back."""
+
+  def setUp(self):
+    self.registry = default_registry()
+    self.doc = _user1()
+    layout.arrange(self.doc, self.registry)
+    self.routes = routing.route_all(self.doc, self.registry)
+
+  def test_it_is_clean(self):
+    errors = [str(v) for v in drc.check(self.doc, self.registry)
+              if v.level == "error"]
+    self.assertEqual(errors, [])
+
+  def test_wire_and_corners(self):
+    length, corners = layout.drawn_wire(self.routes)
+    # Before: 3370 units and 17 corners.
+    self.assertLess(length, 3000)
+    self.assertLessEqual(corners, 12)
+
+  def test_each_output_port_is_reached_along_a_row(self):
+    for port in ("c7", "c10"):
+      with self.subTest(port=port):
+        for net, branches in self.routes:
+          for points in branches:
+            end = self.doc.cell(port)
+            pin = routing.endpoint_position(
+              self.doc, {"cell": port, "pin": "p"}, self.registry)
+            if tuple(points[-1]) != tuple(pin):
+              continue
+            # The last run is level with the port and longer than a stub:
+            # the wire arrives along its row, not down a drop beside it.
+            self.assertAlmostEqual(points[-2][1], pin[1])
+            self.assertGreater(pin[0] - points[-2][0], 3 * drc.PORT_STUB,
+                               "%s: %r" % (end["id"], points))
+
+
 class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
   """A laid-out drawing lands on the step its pins use, where that is safe.
 

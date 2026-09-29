@@ -5,6 +5,7 @@
 
 import * as geometry from "./geometry.js";
 import * as model from "./model.js";
+import { bindMenus } from "./menus.js";
 import { Inspector, buildPalette, clearPaletteSelection } from "./panels.js";
 import * as picture from "./picture.js";
 import * as prefs from "./prefs.js";
@@ -1262,7 +1263,6 @@ function applyTheme(name) {
   const root = document.documentElement;
   if (name === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", name);
-  if (ui.btnTheme) ui.btnTheme.textContent = `Theme: ${name}`;
   try {
     window.localStorage.setItem(THEME_KEY, name);
   } catch (error) {
@@ -1279,11 +1279,6 @@ function storedTheme() {
   }
 }
 
-function cycleTheme() {
-  const next = THEMES[(THEMES.indexOf(storedTheme()) + 1) % THEMES.length];
-  applyTheme(next);
-  say(`appearance: ${next}`);
-}
 
 // Start a fresh drawing. It needs a name up front because saving writes to a
 // path, and a drawing with nowhere to go is a drawing you lose.
@@ -1548,7 +1543,6 @@ function bindControls() {
     ui.drcBody.scrollIntoView({ block: "nearest" });
   });
   ui.btnNew.addEventListener("click", newDrawing);
-  ui.btnTheme.addEventListener("click", cycleTheme);
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
   ui.btnImport.addEventListener("click", () => ui.importFile.click());
   ui.importFile.addEventListener("change", () => {
@@ -1574,6 +1568,16 @@ function bindControls() {
     button.addEventListener("click",
                             () => runCommand(button.getAttribute("data-command")));
   }
+
+  // Read as each menu opens, not kept up to date on every selection change:
+  // nobody sees the items until then.
+  bindMenus(document, {
+    beforeOpen: (panel) => {
+      for (const item of panel.querySelectorAll("[data-min]")) {
+        item.disabled = selection.size < Number(item.getAttribute("data-min"));
+      }
+    },
+  });
 
 }
 
@@ -1726,7 +1730,31 @@ function openPrefs() {
     return label;
   });
 
-  body.replaceChildren(...rows);
+  // Appearance was a button of its own that cycled blind through three
+  // states; it is a choice made once, so it is a row here with all three in
+  // view. Kept under its own storage key, as before.
+  const appearance = document.createElement("label");
+  appearance.className = "pref-row";
+  const text = document.createElement("span");
+  text.className = "pref-text";
+  const name = document.createElement("strong");
+  name.textContent = "Appearance";
+  const help = document.createElement("small");
+  help.textContent = "The editor around the sheet. The sheet, and every export, stays white.";
+  text.append(name, help);
+  const choice = document.createElement("select");
+  for (const [value, label] of [["auto", "Follow the system"], ["light", "Light"],
+                                ["dark", "Dark"]]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    choice.appendChild(option);
+  }
+  choice.value = storedTheme();
+  choice.addEventListener("change", () => applyTheme(choice.value));
+  appearance.append(text, choice);
+
+  body.replaceChildren(appearance, ...rows);
   ui.prefsDialog.showModal();
 }
 
@@ -1779,7 +1807,6 @@ async function start() {
     message: $("status-message"),
     toast: $("toast"),
     btnNew: $("btn-new"),
-    btnTheme: $("btn-theme"),
     btnCheck: $("btn-check"),
     drcBody: $("drc-body"),
     drcCount: $("drc-count"),

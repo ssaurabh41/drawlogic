@@ -17,31 +17,43 @@
   <div class="brand">draw<span>logic</span></div>
 
   <label class="field">
-    <span>File</span>
+    <span>Open</span>
     <select id="file-select" title="Drawings found under the served folder"></select>
   </label>
 
-  <button id="btn-new" class="action" title="New drawing (Ctrl+N)">New</button>
-  <button id="btn-save" class="action" title="Save (Ctrl+S)">Save</button>
-  <button id="btn-export" class="action" title="Export SVG (Ctrl+E)">Export SVG</button>
-  <button id="btn-symbol" class="action"
-          title="Turn this drawing into a symbol: its shapes become the artwork, its ports become the pins">Save as symbol</button>
-  <button id="btn-import" class="action"
-          title="Draw each module of a Verilog netlist as a drawing in this folder, and open the top one">Import Verilog</button>
-  <input id="import-file" type="file" accept=".v,.sv,.vh,.vg" hidden>
-  <button id="btn-png" class="action"
-          title="Copy the drawing as a picture, ready to paste into a slide (Ctrl+Shift+E)">Copy PNG</button>
+  <!-- Save and Export are the two things done to every drawing, so they are
+       the two left in view; the rest are once-a-session and live in File.
+       Clusters (.bgroup) sit tight inside and far apart from each other,
+       which is what says what goes with what; no divider lines needed. -->
+  <div class="bgroup">
+    <button id="btn-save" class="action primary" title="Save (Ctrl+S)">Save</button>
+    <button id="btn-export" class="action" title="Export SVG (Ctrl+E)">Export SVG</button>
 
-  <span class="divider"></span>
+    <div class="menu">
+      <button id="menu-file-button" class="action menu-button" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+      <div id="menu-file" class="menu-panel" role="menu" aria-labelledby="menu-file-button" hidden>
+        <button id="btn-new" class="menu-item" type="button" role="menuitem"
+                title="Start an empty drawing in the served folder"><span>New drawing&hellip;</span><kbd>Ctrl+N</kbd></button>
+        <button id="btn-import" class="menu-item" type="button" role="menuitem"
+                title="Draw each module of a Verilog netlist as a drawing in this folder, and open the top one"><span>Import Verilog&hellip;</span></button>
+        <button id="btn-symbol" class="menu-item" type="button" role="menuitem"
+                title="Turn this drawing into a symbol: its shapes become the artwork, its ports become the pins"><span>Save as symbol&hellip;</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <button id="btn-png" class="menu-item" type="button" role="menuitem"
+                title="Copy the drawing as a picture, ready to paste into a slide"><span>Copy as PNG</span><kbd>Ctrl+Shift+E</kbd></button>
+      </div>
+    </div>
+  </div>
+  <input id="import-file" type="file" accept=".v,.sv,.vh,.vg" hidden>
+
   <button id="btn-check" class="action"
           title="Check the drawing against the DRCs: wires on wires, parts too close, names on wires">Check</button>
 
-  <span class="divider"></span>
-  <button id="btn-theme" class="action" title="Appearance: follow the system, light, or dark">Theme: light</button>
-  <button id="btn-prefs" class="action" title="Preferences (Ctrl+,)">Preferences</button>
-  <span class="divider"></span>
-  <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
-  <button id="btn-redo" class="action" title="Redo (Ctrl+Shift+Z)">Redo</button>
+  <div class="bgroup">
+    <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
+    <button id="btn-redo" class="action" title="Redo (Ctrl+Shift+Z)">Redo</button>
+  </div>
 
   <div class="spacer"></div>
   <div class="filechip">
@@ -49,6 +61,8 @@
     <nav id="breadcrumb" class="crumbs" title="Where you drilled in from" hidden></nav>
     <span id="dirty" class="dirty" hidden title="unsaved changes">&#9679;</span>
   </div>
+  <!-- At the far edge: it is about the editor, not the drawing on the left. -->
+  <button id="btn-prefs" class="action" title="Preferences and appearance (Ctrl+,)">Preferences</button>
 </div>
 
 <svg class="sprite" aria-hidden="true" focusable="false">
@@ -71,6 +85,7 @@
     <g id="i-dist-v"><path d="M2.5 2h11"/><path d="M2.5 14h11"/><rect x="5.5" y="6.5" width="5" height="3"/></g>
     <g id="i-front"><rect x="2.5" y="2.5" width="8" height="8"/><path d="M5.5 13.5h8v-8"/></g>
     <g id="i-back"><rect x="5.5" y="5.5" width="8" height="8"/><path d="M10.5 2.5h-8v8"/></g>
+    <g id="i-chevron"><path d="M4.5 6.5 8 10l3.5-3.5"/></g>
   </defs>
 </svg>
 
@@ -93,9 +108,7 @@
   <div class="tgroup">
     <button class="tool icon" data-command="rotate-cw" title="Rotate 90 clockwise (Ctrl+R)" aria-label="Rotate 90 clockwise"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rotate"/></svg></button>
     <button class="tool icon" data-command="flip-h" title="Flip horizontal (Ctrl+H)" aria-label="Flip horizontal"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-flip"/></svg></button>
-    <button class="tool icon" data-command="group" title="Group (Ctrl+G)" aria-label="Group"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg></button>
-    <button class="tool icon" data-command="ungroup" title="Ungroup (Ctrl+Shift+G)" aria-label="Ungroup"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg></button>
-    <button class="tool icon" data-command="delete" title="Delete (Del)" aria-label="Delete"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-delete"/></svg></button>
+    <button class="tool icon" data-command="delete" title="Delete the selection (Delete)" aria-label="Delete"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-delete"/></svg></button>
   </div>
 
   <div class="tgroup">
@@ -103,51 +116,72 @@
     <button class="tool icon" data-command="tidy" title="Tidy up - straighten wires" aria-label="Tidy up"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tidy"/></svg></button>
   </div>
 
-  <div class="tgroup">
-    <button class="tool icon" data-command="align-left" title="Align left" aria-label="Align left"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-left"/></svg></button>
-    <button class="tool icon" data-command="align-hcenter" title="Align centre" aria-label="Align centre"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-hcenter"/></svg></button>
-    <button class="tool icon" data-command="align-right" title="Align right" aria-label="Align right"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-right"/></svg></button>
-    <button class="tool icon" data-command="align-top" title="Align top" aria-label="Align top"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-top"/></svg></button>
-    <button class="tool icon" data-command="align-vcenter" title="Align middle" aria-label="Align middle"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-vcenter"/></svg></button>
-    <button class="tool icon" data-command="align-bottom" title="Align bottom" aria-label="Align bottom"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-bottom"/></svg></button>
+  <!-- Twelve commands that each need a particular selection, so they were
+       twelve icons that mostly did nothing. In a menu they get their names
+       written out, and the ones the selection cannot use are greyed when it
+       opens (data-min: how many items each needs). -->
+  <div class="menu">
+    <button id="menu-arrange-button" class="tool menu-button" type="button"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="menu-arrange">Arrange<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    <div id="menu-arrange" class="menu-panel" role="menu" aria-labelledby="menu-arrange-button" hidden>
+      <button class="menu-item" type="button" role="menuitem" data-command="group" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg><span>Group</span><kbd>Ctrl+G</kbd></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="ungroup" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg><span>Ungroup</span><kbd>Ctrl+Shift+G</kbd></button>
+      <div class="menu-sep" role="separator"></div>
+      <button class="menu-item" type="button" role="menuitem" data-command="align-left" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-left"/></svg><span>Align left</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="align-hcenter" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-hcenter"/></svg><span>Align centre</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="align-right" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-right"/></svg><span>Align right</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="align-top" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-top"/></svg><span>Align top</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="align-vcenter" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-vcenter"/></svg><span>Align middle</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="align-bottom" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-bottom"/></svg><span>Align bottom</span></button>
+      <div class="menu-sep" role="separator"></div>
+      <button class="menu-item" type="button" role="menuitem" data-command="distribute-h" data-min="3"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-h"/></svg><span>Distribute across</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="distribute-v" data-min="3"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-v"/></svg><span>Distribute down</span></button>
+      <div class="menu-sep" role="separator"></div>
+      <button class="menu-item" type="button" role="menuitem" data-command="front" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-front"/></svg><span>Bring to front</span><kbd>Ctrl+]</kbd></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="back" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-back"/></svg><span>Send to back</span><kbd>Ctrl+[</kbd></button>
+    </div>
   </div>
 
-  <div class="tgroup">
-    <button class="tool icon" data-command="distribute-h" title="Distribute across" aria-label="Distribute across"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-h"/></svg></button>
-    <button class="tool icon" data-command="distribute-v" title="Distribute down" aria-label="Distribute down"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-v"/></svg></button>
-    <button class="tool icon" data-command="front" title="Bring to front (Ctrl+])" aria-label="Bring to front"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-front"/></svg></button>
-    <button class="tool icon" data-command="back" title="Send to back (Ctrl+[)" aria-label="Send to back"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-back"/></svg></button>
+  <div class="tgroup view">
+    <label class="field slider">
+      <span>Zoom</span>
+      <input id="zoom-slider" type="range" min="10" max="400" step="1" value="100">
+      <output id="zoom-value">100%</output>
+    </label>
+    <button id="btn-fit" class="action" title="Fit to window (Ctrl+0)">Fit</button>
   </div>
 
-  <label class="field">
-    <span>Grid</span>
-    <select id="grid-select">
-      <option value="dots">Dots</option>
-      <option value="dots-wide">Dots &mdash; wide</option>
-      <option value="lines">Lines</option>
-      <option value="lines-heavy">Lines &mdash; major/minor</option>
-      <option value="blank">Blank</option>
-    </select>
-  </label>
-
-  <label class="field slider">
-    <span>Zoom</span>
-    <input id="zoom-slider" type="range" min="10" max="400" step="1" value="100">
-    <output id="zoom-value">100%</output>
-  </label>
-  <button id="btn-fit" class="action" title="Fit to window (Ctrl+0)">Fit</button>
-
-  <label class="field slider">
-    <span>Text</span>
-    <input id="font-slider" type="range" min="50" max="250" step="5" value="100">
-    <output id="font-value">100%</output>
-  </label>
-
-  <label class="field slider">
-    <span>Symbols</span>
-    <input id="symbol-slider" type="range" min="50" max="250" step="5" value="100">
-    <output id="symbol-value">100%</output>
-  </label>
+  <!-- Grid style and the text and symbol scales look like view settings but
+       are saved in the drawing, so they sit together under a name that says
+       whose they are, one click away rather than always in view. -->
+  <div class="menu">
+    <button id="menu-sheet-button" class="tool menu-button" type="button"
+            aria-expanded="false" aria-controls="menu-sheet">Sheet<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    <div id="menu-sheet" class="menu-panel sheet-panel" role="group"
+         aria-labelledby="menu-sheet-button" hidden>
+      <p class="menu-note">Saved with this drawing</p>
+      <label class="field">
+        <span>Grid</span>
+        <select id="grid-select">
+          <option value="dots">Dots</option>
+          <option value="dots-wide">Dots &mdash; wide</option>
+          <option value="lines">Lines</option>
+          <option value="lines-heavy">Lines &mdash; major/minor</option>
+          <option value="blank">Blank</option>
+        </select>
+      </label>
+      <label class="field slider">
+        <span>Text</span>
+        <input id="font-slider" type="range" min="50" max="250" step="5" value="100">
+        <output id="font-value">100%</output>
+      </label>
+      <label class="field slider">
+        <span>Symbols</span>
+        <input id="symbol-slider" type="range" min="50" max="250" step="5" value="100">
+        <output id="symbol-value">100%</output>
+      </label>
+    </div>
+  </div>
 </div>
 
 <div class="panes">
@@ -164,6 +198,7 @@
     <!-- One tab per open drawing, filled by main.js. -->
     <div id="tabs" class="tabs" role="tablist" aria-label="Open drawings"></div>
     <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </main>
 
   <aside class="inspector">
@@ -195,7 +230,6 @@
   <span class="push" id="status-message">Shift-drag or hold Space to pan &middot; scroll to zoom</span>
 </div>
 
-<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <dialog id="prefs-dialog" class="shortcuts prefs" aria-labelledby="prefs-title">
   <h2 id="prefs-title">Preferences</h2>

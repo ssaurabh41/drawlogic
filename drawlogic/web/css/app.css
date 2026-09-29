@@ -10,13 +10,32 @@
   --line-soft: #dde5e8;
   --ink:       #101a1e;
   --ink-2:     #52646b;
-  --ink-3:     #7e9199;
+  /* Quietest text: labels, notes, the status bar. It sits on three greys
+     (--chrome, --chrome-2, --sunken) at 10-11px, so it has to clear 4.5:1 on
+     the darkest of them; #7e9199 managed 2.5-3.1. That leaves it close to
+     --ink-2 in value -- the small caps and tracking carry the difference. */
+  --ink-3:     #56676e;
   --accent:    #0d7490;
   --accent-on: #ffffff;
   --accent-soft: #d3ecf3;
   --warm:      #b45309;
   --danger:    #b91c1c;
+  /* The accent and warm hues as small text on the chrome greys. The fills
+     keep their colour; text a shade darker reads at 11px (#0d7490 was 4.1-4.4
+     there, #b45309 3.9-4.1). */
+  --accent-ink: #0b6882;
+  --warm-ink:   #9c4708;
   --radius:    5px;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Spacing, on a 4px step. Inside a group things sit at 1; groups stand
+     apart at 5. The difference between the two is what does the grouping,
+     so nothing between them needs a divider line. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
 
   /* The sheet colour. Deliberately not themed: the drawing is a document, and
      a document is white in both themes. Anything that previews document ink
@@ -35,12 +54,14 @@
     --line-soft: #212c31;
     --ink:       #e7eef0;
     --ink-2:     #a0b1b7;
-    --ink-3:     #6d8087;
+    --ink-3:     #8a9ca3;
     --accent:    #45b6d2;
     --accent-on: #08181d;
     --accent-soft: #10333e;
     --warm:      #e0913a;
     --danger:    #f87171;
+    --accent-ink: #45b6d2;
+    --warm-ink:   #e0913a;
   }
 }
 
@@ -56,12 +77,14 @@
   --line-soft: #212c31;
   --ink:       #e7eef0;
   --ink-2:     #a0b1b7;
-  --ink-3:     #6d8087;
+  --ink-3:     #8a9ca3;
   --accent:    #45b6d2;
   --accent-on: #08181d;
   --accent-soft: #10333e;
   --warm:      #e0913a;
   --danger:    #f87171;
+  --accent-ink: #45b6d2;
+  --warm-ink:   #e0913a;
 }
 
 * { box-sizing: border-box; }
@@ -111,7 +134,7 @@ select {
 
 .field { display: flex; align-items: center; gap: 7px; }
 .field > span {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -119,7 +142,7 @@ select {
 }
 .field.slider input[type="range"] { width: 110px; accent-color: var(--accent); cursor: pointer; }
 .field.slider output {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
@@ -135,24 +158,28 @@ select {
   flex: none;
 }
 
+/* A minimum, not a height: when the window is too narrow for one row the bar
+   grows to two, instead of spilling its buttons over the toolbar. */
 .menubar {
-  gap: 14px;
-  padding: 0 12px;
-  height: 38px;
+  gap: var(--sp-5);
+  padding: var(--sp-1) var(--sp-3);
+  min-height: 38px;
   background: var(--chrome-2);
   border-bottom: 1px solid var(--line);
 }
 
 .brand { font-weight: 600; font-size: 14px; letter-spacing: -0.005em; }
-.brand span { color: var(--accent); }
+.brand span { color: var(--accent-ink); }
 
 .spacer { flex: 1; }
+
+.bgroup { display: flex; align-items: center; gap: var(--sp-1); }
 
 .filechip {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 11px;
   color: var(--ink-2);
 }
@@ -160,14 +187,14 @@ select {
 
 /* The trail back up from a drawing you drilled into. */
 .crumbs { display: flex; align-items: center; gap: 4px; color: var(--ink-3); }
-.crumbs .crumb { font: inherit; color: var(--accent); background: none;
+.crumbs .crumb { font: inherit; color: var(--accent-ink); background: none;
                  border: 0; padding: 0; cursor: pointer; }
 .crumbs .crumb:hover { text-decoration: underline; }
 .crumbs .crumb.here { color: var(--ink-2); cursor: default; }
 
 .toolbar {
-  gap: 18px;
-  padding: 7px 12px;
+  gap: var(--sp-5);
+  padding: var(--sp-2) var(--sp-3);
   background: var(--chrome);
   border-bottom: 1px solid var(--line);
 }
@@ -194,7 +221,7 @@ select {
 }
 
 .pane-head {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   font-weight: 600;
@@ -203,7 +230,7 @@ select {
 }
 
 .palette-category {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -221,33 +248,26 @@ select {
   min-width: 0;
 }
 
+/* The sheet is always white, so a symbol drawn in document ink is invisible
+   on dark chrome. Give each thumbnail the sheet's own ground: a palette item
+   should preview what the thing will look like once it is placed. */
 .palette-item {
   aspect-ratio: 1 / 0.82;
   display: grid;
   place-items: center;
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
-  cursor: default;
   padding: 3px;
 }
 .palette-item:hover { background: var(--accent-soft); border-color: var(--accent); }
 .palette-item svg { max-width: 100%; max-height: 100%; }
 
-/* The sheet is always white, so a symbol drawn in document ink is invisible
-   on dark chrome. Give each thumbnail the sheet's own ground: a palette item
-   should preview what the thing will look like once it is placed. */
-.palette-item {
-  background: var(--paper);
-  border-color: var(--line-soft);
-}
-.palette-item:hover { background: var(--accent-soft); }
-
 .palette-note {
   margin: auto 12px 12px;
   padding-top: 10px;
   border-top: 1px solid var(--line-soft);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-3);
 }
 
@@ -259,7 +279,9 @@ select {
 
 /* ---- tool buttons ---- */
 
-.tgroup { display: flex; align-items: center; gap: 3px; }
+.tgroup { display: flex; align-items: center; gap: var(--sp-1); }
+/* A slider and its button are two controls, not two keys on one row. */
+.tgroup.view { gap: var(--sp-2); }
 
 .tool {
   background: transparent;
@@ -276,8 +298,84 @@ select {
   color: var(--accent-on);
 }
 .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tool:disabled { opacity: 0.4; cursor: default; }
+.tool:disabled:hover { background: transparent; color: var(--ink-2); }
 
-.divider { width: 1px; height: 18px; background: var(--line); }
+/* The one filled button in the bars: saving is the action every session
+   ends with, so it is the one the eye should find without looking. */
+.action.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+  font-weight: 500;
+}
+.action.primary:hover {
+  background: color-mix(in srgb, var(--accent) 86%, var(--ink));
+  border-color: color-mix(in srgb, var(--accent) 86%, var(--ink));
+  color: var(--accent-on);
+}
+
+/* ---- menus (menus.js) ---- */
+
+.menu { position: relative; }
+.menu-button { display: inline-flex; align-items: center; gap: 3px; }
+.menu-button .chev {
+  width: 12px; height: 12px; margin-right: -3px;
+  fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.menu-button[aria-expanded="true"] { background: var(--sunken); color: var(--ink); }
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 45;
+  min-width: 200px;
+  padding: 4px;
+  background: var(--chrome);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
+}
+.menu-panel[hidden] { display: none; }
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: calc(var(--radius) - 1px);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.menu-item > span { flex: 1; }
+.menu-item kbd {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.menu-item .ico {
+  width: 16px; height: 16px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.3;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.menu-item .ico rect { fill: currentColor; fill-opacity: 0.22; }
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible { background: var(--accent-soft); outline: none; }
+.menu-item:disabled { color: var(--ink-3); cursor: default; }
+.menu-item:disabled kbd { color: inherit; }
+.menu-sep { height: 1px; margin: 4px 6px; background: var(--line-soft); }
+
+/* The Sheet panel is a small form rather than a list of commands. */
+.sheet-panel { display: grid; gap: 10px; padding: 10px 12px 12px; min-width: 260px; }
+.sheet-panel .field { justify-content: space-between; }
+.menu-note { margin: 0; font-size: 12px; color: var(--ink-2); }
 
 .action:disabled { opacity: 0.4; cursor: default; }
 .action:disabled:hover { background: var(--chrome-2); color: var(--ink-2); }
@@ -295,7 +393,7 @@ select {
 #properties-body { padding: 0 12px 16px; display: flex; flex-direction: column; gap: 7px; }
 
 .ptitle {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   font-weight: 600;
@@ -315,7 +413,7 @@ select {
 .prow > span { font-size: 11px; color: var(--ink-3); }
 
 .pval, .pinput {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 11.5px;
   background: var(--chrome-2);
   border: 1px solid var(--line);
@@ -327,11 +425,11 @@ select {
   font-variant-numeric: tabular-nums;
 }
 .pval { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pval.unconnected { color: var(--warm); }
+.pval.unconnected { color: var(--warm-ink); }
 
 /* A pin row carries its name field above what the pin is wired to. */
 .pinrow { display: grid; gap: 3px; min-width: 0; }
-.pinrow .pinwire { background: none; border: 0; padding: 0 1px; font-size: 10.5px;
+.pinrow .pinwire { background: none; border: 0; padding: 0 1px; font-size: 11px;
                    color: var(--ink-3); }
 
 /* The swatch that opens the colour grid. A plain filled rectangle: it is
@@ -405,12 +503,12 @@ select {
   background: none;
   border: 0;
   color: var(--ink-3);
-  font-size: 10.5px;
+  font-size: 11px;
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
 }
-.linkish:hover { color: var(--accent); }
+.linkish:hover { color: var(--accent-ink); }
 
 #properties-body .empty, #properties-body .note {
   margin: 4px 0;
@@ -437,7 +535,7 @@ select {
    place that knows which gesture the pointer is over. */
 .dl-handle { fill: #ffffff; stroke: var(--accent); pointer-events: none; }
 .dl-grip { fill: transparent; stroke: none; pointer-events: all; }
-.dl-marquee { fill: rgba(13, 116, 144, 0.08); stroke: var(--accent); }
+.dl-marquee { fill: color-mix(in srgb, var(--accent) 8%, transparent); stroke: var(--accent); }
 
 .palette-item { cursor: grab; }
 .palette-item.dragging { opacity: 0.45; cursor: grabbing; }
@@ -458,6 +556,7 @@ select {
 }
 
 .stage {
+  position: relative;
   flex: 1;
   min-width: 0;
   background: var(--sunken);
@@ -505,18 +604,21 @@ select {
 /* ---- status ---- */
 
 .status {
-  gap: 18px;
-  padding: 5px 12px;
+  gap: var(--sp-5);
+  padding: var(--sp-1) var(--sp-3);
   background: var(--chrome-2);
   border-top: 1px solid var(--line);
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 11px;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 .status .push { margin-left: auto; }
 .status .bad { color: var(--danger); }
-.status .good { color: var(--accent); }
+/* "warn" was used a dozen times in main.js and styled nowhere, so a cancelled
+   layout or a restored copy read exactly like a routine "saved". */
+.status .warn { color: var(--warm-ink); }
+.status .good { color: var(--accent-ink); }
 
 @media (max-width: 1000px) {
   .inspector { display: none; }
@@ -524,7 +626,7 @@ select {
 
 @media (max-width: 720px) {
   .palette { display: none; }
-  .toolbar { gap: 12px; }
+  .menubar, .toolbar { gap: var(--sp-3); }
   .field.slider input[type="range"] { width: 80px; }
 }
 
@@ -534,14 +636,16 @@ select {
    it worked. It fades on its own; the status bar keeps the last message for
    anyone who looks later. */
 .toast {
-  position: fixed;
-  /* Below both toolbar rows, over the canvas: high enough to be seen without
-     covering the controls the message is usually about. */
-  top: 104px;
+  /* Inside the stage, just under the tabs, over the canvas: high enough to
+     be seen without covering the controls the message is usually about. It
+     was fixed at 104px from the window top, which was right only while both
+     bars were exactly one row tall. */
+  position: absolute;
+  top: calc(30px + var(--sp-3));   /* 30px: the tab row's min-height */
   left: 50%;
   transform: translateX(-50%) translateY(-6px);
   z-index: 40;
-  max-width: min(560px, calc(100vw - 32px));
+  max-width: min(560px, calc(100% - 32px));
   padding: 9px 15px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
@@ -583,6 +687,8 @@ select {
 }
 .toast.good::before { background: var(--accent); }
 .toast.bad::before { background: var(--danger); }
+.toast.warn { border-color: var(--warm); }
+.toast.warn::before { background: var(--warm); }
 
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none; }
@@ -590,10 +696,12 @@ select {
 
 /* ---- toolbar icons ---- */
 /*
-   The actions used to be words in a row and a dropdown called "Arrange", so
-   aligning two cells meant reading a menu. Icons put every one of them on the
-   surface, where the shape says what it does and the hover text says it in
-   words for anyone the shape does not reach.
+   Icons for the actions that apply to almost any selection (rotate, flip,
+   delete) and to the whole drawing (auto layout, tidy): the shape says what
+   each does and the hover text says it in words for anyone the shape does not
+   reach. Group, align, distribute and ordering are in the Arrange menu,
+   named in full, because each needs a particular selection and as icons they
+   mostly sat there doing nothing; the menu greys the ones that cannot apply.
 */
 .sprite { display: none; }
 
@@ -636,20 +744,20 @@ select {
 .drc-right { display: flex; align-items: center; gap: 7px; }
 
 .drc-count {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-3);
 }
 .drc-count.bad { color: var(--danger); }
-.drc-count.good { color: var(--accent); }
+.drc-count.good { color: var(--accent-ink); }
 /* A count waiting on a fresh answer. Greyed rather than blanked: the old
    number is still the best guess, it just cannot be trusted for a moment. */
 .drc-count.stale { opacity: 0.45; }
 
 /* Live or manual. Small and quiet -- it is a preference, not a command. */
 .drc-toggle {
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 1px 6px;
@@ -663,13 +771,13 @@ select {
 .drc-toggle[aria-pressed="true"] {
   background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .drc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .drc-body { padding: 0 12px 16px; }
 
-.drc-note { margin: 0; font-size: 11px; color: var(--ink-3); }
+.drc-note { margin: 0; font-size: 12px; color: var(--ink-3); }
 
 .drc-list { list-style: none; margin: 0; padding: 0; }
 
@@ -693,7 +801,7 @@ select {
    sorts itself by eye before anything is read. */
 .drc-rule { font-weight: 600; }
 .drc-item.error .drc-rule { color: var(--danger); }
-.drc-item.warning .drc-rule { color: var(--warm); }
+.drc-item.warning .drc-rule { color: var(--warm-ink); }
 
 .drc-where { color: var(--ink-3); }
 
@@ -726,7 +834,7 @@ select {
 }
 .status-drc:hover { text-decoration: underline; }
 .status-drc.bad { color: var(--danger); }
-.status-drc.good { color: var(--accent); }
+.status-drc.good { color: var(--accent-ink); }
 .status-drc.stale { opacity: 0.45; }
 .status-drc.off { color: var(--ink-2); font-style: italic; }
 
@@ -735,7 +843,7 @@ select {
   background: none; border: 0; padding: 0 6px; cursor: pointer;
   color: var(--ink-2); font: inherit;
 }
-.status-keys:hover { color: var(--accent); text-decoration: underline; }
+.status-keys:hover { color: var(--accent-ink); text-decoration: underline; }
 .shortcuts {
   max-width: min(640px, calc(100vw - 32px)); max-height: 80vh; overflow: auto;
   background: var(--chrome); color: var(--ink);
@@ -748,7 +856,7 @@ select {
   text-align: left; vertical-align: top; padding: 4px 8px;
   border-top: 1px solid var(--line-soft); font-size: 13px;
 }
-.shortcuts th { white-space: nowrap; font-family: var(--mono, monospace); color: var(--accent); font-weight: 600; }
+.shortcuts th { white-space: nowrap; font-family: var(--mono); color: var(--accent-ink); font-weight: 600; }
 .shortcuts-foot { margin: 10px 0 0; color: var(--ink-2); font-size: 12px; }
 
 /* Preferences: one row per switch. */
@@ -762,13 +870,13 @@ select {
 .pref-row input[type=number] { width: 64px; margin-left: 6px; }
 .pref-text { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
 .pref-text small { color: var(--ink-2); font-size: 12px; }
-.pref-risk { color: var(--warm); font-style: normal; font-size: 11px; }
+.pref-risk { color: var(--warm-ink); font-style: normal; font-size: 11px; }
 
 /* A name being edited where it is drawn. */
 /* Black on white whatever the theme: the name is being typed onto the sheet,
    and the sheet is always white, so chrome colours made it unreadable in dark. */
 .rename-in-place {
-  position: fixed; z-index: 30; padding: 2px 6px; font: 600 13px var(--mono, monospace);
+  position: fixed; z-index: 30; padding: 2px 6px; font: 600 13px var(--mono);
   color: #000; background: #fff; caret-color: #000; border: 1px solid var(--accent);
   border-radius: var(--radius); box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
 }

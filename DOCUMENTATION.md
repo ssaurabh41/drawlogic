@@ -45,7 +45,7 @@ have not saved yet is still kept safe: the browser holds a copy to offer back
 after a crash, and each save keeps the previous file as `<name>.dlg.bak`. See
 [Saving](#saving).
 
-Already have the design in Verilog? **Import Verilog** in the toolbar, or
+Already have the design in Verilog? **File > Import Verilog**, or
 `drawlogic import design.v`, draws every module for you. See
 [import](#import).
 
@@ -264,7 +264,7 @@ drawing is laid out. An instance of a gate primitive (`and`, `or`, `nand`,
 symbol; an instance of another module in the file becomes a block that opens
 onto that module's drawing (see [Hierarchy](#hierarchy)). The top module is
 the one nothing instantiates, unless `--top` names another. The editor's
-**Import Verilog** button does the same into the folder it serves and opens the
+**File > Import Verilog** does the same into the folder it serves and opens the
 top drawing.
 
 **Netlists** are read as they stand: headers in either style,
@@ -344,8 +344,8 @@ ok    check the rules
 ok    lay it out
 ok    render to SVG
 38 built-in symbols
-ok     14 browser modules, 0 import mismatches
-ok     35 files against manifest.txt, 0 differ
+ok     15 browser modules, 0 import mismatches
+ok     36 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -445,7 +445,6 @@ how many went.
 | drag a wire | slide that run of it; the wire becomes hand-routed |
 | double-click a wire | hand it back to the router |
 | double-click a name | rename a cell or a net where it is drawn |
-| drag a wire | bend it: the drag point becomes a waypoint |
 | handles, `Alt`+handle | resize with ratio locked / free |
 | arrows, `Shift`+arrows | nudge one grid step / ten |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | undo / redo |
@@ -475,13 +474,14 @@ Symbols can be dragged from the palette straight onto the sheet. Clicking a
 symbol and then clicking the sheet still works, and is the only route that
 places several of the same part in a row.
 
-The actions -- rotate, flip, group, align, distribute, auto layout, tidy,
-front and back -- are the icon buttons in the second toolbar row. Hover any
-of them for its name.
+Rotate, flip, delete, auto layout and tidy are the icon buttons in the
+second toolbar row; hover any of them for its name. Group, align, distribute,
+front and back are in the **Arrange** menu beside them, named in full, with
+the ones the current selection cannot use greyed out.
 
-**Theme** cycles the application's appearance between following the operating
-system, light, and dark, and remembers the choice. It starts light. The drawing itself never
-changes with it: the sheet is a document, and a document is white. An
+**Appearance** in Preferences picks between following the operating system,
+light, and dark, and remembers the choice. It starts light. The drawing itself
+never changes with it: the sheet is a document, and a document is white. An
 exported file looks the same whichever is picked.
 
 Selecting one member of a group selects all of it, so a group drags and
@@ -504,16 +504,19 @@ never swallows a click meant for a gate inside it.
 
 ### Arrange
 
-The icon buttons in the second toolbar row align edges and centres,
-distribute evenly (three or more items), and move things to the front or
-back.
+The **Arrange** menu groups and ungroups, aligns edges and centres (two or
+more items), distributes evenly (three or more), and moves things to the front
+or back. They were twelve icons in the toolbar once; each needs a particular
+selection, so most of them did nothing most of the time, and a menu can say
+what each is and whether it applies now.
 
 ### View
 
-The **Zoom**, **Text** and **Symbols** sliders control view scale,
-`canvas.font.scale` and `canvas.symbolScale`. The last two change the
-document, so they mark it unsaved; zoom does not. **Grid** picks dots, lines
-or a blank sheet for this drawing; a new drawing starts blank.
+**Zoom** controls the view scale and changes nothing in the file. The
+**Sheet** menu holds the three settings that look like view settings but are
+saved with the drawing: **Grid** picks dots, lines or a blank sheet (a new
+drawing starts blank), and **Text** and **Symbols** set `canvas.font.scale`
+and `canvas.symbolScale`. Changing any of them marks the drawing unsaved.
 **Fit** (`Ctrl+0`) shows the whole sheet, and `F` zooms to what is selected.
 
 ### Tabs
@@ -529,8 +532,8 @@ way to discard its changes.
 
 ### Preferences
 
-**Preferences** in the toolbar (`Ctrl+,`) holds the two things worth
-switching off. They are kept in this browser, not in the drawing, so a file
+**Preferences** in the top bar (`Ctrl+,`) holds the appearance and the two
+things worth switching off. They are kept in this browser, not in the drawing, so a file
 handed to someone else does not change how their editor behaves.
 
 | Preference | Default |
@@ -544,7 +547,7 @@ guides help while dragging (hold `Alt` to drag without them), and unsaved
 work is kept for recovery after a crash.
 
 A new drawing is 1200 x 700 on a blank sheet with a grid step of 10; change
-the grid for that drawing with **Grid** in the toolbar.
+the grid for that drawing with **Sheet > Grid** in the toolbar.
 
 ### Auto-connect
 
@@ -579,7 +582,7 @@ names.
 
 ### Importing Verilog
 
-**Import Verilog** asks for a `.v` file, draws each of its modules as a
+**File > Import Verilog** asks for a `.v` file, draws each of its modules as a
 drawing in the folder being served, and opens the top one in a new tab. If any
 of those drawings is already there it asks before replacing them, and a tab
 showing one of them is closed so its old contents cannot be saved back over
@@ -626,7 +629,7 @@ an ordinary drawing, with the tools that are already there.
 2. Drop a port on each edge where a wire should land. `port_in` becomes an
    input pin, `port_out` an output, `port_inout` a bidirectional one, and the
    port's name becomes the pin's name.
-3. **Save as symbol**, and give it an id (letters, digits and underscores).
+3. **File > Save as symbol**, and give it an id (letters, digits and underscores).
 
 It appears immediately in the palette under **custom**, and is placed by
 clicking it and then clicking the canvas, the same as any built-in.
@@ -1121,7 +1124,7 @@ Two rules keep it predictable:
 
 ### Getting the drawing into a slide
 
-**Copy PNG** (`Ctrl+Shift+E`) puts the drawing on the clipboard as a picture,
+**File > Copy as PNG** (`Ctrl+Shift+E`) puts the drawing on the clipboard as a picture,
 at twice sheet size so it holds up on a projector. Paste straight into
 PowerPoint, a doc or a chat.
 

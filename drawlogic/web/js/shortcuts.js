@@ -14,7 +14,6 @@ export const SHORTCUTS = [
   ["drag a wire", "slide that run of it; the wire becomes hand-routed"],
   ["double-click a wire", "hand it back to the router"],
   ["double-click a name", "rename a cell or a net where it is drawn"],
-  ["drag a wire", "bend it: the drag point becomes a waypoint"],
   ["handles, Alt+handle", "resize with ratio locked / free"],
   ["arrows, Shift+arrows", "nudge one grid step / ten"],
   ["Ctrl+Z / Ctrl+Shift+Z", "undo / redo"],

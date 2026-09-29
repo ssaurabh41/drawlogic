@@ -11,7 +11,21 @@
       "Bash(python3 -m drawlogic help *)",
       "Bash(python3 -m drawlogic symbols)",
       "Bash(python3 -m drawlogic symbols *)",
-      "Bash(python3 -m drawlogic info *)"
+      "Bash(python3 -m drawlogic info *)",
+      "Bash(npx -y impeccable install:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v rtk >/dev/null 2>&1 && rtk hook claude || true"
+          }
+        ]
+      }
     ]
   }
 }

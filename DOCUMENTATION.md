@@ -89,7 +89,6 @@ Everything below is the complete reference.
 - [How it is put together](#how-it-is-put-together)
 - [Extending it](#extending-it)
 - [Tests](#tests)
-- [Not built yet](#not-built-yet)
 
 ---
 
@@ -1789,23 +1788,3 @@ the examples and look at them.
 
 **`--host` has no authentication.** Binding beyond loopback is documented as
 "tunnel instead", but nothing stops it being used on a shared machine.
-
----
-
-## Not built yet
-
-- **Several sheets inside one file.** Today a drawing is one sheet, and a
-  hierarchy is a folder of them tied together by `ref`. Pages in one file,
-  with off-sheet connectors, would be a different thing.
-- **Netlist export** (Verilog, SPICE) and electrical rule checks. Verilog
-  comes *in* (see [import](#import)); nothing goes back out yet. The net
-  model supports it; `validate` is where it would grow. The DRCs check how a
-  drawing reads, which is a different question from whether the circuit is
-  right: a drawing can pass every rule here and still drive two outputs onto
-  one net.
-- **Automatic fixing.** The DRCs say what is wrong and where; moving the cell
-  or rerouting the wire is still yours to do. The router avoids what it can
-  see, but a drawing with no room left needs more room, not a cleverer router.
-- **Sheet border and title block.** Today there is just the title, in a band
-  along the top of the sheet.
-- **PDF export.** Out of scope; print to PDF from the browser.

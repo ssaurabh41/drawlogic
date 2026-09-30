@@ -21,6 +21,7 @@ checking it clears every cell the wire is not connected to. A net's
 
 from . import theme
 from .geometry import corners, label_lines
+from . import channels
 from . import drc
 from .doc import loads_of
 from .symbols import default_registry
@@ -300,6 +301,10 @@ class Sheet:
     self._cells = None
     self._keys = frozenset()
     self._net = None
+    # Corridors decided for every crossover at once -- see channels.py -- and
+    # the one meant for the branch this view is routing, if any.
+    self.targets = {}
+    self.target = None
 
   def reserve(self, keys, points, net_id=None):
     """Remember the runs of a wire that has been routed."""
@@ -329,6 +334,7 @@ class Sheet:
     view._cells = self._cells
     view._keys = keys
     view._net = net_id
+    view.targets = self.targets
     return view
 
   def free(self, horizontal, fixed, v0, v1, crossings=True, gap=None):
@@ -551,7 +557,10 @@ def _route_hh(a, b, a_dir, b_dir, sheet):
             and (a[0] - b[0]) * b_dir[0] > EPSILON)
   if facing:
     lo, hi = sorted((a[0], b[0]))
-    x = _pick_corridor((a[0] + b[0]) / 2.0, lo, hi, clear_at, free_at)
+    preferred = (a[0] + b[0]) / 2.0
+    if sheet.target is not None and lo < sheet.target < hi:
+      preferred = sheet.target
+    x = _pick_corridor(preferred, lo, hi, clear_at, free_at)
     if clear_at(x):
       return [a, (x, a[1]), (x, b[1]), b]
     return _row_crossover(a, b, a_dir, b_dir, sheet, row_clear)
@@ -781,8 +790,9 @@ def route(doc, net, registry=None, sheet=None):
   # most wires have one load, so the terminals are worked out only if asked for.
   terminals = None
   late = forks_late(doc)
-  for load in loads_of(net):
-    points = _branch(doc, net, load, start, start_dir, registry, sheet, keys)
+  for index, load in enumerate(loads_of(net)):
+    points = _branch(doc, net, load, start, start_dir, registry, sheet, keys,
+                     target=sheet.targets.get((net.get("id"), index)))
     tap, tap_dir = (_tap(branches, endpoint_position(doc, load, registry))
                     if late else (None, None))
     if tap is not None:
@@ -960,11 +970,13 @@ def _lands_clear(points, doc, net, load, registry, sheet, keys, terminals):
 
 
 def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
-            from_pin=True):
+            from_pin=True, target=None):
   """One path, from the driving pin -- or from a tap on the wire -- to a load.
 
   `from_pin` is false when the branch leaves the middle of a wire already
   drawn. There is no pin to stand off from there, so it gets no stub.
+  `target` is the corridor channels.py decided on for this branch, if it is a
+  crossover; the router's search starts there instead of mid-gap.
   """
   end = endpoint_position(doc, load, registry)
   if end is None:
@@ -985,6 +997,7 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
     # gate and back into the flip-flop feeding it -- run straight back
     # through both bodies and along the wire the other way.
     view = sheet.for_net(boxes + own, keys, net.get("id"), own)
+    view.target = target
     return _clean(_direct_route(
       start, end, start_dir, end_dir, view,
       stub_for(doc, net.get("from"), registry) if from_pin else 0.0,
@@ -1004,6 +1017,64 @@ def _branch(doc, net, load, start, start_dir, registry, sheet, keys,
     if corner:
       horizontal_first = not horizontal_first
   return _clean(chain)
+
+
+def _crossovers(doc, registry, sheet):
+  """Every branch that will cross over between two facing pins.
+
+  Worked out the same way _branch and _route_hh will work it out, so the
+  corridor decided for a branch is one its own search could have found: the
+  same stub ends, the same cells in the way, the same lattice of positions
+  around the middle of the gap. Branches with waypoints, free ends or pins
+  that do not face each other are left to the router's search as before.
+  """
+  found = []
+  for net in doc.nets:
+    net_id = net.get("id")
+    if net_id is None:
+      continue
+    source = net.get("from")
+    start = endpoint_position(doc, source, registry)
+    start_dir = endpoint_direction(doc, source, registry)
+    if start is None or start_dir is None or abs(start_dir[0]) < EPSILON:
+      continue
+    keys = _endpoint_keys(net)
+    a = _stub_end(start, start_dir, stub_for(doc, source, registry))
+    for index, load in enumerate(loads_of(net)):
+      if load.get("waypoints"):
+        continue
+      end = endpoint_position(doc, load, registry)
+      end_dir = endpoint_direction(doc, load, registry)
+      if end is None or end_dir is None or abs(end_dir[0]) < EPSILON:
+        continue
+      b = _stub_end(end, end_dir, stub_for(doc, load, registry))
+      if abs(a[0] - b[0]) < EPSILON or abs(a[1] - b[1]) < EPSILON:
+        continue
+      facing = ((b[0] - a[0]) * start_dir[0] > EPSILON
+                and (a[0] - b[0]) * end_dir[0] > EPSILON)
+      if not facing:
+        continue
+      exclude = set()
+      for endpoint in (source, load):
+        if isinstance(endpoint, dict) and "cell" in endpoint:
+          exclude.add(endpoint["cell"])
+      boxes, own, _bodies = _boxes_for(doc, registry, sheet, exclude)
+      boxes = boxes + own
+      lo, hi = sorted((a[0], b[0]))
+      middle = (a[0] + b[0]) / 2.0
+      candidates = []
+      for step in range(-CORRIDOR_TRIES, CORRIDOR_TRIES + 1):
+        x = middle + step * CORRIDOR_STEP
+        if lo < x < hi and (_vertical_clear(x, a[1], b[1], boxes)
+                            and _horizontal_clear(a[1], a[0], x, boxes)
+                            and _horizontal_clear(b[1], x, b[0], boxes)):
+          candidates.append(x)
+      if not candidates:
+        continue
+      left, right = (a, b) if a[0] < b[0] else (b, a)
+      found.append(channels.Crossover((net_id, index), net_id, keys,
+                                      left, right, candidates))
+  return found
 
 
 def route_all(doc, registry=None):
@@ -1028,6 +1099,7 @@ def route_all(doc, registry=None):
       if spot is not None and facing is not None:
         stub = _stub_end(spot, facing, stub_for(doc, endpoint, registry))
         sheet.reserve(keys, [spot, stub], net.get("id"))
+  sheet.targets = channels.assign(_crossovers(doc, registry, sheet))
   routes = []
   for net in doc.nets:
     branches = route(doc, net, registry, sheet)

@@ -2,6 +2,27 @@
 
 A specification, not a change. Nothing here is implemented.
 
+> **Measured since, and the premise no longer holds.** The numbers below were
+> taken before the layout work that followed them. Re-measured on 2026-09-30
+> with `benchmarks/channel_graph.py`:
+>
+> | | nets | constraint edges | shorts | cycles |
+> |---|---:|---:|---:|---:|
+> | all ten fixtures | 476 | 9 | 7 | 0 |
+>
+> Seven of the 46 errors are left, all `wire-short`, in `05-reconverging` (1)
+> and `10-mixed` (6). The graph is acyclic everywhere, so Phase 2 is not
+> needed. Phase 1 was built anyway (branch `prototype/channel-assignment`)
+> and made the corpus worse -- errors 7 -> 10, warnings 381 -> 465, wire
+> length +3.8% -- because the remaining shorts are not ordering conflicts.
+> They are **capacity**: in `10-mixed` the gap after the input ports is 72
+> units wide, which holds seven corridors on the 10-unit lattice, and ten
+> unrelated nets have long verticals through it. No assignment of corridors
+> fits ten wires into seven places; only more room does. Section 2's "room is
+> not what is missing" was true of the corpus then and is not true of what is
+> left now. The next step, if any, is in layout, not routing: widen a column
+> gap when the nets crossing it outnumber its corridors.
+
 The goal is the one stated for the benchmark corpus: **zero DRC errors, with
 warnings minimised and without paying for it in area, wire length or runtime.**
 The last clause is what rules out the obvious answer; see *Rejected approaches*.

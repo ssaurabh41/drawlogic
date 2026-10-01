@@ -191,14 +191,74 @@ function openPalette(anchor, current, apply) {
 
 // ---- palette ----
 
+// The order sections are listed in: what a schematic is mostly made of first.
+// A category not named here -- one from a folder's own symbols.json, or the
+// blocks standing for other drawings -- follows, alphabetically.
+const CATEGORY_ORDER = ["blocks", "gates", "mux", "sequential", "ports", "bus",
+                        "analog"];
+
+// Which sections are folded away, kept per browser like any other habit of
+// the person drawing rather than of the drawing.
+const FOLDED_KEY = "drawlogic.paletteFolded";
+
+function foldedSections() {
+  try {
+    return new Set(JSON.parse(window.localStorage.getItem(FOLDED_KEY) || "[]"));
+  } catch (error) {
+    return new Set();
+  }
+}
+
+function saveFolded(folded) {
+  try {
+    window.localStorage.setItem(FOLDED_KEY, JSON.stringify([...folded]));
+  } catch (error) {
+    // Private browsing: folding still works, it just is not remembered.
+  }
+}
+
+function categoryRank(category) {
+  const index = CATEGORY_ORDER.indexOf(category);
+  return index < 0 ? CATEGORY_ORDER.length : index;
+}
+
 export function buildPalette(root, { onPick }) {
   const groups = geometry.byCategory();
   root.textContent = "";
+  const folded = foldedSections();
 
-  for (const category of Object.keys(groups).sort()) {
-    root.appendChild(element("div", "palette-category", category));
+  // Typing narrows every section at once, by id or by name -- the quick way
+  // to "nand3" when you know what you want and not where it is filed.
+  const search = document.createElement("input");
+  search.type = "search";
+  search.className = "palette-search";
+  search.placeholder = "Search symbols";
+  search.setAttribute("aria-label", "Search symbols");
+  root.appendChild(search);
+
+  const sections = [];
+  const categories = Object.keys(groups).sort((a, b) =>
+    categoryRank(a) - categoryRank(b) || a.localeCompare(b));
+  for (const category of categories) {
+    const section = document.createElement("details");
+    section.className = "palette-section";
+    section.open = !folded.has(category);
+    section.addEventListener("toggle", () => {
+      if (search.value.trim()) return;
+      if (section.open) folded.delete(category);
+      else folded.add(category);
+      saveFolded(folded);
+    });
+
+    const head = document.createElement("summary");
+    head.className = "palette-category";
+    head.appendChild(element("span", null, category));
+    const count = element("span", "palette-count", String(groups[category].length));
+    head.appendChild(count);
+    section.appendChild(head);
+
     const grid = element("div", "palette-grid");
-
+    const items = [];
     for (const id of groups[category]) {
       const symbol = geometry.get(id);
       const item = document.createElement("button");
@@ -206,7 +266,10 @@ export function buildPalette(root, { onPick }) {
       item.type = "button";
       item.dataset.symbol = id;
       item.title = `${symbol.name} (${id}) - drag onto the canvas, or click then click`;
-      item.appendChild(symbolThumbnail(symbol));
+      const art = element("span", "palette-art");
+      art.appendChild(symbolThumbnail(symbol, 34, 30));
+      item.appendChild(art);
+      item.appendChild(element("span", "palette-caption", id));
 
       // Dragging one out is the gesture people arrive expecting; the
       // click-then-click path stays because it is the only one that works
@@ -227,9 +290,44 @@ export function buildPalette(root, { onPick }) {
         onPick(id);
       });
       grid.appendChild(item);
+      items.push({ item, text: `${id} ${symbol.name}`.toLowerCase() });
     }
-    root.appendChild(grid);
+    section.appendChild(grid);
+    root.appendChild(section);
+    sections.push({ section, items, count, category, total: items.length });
   }
+
+  const empty = element("p", "palette-empty", "No symbol matches.");
+  empty.hidden = true;
+  root.appendChild(empty);
+
+  search.addEventListener("input", () => {
+    const words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const entry of sections) {
+      let here = 0;
+      for (const { item, text } of entry.items) {
+        const match = words.every((word) => text.includes(word));
+        item.hidden = !match;
+        if (match) here += 1;
+      }
+      entry.section.hidden = here === 0;
+      entry.count.textContent = words.length ? `${here}/${entry.total}` : String(entry.total);
+      // While searching every section with a hit is open; clearing the box
+      // puts the folding back the way it was.
+      entry.section.open = words.length ? here > 0 : !folded.has(entry.category);
+      shown += here;
+    }
+    empty.hidden = shown > 0;
+  });
+  search.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      search.value = "";
+      search.dispatchEvent(new Event("input"));
+      search.blur();
+    }
+    event.stopPropagation();
+  });
 }
 
 export function clearPaletteSelection(root) {

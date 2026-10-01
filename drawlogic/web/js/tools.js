@@ -146,12 +146,12 @@ export class SelectTool {
         const item = model.itemById(store.doc, id2);
         return [id2, JSON.parse(JSON.stringify(item))];
       }));
-      // Ctrl-drag duplicates, the way it does in a slide editor, and so does
-      // Shift-drag, which is the habit PowerPoint leaves people with. The copy
-      // is made on the first actual movement, not on the click. Shift can mean
-      // this here because it only pans on empty canvas, and a press that
-      // landed on a cell never reaches the viewport (see Viewport's canPan).
-      this.pendingDuplicate = additive(event) || event.shiftKey;
+      // Ctrl-drag duplicates, the way it does in a slide editor. Shift holds
+      // the drag to a straight line -- across or down, whichever the pointer
+      // has gone further -- and the two together duplicate along that line.
+      // Both are decided on the first movement, so pressing Shift mid-drag
+      // works too.
+      this.pendingDuplicate = additive(event);
       this.gestureLabel = this.pendingDuplicate ? "duplicate" : "move";
       return;
     }
@@ -210,8 +210,12 @@ export class SelectTool {
     if (this.mode === "move") {
       if (this.pendingDuplicate && !this.duplicated) this.duplicate();
       const step = model.gridStep(store.doc);
-      const sdx = model.snap(dx, step);
-      const sdy = model.snap(dy, step);
+      // Shift keeps the move on one axis: whichever way the pointer has
+      // travelled further wins, the other is held at zero.
+      const straight = event.shiftKey;
+      const across = Math.abs(dx) >= Math.abs(dy);
+      const sdx = straight && !across ? 0 : model.snap(dx, step);
+      const sdy = straight && across ? 0 : model.snap(dy, step);
       // Alt is the escape hatch: hold it to place a cell exactly where you
       // put it, with no help.
       const helping = !event.altKey;
@@ -234,7 +238,10 @@ export class SelectTool {
         // Asked of the drawing as it now stands, so the answer is a nudge
         // from where the cell actually is rather than from where it started.
         const fix = guides.suggest(doc, selection.ids, SNAP_PIXELS / this.ctx.zoom());
-        if (fix.dx || fix.dy) shift(sdx + fix.dx, sdy + fix.dy);
+        // An alignment pull may not break the straight line it is held to.
+        const fixX = straight && !across ? 0 : fix.dx;
+        const fixY = straight && across ? 0 : fix.dy;
+        if (fixX || fixY) shift(sdx + fixX, sdy + fixY);
         lines = fix.guides;
       });
 
@@ -296,6 +303,7 @@ export class SelectTool {
       doc.canvas.width = width;
       doc.canvas.height = height;
     });
+    this.ctx.drawOverlay({ sheetEdge: this.sheetHandle });
   }
 
   duplicate() {

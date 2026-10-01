@@ -920,12 +920,20 @@ export function render(svg, doc) {
 }
 
 // A standalone preview of one symbol, used by the palette.
-export function symbolThumbnail(symbol, boxSize = 34) {
+// `maxHeight` keeps a tall symbol inside its box by narrowing it, rather
+// than letting it run taller than the room it was given.
+export function symbolThumbnail(symbol, boxSize = 34, maxHeight = null) {
   const [sw, sh] = symbol.size;
   const pad = 2;
+  let width = boxSize;
+  let height = boxSize * (sh / sw) || boxSize;
+  if (maxHeight && height > maxHeight) {
+    width *= maxHeight / height;
+    height = maxHeight;
+  }
   const svg = el("svg", {
     viewBox: `${-pad} ${-pad} ${sw + pad * 2} ${sh + pad * 2}`,
-    width: boxSize, height: boxSize * (sh / sw) || boxSize,
+    width, height,
   });
   const cell = { id: symbol.id, type: symbol.id, x: 0, y: 0, w: sw, h: sh, style: {} };
   renderCell(symbol, cell, 1, 1, svg);

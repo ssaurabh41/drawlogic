@@ -199,27 +199,37 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     }
   }
 
-  // Grips on the sheet's right edge, bottom edge and corner, so the page can
-  // be dragged bigger or smaller like a window. Its top-left is the origin
-  // everything is placed from, so only those three sides move.
+  // The sheet's right edge, bottom edge and corner can be dragged like a
+  // window's. Nothing is drawn there until the pointer is over one: a thin
+  // strip along the edge is the target, and it lights up on hover, with the
+  // cursor saying which way it pulls. Its top-left is the origin everything
+  // is placed from, so only those sides move.
   const doc = selection.store.doc;
   if (doc && !options.hideHandles && !options.hideSheetHandles) {
     const sw = Number(doc.canvas.width) || 0;
     const sh = Number(doc.canvas.height) || 0;
-    const size = 10 / zoom;
-    const grab = 22 / zoom;
-    for (const [key, [hx, hy]] of Object.entries({
-      e: [sw, sh / 2], s: [sw / 2, sh], se: [sw, sh],
-    })) {
+    const reach = 7 / zoom;
+    const corner = 16 / zoom;
+    const strips = {
+      e: [sw - reach, 0, reach * 2, sh],
+      s: [0, sh - reach, sw, reach * 2],
+      se: [sw - corner / 2, sh - corner / 2, corner, corner],
+    };
+    for (const [key, [x, y, width, height]] of Object.entries(strips)) {
       layer.appendChild(el("rect", {
-        class: "dl-grip", "data-sheet-handle": key,
-        x: hx - grab / 2, y: hy - grab / 2, width: grab, height: grab,
+        class: `dl-sheet-edge ${key}${options.sheetEdge === key ? " active" : ""}`,
+        "data-sheet-handle": key,
+        x, y, width, height, rx: key === "se" ? 3 / zoom : 0,
       }));
-      layer.appendChild(el("rect", {
-        class: "dl-sheet-handle", "data-sheet-handle": key,
-        x: hx - size / 2, y: hy - size / 2, width: size, height: size,
-        "stroke-width": 1.4 / zoom,
-      }));
+    }
+    // While dragging, the size it will be, beside the corner.
+    if (options.sheetEdge) {
+      const label = el("text", {
+        class: "dl-sheet-size", x: sw - 6 / zoom, y: sh + 18 / zoom,
+        "text-anchor": "end", "font-size": 12 / zoom,
+      });
+      label.textContent = `${Math.round(sw)} x ${Math.round(sh)}`;
+      layer.appendChild(label);
     }
   }
 

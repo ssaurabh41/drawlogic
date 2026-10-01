@@ -407,7 +407,10 @@ you ask. See [Design rule checks](#design-rule-checks-drcs) and
 ### Placing and wiring
 
 Click a symbol in the palette, then click the canvas. Shift-click the canvas
-to keep placing the same one. Press `W` for the wire tool, then click one pin
+to keep placing the same one. The palette lists blocks first, then gates,
+multiplexers, flip-flops, ports, bus parts and analog parts; the box at the
+top narrows it to what matches, by id or by name, and a section heading folds
+its section away (the browser remembers which). Press `W` for the wire tool, then click one pin
 and the next to connect them.
 
 Wires are stored as **pin references, never coordinates**. Once a wire exists
@@ -439,7 +442,8 @@ how many went.
 | `L` `B` `P` `T` | line, box, polygon, text |
 | click, `Ctrl`+click, drag a box | select one, add or remove one, marquee |
 | drag | move, snapped to the grid (a wire snaps to 5, so it can reach a pin) |
-| `Ctrl`+drag, `Shift`+drag a cell | duplicate as you drag |
+| `Ctrl`+drag a cell | duplicate as you drag |
+| `Shift`+drag, `Ctrl+Shift`+drag a cell | move / duplicate in a straight line across or down |
 | `Ctrl+N` | new drawing |
 | click a wire | select it, to change its label, colour, line and arrows |
 | drag a wire | slide that run of it; the wire becomes hand-routed |
@@ -447,7 +451,7 @@ how many went.
 | double-click a name | rename a cell, or edit a wire's label, where it is drawn |
 | handles, `Alt`+handle | resize a gate with ratio locked / free |
 | handles, `Shift`+handle | resize a block freely / with ratio locked |
-| drag the sheet's edge or corner | resize the sheet; Shift keeps its proportions |
+| drag the sheet's right or bottom edge, or its corner | resize the sheet; Shift keeps its proportions |
 | arrows, `Shift`+arrows | nudge one grid step / ten |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | undo / redo |
 | `Ctrl+C` `Ctrl+X` `Ctrl+V` `Ctrl+D` | copy, cut, paste, duplicate |
@@ -599,9 +603,10 @@ wrong; hold `Alt` to stretch it anyway. A block -- a generic block, an IO
 cell, a block standing for another drawing -- is a box sized to what is
 written in it, so it resizes freely, and `Shift` keeps its proportions.
 
-The sheet has grips on its right edge, bottom edge and bottom-right corner.
-Drag one to make the page wider, taller or both; `Shift` keeps its
-proportions. The top-left corner stays where it is, because everything on the
+The sheet's right edge, bottom edge and bottom-right corner can be dragged.
+Nothing is drawn there: point at an edge and it lights up and the cursor
+turns into a resize arrow. Drag to make the page wider, taller or both, with
+the size shown by the corner as you go; `Shift` keeps its proportions. The top-left corner stays where it is, because everything on the
 sheet is placed from it.
 
 The **format painter** (the brush icon beside the shape tools) copies the selected item's style -- fill, line colour, line

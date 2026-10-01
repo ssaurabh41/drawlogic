@@ -12,7 +12,7 @@ A specification, not a change. Nothing here is implemented.
 >
 > Seven of the 46 errors are left, all `wire-short`, in `05-reconverging` (1)
 > and `10-mixed` (6). The graph is acyclic everywhere, so Phase 2 is not
-> needed. Phase 1 was built anyway (branch `prototype/channel-assignment`)
+> needed. Phase 1 was built anyway as a prototype, since discarded,
 > and made the corpus worse -- errors 7 -> 10, warnings 381 -> 465, wire
 > length +3.8% -- because the remaining shorts are not ordering conflicts.
 > They are **capacity**: in `10-mixed` the gap after the input ports is 72

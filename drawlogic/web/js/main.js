@@ -1361,6 +1361,63 @@ async function newDrawing() {
   }
 }
 
+// A drawing from anywhere on this computer. The server only reads and writes
+// inside the folder it serves -- that is its security boundary -- so the file
+// is read here, copied into that folder under its own name, and opened from
+// there like any other. Asks before replacing a drawing of the same name.
+async function openFromDisk(file) {
+  let doc;
+  try {
+    doc = JSON.parse(await file.text());
+  } catch (error) {
+    say(`${file.name} is not a drawing: ${error.message}`, "bad");
+    return;
+  }
+  if (!doc || typeof doc !== "object" || !Array.isArray(doc.cells)
+      || !Array.isArray(doc.nets)) {
+    say(`${file.name} is not a drawing: it has no cells and nets`, "bad");
+    return;
+  }
+  const name = file.name.replace(/\.dlg$/i, "") + ".dlg";
+
+  try {
+    const write = (create) => api(
+      `/api/doc?path=${encodeURIComponent(name)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc, create }),
+      });
+    try {
+      await write(true);
+    } catch (conflict) {
+      if (!/already exists/i.test(conflict.message)) throw conflict;
+      if (!window.confirm(`${name} already exists in this folder. Replace it `
+          + "with the one you picked? If it is open, unsaved changes to it "
+          + "are lost.")) return;
+      await write(false);
+    }
+
+    // A tab still showing the old copy would put it back on the next save.
+    const tab = findTab(name);
+    if (tab) {
+      if (store.path === name) store.markSaved();
+      else openTabs.splice(openTabs.indexOf(tab), 1);
+      recovery.discard(name);
+    }
+    if (![...ui.fileSelect.options].some((option) => option.value === name)) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      ui.fileSelect.appendChild(option);
+    }
+    ui.fileSelect.value = name;
+    await openDrawing(name);
+    say(`opened ${file.name}, copied into this folder as ${name}`, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
 // Turn the open drawing into a symbol the palette offers.
 //
 // There is no separate symbol editor, because a symbol is very nearly a
@@ -1554,6 +1611,12 @@ function bindControls() {
     ui.drcBody.scrollIntoView({ block: "nearest" });
   });
   ui.btnNew.addEventListener("click", newDrawing);
+  ui.btnOpen.addEventListener("click", () => ui.openFile.click());
+  ui.openFile.addEventListener("change", () => {
+    const file = ui.openFile.files[0];
+    ui.openFile.value = "";
+    if (file) openFromDisk(file);
+  });
   ui.btnSymbol.addEventListener("click", saveAsSymbol);
   ui.btnImport.addEventListener("click", () => ui.importFile.click());
   ui.importFile.addEventListener("change", () => {
@@ -1793,6 +1856,8 @@ async function start() {
     btnPng: $("btn-png"),
     btnSymbol: $("btn-symbol"),
     btnImport: $("btn-import"),
+    btnOpen: $("btn-open"),
+    openFile: $("open-file"),
     importFile: $("import-file"),
     breadcrumb: $("breadcrumb"),
     btnFit: $("btn-fit"),

@@ -610,6 +610,15 @@ several, Esc to stop. `Ctrl+Shift+C` and `Ctrl+Shift+V` do the same from the
 keyboard, onto everything selected. Only style is copied, never position or
 names.
 
+### Opening a drawing from elsewhere
+
+The **OPEN** list holds the drawings in the folder the editor serves, and the
+server reads and writes nowhere else. **File > Open...** takes a `.dlg` from
+anywhere on your computer: it is copied into the served folder under its own
+name and opened there. If a drawing of that name is already there, you are
+asked before it is replaced. A drawing that refers to others (a hierarchy
+block's `ref`) needs those copied too, or the blocks show as unresolved.
+
 ### Importing Verilog
 
 **File > Import Verilog** asks for a `.v` file, draws each of its modules as a

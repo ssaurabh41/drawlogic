@@ -33,6 +33,8 @@
       <button id="menu-file-button" class="action menu-button" type="button"
               aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
       <div id="menu-file" class="menu-panel" role="menu" aria-labelledby="menu-file-button" hidden>
+        <button id="btn-open" class="menu-item" type="button" role="menuitem"
+                title="Open a .dlg from anywhere on this computer: it is copied into the served folder and opened"><span>Open&hellip;</span></button>
         <button id="btn-new" class="menu-item" type="button" role="menuitem"
                 title="Start an empty drawing in the served folder"><span>New drawing&hellip;</span><kbd>Ctrl+N</kbd></button>
         <button id="btn-import" class="menu-item" type="button" role="menuitem"
@@ -46,6 +48,7 @@
     </div>
   </div>
   <input id="import-file" type="file" accept=".v,.sv,.vh,.vg" hidden>
+  <input id="open-file" type="file" accept=".dlg,application/json" hidden>
 
   <button id="btn-check" class="action"
           title="Check the drawing against the DRCs: wires on wires, parts too close, names on wires">Check</button>

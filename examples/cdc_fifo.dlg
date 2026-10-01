@@ -295,6 +295,7 @@
     {
       "id": "n1",
       "name": "wdata[7:0]",
+      "label": "wdata[7:0]",
       "width": 8,
       "from": {
         "cell": "p_wdata",
@@ -312,6 +313,7 @@
     {
       "id": "n2",
       "name": "winc",
+      "label": "winc",
       "width": 1,
       "from": {
         "cell": "p_winc",
@@ -329,6 +331,7 @@
     {
       "id": "n3",
       "name": "wrst_n",
+      "label": "wrst_n",
       "width": 1,
       "from": {
         "cell": "p_wrstn",
@@ -346,6 +349,7 @@
     {
       "id": "n4",
       "name": "wclk",
+      "label": "wclk",
       "width": 1,
       "from": {
         "cell": "p_wclk",
@@ -407,6 +411,7 @@
     {
       "id": "n5",
       "name": "waddr[7:0]",
+      "label": "waddr[7:0]",
       "width": 8,
       "from": {
         "cell": "wptr",
@@ -424,6 +429,7 @@
     {
       "id": "n6",
       "name": "wclken",
+      "label": "wclken",
       "width": 1,
       "from": {
         "cell": "wptr",
@@ -441,6 +447,7 @@
     {
       "id": "n7",
       "name": "rdata[7:0]",
+      "label": "rdata[7:0]",
       "width": 8,
       "from": {
         "cell": "mem",
@@ -458,6 +465,7 @@
     {
       "id": "n8",
       "name": "rinc",
+      "label": "rinc",
       "width": 1,
       "from": {
         "cell": "p_rinc",
@@ -475,6 +483,7 @@
     {
       "id": "n9",
       "name": "rrst_n",
+      "label": "rrst_n",
       "width": 1,
       "from": {
         "cell": "p_rrstn",
@@ -492,6 +501,7 @@
     {
       "id": "n10",
       "name": "rclk",
+      "label": "rclk",
       "width": 1,
       "from": {
         "cell": "p_rclk",
@@ -553,6 +563,7 @@
     {
       "id": "n11",
       "name": "raddr[7:0]",
+      "label": "raddr[7:0]",
       "width": 8,
       "from": {
         "cell": "rptr",
@@ -570,6 +581,7 @@
     {
       "id": "n12",
       "name": "rclken",
+      "label": "rclken",
       "width": 1,
       "from": {
         "cell": "rptr",
@@ -587,6 +599,7 @@
     {
       "id": "n13",
       "name": "wptr_g[8:0]",
+      "label": "wptr_g[8:0]",
       "width": 9,
       "from": {
         "cell": "wptr",
@@ -626,6 +639,7 @@
     {
       "id": "n14",
       "name": "rptr_g[8:0]",
+      "label": "rptr_g[8:0]",
       "width": 9,
       "from": {
         "cell": "rptr",
@@ -682,6 +696,7 @@
     {
       "id": "n18",
       "name": "wptr_g_sync[8:0]",
+      "label": "wptr_g_sync[8:0]",
       "width": 9,
       "from": {
         "cell": "sw2",
@@ -716,6 +731,7 @@
     {
       "id": "n20",
       "name": "rptr_g_sync[8:0]",
+      "label": "rptr_g_sync[8:0]",
       "width": 9,
       "from": {
         "cell": "sr2",
@@ -733,6 +749,7 @@
     {
       "id": "n21",
       "name": "wfull",
+      "label": "wfull",
       "width": 1,
       "from": {
         "cell": "wfull",
@@ -750,6 +767,7 @@
     {
       "id": "n22",
       "name": "rempty",
+      "label": "rempty",
       "width": 1,
       "from": {
         "cell": "rempty",

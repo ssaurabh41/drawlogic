@@ -48,7 +48,7 @@ GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
              "pins", "style", "image", "ref", "pinned"]
-NET_KEYS = ["id", "name", "width", "from", "to", "style"]
+NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 # A load is a point that may also say which way the wire to it should go.
 LOAD_KEYS = POINT_KEYS + ["waypoints"]

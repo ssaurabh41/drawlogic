@@ -96,6 +96,65 @@
       }
     ]
   },
+  "tbuf": {
+    "name": "Tristate buffer",
+    "category": "gates",
+    "size": [
+      50,
+      50
+    ],
+    "pins": [
+      {
+        "name": "a",
+        "x": 0,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "en",
+        "x": 20,
+        "y": 0,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 50,
+        "y": 30,
+        "dir": "out"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 30,
+        "x2": 10,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "path",
+        "d": "M10 14 L10 46 L40 30 Z",
+        "role": "body"
+      },
+      {
+        "op": "line",
+        "x1": 20,
+        "y1": 0,
+        "x2": 20,
+        "y2": 19.33,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 40,
+        "y1": 30,
+        "x2": 50,
+        "y2": 30,
+        "role": "pin"
+      }
+    ]
+  },
   "tie0": {
     "name": "Logic 0",
     "category": "gates",
@@ -2641,6 +2700,151 @@
         "w": 180,
         "h": 160,
         "role": "body"
+      }
+    ]
+  },
+  "iocell": {
+    "name": "IO cell",
+    "category": "blocks",
+    "size": [
+      100,
+      100
+    ],
+    "pins": [
+      {
+        "name": "pad",
+        "x": 0,
+        "y": 50,
+        "dir": "inout"
+      },
+      {
+        "name": "a",
+        "x": 100,
+        "y": 30,
+        "dir": "in"
+      },
+      {
+        "name": "y",
+        "x": 100,
+        "y": 70,
+        "dir": "out"
+      },
+      {
+        "name": "oe",
+        "x": 50,
+        "y": 0,
+        "dir": "in"
+      },
+      {
+        "name": "ie",
+        "x": 50,
+        "y": 100,
+        "dir": "in"
+      }
+    ],
+    "draw": [
+      {
+        "op": "line",
+        "x1": 0,
+        "y1": 50,
+        "x2": 10,
+        "y2": 50,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 90,
+        "y1": 30,
+        "x2": 100,
+        "y2": 30,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 90,
+        "y1": 70,
+        "x2": 100,
+        "y2": 70,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 0,
+        "x2": 50,
+        "y2": 10,
+        "role": "pin"
+      },
+      {
+        "op": "line",
+        "x1": 50,
+        "y1": 90,
+        "x2": 50,
+        "y2": 100,
+        "role": "pin"
+      },
+      {
+        "op": "rect",
+        "x": 10,
+        "y": 10,
+        "w": 80,
+        "h": 80,
+        "role": "body"
+      },
+      {
+        "op": "path",
+        "d": "M60 33 L60 47 L44 40 Z",
+        "role": "decor"
+      },
+      {
+        "op": "path",
+        "d": "M42 53 L42 67 L58 60 Z",
+        "role": "decor"
+      },
+      {
+        "op": "text",
+        "x": 14,
+        "y": 54,
+        "text": "PAD",
+        "anchor": "start",
+        "role": "pin_label",
+        "pin": "pad"
+      },
+      {
+        "op": "text",
+        "x": 86,
+        "y": 34,
+        "text": "A",
+        "anchor": "end",
+        "role": "pin_label",
+        "pin": "a"
+      },
+      {
+        "op": "text",
+        "x": 86,
+        "y": 74,
+        "text": "Y",
+        "anchor": "end",
+        "role": "pin_label",
+        "pin": "y"
+      },
+      {
+        "op": "text",
+        "x": 50,
+        "y": 23,
+        "text": "OE",
+        "anchor": "middle",
+        "role": "pin_label",
+        "pin": "oe"
+      },
+      {
+        "op": "text",
+        "x": 50,
+        "y": 85,
+        "text": "IE",
+        "anchor": "middle",
+        "role": "pin_label",
+        "pin": "ie"
       }
     ]
   },

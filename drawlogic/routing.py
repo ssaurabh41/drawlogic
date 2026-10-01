@@ -120,6 +120,50 @@ def endpoint_direction(doc, endpoint, registry=None):
   return (0.0, 1.0 if dy > 0 else -1.0)
 
 
+def net_label(net):
+  """The text drawn on a wire, or None.
+
+  A wire carries a label only when someone gave it one. The net's name is
+  not drawn: it is an identifier, there for validation and for bus widths,
+  and every wire in an imported netlist has one, which filled the sheet with
+  text nobody had asked to see.
+  """
+  label = net.get("label")
+  if isinstance(label, str) and label.strip():
+    return label.strip()
+  return None
+
+
+# Which way a wire's arrowheads point. "forward" is from the driver to each
+# load, "backward" the other way, "both" says the signal goes either way.
+ARROW_MODES = ("forward", "backward", "both", "none")
+
+
+def arrow_mode(doc, net, registry=None):
+  """The arrows a wire is drawn with, as one of ARROW_MODES.
+
+  Set per wire in its style. Left unset, a wire points from its driver to its
+  loads -- unless it touches a bidirectional pin, where "from the driver" has
+  no meaning and an arrow would say something false, so it gets none until
+  someone picks a direction.
+  """
+  chosen = (net.get("style") or {}).get("arrow")
+  if chosen is False:
+    return "none"
+  if chosen in ARROW_MODES:
+    return chosen
+  registry = registry or default_registry()
+  for endpoint in [net.get("from")] + loads_of(net):
+    if not isinstance(endpoint, dict) or "cell" not in endpoint:
+      continue
+    cell = doc.cell(endpoint["cell"])
+    symbol = registry.for_cell(cell) if cell is not None else None
+    pin = symbol.pin(endpoint.get("pin")) if symbol is not None else None
+    if pin is not None and pin.get("dir") == "inout":
+      return "none"
+  return "forward"
+
+
 def _clean(points):
   """Drop repeated points and merge runs that carry straight on."""
   out = []

@@ -287,6 +287,7 @@
     {
       "id": "n3",
       "name": "sck",
+      "label": "sck",
       "width": 1,
       "from": {
         "cell": "div",
@@ -414,6 +415,7 @@
     {
       "id": "n9",
       "name": "cs_n",
+      "label": "cs_n",
       "width": 1,
       "from": {
         "cell": "fsm",
@@ -431,6 +433,7 @@
     {
       "id": "n10",
       "name": "busy",
+      "label": "busy",
       "width": 1,
       "from": {
         "cell": "fsm",
@@ -448,6 +451,7 @@
     {
       "id": "n11",
       "name": "shift",
+      "label": "shift",
       "width": 1,
       "from": {
         "cell": "fsm",
@@ -465,6 +469,7 @@
     {
       "id": "n12",
       "name": "last",
+      "label": "last",
       "width": 1,
       "from": {
         "cell": "cnt",
@@ -499,6 +504,7 @@
     {
       "id": "n13",
       "name": "load",
+      "label": "load",
       "width": 1,
       "from": {
         "cell": "fsm",
@@ -529,6 +535,7 @@
     {
       "id": "n14",
       "name": "tx_data[7:0]",
+      "label": "tx_data[7:0]",
       "width": 8,
       "from": {
         "cell": "p_tx",
@@ -546,6 +553,7 @@
     {
       "id": "n15",
       "name": "d[7:0]",
+      "label": "d[7:0]",
       "width": 8,
       "from": {
         "cell": "m1",
@@ -563,6 +571,7 @@
     {
       "id": "n16",
       "name": "q[7:0]",
+      "label": "q[7:0]",
       "width": 8,
       "from": {
         "cell": "shr",
@@ -580,6 +589,7 @@
     {
       "id": "n17",
       "name": "mosi",
+      "label": "mosi",
       "width": 1,
       "from": {
         "cell": "bitsel",
@@ -597,6 +607,7 @@
     {
       "id": "n18",
       "name": "shifted[7:0]",
+      "label": "shifted[7:0]",
       "width": 8,
       "from": {
         "cell": "bitsel",

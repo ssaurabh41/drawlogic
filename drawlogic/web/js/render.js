@@ -345,10 +345,11 @@ function namedTextMarks(doc, spots, routes, fontScale) {
   }
   const size = theme.fontSizes.net_label * fontScale;
   for (const { net } of routes) {
-    if (!net.name || !spots.has(net.id)) continue;
+    const label = routing.netLabel(net);
+    if (!label || !spots.has(net.id)) continue;
     const [spot, anchor] = spots.get(net.id);
     boxes.push({ kind: "net", id: net.id,
-                 box: labelBox(spot, anchor, net.name, size) });
+                 box: labelBox(spot, anchor, label, size) });
   }
   return boxes;
 }
@@ -372,6 +373,32 @@ export function nameAt(doc, point) {
 // in what steps. Mirrors SLIDE_REACH and SLIDE_STEP in render_svg.py.
 const SLIDE_REACH = 44;
 const SLIDE_STEP = 4;
+
+// Every arrowhead on one wire for an arrow mode. Mirrors
+// render_svg.arrow_spots_for: a backward wire is the same wire walked from the
+// load end, and a spot reached twice from that end is drawn once.
+export function arrowSpotsFor(branches, mode, size, junctions, text) {
+  if (mode === "none") return [];
+  const walks = [];
+  for (const points of branches) {
+    if (points.length < 2) continue;
+    if (mode === "forward" || mode === "both") walks.push(points);
+    if (mode === "backward" || mode === "both") walks.push([...points].reverse());
+  }
+  const found = [];
+  const seen = new Set();
+  for (const points of walks) {
+    for (const [tip, direction] of arrowSpots(points, size, null, junctions, text)) {
+      const key = [Math.floor(tip[0] * 10 + 0.5), Math.floor(tip[1] * 10 + 0.5),
+                   Math.floor(direction[0] * 1000 + 0.5),
+                   Math.floor(direction[1] * 1000 + 0.5)].join(",");
+      if (seen.has(key) && mode !== "forward") continue;
+      seen.add(key);
+      found.push([tip, direction]);
+    }
+  }
+  return found;
+}
 
 function arrowBlocked(tip, size, junctions, text) {
   const limit = routing.currentLimits().arrowToJunction;
@@ -580,12 +607,13 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
   const placed = [];
   const spots = new Map();
   for (const { net, branches } of routes) {
-    if (!net.name || !branches.length) continue;
+    const label = routing.netLabel(net);
+    if (!label || !branches.length) continue;
 
     let best = null;
     for (const [spot, anchor, horizontal, length, stop, farSide]
          of labelCandidates(branches, size)) {
-      const box = labelBox(spot, anchor, net.name, size);
+      const box = labelBox(spot, anchor, label, size);
       const near = grown(box, routing.currentLimits().labelClearance);
 
       let score = 0;
@@ -712,13 +740,15 @@ function renderNets(doc, fontScale, into) {
       class: "dl-hit", "data-id": net.id, d, fill: "none",
       stroke: "transparent", "stroke-width": 12, "pointer-events": "stroke",
     }));
+    const pattern = (theme.wireDashes || {})[style.dash];
     into.appendChild(el("path", {
       class: "dl-net", "data-id": net.id,
       d,
       fill: "none",
       stroke: style.stroke || theme.colors.net,
       "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.net, 3),
-      "stroke-linecap": "square",
+      "stroke-dasharray": pattern ? pattern.dash : null,
+      "stroke-linecap": pattern ? pattern.cap : "square",
     }));
   }
 
@@ -726,7 +756,8 @@ function renderNets(doc, fontScale, into) {
   const spots = labelSpots(routes, cellBoxes(doc),
                            [canvas.width, canvas.height], fontScale);
   for (const { net } of routes) {
-    if (!net.name || !spots.has(net.id)) continue;
+    const label = routing.netLabel(net);
+    if (!label || !spots.has(net.id)) continue;
     const [[lx, ly], anchor] = spots.get(net.id);
     const text = el("text", {
       x: geometry.fmt(lx),
@@ -736,22 +767,18 @@ function renderNets(doc, fontScale, into) {
       "font-size": geometry.fmt(theme.fontSizes.net_label * fontScale, 2),
       fill: theme.colors.net_label,
     });
-    text.textContent = net.name;
+    text.textContent = label;
     into.appendChild(text);
   }
 
   const names = textMarks(doc, spots, routes, fontScale);
   if ((doc.canvas || {}).arrows !== false) {
     for (const { net, branches } of routes) {
-      if ((net.style || {}).arrow === false) continue;
-      // Per branch: every load wants to know which way the signal reaches it.
-      for (const points of branches) {
-        if (points.length < 2) continue;
-        for (const [tip, direction] of arrowSpots(points, theme.arrowSize || 7,
-                                                  null, marks, names)) {
-          into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
-                                        (net.style || {}).stroke || theme.colors.net));
-        }
+      const mode = routing.arrowMode(doc, net);
+      for (const [tip, direction] of arrowSpotsFor(branches, mode,
+                                                   theme.arrowSize || 7, marks, names)) {
+        into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
+                                      (net.style || {}).stroke || theme.colors.net));
       }
     }
   }

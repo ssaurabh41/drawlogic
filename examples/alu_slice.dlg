@@ -247,6 +247,7 @@
     {
       "id": "n7",
       "name": "a^b",
+      "label": "a^b",
       "width": 1,
       "from": {
         "cell": "g_xor1",
@@ -296,6 +297,7 @@
     {
       "id": "n12",
       "name": "sum",
+      "label": "sum",
       "width": 1,
       "from": {
         "cell": "g_xor2",
@@ -313,6 +315,7 @@
     {
       "id": "n13",
       "name": "a&b",
+      "label": "a&b",
       "width": 1,
       "from": {
         "cell": "g_and1",
@@ -335,6 +338,7 @@
     {
       "id": "n14",
       "name": "a|b",
+      "label": "a|b",
       "width": 1,
       "from": {
         "cell": "g_or1",
@@ -352,6 +356,7 @@
     {
       "id": "n15",
       "name": "sel[1:0]",
+      "label": "sel[1:0]",
       "width": 2,
       "from": {
         "cell": "p_sel",

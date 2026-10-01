@@ -23,6 +23,7 @@ Geometry always lives in the viewBox; `zoom` and `width` only scale the
 width/height attributes, so output stays vector-perfect at any size.
 """
 
+import math
 from . import routing
 from . import drc
 from . import theme
@@ -449,6 +450,42 @@ def _arrow_spots(points, size, spacing=None, junctions=(), text=()):
   return clear
 
 
+def arrow_spots_for(branches, mode, size, junctions=(), text=()):
+  """Every arrowhead on one wire, for an arrow mode from routing.ARROW_MODES.
+
+  Per branch: every load wants to know which way the signal reaches it. A
+  wire pointing backward is the same wire walked from the load end, so its
+  heads gather near the driver; "both" is the two together. Branches share
+  their trunk near the driver, so heads walked from that end land on the
+  same spots more than once; there a spot is only drawn the first time.
+  """
+  if mode == "none":
+    return []
+  walks = []
+  for points in branches:
+    if len(points) < 2:
+      continue
+    if mode in ("forward", "both"):
+      walks.append(points)
+    if mode in ("backward", "both"):
+      walks.append(list(reversed(points)))
+  found = []
+  seen = set()
+  for points in walks:
+    for tip, direction in _arrow_spots(points, size, junctions=junctions,
+                                       text=text):
+      # Floor rather than round(), which rounds halves to even where the
+      # browser's copy of this rounds them up.
+      key = (math.floor(tip[0] * 10 + 0.5), math.floor(tip[1] * 10 + 0.5),
+             math.floor(direction[0] * 1000 + 0.5),
+             math.floor(direction[1] * 1000 + 0.5))
+      if key in seen and mode != "forward":
+        continue
+      seen.add(key)
+      found.append((tip, direction))
+  return found
+
+
 def _blocked(tip, size, junctions, text):
   """Whether an arrowhead here would land on something that matters more."""
   if not _clear_of(tip, junctions, drc.ARROW_TO_JUNCTION):
@@ -763,7 +800,7 @@ def _label_spots(routes, cell_boxes, sheet, font_scale):
   placed = []
   spots = {}
   for net, branches in routes:
-    text = net.get("name")
+    text = routing.net_label(net)
     if not text or not branches:
       continue
     net_id = net.get("id")
@@ -842,6 +879,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
     hops = hop_map.get(net.get("id"))
     d = " ".join(_net_path(points, hops, theme.HOP_RADIUS)
                  for points in branches)
+    pattern = theme.WIRE_DASHES.get(style.get("dash"))
     out.append("<path %s />" % _attrs([
       ("class", "dl-net"),
       ("data-id", net.get("id")),
@@ -849,14 +887,15 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
       ("fill", "none"),
       ("stroke", style.get("stroke", theme.COLORS["net"])),
       ("stroke-width", fmt(style.get("strokeWidth", routing.stroke_width(net)), 3)),
+      ("stroke-dasharray", pattern["dash"] if pattern else None),
       ("stroke-linejoin", "miter"),
-      ("stroke-linecap", "square")]))
+      ("stroke-linecap", pattern["cap"] if pattern else "square")]))
 
   spots = _label_spots(routes, _cell_boxes(doc, registry),
                        (doc.canvas.get("width"), doc.canvas.get("height")),
                        font_scale)
   for net, _branches in routes:
-    name = net.get("name")
+    name = routing.net_label(net)
     if not name or net.get("id") not in spots:
       continue
     (x, y), anchor = spots[net["id"]][:2]
@@ -873,16 +912,11 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   if arrows:
     for net, branches in routes:
       style = net.get("style") or {}
-      if style.get("arrow") is False:
-        continue
-      # Per branch: every load wants to know which way the signal reaches it.
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, direction in _arrow_spots(points, theme.ARROW_SIZE,
-                                           junctions=marks, text=names):
-          _render_arrow(tip, direction, theme.ARROW_SIZE,
-                        style.get("stroke", theme.COLORS["net"]), out)
+      mode = routing.arrow_mode(doc, net, registry)
+      for tip, direction in arrow_spots_for(branches, mode, theme.ARROW_SIZE,
+                                            junctions=marks, text=names):
+        _render_arrow(tip, direction, theme.ARROW_SIZE,
+                      style.get("stroke", theme.COLORS["net"]), out)
 
   return junctions
 

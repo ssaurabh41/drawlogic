@@ -224,6 +224,7 @@
     {
       "id": "n1",
       "name": "a[15:0]",
+      "label": "a[15:0]",
       "width": 16,
       "from": {
         "cell": "p_a",
@@ -241,6 +242,7 @@
     {
       "id": "n2",
       "name": "b[15:0]",
+      "label": "b[15:0]",
       "width": 16,
       "from": {
         "cell": "p_b",
@@ -258,6 +260,7 @@
     {
       "id": "n3",
       "name": "a_q[15:0]",
+      "label": "a_q[15:0]",
       "width": 16,
       "from": {
         "cell": "r_a",
@@ -275,6 +278,7 @@
     {
       "id": "n4",
       "name": "b_q[15:0]",
+      "label": "b_q[15:0]",
       "width": 16,
       "from": {
         "cell": "r_b",
@@ -292,6 +296,7 @@
     {
       "id": "n5",
       "name": "p[31:0]",
+      "label": "p[31:0]",
       "width": 32,
       "from": {
         "cell": "mult",
@@ -309,6 +314,7 @@
     {
       "id": "n6",
       "name": "p_q[31:0]",
+      "label": "p_q[31:0]",
       "width": 32,
       "from": {
         "cell": "r_p",
@@ -326,6 +332,7 @@
     {
       "id": "n7",
       "name": "sum[31:0]",
+      "label": "sum[31:0]",
       "width": 32,
       "from": {
         "cell": "add",
@@ -343,6 +350,7 @@
     {
       "id": "n8",
       "name": "result[31:0]",
+      "label": "result[31:0]",
       "width": 32,
       "from": {
         "cell": "r_acc",
@@ -377,6 +385,7 @@
     {
       "id": "n10",
       "name": "acc[31:0]",
+      "label": "acc[31:0]",
       "width": 32,
       "from": {
         "cell": "r_acc",
@@ -445,6 +454,7 @@
     {
       "id": "n13",
       "name": "gclk",
+      "label": "gclk",
       "width": 1,
       "from": {
         "cell": "icg1",

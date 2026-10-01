@@ -145,6 +145,7 @@
     {
       "id": "n1",
       "name": "a_in",
+      "label": "a_in",
       "width": 1,
       "from": {
         "cell": "pa",
@@ -162,6 +163,7 @@
     {
       "id": "n2",
       "name": "b_in",
+      "label": "b_in",
       "width": 1,
       "from": {
         "cell": "pb",
@@ -179,6 +181,7 @@
     {
       "id": "n3",
       "name": "en",
+      "label": "en",
       "width": 1,
       "from": {
         "cell": "u1",
@@ -196,6 +199,7 @@
     {
       "id": "n4",
       "name": "clk",
+      "label": "clk",
       "width": 1,
       "from": {
         "cell": "pclk",
@@ -213,6 +217,7 @@
     {
       "id": "n5",
       "name": "q_int",
+      "label": "q_int",
       "width": 1,
       "from": {
         "cell": "ff1",
@@ -235,6 +240,7 @@
     {
       "id": "n7",
       "name": "qb",
+      "label": "qb",
       "width": 1,
       "from": {
         "cell": "u2",
@@ -252,6 +258,7 @@
     {
       "id": "n8",
       "name": "d[7:0]",
+      "label": "d[7:0]",
       "width": 8,
       "from": {
         "cell": "pd",

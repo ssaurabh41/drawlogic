@@ -311,6 +311,7 @@ class Handler(BaseHTTPRequestHandler):
         "arrowSize": theme.ARROW_SIZE,
         "arrowSpacing": theme.ARROW_SPACING,
         "hopRadius": theme.HOP_RADIUS,
+        "wireDashes": theme.WIRE_DASHES,
         "pinLabelInset": theme.PIN_LABEL_INSET,
         "titlePad": theme.TITLE_PAD,
         "gridStyles": list(theme.GRID_STYLES),

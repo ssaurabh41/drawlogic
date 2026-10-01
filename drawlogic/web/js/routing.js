@@ -59,6 +59,30 @@ export function loadsOf(net) {
   return [];
 }
 
+// The text drawn on a wire, or null. Mirrors routing.net_label: only a label
+// someone set is drawn, never the net's name.
+export function netLabel(net) {
+  const label = net && net.label;
+  return typeof label === "string" && label.trim() ? label.trim() : null;
+}
+
+// Mirrors routing.ARROW_MODES and routing.arrow_mode.
+export const ARROW_MODES = ["forward", "backward", "both", "none"];
+
+export function arrowMode(doc, net) {
+  const chosen = (net.style || {}).arrow;
+  if (chosen === false) return "none";
+  if (ARROW_MODES.includes(chosen)) return chosen;
+  for (const endpoint of [net.from, ...loadsOf(net)]) {
+    if (!endpoint || endpoint.cell === undefined) continue;
+    const cell = cellOf(doc, endpoint.cell);
+    const symbol = cell ? geometry.forCell(cell) : null;
+    const pin = symbol ? geometry.findPin(symbol, endpoint.pin) : null;
+    if (pin && pin.dir === "inout") return "none";
+  }
+  return "forward";
+}
+
 export function endpointPosition(doc, endpoint) {
   if (!endpoint) return null;
   if (endpoint.cell !== undefined) {

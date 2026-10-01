@@ -27,6 +27,9 @@ export class Selection {
   constructor(store) {
     this.store = store;
     this.ids = new Set();
+    // A wire is selected on its own, never alongside cells: it cannot be
+    // moved, resized or grouped like them, so it is kept out of `ids`.
+    this.net = null;
     this._listeners = [];
   }
 
@@ -43,24 +46,34 @@ export class Selection {
   has(id) { return this.ids.has(id); }
 
   clear() {
-    if (!this.ids.size) return;
+    if (!this.ids.size && this.net === null) return;
     this.ids.clear();
+    this.net = null;
+    this.emit();
+  }
+
+  selectNet(id) {
+    this.ids.clear();
+    this.net = id;
     this.emit();
   }
 
   set(ids) {
+    this.net = null;
     this.ids = this.store.doc
       ? model.expandGroups(this.store.doc, new Set(ids)) : new Set(ids);
     this.emit();
   }
 
   add(ids) {
+    this.net = null;
     const merged = new Set([...this.ids, ...ids]);
     this.ids = this.store.doc ? model.expandGroups(this.store.doc, merged) : merged;
     this.emit();
   }
 
   toggle(id) {
+    this.net = null;
     const group = this.store.doc ? model.groupOf(this.store.doc, id) : null;
     const affected = group ? group.members : [id];
     if (this.ids.has(id)) affected.forEach((m) => this.ids.delete(m));
@@ -70,6 +83,7 @@ export class Selection {
 
   selectAll() {
     if (!this.store.doc) return;
+    this.net = null;
     this.ids = new Set(model.items(this.store.doc).map((i) => i.id));
     this.emit();
   }
@@ -171,6 +185,42 @@ export function drawHandles(svg, selection, zoom, options = {}) {
       d: `M${options.wirePreview.map((p) => `${p[0]} ${p[1]}`).join(" L")}`,
       "stroke-width": 1.6 / zoom,
     }));
+  }
+
+  // The selected wire, traced over in a wide translucent stroke so it shows
+  // which wire the properties panel is talking about.
+  if (selection.net !== null) {
+    const path = svg.querySelector(`.dl-net[data-id="${CSS.escape(String(selection.net))}"]`);
+    if (path) {
+      layer.appendChild(el("path", {
+        class: "dl-net-selected", d: path.getAttribute("d"),
+        "stroke-width": Math.max(6, 10 / zoom),
+      }));
+    }
+  }
+
+  // Grips on the sheet's right edge, bottom edge and corner, so the page can
+  // be dragged bigger or smaller like a window. Its top-left is the origin
+  // everything is placed from, so only those three sides move.
+  const doc = selection.store.doc;
+  if (doc && !options.hideHandles && !options.hideSheetHandles) {
+    const sw = Number(doc.canvas.width) || 0;
+    const sh = Number(doc.canvas.height) || 0;
+    const size = 10 / zoom;
+    const grab = 22 / zoom;
+    for (const [key, [hx, hy]] of Object.entries({
+      e: [sw, sh / 2], s: [sw / 2, sh], se: [sw, sh],
+    })) {
+      layer.appendChild(el("rect", {
+        class: "dl-grip", "data-sheet-handle": key,
+        x: hx - grab / 2, y: hy - grab / 2, width: grab, height: grab,
+      }));
+      layer.appendChild(el("rect", {
+        class: "dl-sheet-handle", "data-sheet-handle": key,
+        x: hx - size / 2, y: hy - size / 2, width: size, height: size,
+        "stroke-width": 1.4 / zoom,
+      }));
+    }
   }
 
   const box = selection.bounds();

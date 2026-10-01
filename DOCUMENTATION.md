@@ -342,7 +342,7 @@ ok    route a wire
 ok    check the rules
 ok    lay it out
 ok    render to SVG
-38 built-in symbols
+40 built-in symbols
 ok     15 browser modules, 0 import mismatches
 ok     36 files against manifest.txt, 0 differ
 
@@ -441,10 +441,13 @@ how many went.
 | drag | move, snapped to the grid (a wire snaps to 5, so it can reach a pin) |
 | `Ctrl`+drag, `Shift`+drag a cell | duplicate as you drag |
 | `Ctrl+N` | new drawing |
+| click a wire | select it, to change its label, colour, line and arrows |
 | drag a wire | slide that run of it; the wire becomes hand-routed |
 | double-click a wire | hand it back to the router |
-| double-click a name | rename a cell or a net where it is drawn |
-| handles, `Alt`+handle | resize with ratio locked / free |
+| double-click a name | rename a cell, or edit a wire's label, where it is drawn |
+| handles, `Alt`+handle | resize a gate with ratio locked / free |
+| handles, `Shift`+handle | resize a block freely / with ratio locked |
+| drag the sheet's edge or corner | resize the sheet; Shift keeps its proportions |
 | arrows, `Shift`+arrows | nudge one grid step / ten |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | undo / redo |
 | `Ctrl+C` `Ctrl+X` `Ctrl+V` `Ctrl+D` | copy, cut, paste, duplicate |
@@ -568,10 +571,38 @@ Either way the status bar says what was joined. Switch it off in Preferences.
 
 ### Renaming and the format painter
 
-Double-click a cell's name or a net's name to edit it where it is drawn;
+Double-click a cell's name or a wire's label to edit it where it is drawn;
 Enter or clicking away keeps it, Esc leaves it as it was. It is the same edit
-as the properties panel's, so a bus name such as `d[7:0]` still sets the
-wire's width.
+as the properties panel's.
+
+### Wires
+
+Click a wire to select it; dragging one still slides the run you grabbed,
+and the two are told apart by whether the pointer moved. The properties
+panel then shows:
+
+- **Label** -- the text drawn on the wire. Blank by default, and a wire
+  with no label has nothing written on it.
+- **Name** -- the net's identifier. Not drawn; a bus name such as `d[7:0]`
+  sets the wire's width, and validation holds it to the pins it meets.
+- **Colour**, **Weight** and **Line** -- solid, dashed or dotted.
+- **Arrows** -- Auto, None, Forward, Backward or Both ways. Auto points from
+  the driver to the loads, except on a wire meeting an `inout` pin, which
+  gets none (see [Direction arrows](#direction-arrows)).
+
+`Delete` removes the selected wire.
+
+### Resizing cells and the sheet
+
+A gate keeps its proportions when resized, since one drawn stretched looks
+wrong; hold `Alt` to stretch it anyway. A block -- a generic block, an IO
+cell, a block standing for another drawing -- is a box sized to what is
+written in it, so it resizes freely, and `Shift` keeps its proportions.
+
+The sheet has grips on its right edge, bottom edge and bottom-right corner.
+Drag one to make the page wider, taller or both; `Shift` keeps its
+proportions. The top-left corner stays where it is, because everything on the
+sheet is placed from it.
 
 The **format painter** (the brush icon beside the shape tools) copies the selected item's style -- fill, line colour, line
 weight -- and the next item you click takes it; Shift+click to give it to
@@ -740,9 +771,10 @@ gains nothing from it has no such key at all.
 |---|---|
 | `from` | the driver: `{cell, pin}` or a free `{x, y}` |
 | `to` | the loads: a **list** of the same, each with its own `waypoints` |
-| `name` | net name; carries bus width |
+| `name` | net name; carries bus width. Not drawn |
+| `label` | the text drawn on the wire; absent, nothing is drawn |
 | `width` | bit width, derived from the name |
-| `style` | `stroke`, `strokeWidth`, `arrow: false` |
+| `style` | `stroke`, `strokeWidth`, `dash` (`dashed` or `dotted`), `arrow` (`forward`, `backward`, `both`, `none`) |
 
 ### One driver, many loads
 
@@ -895,6 +927,11 @@ bit and rejects a bus.
 `ripper` and `bus_tap` symbols are provided for pulling a bit off a bus, and
 `bus_join` (a ripper facing the other way) for putting one on. `tie0` and
 `tie1` are a constant 0 and 1.
+
+For a bidirectional signal there is `tbuf`, a tristate buffer (`a` in, `y`
+out, `en` on top), and `iocell`, an IO pad cell: `pad` (inout) on the left,
+`a` (in, data from the core) and `y` (out, data to the core) on the right,
+`oe` (output enable) on top and `ie` (input enable) underneath.
 
 A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
 is one bit, so wiring a bus to it is an error the checker will catch.
@@ -1143,16 +1180,28 @@ For PDF, print the drawing from the browser.
 
 ### Direction arrows
 
-Arrows point from driver to load. One always sits near the receiving end,
+Arrows point from driver to load unless a wire says otherwise: its
+`style.arrow` can be `backward`, `both` (a bidirectional signal) or `none`,
+set from the Arrows box when the wire is selected. A wire that meets an
+`inout` pin -- a bidirectional port, an IO cell's pad -- has no arrows until
+one is chosen, because "from the driver" means nothing on a signal that goes
+both ways, and an arrow there would say something false.
+
+One always sits near the receiving end,
 which is where a reader looks to ask "what drives this?", and on a long run
 more are spaced along the wire at `theme.ARROW_SPACING` -- a single arrow says
 nothing about a run that is mostly somewhere else. Arrows are kept off
 corners, where a head pointing into a bend reads worse than no head at all.
 
 Turn them off for a drawing with `"canvas": { "arrows": false }`, for one
-export with `--no-arrows`, or for one net with `"style": { "arrow": false }`.
+export with `--no-arrows`, or for one net with `"style": { "arrow": "none" }` (`false` still works).
 
 ### Where a name goes
+
+What is drawn on a wire is its **label**, and only if it has one. The net's
+name is an identifier -- it sets a bus width and validation holds it to the
+pins -- and is not drawn: every wire in an imported netlist has one, and
+drawing them all filled the sheet with text nobody had asked for.
 
 A name that lands on a wire it has nothing to do with is worse than no name at
 all. Each name is tried in several places along its own route -- along each

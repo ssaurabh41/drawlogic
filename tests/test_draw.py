@@ -1034,7 +1034,8 @@ class TestTheArrowGivesWayToText(unittest.TestCase):
                       "label": "src"})
     doc.cells.append({"id": "b", "type": "port_out", "x": 800, "y": 140,
                       "label": "dst"})
-    doc.nets.append({"id": "n1", "name": self.NAME, "width": 1,
+    doc.nets.append({"id": "n1", "name": self.NAME, "label": self.NAME,
+                     "width": 1,
                      "from": {"cell": "a", "pin": "p"},
                      "to": [{"cell": "b", "pin": "p", "waypoints": []}]})
     doc.normalize()
@@ -1106,3 +1107,57 @@ class TestTheArrowGivesWayToText(unittest.TestCase):
       guarded, free,
       "the name cost %d arrow(s) on a wire with room to slide along"
       % (free - guarded))
+
+
+class TestWireLabelsAndStyle(unittest.TestCase):
+  """What a wire shows is chosen per wire: label, line pattern, arrows."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def wire(self, **extra):
+    doc = new_document("wire", 600, 300)
+    doc.cells.append({"id": "a", "type": "port_in", "x": 40, "y": 140})
+    doc.cells.append({"id": "b", "type": "port_out", "x": 500, "y": 140})
+    net = {"id": "n1", "name": "sig_name", "width": 1,
+           "from": {"cell": "a", "pin": "p"},
+           "to": [{"cell": "b", "pin": "p", "waypoints": []}]}
+    net.update(extra)
+    doc.nets.append(net)
+    doc.normalize()
+    return doc
+
+  def test_a_name_alone_is_not_drawn(self):
+    svg = render_svg.render(self.wire(), registry=self.registry)
+    self.assertNotIn(">sig_name<", svg)
+
+  def test_a_label_is_drawn_instead_of_the_name(self):
+    svg = render_svg.render(self.wire(label="data out"), registry=self.registry)
+    self.assertIn(">data out<", svg)
+    self.assertNotIn(">sig_name<", svg)
+
+  def test_line_patterns(self):
+    for dash in ("dashed", "dotted"):
+      svg = render_svg.render(self.wire(style={"dash": dash}), registry=self.registry)
+      self.assertIn('stroke-dasharray="%s"' % theme.WIRE_DASHES[dash]["dash"], svg)
+    plain = render_svg.render(self.wire(), registry=self.registry)
+    self.assertNotIn("stroke-dasharray", plain.split('<g class="dl-nets">')[1]
+                     .split("</g>")[0])
+
+  def test_an_inout_pin_gets_no_arrow_unless_asked(self):
+    doc = new_document("pad", 600, 300)
+    doc.cells.append({"id": "p", "type": "port_inout", "x": 40, "y": 140})
+    doc.cells.append({"id": "io", "type": "iocell", "x": 300, "y": 105})
+    doc.nets.append({"id": "n1", "from": {"cell": "p", "pin": "p"},
+                     "to": [{"cell": "io", "pin": "pad"}]})
+    doc.normalize()
+    self.assertEqual(routing.arrow_mode(doc, doc.nets[0], self.registry), "none")
+    plain = self.wire()
+    self.assertEqual(routing.arrow_mode(plain, plain.nets[0], self.registry),
+                     "forward")
+    doc.nets[0]["style"] = {"arrow": "both"}
+    self.assertEqual(routing.arrow_mode(doc, doc.nets[0], self.registry), "both")
+
+  def test_the_old_off_switch_still_means_none(self):
+    doc = self.wire(style={"arrow": False})
+    self.assertEqual(routing.arrow_mode(doc, doc.nets[0], self.registry), "none")

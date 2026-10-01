@@ -160,6 +160,7 @@
     {
       "id": "n1",
       "name": "wdata[7:0]",
+      "label": "wdata[7:0]",
       "width": 8,
       "from": {
         "cell": "p1",
@@ -177,6 +178,7 @@
     {
       "id": "n2",
       "name": "winc",
+      "label": "winc",
       "width": 1,
       "from": {
         "cell": "p2",
@@ -194,6 +196,7 @@
     {
       "id": "n3",
       "name": "rinc",
+      "label": "rinc",
       "width": 1,
       "from": {
         "cell": "p3",
@@ -211,6 +214,7 @@
     {
       "id": "n4",
       "name": "wrst_n",
+      "label": "wrst_n",
       "width": 1,
       "from": {
         "cell": "p4",
@@ -228,6 +232,7 @@
     {
       "id": "n5",
       "name": "rrst_n",
+      "label": "rrst_n",
       "width": 1,
       "from": {
         "cell": "p5",
@@ -245,6 +250,7 @@
     {
       "id": "n6",
       "name": "wclk",
+      "label": "wclk",
       "width": 1,
       "from": {
         "cell": "p6",
@@ -262,6 +268,7 @@
     {
       "id": "n7",
       "name": "rclk",
+      "label": "rclk",
       "width": 1,
       "from": {
         "cell": "p7",
@@ -279,6 +286,7 @@
     {
       "id": "n8",
       "name": "rdata[7:0]",
+      "label": "rdata[7:0]",
       "width": 8,
       "from": {
         "cell": "u_fifo",
@@ -296,6 +304,7 @@
     {
       "id": "n9",
       "name": "wfull",
+      "label": "wfull",
       "width": 1,
       "from": {
         "cell": "u_fifo",
@@ -313,6 +322,7 @@
     {
       "id": "n10",
       "name": "rempty",
+      "label": "rempty",
       "width": 1,
       "from": {
         "cell": "u_fifo",

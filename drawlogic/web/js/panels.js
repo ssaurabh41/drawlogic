@@ -254,6 +254,15 @@ export class Inspector {
     root.textContent = "";
     if (!this.store.doc) return;
 
+    if (this.selection.net !== null) {
+      const net = this.store.doc.nets.find((n) => n.id === this.selection.net);
+      if (net) {
+        this.renderNet(net);
+        this.renderDocument();
+        return;
+      }
+    }
+
     const items = this.selection.items();
     if (!items.length) {
       root.appendChild(element("p", "empty",
@@ -460,6 +469,106 @@ export class Inspector {
       root.appendChild(row("Points", element("div", "pval",
                                              `${shape.points.length} points`)));
     }
+  }
+
+  // A wire: what it says on the sheet, what it is called, and how it is drawn.
+  renderNet(net) {
+    const root = this.root;
+    const doc = this.store.doc;
+    root.appendChild(element("div", "ptitle", "Wire"));
+
+    const label = input(net.label || "");
+    label.placeholder = "nothing drawn";
+    this.bind(label, (d, value) => model.setNetLabel(d, net.id, value), "label wire");
+    root.appendChild(row("Label", label));
+
+    // The name is an identifier, not text on the sheet: d[7:0] makes the
+    // wire eight bits wide, and validation holds it to the pins it meets.
+    const name = input(net.name || "");
+    name.placeholder = net.id;
+    this.bind(name, (d, value) => model.setNetName(d, net.id, value.trim()), "rename wire");
+    root.appendChild(row("Name", name));
+    root.appendChild(row("Bits", element("div", "pval", String(net.width || 1))));
+
+    const ends = (endpoint) => (endpoint && endpoint.cell !== undefined
+      ? `${endpoint.cell}.${endpoint.pin}` : "free end");
+    root.appendChild(row("From", element("div", "pval", ends(net.from))));
+    root.appendChild(row("To", element("div", "pval",
+      routing.loadsOf(net).map(ends).join(", ") || "-")));
+
+    root.appendChild(element("div", "ptitle", "Appearance"));
+    const style = net.style || {};
+    root.appendChild(row("Colour", this.netColourControl(net, style.stroke)));
+
+    const weight = input(style.strokeWidth || "", "number");
+    weight.step = "0.1";
+    weight.min = "0.2";
+    weight.placeholder = "default";
+    this.bind(weight, (d, value) => {
+      if (String(value).trim() === "") return model.setNetStyle(d, net.id, "strokeWidth", null);
+      const number = numberFrom(value);
+      if (!(number > 0)) return false;
+      model.setNetStyle(d, net.id, "strokeWidth", number);
+    }, "wire weight");
+    root.appendChild(row("Weight", weight));
+
+    const line = this.choice([["", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"]],
+                             style.dash || "");
+    this.bind(line, (d, value) => model.setNetStyle(d, net.id, "dash", value || null),
+              "wire line");
+    root.appendChild(row("Line", line));
+
+    // Unset means the drawing decides: driver to loads, or none at all on a
+    // wire that meets a bidirectional pin. Saying which it decided saves
+    // guessing why a wire has no arrow.
+    const chosen = style.arrow === false ? "none" : (style.arrow || "");
+    const automatic = routing.arrowMode(doc, { ...net, style: { ...style, arrow: undefined } });
+    const arrows = this.choice([
+      ["", `Auto (${automatic === "none" ? "none - meets an inout pin" : "forward"})`],
+      ["none", "None"], ["forward", "Forward"], ["backward", "Backward"],
+      ["both", "Both ways"]], chosen);
+    this.bind(arrows, (d, value) => model.setNetStyle(d, net.id, "arrow", value || null),
+              "wire arrows");
+    root.appendChild(row("Arrows", arrows));
+  }
+
+  choice(options, current) {
+    const select = document.createElement("select");
+    select.className = "pinput";
+    for (const [value, text] of options) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = text;
+      select.appendChild(option);
+    }
+    select.value = current;
+    return select;
+  }
+
+  netColourControl(net, current) {
+    const wrap = element("div", "swatch");
+    const shown = current || "#16202b";
+    const button = element("button", "pswatch");
+    button.type = "button";
+    button.style.background = shown;
+    button.title = current ? shown : `${shown} (default)`;
+    button.setAttribute("aria-label", "wire colour");
+    const apply = (value) => {
+      this.store.mutate("wire colour", (d) => model.setNetStyle(d, net.id, "stroke", value));
+      this.onChange();
+      this.render();
+    };
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openPalette(button, shown, apply);
+    });
+    const reset = element("button", "linkish", "reset");
+    reset.type = "button";
+    reset.title = "back to the default wire colour";
+    reset.addEventListener("click", () => apply(null));
+    wrap.appendChild(button);
+    wrap.appendChild(reset);
+    return wrap;
   }
 
   // Showing what each pin actually connects to is the cheap way to catch a

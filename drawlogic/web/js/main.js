@@ -48,7 +48,7 @@ async function api(url, options) {
 // one question -- which is why it lives out here rather than inside either.
 function onSomething(event) {
   return Boolean(event.target.closest(
-    ".dl-cell, .dl-shape, .dl-net, .dl-hit, [data-handle]"));
+    ".dl-cell, .dl-shape, .dl-net, .dl-hit, [data-handle], [data-sheet-handle]"));
 }
 
 let toastTimer = null;
@@ -256,7 +256,8 @@ function bindCanvas() {
       // While a drag is in flight the pointer often outruns the thing it is
       // holding, so the element under it is no longer the cell. Ask the tool
       // what it is doing rather than what the pointer happens to be over.
-      const holding = tool.mode === "move" || tool.mode === "resize";
+      const holding = tool.mode === "move" || tool.mode === "resize"
+        || tool.mode === "sheet";
       ui.canvas.style.cursor = viewport.spaceHeld ? "grab"
         : holding ? tool.cursorFor(event.target === ui.canvas ? null : event.target)
         : tool.cursorFor(event.target);
@@ -352,6 +353,15 @@ function apply(label, change, note) {
 }
 
 function deleteSelection() {
+  if (selection.net !== null) {
+    const ids = new Set([selection.net]);
+    store.mutate("delete wire", (doc) => model.deleteItems(doc, ids));
+    selection.clear();
+    redraw();
+    inspector.render();
+    say("deleted 1 wire");
+    return;
+  }
   if (!selection.size) return;
   const ids = new Set(selection.ids);
   store.mutate("delete", (doc) => model.deleteItems(doc, ids));
@@ -531,12 +541,13 @@ function startPainter() {
 
 // A text box over the name, in the name's own place: Enter or clicking away
 // keeps it, Esc leaves it as it was. The same edit the properties panel makes,
-// so it is one undo step and a bus name still sets the wire's width.
+// so it is one undo step. On a wire this is its label, which is what is drawn
+// there; the net's name is edited in the panel.
 function renameInPlace({ kind, id, box }) {
   const doc = store.doc;
   const current = kind === "cell"
     ? (doc.cells.find((c) => c.id === id) || {}).label
-    : (doc.nets.find((n) => n.id === id) || {}).name;
+    : (doc.nets.find((n) => n.id === id) || {}).label;
   const rect = ui.canvas.getBoundingClientRect();
   const field = document.createElement("input");
   field.className = "rename-in-place";
@@ -555,7 +566,7 @@ function renameInPlace({ kind, id, box }) {
     if (!keep || value === (current || "")) return;
     store.mutate("rename", (d) => {
       if (kind === "cell") model.setLabel(d, id, value);
-      else model.setNetName(d, id, value);
+      else model.setNetLabel(d, id, value);
     });
     redraw();
     inspector.render();

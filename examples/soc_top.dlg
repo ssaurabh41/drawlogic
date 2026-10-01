@@ -440,6 +440,7 @@
     {
       "id": "n9",
       "name": "a[15:0]",
+      "label": "a[15:0]",
       "width": 16,
       "from": {
         "cell": "p_a",
@@ -457,6 +458,7 @@
     {
       "id": "n10",
       "name": "b[15:0]",
+      "label": "b[15:0]",
       "width": 16,
       "from": {
         "cell": "p_b",
@@ -474,6 +476,7 @@
     {
       "id": "n11",
       "name": "result[31:0]",
+      "label": "result[31:0]",
       "width": 32,
       "from": {
         "cell": "u_mac",
@@ -491,6 +494,7 @@
     {
       "id": "n12",
       "name": "wdata[7:0]",
+      "label": "wdata[7:0]",
       "width": 8,
       "from": {
         "cell": "pack",
@@ -593,6 +597,7 @@
     {
       "id": "n18",
       "name": "overflow",
+      "label": "overflow",
       "width": 1,
       "from": {
         "cell": "u_mac",
@@ -619,6 +624,7 @@
     {
       "id": "n19",
       "name": "wfull",
+      "label": "wfull",
       "width": 1,
       "from": {
         "cell": "u_fifo",
@@ -645,6 +651,7 @@
     {
       "id": "n20",
       "name": "rempty",
+      "label": "rempty",
       "width": 1,
       "from": {
         "cell": "u_fifo",
@@ -671,6 +678,7 @@
     {
       "id": "n21",
       "name": "clk",
+      "label": "clk",
       "width": 1,
       "from": {
         "cell": "p_clk",

@@ -94,6 +94,13 @@ ARROW_SPACING = 240.0
 HOP_RADIUS = 5.0
 GHOST_DASH = "4 3"
 
+# Line patterns a wire can be drawn with, by the name its style stores. A
+# dotted wire gets round caps, which is what turns near-zero dashes into dots.
+WIRE_DASHES = {
+  "dashed": {"dash": "6 4", "cap": "butt"},
+  "dotted": {"dash": "0.01 4", "cap": "round"},
+}
+
 # How a symbol draw-op role is painted. "fill" and "stroke" name where the
 # colour comes from: "cell" means the cell's own style wins.
 # "fillDefault" names the colour a role falls back to when the cell does not

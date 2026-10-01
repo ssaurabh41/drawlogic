@@ -535,6 +535,9 @@ select {
    place that knows which gesture the pointer is over. */
 .dl-handle { fill: #ffffff; stroke: var(--accent); pointer-events: none; }
 .dl-grip { fill: transparent; stroke: none; pointer-events: all; }
+.dl-sheet-handle { fill: var(--accent); stroke: #ffffff; pointer-events: none; }
+.dl-net-selected { fill: none; stroke: var(--accent); stroke-opacity: 0.35;
+                   stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .dl-marquee { fill: color-mix(in srgb, var(--accent) 8%, transparent); stroke: var(--accent); }
 
 .palette-item { cursor: grab; }

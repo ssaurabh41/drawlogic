@@ -152,7 +152,7 @@ class TestWhatTheModelBuys(unittest.TestCase):
       doc.cells.append({"id": "f%d" % index, "type": "dff",
                         "x": 300, "y": 60 + index * 120})
     doc.nets.append({
-      "id": "n1", "name": "clk", "width": 1,
+      "id": "n1", "name": "clk", "label": "clk", "width": 1,
       "from": {"cell": "p", "pin": "p"},
       "to": [{"cell": "f%d" % i, "pin": "ck"} for i in range(loads)],
       "style": {}})

@@ -47,7 +47,7 @@ def _theme_payload():
     "fontSans": theme.FONT_SANS, "fontMono": theme.FONT_MONO,
     "junctionRadius": theme.JUNCTION_RADIUS, "arrowSize": theme.ARROW_SIZE,
     "arrowSpacing": theme.ARROW_SPACING, "hopRadius": theme.HOP_RADIUS,
-    "pinLabelInset": theme.PIN_LABEL_INSET,
+    "pinLabelInset": theme.PIN_LABEL_INSET, "wireDashes": theme.WIRE_DASHES,
   }
 
 
@@ -119,6 +119,56 @@ def _crossing_drawing():
   ])
   doc.normalize()
   return doc
+
+
+def _arrow_modes_drawing():
+  """One wire in every arrow mode, plus one left to decide for itself on an
+  inout pin -- the cases no example has, so nothing else here reaches them.
+  """
+  doc = new_document("arrow modes", 900, 600)
+  doc.canvas["grid"]["style"] = "blank"
+  doc.cells.extend([
+    {"id": "io", "type": "iocell", "x": 400, "y": 420},
+    {"id": "pad", "type": "port_inout", "x": 60, "y": 455},
+  ])
+  for index, mode in enumerate(("forward", "backward", "both", "none")):
+    y = 80 + index * 80
+    doc.nets.append({"id": "m%d" % index, "style": {"arrow": mode},
+                     "from": {"x": 60, "y": y},
+                     "to": [{"x": 700, "y": y}, {"x": 500, "y": y + 40}]})
+  doc.nets.append({"id": "pad_net", "from": {"cell": "pad", "pin": "p"},
+                   "to": [{"cell": "io", "pin": "pad"}]})
+  doc.normalize()
+  return doc
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestArrowModesAgree(unittest.TestCase):
+  """Every arrow mode draws the same heads in the editor and the file."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def test_every_mode_draws_the_same_arrows_in_both(self):
+    doc = _arrow_modes_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = _exported_arrows(render_svg.render(doc, registry=self.registry))
+    self.assertEqual(browser["arrows"], exported)
+
+  def test_the_modes_really_differ(self):
+    """Otherwise the comparison above could pass with every mode ignored."""
+    counts = []
+    for mode in ("forward", "backward", "both", "none"):
+      one = _arrow_modes_drawing()
+      one.data["nets"] = [n for n in one.nets if n["id"] == "m0"]
+      one.nets[0]["style"]["arrow"] = mode
+      counts.append(len(_exported_arrows(
+        render_svg.render(one, registry=self.registry))))
+    forward, backward, both, none = counts
+    self.assertGreater(forward, 0)
+    self.assertGreater(backward, 0)
+    self.assertGreater(both, max(forward, backward))
+    self.assertEqual(none, 0)
 
 
 @unittest.skipUnless(NODE, "node is not installed")

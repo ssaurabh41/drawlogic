@@ -31,6 +31,10 @@ const PIN_SNAP = 14;
 // however far you are zoomed in.
 const SNAP_PIXELS = 8;
 
+// Symbol categories that are boxes rather than pictures: generic blocks, and
+// blocks standing for another drawing.
+const BLOCK_CATEGORIES = new Set(["blocks", "sheets"]);
+
 // ---- select, move, resize ----
 
 export class SelectTool {
@@ -51,9 +55,17 @@ export class SelectTool {
     this.waypointNet = null;
     this.pendingToggle = null;
     this.run = null;
+    this.sheetHandle = null;
+    this.startSheet = null;
   }
 
   cursorFor(target) {
+    const sheet = target && target.closest ? target.closest("[data-sheet-handle]") : null;
+    const sheetKey = sheet ? sheet.getAttribute("data-sheet-handle")
+      : (this.mode === "sheet" ? this.sheetHandle : null);
+    if (sheetKey) {
+      return { e: "ew-resize", s: "ns-resize", se: "nwse-resize" }[sheetKey];
+    }
     const handle = target && target.closest ? target.closest("[data-handle]") : null;
     if (handle) {
       return {
@@ -82,6 +94,19 @@ export class SelectTool {
     const { store, selection } = this.ctx;
     this.origin = point;
     this.moved = false;
+
+    // The sheet's own grips, which are there whatever is selected.
+    const sheetGrip = event.target.closest("[data-sheet-handle]");
+    if (sheetGrip && store.doc) {
+      // A drag off the edge of the canvas would otherwise select the text of
+      // the panels it passes over.
+      event.preventDefault();
+      this.mode = "sheet";
+      this.gestureLabel = "resize sheet";
+      this.sheetHandle = sheetGrip.getAttribute("data-sheet-handle");
+      this.startSheet = [Number(store.doc.canvas.width), Number(store.doc.canvas.height)];
+      return;
+    }
 
     const handle = event.target.closest("[data-handle]");
     if (handle && selection.size) {
@@ -134,15 +159,16 @@ export class SelectTool {
     // Dragging a wire slides the run you grabbed. A net is one path with a
     // subpath per branch, so the element alone does not say what was grabbed;
     // the nearest run did.
+    // A press that never moves selects the wire, on release -- the same
+    // press dragged is a run being slid, so which one it was is only known
+    // once the pointer lets go.
     const wire = event.target.closest(".dl-net, .dl-hit");
     if (wire) {
       this.waypointNet = wire.getAttribute("data-id");
       this.run = model.grabRun(store.doc, this.waypointNet, point);
-      if (this.run) {
-        this.mode = "waypoint";
-        this.gestureLabel = this.run.horizontal ? "move wire" : "move wire";
-      }
-      selection.clear();
+      this.mode = this.run ? "waypoint" : "wire-click";
+      this.gestureLabel = this.run ? "move wire" : null;
+      if (selection.net !== this.waypointNet) selection.clear();
       return;
     }
 
@@ -217,10 +243,59 @@ export class SelectTool {
     }
 
     if (this.mode === "resize") {
-      this.applyResize(point, event.altKey);
+      this.applyResize(point, this.freeAspect(event));
+      return true;
+    }
+
+    if (this.mode === "sheet") {
+      this.applySheetResize(point, event.shiftKey);
       return true;
     }
     return false;
+  }
+
+  // Whether a resize may change the shape as well as the size. A gate drawn
+  // stretched looks wrong, so gates keep their proportions unless Alt is held.
+  // A block is a box whose shape says nothing -- it is sized to fit what is
+  // written in it -- so blocks resize freely, and Shift keeps them in shape,
+  // the way it does in a slide editor.
+  freeAspect(event) {
+    const items = this.ctx.selection.items();
+    const blocks = items.length > 0 && items.every((item) => {
+      if (model.isShape(item)) return false;
+      const symbol = geometry.forCell(item);
+      return Boolean(symbol) && BLOCK_CATEGORIES.has(symbol.category);
+    });
+    return blocks ? !event.shiftKey : event.altKey;
+  }
+
+  // Drag the sheet's right edge, bottom edge or corner. Shift keeps the
+  // page's proportions, from the corner or from an edge alike.
+  applySheetResize(point, keepAspect) {
+    const { store } = this.ctx;
+    const [w0, h0] = this.startSheet;
+    const step = model.gridStep(store.doc) || 10;
+    const minimum = 50;
+    let width = this.sheetHandle === "s" ? w0 : point[0];
+    let height = this.sheetHandle === "e" ? h0 : point[1];
+    if (keepAspect && w0 > 0 && h0 > 0) {
+      const scale = this.sheetHandle === "e" ? width / w0
+        : this.sheetHandle === "s" ? height / h0
+          : Math.max(width / w0, height / h0);
+      width = w0 * scale;
+      height = h0 * scale;
+    } else {
+      // Only the side being dragged snaps; the other keeps what it had.
+      if (this.sheetHandle !== "s") width = Math.round(width / step) * step;
+      if (this.sheetHandle !== "e") height = Math.round(height / step) * step;
+    }
+    width = Math.max(minimum, Math.round(width));
+    height = Math.max(minimum, Math.round(height));
+    store.mutate(this.gestureLabel, (doc) => {
+      if (doc.canvas.width === width && doc.canvas.height === height) return false;
+      doc.canvas.width = width;
+      doc.canvas.height = height;
+    });
   }
 
   duplicate() {
@@ -307,6 +382,11 @@ export class SelectTool {
       }
       if (additive(event)) selection.add(hits);
       else selection.set(hits);
+    }
+
+    if ((this.mode === "wire-click" || this.mode === "waypoint")
+        && !this.moved && this.waypointNet !== null) {
+      selection.selectNet(this.waypointNet);
     }
 
     // A Ctrl-click on something already selected, that never moved, means

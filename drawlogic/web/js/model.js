@@ -980,6 +980,25 @@ export function setNetName(doc, id, name) {
   net.width = busWidth(name);
 }
 
+// The text drawn on a wire. Separate from the name: a name is an identifier
+// that sets the bus width, a label is whatever the drawing should say.
+export function setNetLabel(doc, id, label) {
+  const net = doc.nets.find((n) => n.id === id);
+  if (!net) return;
+  const text = String(label || "").trim();
+  if (text) net.label = text;
+  else delete net.label;
+}
+
+// One key of a wire's style; null or "" puts the default back.
+export function setNetStyle(doc, id, key, value) {
+  const net = doc.nets.find((n) => n.id === id);
+  if (!net) return;
+  net.style = net.style || {};
+  if (value === null || value === "" || value === undefined) delete net.style[key];
+  else net.style[key] = value;
+}
+
 // Waypoints belong to one branch, since a net may have several and they go
 // different ways. `branch` is the index of the load the wire ends at.
 export function setWaypoints(doc, id, points, branch = 0) {

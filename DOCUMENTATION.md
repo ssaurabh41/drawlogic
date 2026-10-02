@@ -407,10 +407,11 @@ you ask. See [Design rule checks](#design-rule-checks-drcs) and
 ### Placing and wiring
 
 Click a symbol in the palette, then click the canvas. Shift-click the canvas
-to keep placing the same one. The palette lists blocks first, then gates,
-multiplexers, flip-flops, ports, bus parts and analog parts; the box at the
-top narrows it to what matches, by id or by name, and a section heading folds
-its section away (the browser remembers which). Press `W` for the wire tool, then click one pin
+to keep placing the same one. The palette lists blocks first, then
+flip-flops, gates (multiplexers among them), ports, bus parts and analog
+parts. The box at the top narrows it to what matches, by id or by name, and
+a section heading folds its section away (the browser remembers which).
+Press `W` for the wire tool, then click one pin
 and the next to connect them.
 
 Wires are stored as **pin references, never coordinates**. Once a wire exists
@@ -480,8 +481,14 @@ Symbols can be dragged from the palette straight onto the sheet. Clicking a
 symbol and then clicking the sheet still works, and is the only route that
 places several of the same part in a row.
 
-Rotate, flip, delete, auto layout and tidy are the icon buttons in the
-second toolbar row; hover any of them for its name. Group, align, distribute,
+The top bar holds **File** first (new, open, import, save as symbol, copy
+as PNG), then the drawing picker, Save and Export, undo and redo, and Check;
+the gear at the far right is Preferences. The second row holds the tools:
+Select, Wire and Erase, then **Shapes**, one button for line, box, polygon
+and text that shows the shape last picked, then the format painter.
+
+Rotate, flip, delete, auto layout and tidy are the icon buttons after them;
+hover any of them for its name. Group, align, distribute,
 front and back are in the **Arrange** menu beside them, named in full, with
 the ones the current selection cannot use greyed out.
 
@@ -500,8 +507,9 @@ properties panel.
 
 ### Autoshapes
 
-Line, box and text are drag-or-click. Polygon is click-by-click: each click
-adds a point, double-click or `Esc` closes it.
+**Shapes** in the toolbar opens the four: line, box, polygon and text (or
+press `L`, `B`, `P`, `T`). Line, box and text are drag-or-click. Polygon is
+click-by-click: each click adds a point, double-click or `Esc` closes it.
 
 Shapes are selected, moved, resized, coloured, grouped and z-ordered exactly
 like cells. An unfilled shape is clickable across its whole area, not just its
@@ -538,7 +546,7 @@ way to discard its changes.
 
 ### Preferences
 
-**Preferences** in the top bar (`Ctrl+,`) holds the appearance and the two
+**Preferences** (the gear at the right of the top bar, `Ctrl+,`) holds the appearance and the two
 things worth switching off. They are kept in this browser, not in the drawing, so a file
 handed to someone else does not change how their editor behaves.
 
@@ -609,7 +617,7 @@ turns into a resize arrow. Drag to make the page wider, taller or both, with
 the size shown by the corner as you go; `Shift` keeps its proportions. The top-left corner stays where it is, because everything on the
 sheet is placed from it.
 
-The **format painter** (the brush icon beside the shape tools) copies the selected item's style -- fill, line colour, line
+The **format painter** (the paintbrush beside Shapes) copies the selected item's style -- fill, line colour, line
 weight -- and the next item you click takes it; Shift+click to give it to
 several, Esc to stop. `Ctrl+Shift+C` and `Ctrl+Shift+V` do the same from the
 keyboard, onto everything selected. Only style is copied, never position or
@@ -772,7 +780,7 @@ gains nothing from it has no such key at all.
 | `w`, `h` | size; defaults to the symbol's natural size |
 | `rotate` | 0, 90, 180 or 270, about the cell's centre |
 | `mirror` | flipped left-to-right |
-| `label` | instance name, drawn above the cell |
+| `label` | instance name, drawn above the cell -- or beside its top-left corner when a pin comes in at the top, so that pin's wire does not run through it |
 | `pins` | per-pin names, e.g. `{"in1": "wptr"}`; see below |
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |

@@ -171,6 +171,65 @@ class TestArrowModesAgree(unittest.TestCase):
     self.assertEqual(none, 0)
 
 
+def _top_pinned_drawing():
+  """Cells with a pin on top, whose names move beside them, and wires that
+  have to keep off those names -- one coming in to the top pin itself."""
+  doc = new_document("names beside", 900, 500)
+  doc.canvas["grid"]["style"] = "blank"
+  doc.cells.extend([
+    {"id": "en", "type": "port_in", "x": 60, "y": 60, "label": "en"},
+    {"id": "d", "type": "port_in", "x": 60, "y": 215, "label": "d"},
+    {"id": "t1", "type": "tbuf", "x": 300, "y": 190, "label": "T1"},
+    {"id": "io", "type": "iocell", "x": 560, "y": 160, "label": "IO_PAD_7"},
+    {"id": "q", "type": "port_out", "x": 820, "y": 215, "label": "q"},
+  ])
+  doc.nets.extend([
+    {"id": "n1", "from": {"cell": "en", "pin": "p"},
+     "to": [{"cell": "t1", "pin": "en"}, {"cell": "io", "pin": "oe"}]},
+    {"id": "n2", "from": {"cell": "d", "pin": "p"}, "to": [{"cell": "t1", "pin": "a"}]},
+    {"id": "n3", "from": {"cell": "t1", "pin": "y"}, "to": [{"cell": "io", "pin": "pad"}]},
+    {"id": "n4", "from": {"cell": "io", "pin": "y"}, "to": [{"cell": "q", "pin": "p"}]},
+  ])
+  doc.normalize()
+  return doc
+
+
+def _exported_cell_names(svg):
+  start = svg.index('<g class="dl-cells">')
+  found = re.findall(
+    r'<text x="([^"]+)" y="([^"]+)" text-anchor="([^"]+)"[^>]*font-weight="600"[^>]*>([^<]*)<',
+    svg[start:])
+  return sorted([text, x, y, anchor] for x, y, anchor, text in found)
+
+
+def _exported_wires(svg):
+  return sorted([i, d] for i, d in re.findall(
+    r'<path class="dl-net" data-id="([^"]+)" d="([^"]+)"', svg))
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestNamesBesideCellsAgree(unittest.TestCase):
+  """A name moved off a top pin goes to the same place in both renderers,
+  and both route the same wires around it."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def test_both_put_the_names_in_the_same_place(self):
+    doc = _top_pinned_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = render_svg.render(doc, registry=self.registry)
+    self.assertEqual(browser["cellNames"], _exported_cell_names(exported))
+    anchors = {name: anchor for name, _x, _y, anchor in browser["cellNames"]}
+    self.assertEqual(anchors["T1"], "end", "the fixture's name did not move")
+
+  def test_both_route_the_same_wires_round_them(self):
+    doc = _top_pinned_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = render_svg.render(doc, registry=self.registry)
+    self.assertEqual(browser["wires"], _exported_wires(exported))
+
+
 @unittest.skipUnless(NODE, "node is not installed")
 class TestDrcDefaults(unittest.TestCase):
   """The limits routing.js falls back to must be the limits Python holds.

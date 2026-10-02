@@ -190,6 +190,15 @@ function setTool(name) {
     button.setAttribute("aria-pressed",
                         String(button.getAttribute("data-tool") === name));
   }
+  // The Shapes button stands for all four, so it lights up for any of them
+  // and wears the icon of the one in hand.
+  const shapes = document.getElementById("menu-shape-button");
+  if (shapes) {
+    shapes.setAttribute("aria-pressed", String(name === "shape"));
+    const kind = name === "shape" && tools.shape ? tools.shape.kind : null;
+    document.getElementById("shape-button-icon")
+      .setAttribute("href", kind ? `#i-shape-${kind}` : "#i-shapes");
+  }
   const tool = tools[name];
   if (tool && tool.onActivate) tool.onActivate();
   else drawOverlay({});

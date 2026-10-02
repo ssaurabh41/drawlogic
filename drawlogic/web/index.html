@@ -16,47 +16,46 @@
 <div class="menubar">
   <div class="brand">draw<span>logic</span></div>
 
-  <label class="field">
-    <span>Open</span>
-    <select id="file-select" title="Drawings found under the served folder"></select>
-  </label>
-
-  <!-- Save and Export are the two things done to every drawing, so they are
-       the two left in view; the rest are once-a-session and live in File.
-       Clusters (.bgroup) sit tight inside and far apart from each other,
-       which is what says what goes with what; no divider lines needed. -->
-  <div class="bgroup">
-    <button id="btn-save" class="action primary" title="Save (Ctrl+S)">Save</button>
-    <button id="btn-export" class="action" title="Export SVG (Ctrl+E)">Export SVG</button>
-
-    <div class="menu">
-      <button id="menu-file-button" class="action menu-button" type="button"
-              aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
-      <div id="menu-file" class="menu-panel" role="menu" aria-labelledby="menu-file-button" hidden>
-        <button id="btn-open" class="menu-item" type="button" role="menuitem"
-                title="Open a .dlg from anywhere on this computer: it is copied into the served folder and opened"><span>Open&hellip;</span></button>
-        <button id="btn-new" class="menu-item" type="button" role="menuitem"
-                title="Start an empty drawing in the served folder"><span>New drawing&hellip;</span><kbd>Ctrl+N</kbd></button>
-        <button id="btn-import" class="menu-item" type="button" role="menuitem"
-                title="Draw each module of a Verilog netlist as a drawing in this folder, and open the top one"><span>Import Verilog&hellip;</span></button>
-        <button id="btn-symbol" class="menu-item" type="button" role="menuitem"
-                title="Turn this drawing into a symbol: its shapes become the artwork, its ports become the pins"><span>Save as symbol&hellip;</span></button>
-        <div class="menu-sep" role="separator"></div>
-        <button id="btn-png" class="menu-item" type="button" role="menuitem"
-                title="Copy the drawing as a picture, ready to paste into a slide"><span>Copy as PNG</span><kbd>Ctrl+Shift+E</kbd></button>
-      </div>
+  <!-- File first, the way every editor has taught people to look for it. -->
+  <div class="menu">
+    <button id="menu-file-button" class="action menu-button" type="button"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    <div id="menu-file" class="menu-panel" role="menu" aria-labelledby="menu-file-button" hidden>
+      <button id="btn-new" class="menu-item" type="button" role="menuitem"
+              title="Start an empty drawing in the served folder"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-new"/></svg><span>New drawing&hellip;</span><kbd>Ctrl+N</kbd></button>
+      <button id="btn-open" class="menu-item" type="button" role="menuitem"
+              title="Open a .dlg from anywhere on this computer: it is copied into the served folder and opened"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-open"/></svg><span>Open&hellip;</span></button>
+      <button id="btn-import" class="menu-item" type="button" role="menuitem"
+              title="Draw each module of a Verilog netlist as a drawing in this folder, and open the top one"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-import"/></svg><span>Import Verilog&hellip;</span></button>
+      <div class="menu-sep" role="separator"></div>
+      <button id="btn-symbol" class="menu-item" type="button" role="menuitem"
+              title="Turn this drawing into a symbol: its shapes become the artwork, its ports become the pins"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-symbol"/></svg><span>Save as symbol&hellip;</span></button>
+      <button id="btn-png" class="menu-item" type="button" role="menuitem"
+              title="Copy the drawing as a picture, ready to paste into a slide"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-picture"/></svg><span>Copy as PNG</span><kbd>Ctrl+Shift+E</kbd></button>
     </div>
   </div>
   <input id="import-file" type="file" accept=".v,.sv,.vh,.vg" hidden>
   <input id="open-file" type="file" accept=".dlg,application/json" hidden>
 
-  <button id="btn-check" class="action"
-          title="Check the drawing against the DRCs: wires on wires, parts too close, names on wires">Check</button>
+  <label class="field picker">
+    <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-open"/></svg>
+    <select id="file-select" title="Drawings found under the served folder" aria-label="Open a drawing"></select>
+  </label>
+
+  <!-- Save and Export are the two things done to every drawing, so they are
+       the two left in view; the rest are once-a-session and live in File. -->
+  <div class="bgroup">
+    <button id="btn-save" class="action primary with-ico" title="Save (Ctrl+S)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg>Save</button>
+    <button id="btn-export" class="action with-ico" title="Export SVG (Ctrl+E)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-export"/></svg>Export SVG</button>
+  </div>
 
   <div class="bgroup">
-    <button id="btn-undo" class="action" title="Undo (Ctrl+Z)">Undo</button>
-    <button id="btn-redo" class="action" title="Redo (Ctrl+Shift+Z)">Redo</button>
+    <button id="btn-undo" class="action icon-only" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-undo"/></svg></button>
+    <button id="btn-redo" class="action icon-only" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-redo"/></svg></button>
   </div>
+
+  <button id="btn-check" class="action with-ico"
+          title="Check the drawing against the DRCs: wires on wires, parts too close, names on wires"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-check"/></svg>Check</button>
 
   <div class="spacer"></div>
   <div class="filechip">
@@ -65,12 +64,12 @@
     <span id="dirty" class="dirty" hidden title="unsaved changes">&#9679;</span>
   </div>
   <!-- At the far edge: it is about the editor, not the drawing on the left. -->
-  <button id="btn-prefs" class="action" title="Preferences and appearance (Ctrl+,)">Preferences</button>
+  <button id="btn-prefs" class="action icon-only" title="Preferences and appearance (Ctrl+,)" aria-label="Preferences"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-gear"/></svg></button>
 </div>
 
 <svg class="sprite" aria-hidden="true" focusable="false">
   <defs>
-    <g id="i-painter"><rect x="2.5" y="2" width="10" height="4" rx="1"/><path d="M12.5 4h1.5v3.5H8V10"/><rect x="6.8" y="10" width="2.4" height="4.5" rx=".6"/></g>
+    <g id="i-painter"><path d="M9.2 2.2 13.8 6.8 9.6 11 5 6.4z"/><path d="M5 6.4 3.2 8.2c-.9.9-.9 2.3 0 3.2l1.4 1.4c.9.9 2.3.9 3.2 0L9.6 11"/><path d="M11.5 4.5 13.6 2.4"/><path d="M3 12.9 1.8 14.2"/></g>
     <g id="i-rotate"><path d="M13 6a5 5 0 1 0 1.2 3.4"/><path d="M13 2.5V6h-3.5"/></g>
     <g id="i-flip"><path d="M8 2v12"/><path d="M6 5 2.5 8 6 11z"/><path d="M10 5l3.5 3-3.5 3z"/></g>
     <g id="i-group"><rect x="2.5" y="2.5" width="6" height="6"/><rect x="7.5" y="7.5" width="6" height="6"/></g>
@@ -89,21 +88,49 @@
     <g id="i-front"><rect x="2.5" y="2.5" width="8" height="8"/><path d="M5.5 13.5h8v-8"/></g>
     <g id="i-back"><rect x="5.5" y="5.5" width="8" height="8"/><path d="M10.5 2.5h-8v8"/></g>
     <g id="i-chevron"><path d="M4.5 6.5 8 10l3.5-3.5"/></g>
+    <g id="i-select"><path d="M4 2.5v10.5l2.9-2.7 2 4.2 1.8-.8-2-4.2H12.5z"/></g>
+    <g id="i-wire"><path d="M3 12.5h4v-9h6"/><circle cx="3" cy="12.5" r="1.4"/><circle cx="13" cy="3.5" r="1.4"/></g>
+    <g id="i-erase"><path d="M9.6 2.8 13.2 6.4 7.1 12.5H4L2.4 10.9z"/><path d="M5.8 6.6l3.6 3.6"/><path d="M8.5 13.5h5"/></g>
+    <g id="i-shapes"><rect x="2" y="6.5" width="7" height="7" rx=".5"/><circle cx="10.5" cy="5.5" r="3.5"/></g>
+    <g id="i-shape-line"><path d="M3 13 13 3"/></g>
+    <g id="i-shape-rect"><rect x="2.5" y="4" width="11" height="8" rx=".5"/></g>
+    <g id="i-shape-polygon"><path d="M8 2.5l5.5 4-2 6.5h-7l-2-6.5z"/></g>
+    <g id="i-shape-text"><path d="M3.5 3.5h9M8 3.5v10M6 13.5h4"/></g>
+    <g id="i-undo"><path d="M6 3.5 2.5 7 6 10.5"/><path d="M2.8 7h7a3.5 3.5 0 0 1 0 7H8"/></g>
+    <g id="i-redo"><path d="M10 3.5 13.5 7 10 10.5"/><path d="M13.2 7h-7a3.5 3.5 0 0 0 0 7H8"/></g>
+    <g id="i-save"><path d="M3 2.5h8l2.5 2.5v8.5h-11z"/><path d="M5.5 2.5v3.5h5V2.5"/><path d="M5 13.5V9.5h6v4"/></g>
+    <g id="i-export"><path d="M8 2.5v7.5"/><path d="M5 5.5 8 2.5l3 3"/><path d="M3 10.5v3h10v-3"/></g>
+    <g id="i-check"><path d="M2.5 8.5 6 12l7.5-8"/></g>
+    <g id="i-gear"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4 5 11M11 5l1.4-1.4"/></g>
+    <g id="i-new"><path d="M4 2.5h5.5l3 3v8H4z"/><path d="M9.5 2.5v3h3"/></g>
+    <g id="i-open"><path d="M2 4.5h4l1.5 1.5H14v7H2z"/></g>
+    <g id="i-import"><path d="M8 2v7.5"/><path d="M5 6.5 8 9.5l3-3"/><path d="M3 11v2.5h10V11"/></g>
+    <g id="i-symbol"><path d="M5 3.5h3.5a4.5 4.5 0 0 1 0 9H5z"/><path d="M2 6h3M2 10h3M13 8h1.5"/></g>
+    <g id="i-picture"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M3.5 11.5 6.5 8l2 2 2-2.5 2.5 4"/></g>
   </defs>
 </svg>
 
 <div class="toolbar">
-  <div class="tgroup">
-    <button class="tool" data-tool="select" aria-pressed="true" title="Select (V)">Select</button>
-    <button class="tool" data-tool="wire" aria-pressed="false" title="Wire (W)">Wire</button>
-    <button class="tool" data-tool="erase" aria-pressed="false" title="Erase (E) - drag across a wire to rub it out">Erase</button>
+  <div class="tgroup seg">
+    <button class="tool with-ico" data-tool="select" aria-pressed="true" title="Select (V)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-select"/></svg>Select</button>
+    <button class="tool with-ico" data-tool="wire" aria-pressed="false" title="Wire (W)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-wire"/></svg>Wire</button>
+    <button class="tool with-ico" data-tool="erase" aria-pressed="false" title="Erase (E) - drag across a wire to rub it out"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-erase"/></svg>Erase</button>
   </div>
 
+  <!-- One button for every shape, as a slide editor has: it shows the shape
+       last used, so drawing several boxes in a row is still one click. -->
   <div class="tgroup">
-    <button class="tool" data-tool="shape" data-shape="line" title="Line (L)">Line</button>
-    <button class="tool" data-tool="shape" data-shape="rect" title="Box (B)">Box</button>
-    <button class="tool" data-tool="shape" data-shape="polygon" title="Polygon (P) - click points, double-click to close">Polygon</button>
-    <button class="tool" data-tool="shape" data-shape="text" title="Text (T)">Text</button>
+    <div class="menu">
+      <button id="menu-shape-button" class="tool menu-button with-ico" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-controls="menu-shape" aria-pressed="false"
+              title="Shapes: line, box, polygon, text (L, B, P, T)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use id="shape-button-icon" href="#i-shapes"/></svg>Shapes<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+      <div id="menu-shape" class="menu-panel" role="menu" aria-labelledby="menu-shape-button" hidden>
+        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="line"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-line"/></svg><span>Line</span><kbd>L</kbd></button>
+        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="rect"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-rect"/></svg><span>Box</span><kbd>B</kbd></button>
+        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="polygon" title="Click points, double-click to close"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-polygon"/></svg><span>Polygon</span><kbd>P</kbd></button>
+        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="text"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-text"/></svg><span>Text</span><kbd>T</kbd></button>
+      </div>
+    </div>
     <button id="btn-painter" class="tool icon" type="button" aria-pressed="false" aria-label="Format painter"
             title="Format painter: copy the selected item's colours and line weight, then click items to give them the same (Shift+click for several, Esc to stop)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-painter"/></svg></button>
   </div>

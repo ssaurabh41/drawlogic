@@ -964,3 +964,49 @@ select {
 
 /* The format painter is armed: the next click takes the copied style. */
 #canvas.painting, #canvas.painting * { cursor: copy !important; }
+
+/* ---- icons on bar buttons ---- */
+
+/* A label with an icon in front: the icon is for finding it at a glance,
+   the word is for knowing what it does. Both share one ink colour. */
+.with-ico { display: inline-flex; align-items: center; gap: 6px; }
+.with-ico .ico,
+.icon-only .ico,
+.field.picker .ico {
+  width: 15px; height: 15px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.with-ico .ico circle { fill: currentColor; }
+.icon-only {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 28px; padding: 0;
+}
+.action:disabled { opacity: 0.4; cursor: default; }
+.action:disabled:hover { background: var(--chrome-2); color: var(--ink-2); }
+
+/* The drawing picker: a folder icon inside the field, no shouted label. */
+.field.picker {
+  gap: 0;
+  position: relative;
+  color: var(--ink-3);
+}
+.field.picker .ico { position: absolute; left: 8px; pointer-events: none; }
+.field.picker select { padding-left: 28px; min-width: 170px; }
+
+/* Select, Wire and Erase are one choice, so they sit as one control. */
+.tgroup.seg { gap: 0; }
+.tgroup.seg .tool { border-radius: 0; margin-left: -1px; }
+.tgroup.seg .tool:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+.tgroup.seg .tool:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.tgroup.seg .tool[aria-pressed="true"] { position: relative; z-index: 1; }
+
+.tool.with-ico { padding: 3px 10px 3px 8px; }
+.menu-button.with-ico { gap: 6px; }
+
+/* Bars a little calmer: less space between clusters, softer buttons. */
+.menubar { gap: var(--sp-4); }
+.toolbar { gap: var(--sp-4); }
+.action, .tool { transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease; }
+.menu-panel { border-radius: 8px; padding: 5px; }
+.menu-item { border-radius: 5px; }

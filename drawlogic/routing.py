@@ -250,10 +250,42 @@ def obstacle_boxes(doc, registry=None, exclude=()):
     # above the cell grows with it -- otherwise a wire routes straight
     # through the upper line of a wrapped name.
     lines = len(label_lines(cell["label"])) if cell.get("label") else 0
+    # A name moved beside the cell needs no room above it; side_label_boxes
+    # keeps wires off it instead.
+    if lines and _name_beside(symbol, cell, doc):
+      lines = 0
     headroom = (TEXT_HEADROOM + (lines - 1) * LABEL_LINE
                 if lines else CLEARANCE)
     boxes.append((min(xs) - CLEARANCE, min(ys) - headroom,
                   max(xs) + CLEARANCE, max(ys) + CLEARANCE))
+  return boxes
+
+
+def _name_beside(symbol, cell, doc):
+  # Imported here: render_svg imports this module.
+  from . import render_svg
+  return render_svg.side_label_box(symbol, cell, doc.symbol_scale,
+                                   doc.font_scale) is not None
+
+
+def side_label_boxes(doc, registry=None):
+  """Names drawn beside their cells, padded by the air text needs from a wire.
+
+  Every wire keeps off these, its own included: a cell's own wire through its
+  name is as unreadable as anyone else's, and the DRCs say so.
+  """
+  from . import render_svg
+  registry = registry or default_registry()
+  boxes = []
+  for cell in doc.cells:
+    symbol = registry.for_cell(cell)
+    if symbol is None:
+      continue
+    box = render_svg.side_label_box(symbol, cell, doc.symbol_scale,
+                                    doc.font_scale)
+    if box is not None:
+      pad = drc.TEXT_TO_WIRE
+      boxes.append((box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad))
   return boxes
 
 
@@ -297,8 +329,10 @@ def _boxes_for(doc, registry, sheet, exclude):
     ids = [c.get("id") for c in doc.cells if registry.for_cell(c) is not None]
     sheet._cells = list(zip(ids, obstacle_boxes(doc, registry),
                             body_boxes(doc, registry)))
+    sheet._names = side_label_boxes(doc, registry)
   cells = sheet._cells
-  return ([box for cell_id, box, _ in cells if cell_id not in exclude],
+  return ([box for cell_id, box, _ in cells if cell_id not in exclude]
+          + sheet._names,
           [body for cell_id, _, body in cells if cell_id in exclude],
           [body for cell_id, _, body in cells if cell_id not in exclude])
 
@@ -342,6 +376,7 @@ class Sheet:
     # (cell id, padded box, body box) for every cell, worked out once per
     # routing pass rather than once per branch -- see _boxes_for.
     self._cells = None
+    self._names = []
     self._keys = frozenset()
     self._net = None
 
@@ -371,6 +406,7 @@ class Sheet:
     view._runs = self._runs
     view._lines = self._lines
     view._cells = self._cells
+    view._names = self._names
     view._keys = keys
     view._net = net_id
     return view

@@ -242,12 +242,9 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
 
   label = cell.get("label")
   if label:
-    box = _cell_bbox(symbol, cell, symbol_scale)
     lines = label_lines(label)
     size = theme.FONT_SIZES["label"] * font_scale
-    # Lines stack upward, so the first of two sits a line higher and the last
-    # keeps the position a single-line name would have had.
-    top = box[1] - 5 - (len(lines) - 1) * size * LINE_STEP
+    x, top, anchor = cell_label_place(symbol, cell, symbol_scale, font_scale)
     # A name that fits on one line is drawn exactly as it always was: no
     # tspan, so the markup for the common case does not change at all.
     if len(lines) == 1:
@@ -255,15 +252,15 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
     else:
       spans = "".join(
         "<tspan %s>%s</tspan>" % (
-          _attrs([("x", fmt(box[0] + box[2] / 2.0)),
+          _attrs([("x", fmt(x)),
                   ("y", fmt(top + index * size * LINE_STEP))]),
           esc(line))
         for index, line in enumerate(lines))
     out.append("<text %s>%s</text>" % (
       _attrs([
-        ("x", fmt(box[0] + box[2] / 2.0)),
+        ("x", fmt(x)),
         ("y", fmt(top)),
-        ("text-anchor", "middle"),
+        ("text-anchor", anchor),
         ("font-family", theme.FONT_SANS),
         ("font-size", fmt(size, 2)),
         ("font-weight", "600"),
@@ -623,13 +620,17 @@ def _cell_boxes(doc, registry):
     if symbol is None:
       continue
     x, y, w, h = _cell_bbox(symbol, cell, doc.symbol_scale)
+    beside = side_label_box(symbol, cell, doc.symbol_scale, doc.font_scale)
     # A wrapped name reaches a line higher, so the box grows with it.
-    lines = len(label_lines(cell["label"])) if cell.get("label") else 0
+    lines = (len(label_lines(cell["label"]))
+             if cell.get("label") and beside is None else 0)
     headroom = (drc.LABEL_HEADROOM
                 + (lines - 1) * theme.FONT_SIZES["label"] * LINE_STEP
                 if lines else 0.0)
     boxes.append((x - CELL_BOX_PAD, y - headroom,
                   x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD))
+    if beside is not None:
+      boxes.append(beside)
   return boxes
 
 
@@ -644,15 +645,69 @@ def cell_label_box(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   label = cell.get("label")
   if not label:
     return None
-  box = _cell_bbox(symbol, cell, symbol_scale)
   size = theme.FONT_SIZES["label"] * font_scale
   lines = label_lines(label)
   widest = max(lines, key=len)
-  # The lines stack upward from the cell, so an extra line raises the top.
-  spot = (box[0] + box[2] / 2.0, box[1] - 5 - (len(lines) - 1) * size * LINE_STEP)
-  first = _label_box(spot, "middle", widest, size)
+  x, top, anchor = cell_label_place(symbol, cell, symbol_scale, font_scale)
+  first = _label_box((x, top), anchor, widest, size)
   return (first[0], first[1], first[2],
           first[3] + (len(lines) - 1) * size * LINE_STEP)
+
+
+def _pin_spots(symbol, cell, symbol_scale):
+  for pin in symbol.pins:
+    spot = symbol.pin_position(cell, pin["name"], symbol_scale)
+    if spot is not None:
+      yield spot
+
+
+def cell_label_place(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+  """Where a cell's name goes: (x, baseline of the first line, anchor).
+
+  Above the cell, centred, is where a reader looks for it -- unless a pin
+  comes in at the top. Then that pin's wire runs straight up through the
+  middle of the name, which is unreadable and a DRC fault besides. Such a
+  cell's name sits beside it instead, outside the top-left corner, or the
+  top-right if a pin on the left would be in the way, and only goes back
+  above the cell if both sides are taken.
+  """
+  box = _cell_bbox(symbol, cell, symbol_scale)
+  size = theme.FONT_SIZES["label"] * font_scale
+  lines = label_lines(cell.get("label") or "") or [""]
+  spots = list(_pin_spots(symbol, cell, symbol_scale))
+  above = (box[0] + box[2] / 2.0,
+           box[1] - 5 - (len(lines) - 1) * size * LINE_STEP, "middle")
+  if not any(abs(y - box[1]) < 0.5 for _x, y in spots):
+    return above
+
+  # How far down the side the name reaches, and the air a wire needs from it.
+  reach = box[1] + size * (len(lines) - 1) * LINE_STEP + size + drc.TEXT_TO_WIRE
+  baseline = box[1] + size * 0.8
+
+  def side_free(edge):
+    return not any(abs(x - edge) < 0.5 and y <= reach for x, y in spots)
+
+  if side_free(box[0]):
+    return (box[0] - drc.TEXT_TO_CELL, baseline, "end")
+  right = box[0] + box[2]
+  if side_free(right):
+    return (right + drc.TEXT_TO_CELL, baseline, "start")
+  return above
+
+
+def side_label_box(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+  """The name's rectangle when it sits beside its cell rather than above.
+
+  None for a name above the cell: the router already keeps room there, as
+  headroom on the cell's own box. A name beside the cell is outside that box,
+  so it is handed to the router separately, to be kept clear of like a body.
+  """
+  if not cell.get("label"):
+    return None
+  _x, _top, anchor = cell_label_place(symbol, cell, symbol_scale, font_scale)
+  if anchor == "middle":
+    return None
+  return cell_label_box(symbol, cell, symbol_scale, font_scale)
 
 
 def net_label_boxes(doc, registry=None, routes=None):

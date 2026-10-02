@@ -97,4 +97,12 @@ console.log(JSON.stringify({
   junctions: all.filter((n) => n.tag === "circle"
                         && (n.attrs.class || "").includes("dl-junction"))
     .map((n) => [n.attrs.cx, n.attrs.cy]).sort(),
+  // Instance names: the only text drawn in bold.
+  cellNames: all.filter((n) => n.tag === "text" && n.attrs["font-weight"] === "600"
+                        && n._text !== undefined && n.attrs.x !== undefined
+                        && n.attrs["text-anchor"] !== undefined
+                        && !(n.attrs.y && Number(n.attrs.x) < 20 && n.attrs["font-size"] > 16))
+    .map((n) => [n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]).sort(),
+  wires: all.filter((n) => n.tag === "path" && (n.attrs.class || "") === "dl-net")
+    .map((n) => [n.attrs["data-id"], n.attrs.d]).sort(),
 }));

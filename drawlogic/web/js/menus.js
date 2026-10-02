@@ -93,6 +93,15 @@ export function bindMenus(root, { beforeOpen = () => {} } = {}) {
   document.addEventListener("pointerdown", (event) => {
     if (open && !open.element.contains(event.target)) close(open);
   });
+  // A menu opened with the mouse never has focus inside it, so the panel's
+  // own Esc handler never hears the key; this one does.
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && open) {
+      event.preventDefault();
+      event.stopPropagation();
+      close(open, { focus: true });
+    }
+  }, true);
   // Focus leaving for somewhere else by Tab closes it too, so an open panel
   // is never left behind the thing now being typed into.
   document.addEventListener("focusin", (event) => {

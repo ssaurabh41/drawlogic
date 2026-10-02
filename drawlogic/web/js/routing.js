@@ -23,6 +23,7 @@ const PORT_CATEGORY = "ports";
 let limits = {
   wireToCell: 10,
   textToWire: 6,
+  textToCell: 6,
   corridorStep: 10,
   corridorTries: 18,
   wireGap: 18,
@@ -148,7 +149,8 @@ export function obstacleBoxes(doc, exclude = new Set()) {
     // A name that wraps reaches a line higher per extra line, as in
     // routing.py; without it a wire dragged here ran through the second line
     // of a long name that the exported file routed around.
-    const lines = cell.label ? geometry.labelLines(cell.label).length : 0;
+    const lines = cell.label && !nameBeside(symbol, cell, doc)
+      ? geometry.labelLines(cell.label).length : 0;
     boxes.push([
       Math.min(...xs) - limits.wireToCell,
       Math.min(...ys) - (lines ? limits.labelHeadroom + limits.textToWire
@@ -156,6 +158,37 @@ export function obstacleBoxes(doc, exclude = new Set()) {
                                : limits.wireToCell),
       Math.max(...xs) + limits.wireToCell, Math.max(...ys) + limits.wireToCell,
     ]);
+  }
+  return boxes;
+}
+
+// The font size of a cell's name. Mirrors theme.FONT_SIZES["label"], written
+// out for the same reason LABEL_LINE is: theme is not loaded here.
+const LABEL_SIZE = 13.5;
+
+function nameBox(symbol, cell, doc) {
+  const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+  return geometry.cellLabelBox(symbol, cell, symbolScale(doc), LABEL_SIZE * fontScale,
+                               limits.textToCell, limits.textToWire);
+}
+
+function nameBeside(symbol, cell, doc) {
+  const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+  return geometry.cellLabelPlace(symbol, cell, symbolScale(doc), LABEL_SIZE * fontScale,
+                                 limits.textToCell, limits.textToWire)[2] !== "middle";
+}
+
+// Names drawn beside their cells, padded by the air text needs from a wire.
+// Mirrors routing.side_label_boxes: every wire keeps off them, its own too.
+export function sideLabelBoxes(doc) {
+  const boxes = [];
+  for (const cell of doc.cells || []) {
+    if (!cell.label) continue;
+    const symbol = geometry.forCell(cell);
+    if (!symbol || !nameBeside(symbol, cell, doc)) continue;
+    const box = nameBox(symbol, cell, doc);
+    const pad = limits.textToWire;
+    boxes.push([box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad]);
   }
   return boxes;
 }
@@ -736,7 +769,8 @@ function landsClear(points, doc, net, load, sheet, keys, terminals) {
   for (const endpoint of [net.from, load]) {
     if (endpoint && endpoint.cell !== undefined) exclude.add(endpoint.cell);
   }
-  const view = sheet.forNet(obstacleBoxes(doc, exclude), keys, net.id);
+  const view = sheet.forNet([...obstacleBoxes(doc, exclude), ...sideLabelBoxes(doc)],
+                            keys, net.id);
   const bodies = bodyBoxes(doc, exclude);
   for (let i = 0; i < points.length - 1; i += 1) {
     const a = points[i];
@@ -774,7 +808,8 @@ function branchTo(doc, net, load, start, startDir, sheet, keys, fromPin = true) 
     // other; leaving them out let a feedback wire run straight back through
     // the gate and the flip-flop it loops round. Mirrors routing.py.
     const own = bodyBoxes(doc, others);
-    const view = sheet.forNet([...obstacleBoxes(doc, exclude), ...own], keys,
+    const view = sheet.forNet([...obstacleBoxes(doc, exclude), ...sideLabelBoxes(doc),
+                               ...own], keys,
                               net.id, own);
     return clean(directRoute(start, end, startDir,
                              endpointDirection(doc, load), view,

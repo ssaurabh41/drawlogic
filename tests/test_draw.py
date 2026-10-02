@@ -1161,3 +1161,68 @@ class TestWireLabelsAndStyle(unittest.TestCase):
   def test_the_old_off_switch_still_means_none(self):
     doc = self.wire(style={"arrow": False})
     self.assertEqual(routing.arrow_mode(doc, doc.nets[0], self.registry), "none")
+
+
+class TestNamesClearOfTopPins(unittest.TestCase):
+  """A cell with a pin on top keeps its name off that pin's wire."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def drawing(self):
+    doc = new_document("names", 900, 500)
+    doc.cells.extend([
+      {"id": "en", "type": "port_in", "x": 60, "y": 60, "label": "en"},
+      {"id": "d", "type": "port_in", "x": 60, "y": 215, "label": "d"},
+      {"id": "t1", "type": "tbuf", "x": 300, "y": 190, "label": "T1"},
+      {"id": "io", "type": "iocell", "x": 560, "y": 160, "label": "IO1"},
+      {"id": "q", "type": "port_out", "x": 820, "y": 215, "label": "q"},
+    ])
+    doc.nets.extend([
+      {"id": "n1", "from": {"cell": "en", "pin": "p"},
+       "to": [{"cell": "t1", "pin": "en"}, {"cell": "io", "pin": "oe"}]},
+      {"id": "n2", "from": {"cell": "d", "pin": "p"}, "to": [{"cell": "t1", "pin": "a"}]},
+      {"id": "n3", "from": {"cell": "t1", "pin": "y"}, "to": [{"cell": "io", "pin": "pad"}]},
+      {"id": "n4", "from": {"cell": "io", "pin": "y"}, "to": [{"cell": "q", "pin": "p"}]},
+    ])
+    doc.normalize()
+    return doc
+
+  def name_faults(self, doc):
+    return [v for v in drc.check(doc, self.registry)
+            if v.rule.startswith("text-to") and ("T1" in v.where or "IO1" in v.where)]
+
+  def test_the_names_move_beside_the_cell(self):
+    doc = self.drawing()
+    for cell_id in ("t1", "io"):
+      cell = doc.cell(cell_id)
+      _x, _y, anchor = render_svg.cell_label_place(
+        self.registry.for_cell(cell), cell, doc.symbol_scale, doc.font_scale)
+      self.assertNotEqual(anchor, "middle", cell_id)
+
+  def test_no_name_lands_on_a_wire_or_a_body(self):
+    self.assertEqual(self.name_faults(self.drawing()), [])
+
+  def test_the_fixture_really_would_collide_above(self):
+    """Without the move, the top pin's wire runs through the name -- else the
+    test above proves nothing."""
+    original = render_svg.cell_label_place
+
+    def always_above(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+      x, y, anchor = original(symbol, cell, symbol_scale, font_scale)
+      if anchor == "middle":
+        return x, y, anchor
+      box = render_svg._cell_bbox(symbol, cell, symbol_scale)
+      return box[0] + box[2] / 2.0, box[1] - 5, "middle"
+
+    render_svg.cell_label_place = always_above
+    try:
+      self.assertTrue(self.name_faults(self.drawing()))
+    finally:
+      render_svg.cell_label_place = original
+
+  def test_a_cell_without_a_top_pin_keeps_its_name_above(self):
+    doc = self.drawing()
+    cell = doc.cell("q")
+    self.assertEqual(render_svg.cell_label_place(
+      self.registry.for_cell(cell), cell, doc.symbol_scale, doc.font_scale)[2], "middle")

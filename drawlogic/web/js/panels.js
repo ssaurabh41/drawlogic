@@ -194,8 +194,7 @@ function openPalette(anchor, current, apply) {
 // The order sections are listed in: what a schematic is mostly made of first.
 // A category not named here -- one from a folder's own symbols.json, or the
 // blocks standing for other drawings -- follows, alphabetically.
-const CATEGORY_ORDER = ["blocks", "gates", "mux", "sequential", "ports", "bus",
-                        "analog"];
+const CATEGORY_ORDER = ["blocks", "sequential", "gates", "ports", "bus", "analog"];
 
 // Which sections are folded away, kept per browser like any other habit of
 // the person drawing rather than of the drawing.
@@ -222,8 +221,18 @@ function categoryRank(category) {
   return index < 0 ? CATEGORY_ORDER.length : index;
 }
 
+// Palette sections that gather more than one symbol category. A mux is filed
+// apart from the gates because auto layout may turn a gate over and must
+// never turn a mux (its select pin would end up on the wrong side), but on
+// the palette it is just another gate.
+const SECTION_OF = { mux: "gates" };
+
 export function buildPalette(root, { onPick }) {
-  const groups = geometry.byCategory();
+  const groups = {};
+  for (const [category, ids] of Object.entries(geometry.byCategory())) {
+    const section = SECTION_OF[category] || category;
+    groups[section] = (groups[section] || []).concat(ids);
+  }
   root.textContent = "";
   const folded = foldedSections();
 

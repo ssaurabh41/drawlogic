@@ -230,16 +230,12 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   }
 
   if (cell.label) {
-    const box = geometry.cellBounds(symbol, cell, scale);
     const lines = geometry.labelLines(cell.label);
     const size = theme.fontSizes.label * fontScale;
-    const middle = box[0] + box[2] / 2;
-    // Lines stack upward, so a wrapped name starts a line higher and its last
-    // line keeps the place a single-line name would have had.
-    const top = box[1] - 5 - (lines.length - 1) * size * LINE_STEP;
+    const [middle, top, anchor] = labelPlace(symbol, cell, scale, size);
     const text = el("text", {
       x: geometry.fmt(middle), y: geometry.fmt(top),
-      "text-anchor": "middle",
+      "text-anchor": anchor,
       "font-family": theme.fontSans,
       "font-size": geometry.fmt(size, 2),
       "font-weight": "600",
@@ -331,17 +327,8 @@ function namedTextMarks(doc, spots, routes, fontScale) {
     if (!cell.label) continue;
     const symbol = geometry.forCell(cell);
     if (!symbol) continue;
-    const bounds = geometry.cellBounds(symbol, cell, scale);
-    const lines = geometry.labelLines(cell.label);
     const size = theme.fontSizes.label * fontScale;
-    const middle = bounds[0] + bounds[2] / 2;
-    const top = bounds[1] - 5 - (lines.length - 1) * size * LINE_STEP;
-    const width = Math.max(...lines.map((line) => line.length), 1)
-      * size * LABEL_CHAR;
-    boxes.push({ kind: "cell", id: cell.id, box: [
-      middle - width / 2,
-      top - size * 0.8 - (lines.length - 1) * size * LINE_STEP,
-      middle + width / 2, top + size * 0.2] });
+    boxes.push({ kind: "cell", id: cell.id, box: labelBoxOf(symbol, cell, scale, size) });
   }
   const size = theme.fontSizes.net_label * fontScale;
   for (const { net } of routes) {
@@ -644,6 +631,20 @@ export function labelSpots(routes, cellBoxes, sheet, fontScale) {
 // A whisker of air around a cell before a name counts as landing on it.
 const CELL_BOX_PAD = 2;
 
+// A cell's name: where it goes and the rectangle it covers. See
+// geometry.cellLabelPlace for why it is sometimes beside the cell.
+function labelPlace(symbol, cell, scale, size) {
+  const limits = routing.currentLimits();
+  return geometry.cellLabelPlace(symbol, cell, scale, size,
+                                 limits.textToCell, limits.textToWire);
+}
+
+function labelBoxOf(symbol, cell, scale, size) {
+  const limits = routing.currentLimits();
+  return geometry.cellLabelBox(symbol, cell, scale, size,
+                               limits.textToCell, limits.textToWire);
+}
+
 // Baseline-to-baseline spacing for a wrapped instance name.
 // Mirrors LINE_STEP in render_svg.py.
 const LINE_STEP = 1.15;
@@ -663,13 +664,18 @@ export function cellBoxes(doc) {
     const symbol = geometry.forCell(cell);
     if (!symbol) continue;
     const [x, y, w, h] = geometry.cellBounds(symbol, cell, scale);
+    const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+    const size = theme.fontSizes.label * fontScale;
+    const beside = cell.label && labelPlace(symbol, cell, scale, size)[2] !== "middle"
+      ? labelBoxOf(symbol, cell, scale, size) : null;
     // A wrapped name reaches a line higher, so the box grows with it.
-    const lines = cell.label ? geometry.labelLines(cell.label).length : 0;
+    const lines = cell.label && !beside ? geometry.labelLines(cell.label).length : 0;
     const headroom = lines
       ? limits.labelHeadroom + (lines - 1) * theme.fontSizes.label * LINE_STEP
       : 0;
     boxes.push([x - CELL_BOX_PAD, y - headroom,
                 x + w + CELL_BOX_PAD, y + h + CELL_BOX_PAD]);
+    if (beside) boxes.push(beside);
   }
   return boxes;
 }

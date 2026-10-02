@@ -182,6 +182,43 @@ export function cellBounds(symbol, cell, scale = 1) {
 
 
 
+// Mirrors LABEL_CHAR and LINE_STEP in render_svg.py: how wide a character of
+// a name is taken to be, and the baseline step between its lines.
+export const LABEL_CHAR = 0.62;
+export const LABEL_LINE_STEP = 1.15;
+
+// Where a cell's name goes: [x, baseline of the first line, anchor]. Mirrors
+// render_svg.cell_label_place: above and centred, unless a pin comes in at
+// the top, when it moves beside the cell -- left of the top-left corner, or
+// right of the top-right if a left pin is in the way.
+export function cellLabelPlace(symbol, cell, scale, size, textToCell, textToWire) {
+  const [bx, by, bw] = cellBounds(symbol, cell, scale);
+  const lines = labelLines(cell.label || "");
+  const count = lines.length || 1;
+  const spots = symbol.pins.map((pin) => pinPosition(symbol, cell, pin.name, scale))
+    .filter(Boolean);
+  const above = [bx + bw / 2, by - 5 - (count - 1) * size * LABEL_LINE_STEP, "middle"];
+  if (!spots.some(([, y]) => Math.abs(y - by) < 0.5)) return above;
+  const reach = by + size * (count - 1) * LABEL_LINE_STEP + size + textToWire;
+  const baseline = by + size * 0.8;
+  const sideFree = (edge) => !spots.some(([x, y]) => Math.abs(x - edge) < 0.5 && y <= reach);
+  if (sideFree(bx)) return [bx - textToCell, baseline, "end"];
+  if (sideFree(bx + bw)) return [bx + bw + textToCell, baseline, "start"];
+  return above;
+}
+
+// The rectangle a cell's name covers, as [x0, y0, x1, y1], or null.
+// Mirrors render_svg.cell_label_box.
+export function cellLabelBox(symbol, cell, scale, size, textToCell, textToWire) {
+  if (!cell.label) return null;
+  const lines = labelLines(cell.label);
+  const [x, top, anchor] = cellLabelPlace(symbol, cell, scale, size, textToCell, textToWire);
+  const width = Math.max(...lines.map((line) => line.length), 1) * size * LABEL_CHAR;
+  const x0 = anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
+  return [x0, top - size * 0.8, x0 + width,
+          top + size * 0.2 + (lines.length - 1) * size * LABEL_LINE_STEP];
+}
+
 // An instance name longer than this wants two lines. Mirrors
 // LABEL_WRAP_CHARS in geometry.py.
 export const LABEL_WRAP_CHARS = 12;

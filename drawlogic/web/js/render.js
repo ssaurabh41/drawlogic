@@ -13,6 +13,7 @@ let theme = null;
 
 export function setTheme(data) {
   theme = data;
+  geometry.setCellTextMetrics(data && data.fontSizes, data && data.cellText);
 }
 
 function el(name, attrs = {}) {
@@ -164,6 +165,23 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   into.appendChild(outer);
   into = outer;
 
+  // A cell standing for several copies: two outlines behind it. Mirrors
+  // _render_stack in render_svg.py.
+  if (geometry.cellCopies(cell)) {
+    const [bx, by, bw, bh] = geometry.cellBounds(symbol, cell, scale);
+    const offset = geometry.cellTextMetrics().stack;
+    for (const step of [2, 1]) {
+      into.appendChild(el("rect", {
+        class: "dl-stack",
+        x: geometry.fmt(bx + offset * step), y: geometry.fmt(by + offset * step),
+        width: geometry.fmt(bw), height: geometry.fmt(bh),
+        fill: style.fill || theme.colors.fill,
+        stroke: style.stroke || theme.colors.stroke,
+        "stroke-width": geometry.fmt(style.strokeWidth || theme.widths.stroke, 3),
+      }));
+    }
+  }
+
   const group = el("g", { transform: matrix.toSvg() });
   // A port is small and mostly outline, so a press a pixel off its shape
   // missed it. An invisible pad around it makes the whole neighbourhood a
@@ -254,6 +272,43 @@ function renderCell(symbol, cell, fontScale, scale, into) {
         text.appendChild(span);
       });
     }
+    into.appendChild(text);
+  }
+
+  renderCellText(symbol, cell, scale, fontScale, into);
+}
+
+// The lines written inside a cell, and a replicated cell's count badge.
+// Mirrors _render_cell_text in render_svg.py.
+function renderCellText(symbol, cell, scale, fontScale, into) {
+  const size = geometry.cellTextMetrics().size * fontScale;
+  const [placed] = geometry.cellTextLayout(symbol, cell, scale, fontScale);
+  for (const [x, y, line] of placed) {
+    const text = el("text", {
+      x: geometry.fmt(x), y: geometry.fmt(y),
+      "font-family": theme.fontSans,
+      "font-size": geometry.fmt(size, 2),
+      fill: theme.colors.label,
+    });
+    text.textContent = line;
+    into.appendChild(text);
+  }
+  const copies = geometry.cellCopies(cell);
+  if (copies) {
+    const [bx, by, bw] = geometry.cellBounds(symbol, cell, scale);
+    const label = `\u00d7${copies}`;
+    const width = 12 + label.length * 6.5;
+    const left = bx + bw - width + 4;
+    into.appendChild(el("rect", {
+      class: "dl-copies", x: geometry.fmt(left), y: geometry.fmt(by - 9),
+      width: geometry.fmt(width), height: 18, rx: 9, fill: theme.colors.label,
+    }));
+    const text = el("text", {
+      x: geometry.fmt(left + width / 2), y: geometry.fmt(by + 4),
+      "text-anchor": "middle", "font-family": theme.fontSans,
+      "font-size": 11, "font-weight": "700", fill: theme.colors.fill,
+    });
+    text.textContent = label;
     into.appendChild(text);
   }
 }

@@ -68,6 +68,8 @@ FONT_SIZES = {
   "net_label": 11.5,
   "title": 16.0,
   "shape_text": 14.0,
+  # Lines written inside a cell -- what a block in a block diagram is for.
+  "cell_text": 11.5,
 }
 
 # Air above and below the sheet title, which sits in a band along the top.
@@ -92,6 +94,13 @@ ARROW_SPACING = 240.0
 # Radius of the little bridge drawn where one wire crosses another
 # without connecting to it.
 HOP_RADIUS = 5.0
+
+# Text written inside a cell, and a cell drawn as a stack of copies. `pad` is
+# the air between the text and the cell's edge, `step` the baseline-to-
+# baseline distance as a multiple of the font size, `char` one character's
+# width as a fraction of it (the same estimate names use), and `stack` how far
+# each of the two outlines behind a replicated cell is offset.
+CELL_TEXT = {"pad": 8.0, "step": 1.3, "char": 0.62, "stack": 6.0}
 GHOST_DASH = "4 3"
 
 # Line patterns a wire can be drawn with, by the name its style stores. A

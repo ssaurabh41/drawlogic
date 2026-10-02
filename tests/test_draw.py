@@ -1226,3 +1226,82 @@ class TestNamesClearOfTopPins(unittest.TestCase):
     cell = doc.cell("q")
     self.assertEqual(render_svg.cell_label_place(
       self.registry.for_cell(cell), cell, doc.symbol_scale, doc.font_scale)[2], "middle")
+
+
+class TestTextInsideCells(unittest.TestCase):
+  """Lines written inside a cell, and a cell drawn as a stack of copies."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def block(self, **extra):
+    doc = new_document("blocks", 600, 400)
+    cell = {"id": "b", "type": "block", "x": 100, "y": 100, "label": "u_cpu"}
+    cell.update(extra)
+    doc.cells.append(cell)
+    doc.normalize()
+    return doc
+
+  def layout(self, doc):
+    cell = doc.cells[0]
+    return render_svg.cell_text_layout(self.registry.for_cell(cell), cell,
+                                       doc.symbol_scale, doc.font_scale)
+
+  def test_the_box_grows_to_hold_the_text(self):
+    lines = ["CPU cluster", "a", "b", "c", "d", "e", "a much longer line here"]
+    doc = self.block(text=lines)
+    cell = doc.cells[0]
+    symbol = self.registry.for_cell(cell)
+    self.assertGreater(cell["h"], symbol.height)
+    self.assertGreater(cell["w"], symbol.width)
+    placed, clipped = self.layout(doc)
+    self.assertFalse(clipped)
+    self.assertEqual([text for _x, _y, text in placed], lines)
+
+  def test_it_never_shrinks_a_box(self):
+    doc = self.block(text=["x"], w=300, h=200)
+    self.assertEqual((doc.cells[0]["w"], doc.cells[0]["h"]), (300, 200))
+
+  def test_fitting_twice_changes_nothing(self):
+    doc = self.block(text=["one", "two", "three", "four", "five", "six"])
+    size = (doc.cells[0]["w"], doc.cells[0]["h"])
+    doc.normalize()
+    self.assertEqual((doc.cells[0]["w"], doc.cells[0]["h"]), size)
+
+  def test_without_fitting_the_text_is_cut_short(self):
+    doc = self.block(text=["short", "x" * 60] + ["l"] * 9, textFit=False)
+    placed, clipped = self.layout(doc)
+    self.assertTrue(clipped)
+    self.assertTrue(placed[1][2].endswith("…"))
+    self.assertTrue(placed[-1][2].endswith("…"))
+    self.assertEqual(doc.cells[0]["h"], self.registry.for_cell(doc.cells[0]).height)
+
+  def test_text_is_left_aligned_inside_the_box(self):
+    doc = self.block(text=["one", "two"])
+    placed, _ = self.layout(doc)
+    xs = {round(x, 3) for x, _y, _t in placed}
+    self.assertEqual(xs, {100 + theme.CELL_TEXT["pad"]})
+    self.assertLess(placed[0][1], placed[1][1])
+
+  def test_copies_draw_two_outlines_and_a_count(self):
+    svg = render_svg.render(self.block(copies=4), registry=self.registry)
+    self.assertEqual(svg.count('class="dl-stack"'), 2)
+    self.assertIn("×4", svg)
+    one = render_svg.render(self.block(copies=1), registry=self.registry)
+    self.assertNotIn("dl-stack", one)
+
+  def test_a_cell_without_either_draws_as_before(self):
+    plain = render_svg.render(self.block(), registry=self.registry)
+    self.assertNotIn("dl-stack", plain)
+    self.assertNotIn("dl-copies", plain)
+
+  def test_any_cell_can_hold_text(self):
+    doc = new_document("gate", 400, 300)
+    doc.cells.append({"id": "g", "type": "and2", "x": 100, "y": 100,
+                      "text": ["enable gate"]})
+    doc.normalize()
+    cell = doc.cells[0]
+    placed, clipped = render_svg.cell_text_layout(
+      self.registry.for_cell(cell), cell, 1, 1)
+    self.assertEqual(placed[0][2], "enable gate")
+    self.assertFalse(clipped)

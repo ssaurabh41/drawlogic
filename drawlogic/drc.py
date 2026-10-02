@@ -535,6 +535,7 @@ def check(doc, registry=None, routes=None, labels=None):
   _check_wire_shape(scene, report)
   _check_cell_spacing(scene, report)
   _check_text(scene, report)
+  _check_cell_text(scene, report)
   _check_hops(scene, report)
   _check_sheet(scene, report)
   return report.violations()
@@ -942,6 +943,30 @@ def _check_hops(scene, report):
         "net %s and %s" % (scene.net_name(net_id), what),
         "a crossing bridge sits %.1f from the text and breaks it up" % gap,
         spot))
+
+
+def _check_cell_text(scene, report):
+  """Text written inside a cell that does not fit in it.
+
+  Only possible with fit-to-text switched off for that cell: then the box
+  keeps the size it was given and what does not fit is cut short with an
+  ellipsis. The drawing still reads, but it no longer says everything the
+  file does, which is worth knowing about.
+  """
+  # Imported here, as _Scene does: render_svg imports this module.
+  from . import render_svg
+  for placed in scene.cells:
+    shown, clipped = render_svg.cell_text_layout(
+      placed.symbol, placed.cell, scene.doc.symbol_scale, scene.doc.font_scale)
+    if not clipped:
+      continue
+    lines = render_svg.cell_text_lines(placed.cell)
+    report.add(("cell-text-clipped", placed.id), 0, Violation(
+      "cell-text-clipped", "warning", placed.name(),
+      "the text inside is cut short (%d of %d lines shown in full); make the "
+      "box bigger or switch fit-to-text back on"
+      % (sum(1 for _x, _y, line in shown if not line.endswith("\u2026")),
+         len(lines)), (placed.box[0], placed.box[1])))
 
 
 def _check_sheet(scene, report):

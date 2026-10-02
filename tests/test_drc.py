@@ -798,3 +798,23 @@ class TestLegsGetOutOfEachOthersWay(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+
+
+class TestCellTextClipped(unittest.TestCase):
+  """Text cut short inside a cell is a warning; fitted text never is."""
+
+  def drawing(self, fit):
+    doc = new_document("t", 600, 400)
+    doc.cells.append({"id": "c", "type": "block", "x": 200, "y": 100,
+                      "text": ["DDR ctrl", "LPDDR4x, two channels by sixteen",
+                               "a", "b", "c", "d", "e"], "textFit": fit})
+    doc.normalize()
+    return doc
+
+  def test_cut_short_is_reported(self):
+    found = only(drc.check(self.drawing(False)), "cell-text-clipped")
+    self.assertEqual(len(found), 1)
+    self.assertEqual(found[0].level, "warning")
+
+  def test_fitted_text_is_not(self):
+    self.assertEqual(only(drc.check(self.drawing(True)), "cell-text-clipped"), [])

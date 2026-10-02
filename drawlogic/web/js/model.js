@@ -406,6 +406,46 @@ export function setLabel(doc, id, label) {
   else item.label = label || null;
 }
 
+// Text written inside a cell, one line per line typed. The box grows to hold
+// it unless fitting has been switched off -- the same rule doc.py applies on
+// load, so a file reads back the size the editor left it.
+export function fitCell(doc, cell) {
+  const symbol = geometry.forCell(cell);
+  if (!symbol) return false;
+  const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+  return geometry.fitCellText(symbol, cell, routing.symbolScale(doc), fontScale);
+}
+
+export function setCellText(doc, id, raw) {
+  const cell = doc.cells.find((c) => c.id === id);
+  if (!cell) return;
+  const lines = String(raw || "").replace(/\r/g, "").split("\n")
+    .map((line) => line.replace(/\s+$/, ""));
+  while (lines.length && !lines[lines.length - 1]) lines.pop();
+  if (lines.length) cell.text = lines;
+  else delete cell.text;
+  fitCell(doc, cell);
+}
+
+export function setTextFit(doc, id, fit) {
+  const cell = doc.cells.find((c) => c.id === id);
+  if (!cell) return;
+  if (fit) delete cell.textFit;
+  else cell.textFit = false;
+  fitCell(doc, cell);
+}
+
+// How many copies a cell stands for; anything under two is just the one.
+export function setCopies(doc, id, value) {
+  const cell = doc.cells.find((c) => c.id === id);
+  if (!cell) return false;
+  const number = Math.trunc(Number(value));
+  if (String(value).trim() === "" || number < 2) delete cell.copies;
+  else if (Number.isFinite(number)) cell.copies = Math.min(number, 999);
+  else return false;
+  return true;
+}
+
 // A custom cell's picture is embedded as a data URI, so a .dlg stays one
 // shippable file rather than a file plus a folder of images.
 export function setCellImage(doc, id, dataUri) {

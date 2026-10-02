@@ -1010,3 +1010,7 @@ select {
 .action, .tool { transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease; }
 .menu-panel { border-radius: 8px; padding: 5px; }
 .menu-item { border-radius: 5px; }
+
+/* The several-line box for text written inside a cell. */
+textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
+                 line-height: 1.4; }

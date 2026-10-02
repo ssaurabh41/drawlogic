@@ -48,6 +48,7 @@ def _theme_payload():
     "junctionRadius": theme.JUNCTION_RADIUS, "arrowSize": theme.ARROW_SIZE,
     "arrowSpacing": theme.ARROW_SPACING, "hopRadius": theme.HOP_RADIUS,
     "pinLabelInset": theme.PIN_LABEL_INSET, "wireDashes": theme.WIRE_DASHES,
+    "cellText": theme.CELL_TEXT,
   }
 
 
@@ -228,6 +229,94 @@ class TestNamesBesideCellsAgree(unittest.TestCase):
     browser = _browser_render(doc, self.registry)
     exported = render_svg.render(doc, registry=self.registry)
     self.assertEqual(browser["wires"], _exported_wires(exported))
+
+
+def _block_diagram_drawing():
+  """Text inside cells -- fitted, cut short, rotated -- and replicated cells."""
+  doc = new_document("blocks", 900, 500)
+  doc.canvas["grid"]["style"] = "blank"
+  doc.cells.extend([
+    {"id": "cpu", "type": "block", "x": 80, "y": 80, "label": "u_cpu",
+     "text": ["CPU cluster", "Cortex-A55", "4 cores, 1.8 GHz", "1 MB L2", "ACE"],
+     "copies": 4},
+    {"id": "ddr", "type": "block", "x": 380, "y": 80, "textFit": False,
+     "text": ["DDR ctrl", "LPDDR4x, 2 ch x 16b wide", "a", "b", "c", "d"]},
+    {"id": "dma", "type": "block6", "x": 600, "y": 260, "rotate": 90,
+     "text": ["DMA", "8 channels"], "copies": 2},
+    {"id": "g", "type": "and2", "x": 300, "y": 330, "text": ["en"]},
+  ])
+  doc.nets.append({"id": "n1", "from": {"cell": "cpu", "pin": "out1"},
+                   "to": [{"cell": "ddr", "pin": "in1"}]})
+  doc.normalize()
+  return doc
+
+
+def _exported_inside(svg):
+  start = svg.index('<g class="dl-cells">')
+  found = re.findall(r'<text x="([^"]+)" y="([^"]+)" font-family="[^"]+" '
+                     r'font-size="[^"]+" fill="[^"]+">([^<]*)<', svg[start:])
+  return sorted([text, x, y] for x, y, text in found)
+
+
+def _exported_stacks(svg):
+  return sorted([c, x, y, w, h] for c, x, y, w, h in re.findall(
+    r'<rect class="(dl-stack|dl-copies)" x="([^"]+)" y="([^"]+)" '
+    r'width="([^"]+)" height="([^"]+)"', svg))
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestCellTextAgrees(unittest.TestCase):
+  """Text inside cells and replicated cells draw the same in both renderers."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def test_the_same_lines_in_the_same_places(self):
+    doc = _block_diagram_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = render_svg.render(doc, registry=self.registry)
+    self.assertTrue(browser["inside"], "the fixture draws no text inside")
+    self.assertEqual(browser["inside"], _exported_inside(exported))
+    self.assertTrue(any(text.endswith("\u2026") for text, _x, _y in browser["inside"]),
+                    "the fixture cuts nothing short, so clipping is untested")
+
+  def test_the_same_stacks_and_badges(self):
+    doc = _block_diagram_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = render_svg.render(doc, registry=self.registry)
+    self.assertEqual(len(browser["stacks"]), 6)
+    self.assertEqual(browser["stacks"], _exported_stacks(exported))
+
+  def test_both_fit_the_box_the_same_way(self):
+    """The editor grows a box as text is typed; doc.py does it on load. The
+    two have to land on the same size or a saved file reopens different."""
+    import json as _json
+    doc = _block_diagram_drawing()
+    for cell in doc.cells:
+      cell["w"], cell["h"] = self.registry.for_cell(cell).width, \
+        self.registry.for_cell(cell).height
+    script = (
+      "import * as g from './drawlogic/web/js/geometry.js';"
+      "import { readFileSync } from 'node:fs';"
+      "g.setLibrary(JSON.parse(readFileSync(process.argv[1], 'utf8')));"
+      "const doc = JSON.parse(readFileSync(process.argv[2], 'utf8'));"
+      "for (const c of doc.cells) g.fitCellText(g.forCell(c), c, 1, 1);"
+      "console.log(JSON.stringify(doc.cells.map((c) => [c.id, c.w, c.h])));")
+    handles = []
+    try:
+      for payload in (self.registry.as_data(), doc.ordered()):
+        handle, name = tempfile.mkstemp(suffix=".json")
+        with os.fdopen(handle, "w") as out:
+          _json.dump(payload, out)
+        handles.append(name)
+      browser = _json.loads(subprocess.check_output(
+        [NODE, "--input-type=module", "-e", script] + handles, cwd=ROOT))
+    finally:
+      for name in handles:
+        os.unlink(name)
+    for cell in doc.cells:
+      render_svg.fit_cell_text(self.registry.for_cell(cell), cell, 1, 1)
+    self.assertEqual(browser, [[c["id"], c["w"], c["h"]] for c in doc.cells])
 
 
 @unittest.skipUnless(NODE, "node is not installed")

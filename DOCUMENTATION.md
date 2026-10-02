@@ -604,6 +604,25 @@ panel then shows:
 
 `Delete` removes the selected wire.
 
+### Text inside a cell, and copies
+
+For block diagrams, any cell can carry lines of text inside it: select it
+and type into **Text inside** in the properties panel, one line per line
+(Enter makes a new line; leaving the box or `Ctrl+Enter` keeps it). The lines
+are left-aligned from the top-left of the box and stay upright however the
+cell is turned. The instance name stays where it is, above.
+
+**Fit box** is on by default: the box grows to hold the text, and cannot be
+resized smaller than it. It never shrinks on its own, so a box made bigger on
+purpose stays that size. Switched off, the box keeps its size and text that
+does not fit is cut short with an ellipsis, which the `cell-text-clipped`
+check reports.
+
+**Copies** says how many of the cell there are -- four cores, eight lanes.
+Two or more draws two outlines behind the cell and a `×N` badge on its corner.
+It is still one cell with one set of pins: wires, layout and the checks treat
+it like any other.
+
 ### Resizing cells and the sheet
 
 A gate keeps its proportions when resized, since one drawn stretched looks
@@ -781,6 +800,9 @@ gains nothing from it has no such key at all.
 | `rotate` | 0, 90, 180 or 270, about the cell's centre |
 | `mirror` | flipped left-to-right |
 | `label` | instance name, drawn above the cell -- or beside its top-left corner when a pin comes in at the top, so that pin's wire does not run through it |
+| `text` | lines written inside the cell, e.g. `["CPU cluster", "4 cores", "1 MB L2"]`; left-aligned from the top |
+| `textFit` | `false` keeps the box its size and cuts text that does not fit; left out, the box grows to hold the text |
+| `copies` | 2 or more draws the cell as a stack of three outlines with a `×N` badge; still one cell |
 | `pins` | per-pin names, e.g. `{"in1": "wptr"}`; see below |
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |
@@ -1447,6 +1469,7 @@ point to look at.
 | `wire-spacing` | parallel runs closer than `WIRE_GAP` |
 | `wire-to-cell` | a wire passing close enough to a body to suggest a joint |
 | `wire-jog` | a step shorter than `WIRE_MIN_JOG` |
+| `cell-text-clipped` | text inside a cell cut short because fit-to-text is off for it |
 | `cell-spacing` | two parts closer than `CELL_MIN_GAP` |
 | `port-spacing`, `port-to-cell`, `port-to-wire` | the same questions for ports, at their own distances |
 | `text-to-wire`, `text-to-cell`, `text-to-text` | an instance name or a text note against a wire, a body, or another name |

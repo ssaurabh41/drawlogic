@@ -370,6 +370,8 @@ export class SelectTool {
         item.y = fixed[1] + (start.y - fixed[1]) * scaleY;
         if (start.w !== undefined) item.w = Math.max(4, start.w * scaleX);
         if (start.h !== undefined) item.h = Math.max(4, start.h * scaleY);
+        // A box holding text cannot be squeezed smaller than the text.
+        if (!model.isShape(item)) model.fitCell(doc, item);
       }
     });
   }

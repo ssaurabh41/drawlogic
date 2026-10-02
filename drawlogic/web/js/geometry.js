@@ -219,6 +219,104 @@ export function cellLabelBox(symbol, cell, scale, size, textToCell, textToWire) 
           top + size * 0.2 + (lines.length - 1) * size * LABEL_LINE_STEP];
 }
 
+// ---- text inside a cell, and replicated cells ----
+//
+// Mirrors cell_text_lines, cell_copies, cell_text_needs, cell_text_layout and
+// fit_cell_text in render_svg.py. The sizes come from the theme the server
+// sends; these defaults are theme.py's, for when this runs on its own.
+let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 6 };
+
+export function setCellTextMetrics(sizes, metrics) {
+  cellText = { ...cellText, ...(metrics || {}) };
+  if (sizes && sizes.cell_text) cellText.size = sizes.cell_text;
+}
+
+export function cellTextMetrics() {
+  return cellText;
+}
+
+export function cellTextLines(cell) {
+  let lines;
+  if (typeof cell.text === "string") lines = cell.text.split("\n");
+  else if (Array.isArray(cell.text)) lines = cell.text.map((line) => String(line));
+  else return [];
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  return lines;
+}
+
+export function cellCopies(cell) {
+  const value = cell.copies;
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  const whole = Math.trunc(value);
+  return whole >= 2 ? whole : 0;
+}
+
+function textSizes(fontScale) {
+  const size = cellText.size * fontScale;
+  return [size, cellText.pad, size * cellText.step, size * cellText.char];
+}
+
+export function cellTextNeeds(lines, fontScale = 1) {
+  if (!lines.length) return [0, 0];
+  const [size, pad, step, char] = textSizes(fontScale);
+  const widest = Math.max(...lines.map((line) => line.length));
+  return [2 * pad + widest * char, 2 * pad + size + (lines.length - 1) * step];
+}
+
+function ellipsis(line, room, force = false) {
+  if (room <= 0) return "";
+  if (!force && line.length <= room) return line;
+  return `${line.slice(0, Math.max(0, Math.min(line.length, room - 1))).trimEnd()}\u2026`;
+}
+
+// [[x, baseline, text], ...] and whether anything had to be cut.
+export function cellTextLayout(symbol, cell, scale = 1, fontScale = 1) {
+  const lines = cellTextLines(cell);
+  if (!lines.length) return [[], false];
+  const [x, y, w, h] = cellBounds(symbol, cell, scale);
+  const [size, pad, step, char] = textSizes(fontScale);
+  const room = Math.max(0, Math.trunc((w - 2 * pad) / char + 1e-6));
+  const placed = [];
+  let clipped = false;
+  for (let index = 0; index < lines.length; index += 1) {
+    let line = lines[index];
+    const baseline = y + pad + size * 0.8 + index * step;
+    if (baseline + size * 0.2 > y + h - pad + 1e-6) {
+      clipped = true;
+      if (placed.length) {
+        const last = placed[placed.length - 1];
+        placed[placed.length - 1] = [last[0], last[1], ellipsis(last[2], room, true)];
+      }
+      break;
+    }
+    if (line.length > room) {
+      clipped = true;
+      line = ellipsis(line, room);
+    }
+    placed.push([x + pad, baseline, line]);
+  }
+  return [placed, clipped];
+}
+
+// Grow a cell until its text fits, unless fitting is off. Only ever grows.
+export function fitCellText(symbol, cell, scale = 1, fontScale = 1) {
+  if (cell.textFit === false) return false;
+  const lines = cellTextLines(cell);
+  if (!lines.length) return false;
+  const [needW, needH] = cellTextNeeds(lines, fontScale);
+  const [, , w, h] = cellBounds(symbol, cell, scale);
+  const turned = ((Number(cell.rotate) || 0) % 180 + 180) % 180 === 90;
+  let grew = false;
+  for (const [sheet, need, key] of [[w, needW, turned ? "h" : "w"],
+                                    [h, needH, turned ? "w" : "h"]]) {
+    const own = Number(cell[key]) || 0;
+    if (own <= 0 || sheet >= need - 1e-6) continue;
+    cell[key] = Math.ceil(own * need / sheet);
+    grew = true;
+  }
+  return grew;
+}
+
 // An instance name longer than this wants two lines. Mirrors
 // LABEL_WRAP_CHARS in geometry.py.
 export const LABEL_WRAP_CHARS = 12;

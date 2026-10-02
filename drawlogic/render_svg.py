@@ -175,8 +175,167 @@ def _cell_bbox(symbol, cell, scale=1.0):
   return (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
 
 
+def cell_text_lines(cell):
+  """The lines written inside a cell, as a list; [] when it has none.
+
+  Stored as a list of lines, one per string. A single string is accepted too,
+  split at newlines, since that is what a hand-written file is likely to hold.
+  Blank lines at the end say nothing and would only make the box taller.
+  """
+  text = cell.get("text")
+  if isinstance(text, str):
+    lines = text.split("\n")
+  elif isinstance(text, list):
+    lines = [line if isinstance(line, str) else str(line) for line in text]
+  else:
+    return []
+  while lines and not lines[-1].strip():
+    lines.pop()
+  return lines
+
+
+def cell_copies(cell):
+  """How many copies a cell stands for, or 0 when it is just the one."""
+  value = cell.get("copies")
+  if isinstance(value, bool) or not isinstance(value, (int, float)):
+    return 0
+  value = int(value)
+  return value if value >= 2 else 0
+
+
+def _cell_text_metrics(font_scale):
+  size = theme.FONT_SIZES["cell_text"] * font_scale
+  metrics = theme.CELL_TEXT
+  return size, metrics["pad"], size * metrics["step"], size * metrics["char"]
+
+
+def cell_text_needs(lines, font_scale=1.0):
+  """The (width, height) a box needs on the sheet to hold these lines."""
+  if not lines:
+    return 0.0, 0.0
+  size, pad, step, char = _cell_text_metrics(font_scale)
+  widest = max(len(line) for line in lines)
+  return (2 * pad + widest * char, 2 * pad + size + (len(lines) - 1) * step)
+
+
+def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+  """Where each line inside a cell is drawn, and whether any had to be cut.
+
+  Returns ([(x, baseline, text), ...], clipped). Left-aligned from the top-left
+  of the cell's box on the sheet, upright whatever the cell's rotation. A line
+  too wide for the box ends in an ellipsis, and the lines that do not fit
+  below are dropped with an ellipsis on the last one shown -- `clipped` says
+  so, which is what the DRC reports. With fit-to-text on, nothing is clipped.
+  """
+  lines = cell_text_lines(cell)
+  if not lines:
+    return [], False
+  x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
+  size, pad, step, char = _cell_text_metrics(font_scale)
+  room = max(0, int((w - 2 * pad) / char + 1e-6))
+  placed = []
+  clipped = False
+  for index, line in enumerate(lines):
+    baseline = y + pad + size * 0.8 + index * step
+    if baseline + size * 0.2 > y + h - pad + 1e-6:
+      clipped = True
+      if placed:
+        last_x, last_y, last = placed[-1]
+        placed[-1] = (last_x, last_y, _ellipsis(last, room, force=True))
+      break
+    if len(line) > room:
+      clipped = True
+      line = _ellipsis(line, room)
+    placed.append((x + pad, baseline, line))
+  return placed, clipped
+
+
+def _ellipsis(line, room, force=False):
+  """Cut a line to `room` characters, the last of them an ellipsis."""
+  if room <= 0:
+    return ""
+  if not force and len(line) <= room:
+    return line
+  return line[:max(0, min(len(line), room - 1))].rstrip() + "\u2026"
+
+
+def fit_cell_text(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+  """Grow a cell until its text fits, unless fitting is switched off.
+
+  Only ever grows: a box someone made bigger on purpose stays that size, and
+  one with no text keeps the size its symbol gave it. Returns True if it grew.
+  """
+  if cell.get("textFit") is False:
+    return False
+  lines = cell_text_lines(cell)
+  if not lines:
+    return False
+  need_w, need_h = cell_text_needs(lines, font_scale)
+  _x, _y, w, h = _cell_bbox(symbol, cell, symbol_scale)
+  turned = int(cell.get("rotate", 0) or 0) % 180 == 90
+  grew = False
+  # The box on the sheet against the cell's own w and h, which swap places
+  # when the cell is turned a quarter.
+  for sheet, need, key in ((w, need_w, "h" if turned else "w"),
+                           (h, need_h, "w" if turned else "h")):
+    own = float(cell.get(key) or 0)
+    if own <= 0 or sheet >= need - 1e-6:
+      continue
+    cell[key] = math.ceil(own * need / sheet)
+    grew = True
+  return grew
+
+
+def _render_stack(symbol, cell, symbol_scale, out):
+  """The two outlines behind a cell that stands for several copies."""
+  if not cell_copies(cell):
+    return
+  x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
+  style = cell.get("style") or {}
+  offset = theme.CELL_TEXT["stack"]
+  for step in (2, 1):
+    out.append("<rect %s />" % _attrs([
+      ("class", "dl-stack"),
+      ("x", fmt(x + offset * step)), ("y", fmt(y + offset * step)),
+      ("width", fmt(w)), ("height", fmt(h)),
+      ("fill", style.get("fill", theme.COLORS["fill"])),
+      ("stroke", style.get("stroke", theme.COLORS["stroke"])),
+      ("stroke-width", fmt(style.get("strokeWidth", theme.WIDTHS["stroke"]), 3))]))
+
+
+def _render_cell_text(symbol, cell, symbol_scale, font_scale, out):
+  """The lines written inside a cell, and the count badge of a replicated one."""
+  size = theme.FONT_SIZES["cell_text"] * font_scale
+  placed, _clipped = cell_text_layout(symbol, cell, symbol_scale, font_scale)
+  for x, y, line in placed:
+    out.append("<text %s>%s</text>" % (_attrs([
+      ("x", fmt(x)), ("y", fmt(y)),
+      ("font-family", theme.FONT_SANS),
+      ("font-size", fmt(size, 2)),
+      ("fill", theme.COLORS["label"])]), esc(line)))
+  copies = cell_copies(cell)
+  if copies:
+    bx, by, bw, _bh = _cell_bbox(symbol, cell, symbol_scale)
+    text = "\u00d7%d" % copies
+    width = 12 + len(text) * 6.5
+    left = bx + bw - width + 4
+    out.append("<rect %s />" % _attrs([
+      ("class", "dl-copies"),
+      ("x", fmt(left)), ("y", fmt(by - 9)),
+      ("width", fmt(width)), ("height", "18"), ("rx", "9"),
+      ("fill", theme.COLORS["label"])]))
+    out.append("<text %s>%s</text>" % (_attrs([
+      ("x", fmt(left + width / 2.0)), ("y", fmt(by + 4)),
+      ("text-anchor", "middle"),
+      ("font-family", theme.FONT_SANS),
+      ("font-size", "11"),
+      ("font-weight", "700"),
+      ("fill", theme.COLORS["fill"])]), esc(text)))
+
+
 def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
   """Draw one placed cell: its shapes transformed, its text kept upright."""
+  _render_stack(symbol, cell, symbol_scale, out)
   matrix = symbol.matrix_for(cell, symbol_scale)
   # Distinct from symbol_scale: this is how much the matrix magnifies, and it
   # is what stroke widths are divided by so line weight stays constant.
@@ -266,6 +425,8 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
         ("font-weight", "600"),
         ("fill", theme.COLORS["label"])]),
       spans))
+
+  _render_cell_text(symbol, cell, symbol_scale, font_scale, out)
 
 
 def _pin_label(x, y, anchor, text, font_scale, out):

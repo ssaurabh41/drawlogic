@@ -518,12 +518,62 @@ export class Inspector {
     });
     root.appendChild(row("Pinned", pinned));
 
+    this.renderCellText(cell);
+
     // A custom cell can carry its own picture, embedded so the .dlg stays one
     // shippable file.
     if (cell.type === "custom") this.renderImagePicker(cell);
 
     const symbol = geometry.forCell(cell);
     if (symbol) this.renderPins(cell, symbol);
+  }
+
+  // What a block in a block diagram says: lines written inside it, and how
+  // many copies it stands for.
+  renderCellText(cell) {
+    const root = this.root;
+    root.appendChild(element("div", "ptitle", "Text inside"));
+
+    // A box for several lines. Enter is a new line here, so the edit is kept
+    // when the box is left (or Ctrl+Enter), not on Enter as in other fields.
+    const text = document.createElement("textarea");
+    text.className = "pinput ptext";
+    text.rows = 4;
+    text.placeholder = "one line per line";
+    text.value = (cell.text || []).join("\n");
+    text.addEventListener("keydown", (event) => {
+      event.stopPropagation();
+      if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        text.blur();
+      } else if (event.key === "Escape") {
+        text.blur();
+      }
+    });
+    this.bind(text, (doc, value) => model.setCellText(doc, cell.id, value), "cell text");
+    // The box may have grown to fit, so the size fields above are redrawn.
+    text.addEventListener("change", () => this.render());
+    root.appendChild(row("Text", text));
+
+    const fit = document.createElement("input");
+    fit.type = "checkbox";
+    fit.className = "pcheck";
+    fit.checked = cell.textFit !== false;
+    fit.title = "grow the box so the text fits; off, text that does not fit is cut short";
+    fit.addEventListener("change", () => {
+      this.store.mutate("fit text", (doc) => model.setTextFit(doc, cell.id, fit.checked));
+      this.onChange();
+      this.render();
+    });
+    root.appendChild(row("Fit box", fit));
+
+    const copies = input(cell.copies || "", "number");
+    copies.min = "1";
+    copies.step = "1";
+    copies.placeholder = "1";
+    copies.title = "2 or more draws the cell as a stack with a count";
+    this.bind(copies, (doc, value) => model.setCopies(doc, cell.id, value), "copies");
+    root.appendChild(row("Copies", copies));
   }
 
   renderImagePicker(cell) {

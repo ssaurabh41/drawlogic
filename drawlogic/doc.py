@@ -47,7 +47,8 @@ CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
-             "pins", "style", "image", "ref", "pinned"]
+             "text", "textFit", "copies", "pins", "style", "image", "ref",
+             "pinned"]
 NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 # A load is a point that may also say which way the wire to it should go.
@@ -626,6 +627,12 @@ class Document(object):
       for key in ("w", "h"):
         if key in cell:
           _number(cell, key, "%s.%s" % (where, key), positive=True)
+      # Text written inside the cell: the box grows to hold it, as the editor
+      # does when it is typed, so a hand-edited file comes out the same.
+      if symbol is not None and "w" in cell and "h" in cell:
+        from . import render_svg
+        render_svg.fit_cell_text(symbol, cell, self.symbol_scale,
+                                 self.font_scale)
 
     by_id = {cell.get("id"): cell for cell in _list_of_objects(data, "cells")}
     for net in _list_of_objects(data, "nets"):

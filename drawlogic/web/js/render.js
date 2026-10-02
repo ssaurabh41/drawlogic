@@ -165,12 +165,12 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   into.appendChild(outer);
   into = outer;
 
-  // A cell standing for several copies: two outlines behind it. Mirrors
+  // A cell standing for several copies: one outline behind it. Mirrors
   // _render_stack in render_svg.py.
   if (geometry.cellCopies(cell)) {
     const [bx, by, bw, bh] = geometry.cellBounds(symbol, cell, scale);
     const offset = geometry.cellTextMetrics().stack;
-    for (const step of [2, 1]) {
+    for (const step of [1]) {
       into.appendChild(el("rect", {
         class: "dl-stack",
         x: geometry.fmt(bx + offset * step), y: geometry.fmt(by + offset * step),

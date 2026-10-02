@@ -99,7 +99,7 @@ HOP_RADIUS = 5.0
 # the air between the text and the cell's edge, `step` the baseline-to-
 # baseline distance as a multiple of the font size, `char` one character's
 # width as a fraction of it (the same estimate names use), and `stack` how far
-# each of the two outlines behind a replicated cell is offset.
+# the outline behind a replicated cell is offset.
 CELL_TEXT = {"pad": 8.0, "step": 1.3, "char": 0.62, "stack": 6.0}
 GHOST_DASH = "4 3"
 

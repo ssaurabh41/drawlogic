@@ -284,7 +284,7 @@ class TestCellTextAgrees(unittest.TestCase):
     doc = _block_diagram_drawing()
     browser = _browser_render(doc, self.registry)
     exported = render_svg.render(doc, registry=self.registry)
-    self.assertEqual(len(browser["stacks"]), 6)
+    self.assertEqual(len(browser["stacks"]), 4)
     self.assertEqual(browser["stacks"], _exported_stacks(exported))
 
   def test_both_fit_the_box_the_same_way(self):

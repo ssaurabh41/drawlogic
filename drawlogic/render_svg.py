@@ -287,13 +287,13 @@ def fit_cell_text(symbol, cell, symbol_scale=1.0, font_scale=1.0):
 
 
 def _render_stack(symbol, cell, symbol_scale, out):
-  """The two outlines behind a cell that stands for several copies."""
+  """The outline behind a cell that stands for several copies."""
   if not cell_copies(cell):
     return
   x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
   style = cell.get("style") or {}
   offset = theme.CELL_TEXT["stack"]
-  for step in (2, 1):
+  for step in (1,):
     out.append("<rect %s />" % _attrs([
       ("class", "dl-stack"),
       ("x", fmt(x + offset * step)), ("y", fmt(y + offset * step)),

@@ -1283,9 +1283,9 @@ class TestTextInsideCells(unittest.TestCase):
     self.assertEqual(xs, {100 + theme.CELL_TEXT["pad"]})
     self.assertLess(placed[0][1], placed[1][1])
 
-  def test_copies_draw_two_outlines_and_a_count(self):
+  def test_copies_draw_one_outline_behind_and_a_count(self):
     svg = render_svg.render(self.block(copies=4), registry=self.registry)
-    self.assertEqual(svg.count('class="dl-stack"'), 2)
+    self.assertEqual(svg.count('class="dl-stack"'), 1)
     self.assertIn("×4", svg)
     one = render_svg.render(self.block(copies=1), registry=self.registry)
     self.assertNotIn("dl-stack", one)

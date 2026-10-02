@@ -83,6 +83,27 @@ def positions(doc):
   return [(c["id"], round(c["x"], 3), round(c["y"], 3)) for c in doc.cells]
 
 
+EXAMPLE_NAMES = sorted(name for name in os.listdir(os.path.join(ROOT, "examples"))
+                       if name.endswith(".dlg"))
+_LAID_OUT = {}
+
+
+def laid_out(name):
+  """Example `name` laid out once with the default settings, as a fresh copy.
+
+  Several tests ask different questions of the same laid-out examples, and
+  laying each one out again per test was most of this file's run time. The
+  copy comes from the saved text, so a test that changes it cannot change
+  what the next test is handed.
+  """
+  if name not in _LAID_OUT:
+    doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+    layout.arrange(doc, registry)
+    _LAID_OUT[name] = (doc.dumps(), registry)
+  text, registry = _LAID_OUT[name]
+  return Document.loads(text), registry
+
+
 class TestFlow(unittest.TestCase):
 
   def setUp(self):
@@ -151,12 +172,9 @@ class TestItStaysPut(unittest.TestCase):
     self.assertEqual(positions(doc), once)
 
   def test_every_example_settles_after_one_pass(self):
-    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
-      if not name.endswith(".dlg"):
-        continue
+    for name in EXAMPLE_NAMES:
       with self.subTest(example=name):
-        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
-        layout.arrange(doc, registry)
+        doc, registry = laid_out(name)
         once = doc.dumps()
         layout.arrange(doc, registry)
         # The whole file, not just positions: which way wires fork and which
@@ -175,12 +193,9 @@ class TestNothingLandsOnAnythingElse(unittest.TestCase):
     self.assertEqual(overlapping(doc, self.registry), [])
 
   def test_no_two_cells_overlap_in_any_example(self):
-    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
-      if not name.endswith(".dlg"):
-        continue
+    for name in EXAMPLE_NAMES:
       with self.subTest(example=name):
-        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
-        layout.arrange(doc, registry)
+        doc, registry = laid_out(name)
         self.assertEqual(overlapping(doc, registry), [])
 
   def test_the_sheet_grows_to_hold_the_result(self):
@@ -437,12 +452,9 @@ class TestAutoLayoutLeavesNoErrors(unittest.TestCase):
   two nets as one; this holds the examples to none."""
 
   def test_no_example_comes_out_of_layout_with_an_error(self):
-    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
-      if not name.endswith(".dlg"):
-        continue
+    for name in EXAMPLE_NAMES:
       with self.subTest(example=name):
-        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
-        layout.arrange(doc, registry)
+        doc, registry = laid_out(name)
         errors = [str(v) for v in drc.check(doc, registry)
                   if v.level == "error"]
         self.assertEqual(errors, [])
@@ -512,20 +524,17 @@ class TestRefinement(unittest.TestCase):
     cannot break this -- but the pass going quiet everywhere does.
     """
     improved = []
-    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
-      if not name.endswith(".dlg"):
-        continue
-      scores = {}
-      for sweeps in (0, layout.REFINE_SWEEPS):
-        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
-        was = layout.REFINE_SWEEPS
-        try:
-          layout.REFINE_SWEEPS = sweeps
-          layout.arrange(doc, registry)
-          scores[sweeps] = layout._score(doc, registry)
-        finally:
-          layout.REFINE_SWEEPS = was
-      if scores[layout.REFINE_SWEEPS] < scores[0] - 1.0:
+    for name in EXAMPLE_NAMES:
+      doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
+      was = layout.REFINE_SWEEPS
+      try:
+        layout.REFINE_SWEEPS = 0
+        layout.arrange(doc, registry)
+        unrefined = layout._score(doc, registry)
+      finally:
+        layout.REFINE_SWEEPS = was
+      refined = layout._score(*laid_out(name))
+      if refined < unrefined - 1.0:
         improved.append(name)
     self.assertTrue(improved,
                     "refining improved none of the examples, so it is only "

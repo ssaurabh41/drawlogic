@@ -19,12 +19,12 @@ import subprocess
 import tempfile
 import unittest
 
-from drawlogic import drc, hdl, layout, render_svg, routing, theme
+from drawlogic import drc, layout, render_svg, routing, theme
 from drawlogic.doc import new_document
 from drawlogic.symbols import default_registry
 
 from tests import ROOT, open_example
-from tests.test_hdl import FEEDBACK
+from tests.test_hdl import FEEDBACK, feedback_drawing
 
 NODE = shutil.which("node")
 DUMP = os.path.join(ROOT, "tests", "js", "route_dump.mjs")
@@ -456,10 +456,9 @@ class TestRouterParity(unittest.TestCase):
     round a loop -- two bends, three bends, off the row entirely -- that
     imported RTL relies on. These do."""
     registry = default_registry()
-    for name, text in sorted(FEEDBACK.items()):
+    for name in sorted(FEEDBACK):
       with self.subTest(design=name):
-        top, drawings, _ = hdl.import_verilog(text, synth="builtin")
-        doc = drawings[top]
+        doc = feedback_drawing(name)
         routes = routing.route_all(doc, registry)
         with tempfile.TemporaryDirectory() as folder:
           path = os.path.join(folder, "loop.dlg")

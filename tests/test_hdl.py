@@ -16,6 +16,7 @@ import unittest
 from unittest import mock
 
 from drawlogic import drc, hdl, sheets, yosys
+from drawlogic.doc import Document
 from drawlogic.symbols import default_registry
 
 import tests  # noqa: F401  (puts the repo on sys.path)
@@ -432,6 +433,20 @@ endmodule
 """,
 }
 
+_FEEDBACK_DRAWN = {}
+
+
+def feedback_drawing(name):
+  """The top drawing imported from FEEDBACK[name], as a fresh copy.
+
+  Importing these takes seconds (most of it laying the result out), and both
+  this file and the parity test ask questions of the same drawings.
+  """
+  if name not in _FEEDBACK_DRAWN:
+    top, drawings, _ = hdl.import_verilog(FEEDBACK[name], synth="builtin")
+    _FEEDBACK_DRAWN[name] = drawings[top].dumps()
+  return Document.loads(_FEEDBACK_DRAWN[name])
+
 
 # The loop-based shift register template synthesis tools ship, cut to four
 # bits so the test stays quick. The reader used to fail on it outright --
@@ -526,10 +541,9 @@ class TestFeedbackIsDrawnCleanly(unittest.TestCase):
 
   def test_each_design_passes_the_drcs(self):
     registry = default_registry()
-    for name, text in sorted(FEEDBACK.items()):
+    for name in sorted(FEEDBACK):
       with self.subTest(design=name):
-        top, drawings, _warnings = hdl.import_verilog(text, synth="builtin")
-        doc = drawings[top]
+        doc = feedback_drawing(name)
         errors = [str(v) for v in drc.check(doc, registry)
                   if v.level == "error"]
         self.assertEqual(errors, [])

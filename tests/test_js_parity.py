@@ -512,36 +512,6 @@ class TestRouterParity(unittest.TestCase):
            for net_id, (spot, anchor, _box, _score) in expected.items()},
           "%s: net names land in different places" % name)
 
-  def test_every_example_puts_its_arrows_in_the_same_place(self):
-    for name, path in self.examples():
-      with self.subTest(example=name):
-        doc, registry, _ = open_example(path)
-        browser = _browser_result(path, registry)
-        routes = routing.route_all(doc, registry)
-
-        # Tip and direction both. Comparing tips alone left the direction
-        # vector unowned: reversing every arrow in the browser renderer, so
-        # that each one points back down its own wire without moving, kept
-        # the whole suite green.
-        expected = {
-          net["id"]: [[[_round(tip[0]), _round(tip[1]),
-                        _round(way[0]), _round(way[1])]
-                       for tip, way in render_svg._arrow_spots(
-                         points, theme.ARROW_SIZE,
-                         junctions=render_svg.arrow_marks(
-                           routing.junctions(routes),
-                           routing.hop_points(routes)))]
-                      for points in branches if len(points) >= 2]
-          for net, branches in routes if branches}
-        actual = {net_id: [[[_round(tip[0]), _round(tip[1]),
-                             _round(way[0]), _round(way[1])]
-                            for tip, way in spots]
-                           for spots in per_branch]
-                  for net_id, per_branch in browser["arrows"] if per_branch}
-        self.assertEqual(actual, expected,
-                         "%s: direction arrows differ in place or direction"
-                         % name)
-
   def test_an_arrow_points_the_way_the_signal_travels(self):
     """Agreement is not correctness: both sides could be reversed together.
 

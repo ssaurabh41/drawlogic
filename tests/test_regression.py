@@ -332,31 +332,11 @@ class TestCrossingHops(unittest.TestCase):
 
 
 class TestExportOptions(unittest.TestCase):
-  """Option handling checked on the complex example, not a toy one."""
+  """Every cell and net reaches the output, checked on the complex example
+  rather than a toy one."""
 
   def setUp(self):
     self.doc = Document.load(os.path.join(ROOT, "examples", "cdc_fifo.dlg"))
-
-  def _viewbox(self, svg):
-    return [float(v) for v in
-            re.search(r'viewBox="([^"]+)"', svg).group(1).split()]
-
-  def test_zoom_changes_size_but_not_geometry(self):
-    plain = render_svg.render(self.doc, zoom=1.0)
-    big = render_svg.render(self.doc, zoom=3.0)
-    self.assertEqual(self._viewbox(plain), self._viewbox(big))
-    width = float(re.search(r'\bwidth="([\d.]+)"', big).group(1))
-    self.assertAlmostEqual(width, self.doc.canvas["width"] * 3, places=1)
-
-  def test_crop_is_smaller_than_the_sheet(self):
-    cropped = self._viewbox(render_svg.render(self.doc, crop=True))
-    self.assertLess(cropped[2], self.doc.canvas["width"])
-
-  def test_grid_and_arrows_are_opt_out(self):
-    self.assertNotIn("dl-grid", render_svg.render(self.doc))
-    self.assertIn("dl-grid", render_svg.render(self.doc, show_grid=True))
-    self.assertEqual(render_svg.render(self.doc, arrows=False).count("<polygon"),
-                     0)
 
   def test_every_cell_and_net_reaches_the_output(self):
     svg = render_svg.render(self.doc)

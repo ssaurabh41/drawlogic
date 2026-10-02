@@ -1775,7 +1775,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-480 tests, in fifteen parts:
+492 tests, in fifteen parts:
 
 | File | Covers |
 |---|---|

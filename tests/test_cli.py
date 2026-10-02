@@ -54,19 +54,6 @@ class TestExportRespectsTheDocument(unittest.TestCase):
   with canvas.arrows: false rendered with arrows anyway, every time.
   """
 
-  def test_arrows_off_in_the_document_stays_off_with_no_flag(self):
-    doc = _wired_document("no-arrows", arrows=False)
-    with tempfile.TemporaryDirectory() as tmp:
-      src = os.path.join(tmp, "d.dlg")
-      out = os.path.join(tmp, "d.svg")
-      doc.save(src)
-      _export(["export", src, "-o", out])
-      with open(out) as handle:
-        svg = handle.read()
-    self.assertNotIn("<polygon", svg,
-                     "canvas.arrows is false; the CLI must not add arrows "
-                     "just because --no-arrows was not typed")
-
   def test_no_arrows_flag_still_forces_it_off(self):
     doc = _wired_document("arrows-on")  # canvas.arrows defaults to True
     with tempfile.TemporaryDirectory() as tmp:

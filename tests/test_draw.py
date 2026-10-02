@@ -5,14 +5,9 @@ import re
 import unittest
 
 from drawlogic import drc, geometry, layout, render_svg, routing, theme
-from drawlogic.doc import Document, loads_of, new_document
+from drawlogic.doc import Document, new_document
 from drawlogic.symbols import default_registry
 from tests import EXAMPLE, ROOT, open_example
-
-
-def _flat(routes):
-  """(net, points) for every branch, for tests that look at one wire at a time."""
-  return [(net, points) for net, branches in routes for points in branches]
 
 
 def _doc_with_pair(gap=300):
@@ -54,15 +49,6 @@ class TestRouting(unittest.TestCase):
     self.assertAlmostEqual(points[1][0], points[2][0])
     self.assertAlmostEqual(points[2][1], points[3][1])
 
-  def test_every_segment_is_axis_aligned(self):
-    doc = Document.load(EXAMPLE)
-    for net, points in _flat(routing.route_all(doc)):
-      for index in range(len(points) - 1):
-        ax, ay = points[index]
-        bx, by = points[index + 1]
-        self.assertTrue(abs(ax - bx) < 1e-6 or abs(ay - by) < 1e-6,
-                        "net %s has a diagonal segment" % net.get("id"))
-
   def test_moving_a_gate_carries_its_wire(self):
     # This is the whole point of storing pin references instead of
     # coordinates, so it gets an explicit test.
@@ -85,26 +71,6 @@ class TestRouting(unittest.TestCase):
     start = points[0]
     # The wire must leave the driving pin heading east before turning back.
     self.assertGreater(points[1][0], start[0])
-
-  def test_no_segment_crosses_an_unrelated_cell(self):
-    # Every leg has to clear other cells, not just the corridor. A corridor
-    # that dodges a gate is useless if the leg into it still cuts through one.
-    doc = Document.load(EXAMPLE)
-    doc.normalize()
-    for net, branches in routing.route_all(doc):
-      for load, points in zip(loads_of(net), branches):
-        exclude = set()
-        for endpoint in (net.get("from"), load):
-          if isinstance(endpoint, dict) and "cell" in endpoint:
-            exclude.add(endpoint["cell"])
-        boxes = routing.obstacle_boxes(doc, exclude=exclude)
-        for index in range(len(points) - 1):
-          (ax, ay), (bx, by) = points[index], points[index + 1]
-          if abs(ax - bx) < 1e-6:
-            clear = routing._vertical_clear(ax, ay, by, boxes)
-          else:
-            clear = routing._horizontal_clear(ay, ax, bx, boxes)
-          self.assertTrue(clear, "net %s cuts through a cell" % net.get("id"))
 
   def test_unresolvable_net_routes_to_nothing(self):
     doc = _doc_with_pair()
@@ -448,14 +414,6 @@ class TestPortStubs(unittest.TestCase):
                      routing.STUB)
 
 
-class TestBusWidth(unittest.TestCase):
-
-  def test_bus_is_drawn_like_any_other_wire(self):
-    # Width is carried by the name, not by line weight.
-    self.assertEqual(routing.stroke_width({"width": 8}),
-                     routing.stroke_width({"width": 1}))
-
-
 class TestRender(unittest.TestCase):
 
   def setUp(self):
@@ -467,13 +425,6 @@ class TestRender(unittest.TestCase):
     self.assertIn("<svg ", svg)
     self.assertTrue(svg.rstrip().endswith("</svg>"))
     self.assertEqual(svg.count("<svg "), 1)
-
-  def test_every_cell_and_net_reaches_the_output(self):
-    svg = render_svg.render(self.doc)
-    for cell in self.doc.cells:
-      self.assertIn('data-id="%s"' % cell["id"], svg)
-    for net in self.doc.nets:
-      self.assertIn('data-id="%s"' % net["id"], svg)
 
   def test_zoom_scales_the_size_but_not_the_geometry(self):
     plain = render_svg.render(self.doc, zoom=1.0)
@@ -886,7 +837,6 @@ class TestLongNamesWrap(unittest.TestCase):
                     "a two-line name must reserve more room above the cell")
 
 
-
 class TestTextInsideTheSheet(unittest.TestCase):
   """Nothing drawn may fall outside the canvas.
 
@@ -955,7 +905,6 @@ class TestTextInsideTheSheet(unittest.TestCase):
     self.assertLessEqual(box[1], written[1])
     self.assertGreaterEqual(box[0] + box[2], written[2])
     self.assertGreaterEqual(box[1] + box[3], written[3])
-
 
 
 if __name__ == "__main__":

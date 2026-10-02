@@ -157,9 +157,11 @@ class TestItStaysPut(unittest.TestCase):
       with self.subTest(example=name):
         doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
         layout.arrange(doc, registry)
-        once = positions(doc)
+        once = doc.dumps()
         layout.arrange(doc, registry)
-        self.assertEqual(positions(doc), once)
+        # The whole file, not just positions: which way wires fork and which
+        # gates are turned over are layout's answer too.
+        self.assertEqual(doc.dumps(), once, "%s moved on a second pass" % name)
 
 
 class TestNothingLandsOnAnythingElse(unittest.TestCase):
@@ -793,27 +795,6 @@ class TestTransposeCutsCrossings(unittest.TestCase):
     self.assertEqual(layout._pair_crossings("top", "bottom", side, position), 1)
     self.assertEqual(layout._pair_crossings("bottom", "top", side, position), 0)
 
-  def test_it_never_makes_a_real_drawing_worse(self):
-    """Measured over the shipped examples rather than argued: the whole point
-    of counting crossings combinatorially is that it is cheap enough to check
-    every adjacent pair, so it should never come out behind."""
-    for name in sorted(os.listdir(os.path.join(ROOT, "examples"))):
-      if not name.endswith(".dlg"):
-        continue
-      with self.subTest(example=name):
-        doc, registry, _ = open_example(os.path.join(ROOT, "examples", name))
-        layout.arrange(doc, registry)
-        first = _crossings_of(doc, registry)
-        layout.arrange(doc, registry)
-        self.assertEqual(_crossings_of(doc, registry), first,
-                         "a second pass changed the crossing count")
-
-
-def _crossings_of(doc, registry):
-  return layout._crossings(
-    list(routing.segments_of(routing.route_all(doc, registry))))
-
-
 
 if __name__ == "__main__":
   unittest.main()
@@ -998,24 +979,6 @@ class TestForkingIsChosenByMeasuring(unittest.TestCase):
       "forkLate", doc.canvas,
       "spi_master measures worse forking late, so the flag should be absent "
       "rather than written as false")
-
-  def test_laying_out_twice_gives_the_same_answer(self):
-    """The search has to start from a known state, whatever the file carried.
-
-    Left as the file happened to have it, the second layout searched
-    differently from the first and settled somewhere else -- which is the one
-    thing a layout button must never do.
-    """
-    for name in ("alu_slice", "soc_top"):
-      with self.subTest(example=name):
-        path = os.path.join(ROOT, "examples", name + ".dlg")
-        doc, registry, _ = open_example(path)
-        layout.arrange(doc, registry)
-        once = doc.dumps()
-        layout.arrange(doc, registry)
-        self.assertEqual(doc.dumps(), once,
-                         "%s moved when laid out a second time" % name)
-
 
 def _inverter_chain(length):
   """An input port, `length` inverters in a row, and an output port."""

@@ -805,10 +805,6 @@ class TestTransposeCutsCrossings(unittest.TestCase):
     self.assertEqual(layout._pair_crossings("bottom", "top", side, position), 0)
 
 
-if __name__ == "__main__":
-  unittest.main()
-
-
 class TestWhichWayTheSignalRuns(unittest.TestCase):
   """Direction comes from the pins, not from the order the wire was drawn.
 
@@ -1267,3 +1263,7 @@ class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
           after, off_grid,
           "%s reads worse on the grid (%s) than off it (%s)"
           % (name, after, off_grid))
+
+
+if __name__ == "__main__":
+  unittest.main()

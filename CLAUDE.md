@@ -15,9 +15,9 @@ reference, and under Tests, what is and is not covered.
 ## Commands
 
 ```bash
-python3 tests/run.py                       # everything, in parallel (~390 tests, ~12s); one line when green
+python3 tests/run.py                       # everything, in parallel (~490 tests, ~17s); one line when green
 python3 tests/run.py test_layout           # only modules whose name contains this
-python3 -m unittest discover -s tests      # everything, serially (~35s) -- what CI runs
+python3 -m unittest discover -s tests      # everything, serially (~50s) -- what CI runs
 python3 -m unittest tests.test_drc         # one file
 python3 -m unittest tests.test_drc.TestHops.test_min_spacing   # one test
 
@@ -31,7 +31,7 @@ python3 -m unittest tests.test_js_parity   # routing.js/render.js vs the Python 
 ```
 
 Iterate on the module you touched (`tests/run.py test_drc`); run the whole
-suite once before committing. `test_layout` is most of the suite's time.
+suite once before committing. `test_layout` and `test_hdl` are the biggest share of its time.
 
 After changing anything under `drawlogic/`, run `doctor --write-manifest` —
 `test_manifest.py` (and two `test_cli` doctor tests) fail until

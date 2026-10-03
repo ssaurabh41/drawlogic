@@ -51,6 +51,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "undo through a gesture",
     "duplicating a group",
     "stale answers",
+    "drawing a shape with Shift",
   )
 
   def test_alignment_and_tidy(self):

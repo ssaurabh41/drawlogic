@@ -27,6 +27,7 @@ import * as geometry from "../../drawlogic/web/js/geometry.js";
 import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
+import { constrainShape } from "../../drawlogic/web/js/tools.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -44,6 +45,7 @@ const EXPECTED = [
   ["undo through a gesture", 5],
   ["duplicating a group", 6],
   ["stale answers", 8],
+  ["drawing a shape with Shift", 7],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -703,6 +705,29 @@ section("stale answers");
         store.matches(onC) === false);
   check("and a save from before that edit does not mark it clean",
         store.markSaved(onC) === false);
+}
+
+// ---- drawing a shape with Shift ----
+//
+// As in a slide editor: a box or ellipse comes out square whichever way it is
+// dragged, and a line goes straight across, straight down or at 45 degrees.
+section("drawing a shape with Shift");
+{
+  const same = (a, b) => a[0] === b[0] && a[1] === b[1];
+  check("a box dragged wide comes out square",
+        same(constrainShape("rect", [0, 0], [30, 10]), [30, 30]));
+  check("dragged up and left it is square that way",
+        same(constrainShape("rect", [0, 0], [-10, -40]), [-40, -40]));
+  check("an ellipse comes out a circle",
+        same(constrainShape("ellipse", [10, 10], [15, 50]), [50, 50]));
+  check("a line drawn nearly flat runs straight across",
+        same(constrainShape("line", [0, 0], [100, 20]), [100, 0]));
+  check("a line drawn nearly upright runs straight down",
+        same(constrainShape("line", [0, 0], [15, -100]), [0, -100]));
+  check("a line drawn near the diagonal runs at 45 degrees",
+        same(constrainShape("line", [0, 0], [60, -50]), [60, -60]));
+  check("a polygon edge is held the same way from its last point",
+        same(constrainShape("polygon", [20, 20], [25, 90]), [20, 90]));
 }
 
 // Every area has to have run, and to have run the number of checks it says.

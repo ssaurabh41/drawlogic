@@ -11,6 +11,7 @@ export const SHORTCUTS = [
   ["drag", "move, snapped to the grid (a wire snaps to 5, so it can reach a pin)"],
   ["Ctrl+drag a cell", "duplicate as you drag"],
   ["Shift+drag, Ctrl+Shift+drag a cell", "move / duplicate in a straight line across or down"],
+  ["Shift while drawing a shape", "a square or circle; a line straight or at 45 degrees"],
   ["Ctrl+N", "new drawing"],
   ["click a wire", "select it, to change its label, colour, line and arrows"],
   ["drag a wire", "slide that run of it; the wire becomes hand-routed"],

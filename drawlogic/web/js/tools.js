@@ -699,6 +699,27 @@ export const SHAPE_PRESETS = {
   "double-arrow": { kind: "line", style: { headStart: "triangle", headEnd: "triangle" } },
 };
 
+// Shift while drawing a shape, as a slide editor does it: a box or an ellipse
+// is made square, and a line -- or a polygon's next edge -- goes straight
+// across, straight down, or at 45 degrees, whichever the pointer is nearest.
+// `from` is the fixed point, `to` where the pointer is (both on the grid).
+export function constrainShape(kind, from, to) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  if (kind === "rect" || kind === "ellipse") {
+    const side = Math.max(Math.abs(dx), Math.abs(dy));
+    return [from[0] + (dx < 0 ? -side : side), from[1] + (dy < 0 ? -side : side)];
+  }
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  // tan(22.5 degrees): the halfway mark between straight and diagonal.
+  const half = Math.tan(Math.PI / 8);
+  if (ay <= ax * half) return [to[0], from[1]];
+  if (ax <= ay * half) return [from[0], to[1]];
+  const run = Math.max(ax, ay);
+  return [from[0] + (dx < 0 ? -run : run), from[1] + (dy < 0 ? -run : run)];
+}
+
 export class ShapeTool {
   constructor(context) {
     this.ctx = context;
@@ -709,6 +730,7 @@ export class ShapeTool {
   reset() {
     this.origin = null;
     this.preview = null;
+    this.raw = null;
     this.polygon = null;
   }
 
@@ -742,7 +764,10 @@ export class ShapeTool {
     if (this.kind === "polygon") {
       // A polygon is built click by click; double-click or Escape closes it.
       if (!this.polygon) this.polygon = [at];
-      else this.polygon.push(at);
+      else {
+        const last = this.polygon[this.polygon.length - 1];
+        this.polygon.push(event.shiftKey ? constrainShape("line", last, at) : at);
+      }
       this.ctx.drawOverlay({ hideHandles: true, wirePreview: this.polygon });
       return;
     }
@@ -754,14 +779,19 @@ export class ShapeTool {
     if (!this.origin) {
       if (this.polygon) {
         const step = model.gridStep(this.ctx.store.doc);
-        const at = [model.snap(point[0], step), model.snap(point[1], step)];
+        let at = [model.snap(point[0], step), model.snap(point[1], step)];
+        if (event.shiftKey) {
+          at = constrainShape("line", this.polygon[this.polygon.length - 1], at);
+        }
         this.ctx.drawOverlay({ hideHandles: true,
                                wirePreview: [...this.polygon, at] });
       }
       return false;
     }
     const step = model.gridStep(this.ctx.store.doc);
-    const at = [model.snap(point[0], step), model.snap(point[1], step)];
+    let at = [model.snap(point[0], step), model.snap(point[1], step)];
+    this.raw = at;
+    if (event.shiftKey) at = constrainShape(this.kind, this.origin, at);
     this.preview = at;
     if (this.kind === "line") {
       this.ctx.drawOverlay({ hideHandles: true, wirePreview: [this.origin, at] });
@@ -779,7 +809,10 @@ export class ShapeTool {
     if (!this.origin || !this.preview) return false;
     const { store, selection } = this.ctx;
     const a = this.origin;
-    const b = this.preview;
+    // Shift is read again on release, so pressing or letting go of it just
+    // before the mouse button counts, as it does in a slide editor.
+    const b = event.shiftKey && this.raw
+      ? constrainShape(this.kind, a, this.raw) : (this.raw || this.preview);
 
     const shape = store.mutate("shape", (doc) => {
       if (this.kind === "line") {

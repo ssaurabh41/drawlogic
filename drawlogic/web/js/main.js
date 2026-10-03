@@ -1909,7 +1909,13 @@ async function start() {
     ui.zoomSlider.value = Math.min(400, Math.max(10, percent));
     ui.zoomValue.value = `${percent}%`;
     drawOverlay(overlayOptions);
-  }, (event) => !onSomething(event));
+  }, (event) => !onSomething(event)
+    // A Shift-drag on empty sheet pans only with the select tool, as the
+    // canvas's own handler assumes. With a shape tool in hand, Shift is what
+    // makes the shape square or the line straight, and panning there took the
+    // drag away from the tool: the shape came out at its smallest size.
+    // The middle button pans with any tool.
+    && (event.button !== 0 || activeTool === "select"));
 
   tools = makeTools(context);
   inspector = new Inspector($("properties-body"), store, selection, () => redraw(),

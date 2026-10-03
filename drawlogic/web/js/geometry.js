@@ -224,7 +224,7 @@ export function cellLabelBox(symbol, cell, scale, size, textToCell, textToWire) 
 // Mirrors cell_text_lines, cell_copies, cell_text_needs, cell_text_layout and
 // fit_cell_text in render_svg.py. The sizes come from the theme the server
 // sends; these defaults are theme.py's, for when this runs on its own.
-let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 6 };
+let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 0.05, stackMin: 3 };
 
 export function setCellTextMetrics(sizes, metrics) {
   cellText = { ...cellText, ...(metrics || {}) };
@@ -430,3 +430,10 @@ export function lineHead(tip, before, kind, length, spread) {
   return [null, tip];
 }
 
+// How far the copy behind a replicated cell sits, right and down: a share of
+// the cell's smaller side, never under a floor. Mirrors stack_offset in
+// render_svg.py.
+export function stackOffset(symbol, cell, scale = 1) {
+  const [, , w, h] = cellBounds(symbol, cell, scale);
+  return Math.max(cellText.stackMin, cellText.stack * Math.min(w, h));
+}

@@ -192,7 +192,7 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   // or a rectangle when it has no body to copy. Mirrors _render_stack in
   // render_svg.py.
   if (geometry.cellCopies(cell)) {
-    const offset = geometry.cellTextMetrics().stack;
+    const offset = geometry.stackOffset(symbol, cell, scale);
     const body = symbol.draw.filter((op) => op.op !== "text"
                                     && STACK_ROLES.has(op.role || "body"));
     for (const step of body.length ? [1] : []) {

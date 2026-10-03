@@ -1302,6 +1302,30 @@ class TestTextInsideCells(unittest.TestCase):
         drawn = re.findall(r"<(\w+) ", inner)
         self.assertEqual(drawn, [shape], "the copy should be the body alone")
 
+  def test_the_copy_sits_further_back_behind_a_bigger_cell(self):
+    """Reported: a fixed 6 looked too deep behind a small gate. The offset is
+    a share of the cell's smaller side, with a floor so a small cell's two
+    outlines do not run together."""
+    registry = self.registry
+
+    def offset(type_id, **size):
+      cell = dict({"id": "c", "type": type_id, "x": 0, "y": 0, "copies": 2},
+                  **size)
+      doc = new_document("one", 900, 600)
+      doc.cells.append(cell)
+      doc.normalize()
+      return render_svg.stack_offset(registry.for_cell(doc.cells[0]),
+                                     doc.cells[0])
+
+    big = offset("block", w=400, h=300)
+    self.assertAlmostEqual(big, theme.CELL_TEXT["stack"] * 300)
+    self.assertLess(offset("block", w=200, h=120), big)
+    self.assertEqual(offset("and2"), theme.CELL_TEXT["stackMin"])
+    svg = render_svg.render(self.block(copies=2, w=400, h=300),
+                            registry=registry)
+    self.assertIn('translate(%s %s)' % (render_svg.fmt(big), render_svg.fmt(big)),
+                  svg)
+
   def test_a_symbol_with_no_body_still_gets_a_rectangle(self):
     doc = new_document("tie", 400, 300)
     doc.cells.append({"id": "t", "type": "tie0", "x": 100, "y": 100,

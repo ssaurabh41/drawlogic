@@ -319,6 +319,12 @@ def fit_cell_text(symbol, cell, symbol_scale=1.0, font_scale=1.0):
 STACK_ROLES = ("body", "bubble", "port_in", "port_out", "port_inout")
 
 
+def stack_offset(symbol, cell, symbol_scale=1.0):
+  """How far the copy behind a replicated cell sits, right and down."""
+  _x, _y, w, h = _cell_bbox(symbol, cell, symbol_scale)
+  return max(theme.CELL_TEXT["stackMin"], theme.CELL_TEXT["stack"] * min(w, h))
+
+
 def _render_stack(symbol, cell, symbol_scale, out):
   """The outline behind a cell that stands for several copies.
 
@@ -331,7 +337,7 @@ def _render_stack(symbol, cell, symbol_scale, out):
   if not cell_copies(cell):
     return
   style = cell.get("style") or {}
-  offset = theme.CELL_TEXT["stack"]
+  offset = stack_offset(symbol, cell, symbol_scale)
   body = [op for op in symbol.draw
           if op["op"] != "text" and op.get("role", "body") in STACK_ROLES]
   if body:

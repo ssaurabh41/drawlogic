@@ -102,6 +102,14 @@ export class Selection {
   }
 }
 
+// The points of a line selected on its own, or null: these are its handles.
+export function lineEnds(items) {
+  if (items.length !== 1) return null;
+  const [item] = items;
+  if (item.kind !== "line" && item.kind !== "polyline") return null;
+  return item.points && item.points.length >= 2 ? item.points : null;
+}
+
 export function handlePoints(x, y, w, h) {
   return {
     nw: [x, y], n: [x + w / 2, y], ne: [x + w, y],
@@ -247,6 +255,25 @@ export function drawHandles(svg, selection, zoom, options = {}) {
   const items = selection.items();
   const onlyFixed = items.length > 0
     && items.every((item) => geometry.FIXED_SIZE_TYPES.has(item.type));
+
+  // A line on its own has a handle at each end and nothing else, as in a
+  // slide editor: a box round it, with grips on the box, resized the line by
+  // scaling it, which is not how anyone thinks of moving one end.
+  const ends = lineEnds(items);
+  if (ends) {
+    const size = 9 / zoom;
+    const grab = 20 / zoom;
+    ends.forEach(([hx, hy], index) => {
+      layer.appendChild(el("circle", {
+        class: "dl-grip", "data-handle": `p${index}`, cx: hx, cy: hy, r: grab / 2,
+      }));
+      layer.appendChild(el("circle", {
+        class: "dl-handle", "data-handle": `p${index}`, cx: hx, cy: hy, r: size / 2,
+        "stroke-width": 1.4 / zoom,
+      }));
+    });
+    return layer;
+  }
 
   const pad = 5 / zoom;
   const x = box[0] - pad;

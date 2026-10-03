@@ -11,6 +11,12 @@ const NS = "http://www.w3.org/2000/svg";
 
 let theme = null;
 
+// The size a text shape is written at before the font scale: what the
+// in-place editor matches so typing looks like the result.
+export function shapeTextSize(shape) {
+  return Number((shape.style || {}).fontSize) || (theme ? theme.fontSizes.shape_text : 14);
+}
+
 export function setTheme(data) {
   theme = data;
   geometry.setCellTextMetrics(data && data.fontSizes, data && data.cellText);
@@ -963,17 +969,24 @@ function shadowFilter(region) {
 // One shape, with the copy behind it and the writing in it. Mirrors
 // _render_shape. The shadow is on an inner group, so the writing -- drawn
 // after, outside it -- casts none, as in the exported file.
-function renderShape(shape, fontScale, parent) {
+//
+// `front` is whether it is painted over a symbol. An unfilled one there is
+// caught by its edge only, so a box drawn round some gates and brought
+// forward still lets them be clicked through it.
+function renderShape(shape, fontScale, parent, front = false) {
   const style = shape.style || {};
-  const outer = el("g", { class: "dl-shape", "data-id": shape.id,
-                          "data-kind": shape.kind });
+  const fill = style.fill || "none";
+  const open = front && (fill === "none" || fill === "transparent")
+    && shape.kind !== "text";
+  const outer = el("g", { class: open ? "dl-shape dl-pass" : "dl-shape",
+                          "data-id": shape.id, "data-kind": shape.kind });
   parent.appendChild(outer);
   const into = style.shadow ? el("g", { filter: "url(#dl-shadow)" }) : outer;
   if (into !== outer) outer.appendChild(into);
   if (geometry.shapeCopies(shape)) renderShapeStack(shape, style, fontScale, into);
   renderShapeBody(shape, style, fontScale, into);
   renderShapeText(shape, fontScale, outer);
-  shapeHit(shape, outer);
+  shapeHit(shape, outer, open);
 }
 
 // The copy behind a shape standing for several, masked by the shape itself
@@ -1064,18 +1077,25 @@ function renderShapeBody(shape, style, fontScale, into) {
 
 }
 
-function shapeHit(shape, into) {
+function shapeHit(shape, into, open) {
   // A line is as thin as a wire and as hard to hit, so it gets the same wide
   // invisible stroke to catch the pointer, its full length, heads included.
-  // Anything else is clickable across its whole area already (app.css).
-  // Canvas only, like the wire's.
-  if (shape.kind !== "line" && shape.kind !== "polyline") return;
-  const points = (shape.points || [])
-    .map((p) => `${geometry.fmt(p[0])},${geometry.fmt(p[1])}`).join(" ");
-  into.appendChild(el("polyline", {
-    class: "dl-shape-hit", points, fill: "none", stroke: "transparent",
-    "stroke-width": 12, "pointer-events": "stroke",
-  }));
+  // So does the edge of an unfilled shape in front, which is all of it that
+  // can be clicked. Anything else is clickable across its whole area
+  // (app.css). Canvas only, like the wire's.
+  const hit = { class: "dl-shape-hit", fill: "none", stroke: "transparent",
+                "stroke-width": 12 };
+  if (shape.kind === "line" || shape.kind === "polyline" || (open && shape.kind === "polygon")) {
+    const points = (shape.points || [])
+      .map((p) => `${geometry.fmt(p[0])},${geometry.fmt(p[1])}`).join(" ");
+    into.appendChild(el(shape.kind === "polygon" ? "polygon" : "polyline", { points, ...hit }));
+  } else if (open && shape.kind === "rect") {
+    into.appendChild(el("rect", { x: shape.x, y: shape.y, width: shape.w,
+                                  height: shape.h, ...hit }));
+  } else if (open && shape.kind === "ellipse") {
+    into.appendChild(el("ellipse", { cx: shape.x + shape.w / 2, cy: shape.y + shape.h / 2,
+                                     rx: shape.w / 2, ry: shape.h / 2, ...hit }));
+  }
 }
 
 // Shapes and cells in the order they are painted, and the index in it the
@@ -1154,7 +1174,10 @@ export function render(svg, doc) {
   let run = null;
   let group = null;
   if (!(doc.shapes || []).length) content.appendChild(el("g", { class: "dl-shapes" }));
+  // Whether a cell has been painted yet: a shape after one is over it.
+  let overCells = false;
   [...order, [null, null]].forEach(([kind, item], index) => {
+    if (kind === "cell") overCells = true;
     if (kind !== run || index === wiresAt) {
       if (index === wiresAt) {
         const nets = el("g", { class: "dl-nets" });
@@ -1167,7 +1190,7 @@ export function render(svg, doc) {
         content.appendChild(group);
       }
     }
-    if (kind === "shape") renderShape(item, fontScale, group);
+    if (kind === "shape") renderShape(item, fontScale, group, overCells);
     else if (kind === "cell") {
       const symbol = geometry.forCell(item);
       if (symbol) renderCell(symbol, item, fontScale, scale, group);

@@ -838,6 +838,10 @@ class TestShapesStackAndWriteAlike(unittest.TestCase):
     # forward is over everything.
     self.assertEqual(exported, ["g2", "box", "oval", "cap", "up", "nets", "g1", "p", "tri"])
     self.assertEqual(self.browser["paintOrder"], exported)
+    # Everything unfilled painted over a cell -- all of it is over the gate
+    # sent back -- lets a click through its inside; the filled ellipse does
+    # not, and neither does anything painted before any cell.
+    self.assertEqual(self.browser["passThrough"], ["box", "cap", "tri", "up"])
     # And the file is painted in that order, a group to each run.
     self.assertEqual(re.findall(r'<g class="dl-(shapes|cells|nets)">', self.svg),
                      ["cells", "shapes", "nets", "cells", "shapes"])

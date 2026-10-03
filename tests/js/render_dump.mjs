@@ -96,8 +96,12 @@ function arrowsUnder(root) {
 console.log(JSON.stringify({
   // What is painted, in the order it is painted: each shape and cell by id,
   // and the wires as "nets".
-  paintOrder: all.filter((n) => ["dl-shape", "dl-cell", "dl-nets"].includes(n.attrs.class))
+  paintOrder: all.filter((n) => ["dl-shape", "dl-cell", "dl-nets"]
+                         .includes((n.attrs.class || "").split(" ")[0]))
     .map((n) => (n.attrs.class === "dl-nets" ? "nets" : n.attrs["data-id"])),
+  // Shapes a click goes through the inside of: unfilled, in front of cells.
+  passThrough: all.filter((n) => (n.attrs.class || "").split(" ").includes("dl-pass"))
+    .map((n) => n.attrs["data-id"]).sort(),
   shapeText: all.filter((n) => n.tag === "text" && n.attrs.class === "dl-shape-text")
     .map((n) => [n._text, String(n.attrs.x), String(n.attrs.y), n.attrs["text-anchor"]]).sort(),
   masks: all.filter((n) => n.tag === "mask").map((n) => n.attrs.id).sort(),
@@ -125,7 +129,7 @@ console.log(JSON.stringify({
   // Shapes drawn through the shadow filter, and the filter's own numbers.
   // The filter is on a group inside the shape's own, so its writing is not
   // shadowed -- as in the exported file.
-  shadowed: all.filter((n) => (n.attrs.class || "") === "dl-shape"
+  shadowed: all.filter((n) => (n.attrs.class || "").split(" ")[0] === "dl-shape"
                        && (n.children || []).some((c) => c.tag === "g" && c.attrs.filter))
     .map((n) => n.attrs["data-kind"]).sort(),
   shadow: all.filter((n) => ["feGaussianBlur", "feOffset", "feFlood"].includes(n.tag))

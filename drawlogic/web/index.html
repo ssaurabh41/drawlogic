@@ -280,13 +280,15 @@
 
 <dialog id="prefs-dialog" class="shortcuts prefs" aria-labelledby="prefs-title">
   <h2 id="prefs-title">Preferences</h2>
+  <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>
   <!-- Filled from js/prefs.js. Kept in this browser, not in the drawing. -->
   <div id="prefs-body"></div>
-  <p class="shortcuts-foot">Saved in this browser as you change them. Press <kbd>Esc</kbd> to close.</p>
+  <p class="shortcuts-foot">Saved in this browser as you change them. Close, or press <kbd>Esc</kbd>.</p>
 </dialog>
 
 <dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">
   <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+  <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>
   <!-- Filled from js/shortcuts.js, the one list of them. -->
   <table id="shortcuts-body"></table>
   <p class="shortcuts-foot">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close.</p>

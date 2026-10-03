@@ -72,7 +72,7 @@ export class SelectTool {
       return {
         nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize",
         n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
-      }[handle.getAttribute("data-handle")] || "default";
+      }[handle.getAttribute("data-handle")] || "crosshair";
     }
     // Mid-drag the answer is about the gesture, not about what is under the
     // pointer -- which on a fast drag is often nothing at all.
@@ -81,7 +81,7 @@ export class SelectTool {
       return {
         nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize",
         n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
-      }[this.handle] || "default";
+      }[this.handle] || "crosshair";
     }
     if (target && target.closest && target.closest(".dl-net, .dl-hit")) return "crosshair";
     if (!target || !target.closest || !target.closest(".dl-cell, .dl-shape")) return "default";
@@ -269,6 +269,10 @@ export class SelectTool {
       return true;
     }
 
+    if (this.mode === "resize" && /^p\d+$/.test(this.handle)) {
+      this.applyEnd(point, event.shiftKey);
+      return true;
+    }
     if (this.mode === "resize") {
       this.applyResize(point, this.freeAspect(event));
       return true;
@@ -284,12 +288,14 @@ export class SelectTool {
   // Whether a resize may change the shape as well as the size. A gate drawn
   // stretched looks wrong, so gates keep their proportions unless Alt is held.
   // A block is a box whose shape says nothing -- it is sized to fit what is
-  // written in it -- so blocks resize freely, and Shift keeps them in shape,
-  // the way it does in a slide editor.
+  // written in it -- so blocks resize freely, and so do autoshapes; Shift
+  // keeps them in shape, the way it does in a slide editor.
   freeAspect(event) {
     const items = this.ctx.selection.items();
     const blocks = items.length > 0 && items.every((item) => {
-      if (model.isShape(item)) return false;
+      // An autoshape is drawn to whatever shape it is wanted, as in a slide
+      // editor: free, and Shift keeps its proportions.
+      if (model.isShape(item)) return true;
       const symbol = geometry.forCell(item);
       return Boolean(symbol) && BLOCK_CATEGORIES.has(symbol.category);
     });
@@ -339,6 +345,26 @@ export class SelectTool {
       }));
     }
     this.duplicated = true;
+  }
+
+  // Drag one end of a line, on the grid; Shift keeps it level, upright or at
+  // 45 degrees from the point before it, as drawing one does.
+  applyEnd(point, constrain) {
+    const { store } = this.ctx;
+    const index = Number(this.handle.slice(1));
+    const [id, start] = [...this.startBoxes][0] || [];
+    if (!start || !start.points || !start.points[index]) return;
+    const step = model.gridStep(store.doc);
+    let at = [model.snap(point[0], step), model.snap(point[1], step)];
+    if (constrain) {
+      const other = start.points[index === 0 ? 1 : index - 1];
+      at = constrainShape("line", other, at);
+    }
+    store.mutate(this.gestureLabel, (doc) => {
+      const item = model.itemById(doc, id);
+      if (!item) return false;
+      item.points = start.points.map((p, i) => (i === index ? at : [...p]));
+    });
   }
 
   applyResize(point, freeAspect) {
@@ -776,15 +802,18 @@ export class ShapeTool {
     const at = [model.snap(point[0], step), model.snap(point[1], step)];
 
     if (this.kind === "text") {
-      const text = window.prompt("Text:", "Text");
-      if (!text) return;
+      // Typed where it goes, as in a slide editor, rather than into the
+      // browser's own prompt box. Left empty, the shape is taken away again.
       const shape = store.mutate("text", (doc) => {
         const made = model.addShape(doc, "text", { x: at[0], y: at[1] });
-        made.text = text;
+        made.text = "";
         return made;
       });
-      if (shape) selection.set([shape.id]);
       this.ctx.setTool("select");
+      if (shape) {
+        selection.set([shape.id]);
+        this.ctx.editText(shape.id, true);
+      }
       return;
     }
 

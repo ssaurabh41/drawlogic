@@ -180,6 +180,7 @@ const context = {
   drawOverlay,
   say,
   setTool: (name) => setTool(name),
+  editText: (id, fresh) => editTextInPlace(id, fresh),
 };
 
 function setTool(name) {
@@ -490,6 +491,16 @@ function onDoubleClick(event) {
     }
   }
 
+  // Double-clicking a shape edits what is written in it, where it is.
+  const shapeNode = activeTool === "select" ? event.target.closest(".dl-shape") : null;
+  if (shapeNode && store.doc) {
+    const shape = (store.doc.shapes || []).find((s) => s.id === shapeNode.getAttribute("data-id"));
+    if (shape && (shape.kind === "text" || geometry.SHAPE_TEXT_KINDS.includes(shape.kind))) {
+      editTextInPlace(shape.id, false);
+      return true;
+    }
+  }
+
   // Double-clicking a block that stands for another drawing opens it, the way
   // double-clicking a folder opens it.
   const node = event.target.closest(".dl-cell");
@@ -589,6 +600,96 @@ function renameInPlace({ kind, id, box }) {
   // Focused a tick later, and only then listening for blur: the press that
   // opened it is still being handled, and would otherwise take the focus
   // straight back and close the box before anything could be typed.
+  window.setTimeout(() => {
+    field.focus();
+    field.select();
+    field.addEventListener("blur", () => finish(true));
+  }, 0);
+}
+
+// Type into a shape on the canvas, as in a slide editor: a text shape where
+// its words are, anything else over its box, the box's writing centred. A
+// text shape is one line, kept on Enter; a box takes several, Enter starting
+// a new one and Ctrl+Enter or a click elsewhere keeping them. Escape drops
+// the edit -- and a text shape just made, with nothing typed, is removed.
+function editTextInPlace(id, fresh) {
+  const shape = (store.doc.shapes || []).find((s) => s.id === id);
+  if (!shape) return;
+  const single = shape.kind === "text";
+  const rect = ui.canvas.getBoundingClientRect();
+  const toScreen = (x, y) => [rect.left + (x - viewport.panX) * viewport.zoom,
+                              rect.top + (y - viewport.panY) * viewport.zoom];
+  const scale = Number(((store.doc.canvas || {}).font || {}).scale) || 1;
+  const field = document.createElement(single ? "input" : "textarea");
+  field.className = "text-in-place";
+  if (single) {
+    const size = render.shapeTextSize(shape) * scale * viewport.zoom;
+    const [left, baseline] = toScreen(shape.x || 0, shape.y || 0);
+    field.value = shape.text || "";
+    field.style.fontSize = `${size}px`;
+    field.style.left = `${left - 3}px`;
+    field.style.top = `${baseline - size * 1.05 - 3}px`;
+    field.style.minWidth = `${Math.max(60, size * 6)}px`;
+  } else {
+    const box = geometry.shapeBox(shape) || [0, 0, 80, 40];
+    const [left, top] = toScreen(box[0], box[1]);
+    field.value = geometry.cellTextLines(shape).join("\n");
+    field.classList.add("boxed");
+    field.style.fontSize = `${geometry.cellTextMetrics().size * scale * viewport.zoom}px`;
+    field.style.left = `${left}px`;
+    field.style.top = `${top}px`;
+    field.style.width = `${Math.max(80, box[2] * viewport.zoom)}px`;
+    field.style.height = `${Math.max(32, box[3] * viewport.zoom)}px`;
+    const [across, down] = geometry.cellTextAlign(shape);
+    field.style.textAlign = across;
+    // Down, as it will be drawn: the lines' room left over goes above them,
+    // all of it or half, as the box's vertical alignment says.
+    const settle = () => {
+      const lineHeight = parseFloat(getComputedStyle(field).lineHeight) || 16;
+      const used = field.value.split("\n").length * lineHeight;
+      const spare = Math.max(0, field.clientHeight - used - 16);
+      field.style.paddingTop = `${8 + (down === "top" ? 0 : down === "bottom" ? spare : spare / 2)}px`;
+    };
+    field.addEventListener("input", settle);
+    window.setTimeout(settle, 0);
+  }
+  // The shape's own writing is hidden while it is being rewritten, or the
+  // old words show through under the new.
+  const hide = document.createElement("style");
+  hide.textContent = `.dl-shape[data-id="${CSS.escape(id)}"] ${single ? "text" : ".dl-shape-text"}`
+    + " { visibility: hidden; }";
+  document.head.appendChild(hide);
+  document.body.appendChild(field);
+
+  let finished = false;
+  const finish = (keep) => {
+    if (finished) return;
+    finished = true;
+    const value = single ? field.value.trim() : field.value;
+    field.remove();
+    hide.remove();
+    const before = single ? (shape.text || "") : geometry.cellTextLines(shape).join("\n");
+    if (fresh && (!keep || !value)) {
+      store.mutate("text", (d) => model.deleteItems(d, new Set([id])));
+      selection.set([]);
+    } else if (keep && value !== before) {
+      store.mutate("text", (d) => {
+        if (single) model.setLabel(d, id, value);
+        else model.setCellText(d, id, value);
+      });
+    }
+    redraw();
+    inspector.render();
+  };
+  field.addEventListener("keydown", (event) => {
+    event.stopPropagation();
+    if (event.key === "Escape") finish(false);
+    else if (event.key === "Enter" && (single || event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      finish(true);
+    }
+  });
+  // As renameInPlace: focused a tick later, and only then listening for blur.
   window.setTimeout(() => {
     field.focus();
     field.select();

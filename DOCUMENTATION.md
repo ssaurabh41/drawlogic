@@ -452,7 +452,8 @@ how many went.
 | double-click a wire | hand it back to the router |
 | double-click a name | rename a cell, or edit a wire's label, where it is drawn |
 | handles, `Alt`+handle | resize a gate with ratio locked / free |
-| handles, `Shift`+handle | resize a block freely / with ratio locked |
+| handles, `Shift`+handle | resize a block or a shape freely / with ratio locked |
+| double-click a shape | type into it where it is drawn |
 | drag the sheet's right or bottom edge, or its corner | resize the sheet; Shift keeps its proportions |
 | arrows, `Shift`+arrows | nudge one grid step / ten |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | undo / redo |
@@ -516,7 +517,11 @@ and copies -- and shows only its position, name and pins.
 **Shapes** in the toolbar opens a gallery, grouped as a slide editor groups
 them: **Lines** -- line, arrow, double arrow -- and **Basic shapes** -- box,
 ellipse, polygon, text. `L`, `B`, `P` and `T` pick line, box, polygon and text
-without opening it. Lines, box, ellipse and text are drag-or-click. Polygon is
+without opening it. Text is typed straight onto the canvas where you click --
+`Enter` keeps it, `Esc` or leaving it empty takes it away -- and
+double-clicking any shape edits its writing the same way, where it is drawn.
+In a box, `Enter` starts a new line and `Ctrl+Enter` or a click elsewhere
+keeps the lines. Lines, box, ellipse and text are drag-or-click. Polygon is
 click-by-click: each click adds a point, double-click or `Esc` closes it.
 
 An arrow is a line with a head on it, not a shape of its own, so any line can
@@ -542,7 +547,9 @@ Shapes start behind the symbols, so a box drawn round some gates as a note
 neither hides them nor swallows a click meant for them. **Bring to front** and
 **Send to back** put the selection in front of or behind everything else,
 shapes and symbols alike -- a shape brought forward covers the gates under
-it, and takes their clicks, as it would in a slide editor. In the file it is
+it. If it has a fill it takes their clicks too, as it would in a slide
+editor; if it has none, a click inside it goes through to whatever is
+underneath, and the shape is picked up by its edge or its writing. In the file it is
 `z` on a cell or a shape: painted lowest first, a shape before a cell at the
 same `z`, and nothing carries one until it is restacked. The wires are
 painted just under the symbols at the default level.
@@ -685,7 +692,10 @@ it like any other.
 A gate keeps its proportions when resized, since one drawn stretched looks
 wrong; hold `Alt` to stretch it anyway. A block -- a generic block, an IO
 cell, a block standing for another drawing -- is a box sized to what is
-written in it, so it resizes freely, and `Shift` keeps its proportions.
+written in it, so it resizes freely, and `Shift` keeps its proportions. An
+autoshape resizes the same way, as in a slide editor. A line selected on its
+own has a handle at each end and nothing else; drag one to move that end, on
+the grid, `Shift` keeping it level, upright or at 45 degrees.
 
 The sheet's right edge, bottom edge and bottom-right corner can be dragged.
 Nothing is drawn there: point at an edge and it lights up and the cursor

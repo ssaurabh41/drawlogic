@@ -195,7 +195,8 @@ function setTool(name) {
   const shapes = document.getElementById("menu-shape-button");
   if (shapes) {
     shapes.setAttribute("aria-pressed", String(name === "shape"));
-    const kind = name === "shape" && tools.shape ? tools.shape.kind : null;
+    const kind = name === "shape" && tools.shape
+      ? (tools.shape.preset || tools.shape.kind) : null;
     document.getElementById("shape-button-icon")
       .setAttribute("href", kind ? `#i-shape-${kind}` : "#i-shapes");
   }
@@ -1641,7 +1642,7 @@ function bindControls() {
     button.addEventListener("click", () => {
       const name = button.getAttribute("data-tool");
       const shape = button.getAttribute("data-shape");
-      if (shape) tools.shape.arm(shape);
+      if (shape) tools.shape.arm(shape, button.getAttribute("data-preset"));
       setTool(name);
       clearPaletteSelection(ui.paletteBody);
     });

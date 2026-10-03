@@ -49,6 +49,9 @@ def _theme_payload():
     "arrowSpacing": theme.ARROW_SPACING, "hopRadius": theme.HOP_RADIUS,
     "pinLabelInset": theme.PIN_LABEL_INSET, "wireDashes": theme.WIRE_DASHES,
     "cellText": theme.CELL_TEXT,
+    "lineHeads": {"kinds": list(theme.LINE_HEADS),
+                  "sizes": theme.LINE_HEAD_SIZES,
+                  "spread": theme.LINE_HEAD_SPREAD},
   }
 
 
@@ -276,6 +279,76 @@ def _exported_stack_bodies(svg):
                 for transform, inner in re.findall(
                   r'<g class="dl-stack" transform="([^"]+)">(.*?)</g>', svg,
                   re.S))
+
+
+def _arrowhead_drawing():
+  """Every head kind and size, at both ends, on lines going every way."""
+  doc = new_document("heads", 700, 500)
+  doc.canvas["grid"]["style"] = "blank"
+  kinds = [k for k in theme.LINE_HEADS if k != "none"]
+  for index, kind in enumerate(kinds):
+    for turn, (dx, dy) in enumerate([(160, 0), (0, 120), (-90, 70)]):
+      x, y = 60 + index * 110, 60 + turn * 140
+      doc.shapes.append({
+        "id": "s%d_%d" % (index, turn), "kind": "line",
+        "points": [[x, y], [x + dx, y + dy]],
+        "style": {"headEnd": kind, "headEndSize": "sml"[turn],
+                  "headStart": kinds[(index + 1) % len(kinds)],
+                  "strokeWidth": 1 + turn}})
+  doc.shapes.append({"id": "pl", "kind": "polyline",
+                     "points": [[40, 470], [200, 470], [200, 400]],
+                     "style": {"headStart": "triangle", "headEnd": "open"}})
+  doc.normalize()
+  return doc
+
+
+def _exported_heads(svg):
+  heads = []
+  for tag, attrs in re.findall(r'<(\w+) class="dl-head" ([^>]*)/>', svg):
+    get = dict(re.findall(r'([\w-]+)="([^"]*)"', attrs)).get
+    heads.append([tag, get("points"), get("cx"), get("cy"), get("rx"),
+                  get("ry"), get("transform")])
+  return sorted(heads)
+
+
+def _exported_shape_lines(svg):
+  return sorted(re.findall(r'<polyline points="([^"]+)"', svg))
+
+
+class TestThePanelOffersEveryHead(unittest.TestCase):
+  """The properties panel lists the heads itself; a head added to the theme
+  and forgotten there could be drawn but never chosen."""
+
+  def test_the_list_matches_the_theme(self):
+    with open(os.path.join(ROOT, "drawlogic", "web", "js", "panels.js")) as f:
+      source = f.read()
+    found = re.search(r"export const HEAD_KINDS = \[([^\]]*)\]", source)
+    self.assertIsNotNone(found, "HEAD_KINDS is gone from panels.js")
+    self.assertEqual(re.findall(r'"([^"]+)"', found.group(1)),
+                     list(theme.LINE_HEADS))
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestArrowheadsAgree(unittest.TestCase):
+  """Drawn lines with arrowheads look the same in the editor and the file."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def test_the_same_heads_in_the_same_places(self):
+    doc = _arrowhead_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = render_svg.render(doc, registry=self.registry)
+    # Five kinds, three lines each, a head at both ends; and the polyline's two.
+    self.assertEqual(len(browser["heads"]), 5 * 3 * 2 + 2)
+    self.assertEqual(browser["heads"], _exported_heads(exported))
+
+  def test_both_trim_the_line_to_meet_its_heads(self):
+    doc = _arrowhead_drawing()
+    browser = _browser_render(doc, self.registry)
+    exported = render_svg.render(doc, registry=self.registry)
+    self.assertEqual(len(browser["shapeLines"]), 5 * 3 + 1)
+    self.assertEqual(browser["shapeLines"], _exported_shape_lines(exported))
 
 
 @unittest.skipUnless(NODE, "node is not installed")

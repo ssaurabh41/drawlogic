@@ -239,6 +239,43 @@ def hop_radii(positions, radius, flat, smallest):
   return radii
 
 
+def line_head(tip, before, kind, length, spread):
+  """The arrowhead at `tip` of a line arriving from `before`.
+
+  Returns (shape, trim): `shape` is ("polygon", points), ("polyline", points)
+  or ("ellipse", (cx, cy, rx, ry, angle_degrees)), or None for no head; `trim`
+  is where the line itself should stop, so it does not poke through a solid
+  head. Shared with geometry.js line for line -- the canvas and the export
+  draw the same head from it.
+  """
+  dx, dy = tip[0] - before[0], tip[1] - before[1]
+  run = math.hypot(dx, dy)
+  if kind in (None, "none") or run < 1e-9 or length <= 0:
+    return None, tip
+  ux, uy = dx / run, dy / run
+  nx, ny = -uy, ux
+  half = length * spread
+
+  def at(back, side):
+    return (tip[0] - ux * back + nx * side, tip[1] - uy * back + ny * side)
+
+  if kind == "triangle":
+    return ("polygon", [tip, at(length, half), at(length, -half)]), at(length, 0)
+  if kind == "open":
+    return ("polyline", [at(length, half), tip, at(length, -half)]), tip
+  if kind == "stealth":
+    notch = at(length * 0.6, 0)
+    return ("polygon", [tip, at(length, half), notch, at(length, -half)]), notch
+  if kind == "diamond":
+    return (("polygon", [at(-length / 2, 0), at(0, half), at(length / 2, 0),
+                         at(0, -half)]),
+            at(length / 2, 0))
+  if kind == "oval":
+    angle = math.degrees(math.atan2(uy, ux))
+    return ("ellipse", (tip[0], tip[1], length / 2, half, angle)), at(length / 2, 0)
+  return None, tip
+
+
 def _overlap(a, b):
   return not (a[2] <= b[0] or a[0] >= b[2] or a[3] <= b[1] or a[1] >= b[3])
 

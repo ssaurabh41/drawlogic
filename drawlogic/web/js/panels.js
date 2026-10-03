@@ -18,6 +18,57 @@ function element(tag, className, text) {
   return node;
 }
 
+// The arrowheads a drawn line can end in, in the order the panel offers them.
+// Held equal to theme.LINE_HEADS by a test, so a head added there cannot go
+// missing here.
+export const HEAD_KINDS = ["none", "triangle", "open", "stealth", "diamond", "oval"];
+
+// One option in a row of exclusive choices.
+function segButton(content, title, pressed) {
+  const button = element("button", "seg-btn");
+  button.type = "button";
+  button.title = title;
+  button.setAttribute("role", "radio");
+  button.setAttribute("aria-label", title);
+  button.setAttribute("aria-checked", String(pressed));
+  if (typeof content === "string") button.textContent = content;
+  else button.appendChild(content);
+  return button;
+}
+
+// A short line ending in `kind`, drawn with the renderer's own head geometry
+// so the picture on the button is the head you get.
+function headPreview(kind, atStart) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 22 12");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("class", "head-ico");
+  const ends = atStart ? [[20, 6], [3, 6]] : [[2, 6], [19, 6]];
+  const [head, trim] = geometry.lineHead(ends[1], ends[0], kind, 10, 0.45);
+  const line = document.createElementNS(ns, "line");
+  line.setAttribute("x1", ends[0][0]);
+  line.setAttribute("y1", ends[0][1]);
+  line.setAttribute("x2", trim[0]);
+  line.setAttribute("y2", trim[1]);
+  svg.appendChild(line);
+  if (head) {
+    const [shape, data] = head;
+    const node = document.createElementNS(ns, shape);
+    if (shape === "ellipse") {
+      node.setAttribute("cx", data[0]);
+      node.setAttribute("cy", data[1]);
+      node.setAttribute("rx", data[2]);
+      node.setAttribute("ry", data[3]);
+    } else {
+      node.setAttribute("points", data.map((p) => p.join(",")).join(" "));
+    }
+    node.setAttribute("class", shape === "polyline" ? "open" : "solid");
+    svg.appendChild(node);
+  }
+  return svg;
+}
+
 function row(label, control) {
   const wrap = element("div", "prow");
   wrap.appendChild(element("span", null, label));
@@ -665,12 +716,61 @@ export class Inspector {
       root.appendChild(row("Text", text));
     }
 
+    if (shape.kind === "line" || shape.kind === "polyline") this.renderHeads(shape);
+
     root.appendChild(element("div", "ptitle", "Geometry"));
     this.renderGeometry(shape, [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"]]);
     if (shape.points) {
       root.appendChild(row("Points", element("div", "pval",
                                              `${shape.points.length} points`)));
     }
+  }
+
+  // Arrowheads for an open line, as a slide editor offers them: for each end,
+  // a row of the heads drawn small -- picked by looking, not by name -- and a
+  // size. The start is the end the line was drawn from.
+  renderHeads(shape) {
+    const root = this.root;
+    const style = shape.style || {};
+    root.appendChild(element("div", "ptitle", "Arrows"));
+    for (const [key, label] of [["headStart", "Begin"], ["headEnd", "End"]]) {
+      const current = style[key] || "none";
+      const kinds = element("div", "seg seg-heads");
+      kinds.setAttribute("role", "radiogroup");
+      kinds.setAttribute("aria-label", `${label} arrowhead`);
+      for (const kind of HEAD_KINDS) {
+        const button = segButton(headPreview(kind, key === "headStart"),
+                                 kind === "none" ? "no arrowhead" : `${kind} arrowhead`,
+                                 kind === current);
+        button.addEventListener("click", () => this.setShapeStyle(
+          shape, key, kind === "none" ? null : kind, "arrowhead"));
+        kinds.appendChild(button);
+      }
+      root.appendChild(row(label, kinds));
+
+      const size = element("div", "seg seg-size");
+      size.setAttribute("role", "radiogroup");
+      size.setAttribute("aria-label", `${label} arrowhead size`);
+      const now = style[key + "Size"] || "m";
+      for (const [value, text, title] of [["s", "S", "small"], ["m", "M", "medium"],
+                                          ["l", "L", "large"]]) {
+        const button = segButton(text, `${title} ${label.toLowerCase()} arrowhead`,
+                                 value === now);
+        button.disabled = current === "none";
+        // Medium is the default, so choosing it clears the key rather than
+        // writing the default into the file.
+        button.addEventListener("click", () => this.setShapeStyle(
+          shape, key + "Size", value === "m" ? null : value, "arrowhead size"));
+        size.appendChild(button);
+      }
+      root.appendChild(row("Size", size));
+    }
+  }
+
+  setShapeStyle(shape, key, value, label) {
+    this.store.mutate(label, (doc) => model.setStyle(doc, [shape.id], key, value));
+    this.onChange();
+    this.render();
   }
 
   // A wire: what it says on the sheet, what it is called, and how it is drawn.

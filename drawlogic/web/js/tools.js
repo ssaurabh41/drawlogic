@@ -690,6 +690,15 @@ export class EraseTool {
 
 // ---- autoshapes ----
 
+// Shapes in the gallery that are another shape with a style already set: an
+// arrow is a line with a head on it. Kept as presets rather than kinds of
+// their own, so an arrow is still a line -- its heads can be changed or taken
+// off in the properties panel, and the file needs nothing new to hold it.
+export const SHAPE_PRESETS = {
+  "arrow": { kind: "line", style: { headEnd: "triangle" } },
+  "double-arrow": { kind: "line", style: { headStart: "triangle", headEnd: "triangle" } },
+};
+
 export class ShapeTool {
   constructor(context) {
     this.ctx = context;
@@ -703,8 +712,10 @@ export class ShapeTool {
     this.polygon = null;
   }
 
-  arm(kind) {
+  // `preset` names an entry of SHAPE_PRESETS, or nothing for the plain kind.
+  arm(kind, preset = null) {
     this.kind = kind;
+    this.preset = SHAPE_PRESETS[preset] ? preset : null;
     this.reset();
   }
 
@@ -772,8 +783,10 @@ export class ShapeTool {
 
     const shape = store.mutate("shape", (doc) => {
       if (this.kind === "line") {
-        return model.addShape(doc, "line", { x: a[0], y: a[1], w: 0, h: 0,
-                                             points: [a, b] });
+        const made = model.addShape(doc, "line", { x: a[0], y: a[1], w: 0, h: 0,
+                                                   points: [a, b] });
+        if (this.preset) Object.assign(made.style, SHAPE_PRESETS[this.preset].style);
+        return made;
       }
       return model.addShape(doc, this.kind, {
         x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]),

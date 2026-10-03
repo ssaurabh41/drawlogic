@@ -93,6 +93,9 @@
     <g id="i-erase"><path d="M9.6 2.8 13.2 6.4 7.1 12.5H4L2.4 10.9z"/><path d="M5.8 6.6l3.6 3.6"/><path d="M8.5 13.5h5"/></g>
     <g id="i-shapes"><rect x="2" y="6.5" width="7" height="7" rx=".5"/><circle cx="10.5" cy="5.5" r="3.5"/></g>
     <g id="i-shape-line"><path d="M3 13 13 3"/></g>
+    <g id="i-shape-arrow"><path d="M3 13 12.5 3.5"/><path d="M8.2 3.2h4.6v4.6z" fill="currentColor"/></g>
+    <g id="i-shape-double-arrow"><path d="M3.5 12.5 12.5 3.5"/><path d="M8.2 3.2h4.6v4.6z" fill="currentColor"/><path d="M7.8 12.8H3.2V8.2z" fill="currentColor"/></g>
+    <g id="i-shape-ellipse"><ellipse cx="8" cy="8" rx="5.5" ry="4"/></g>
     <g id="i-shape-rect"><rect x="2.5" y="4" width="11" height="8" rx=".5"/></g>
     <g id="i-shape-polygon"><path d="M8 2.5l5.5 4-2 6.5h-7l-2-6.5z"/></g>
     <g id="i-shape-text"><path d="M3.5 3.5h9M8 3.5v10M6 13.5h4"/></g>
@@ -123,12 +126,23 @@
     <div class="menu">
       <button id="menu-shape-button" class="tool menu-button with-ico" type="button"
               aria-haspopup="menu" aria-expanded="false" aria-controls="menu-shape" aria-pressed="false"
-              title="Shapes: line, box, polygon, text (L, B, P, T)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use id="shape-button-icon" href="#i-shapes"/></svg>Shapes<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
-      <div id="menu-shape" class="menu-panel" role="menu" aria-labelledby="menu-shape-button" hidden>
-        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="line"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-line"/></svg><span>Line</span><kbd>L</kbd></button>
-        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="rect"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-rect"/></svg><span>Box</span><kbd>B</kbd></button>
-        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="polygon" title="Click points, double-click to close"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-polygon"/></svg><span>Polygon</span><kbd>P</kbd></button>
-        <button class="menu-item" type="button" role="menuitem" data-tool="shape" data-shape="text"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-text"/></svg><span>Text</span><kbd>T</kbd></button>
+              title="Shapes: lines, arrows, box, ellipse, polygon, text (L, B, P, T)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use id="shape-button-icon" href="#i-shapes"/></svg>Shapes<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+      <!-- A gallery of shapes in groups, as a slide editor has, rather than a
+           list: shapes are picked by their look. -->
+      <div id="menu-shape" class="menu-panel shape-gallery" role="menu" aria-labelledby="menu-shape-button" hidden>
+        <div class="gal-head" role="presentation">Lines</div>
+        <div class="gal-grid" role="presentation">
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="line" title="Line (L)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-line"/></svg><span>Line</span></button>
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="line" data-preset="arrow" title="Arrow"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-arrow"/></svg><span>Arrow</span></button>
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="line" data-preset="double-arrow" title="Double arrow"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-double-arrow"/></svg><span>Double</span></button>
+        </div>
+        <div class="gal-head" role="presentation">Basic shapes</div>
+        <div class="gal-grid" role="presentation">
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="rect" title="Box (B)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-rect"/></svg><span>Box</span></button>
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="ellipse" title="Ellipse"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-ellipse"/></svg><span>Ellipse</span></button>
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="polygon" title="Polygon (P): click points, double-click to close"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-polygon"/></svg><span>Polygon</span></button>
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="text" title="Text (T)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-text"/></svg><span>Text</span></button>
+        </div>
       </div>
     </div>
     <button id="btn-painter" class="tool icon" type="button" aria-pressed="false" aria-label="Format painter"

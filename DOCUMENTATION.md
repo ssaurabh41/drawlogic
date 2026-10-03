@@ -484,8 +484,8 @@ places several of the same part in a row.
 The top bar holds **File** first (new, open, import, save as symbol, copy
 as PNG), then the drawing picker, Save and Export, undo and redo, and Check;
 the gear at the far right is Preferences. The second row holds the tools:
-Select, Wire and Erase, then **Shapes**, one button for line, box, polygon
-and text that shows the shape last picked, then the format painter.
+Select, Wire and Erase, then **Shapes**, one button for every autoshape that
+shows the shape last picked, then the format painter.
 
 Rotate, flip, delete, auto layout and tidy are the icon buttons after them;
 hover any of them for its name. Group, align, distribute,
@@ -507,9 +507,20 @@ still be typed in the properties panel.
 
 ### Autoshapes
 
-**Shapes** in the toolbar opens the four: line, box, polygon and text (or
-press `L`, `B`, `P`, `T`). Line, box and text are drag-or-click. Polygon is
+**Shapes** in the toolbar opens a gallery, grouped as a slide editor groups
+them: **Lines** -- line, arrow, double arrow -- and **Basic shapes** -- box,
+ellipse, polygon, text. `L`, `B`, `P` and `T` pick line, box, polygon and text
+without opening it. Lines, box, ellipse and text are drag-or-click. Polygon is
 click-by-click: each click adds a point, double-click or `Esc` closes it.
+
+An arrow is a line with a head on it, not a shape of its own, so any line can
+have heads and any arrow can lose them. Selecting a line shows **Arrows** in
+the properties panel: for its begin and its end, PowerPoint's heads -- none,
+triangle, open, stealth, diamond, oval -- each drawn on its button, and a size,
+S, M or L. A head grows with the line's weight, as it does in a slide editor,
+and a solid head trims the line so it does not poke through the tip. In the
+file the heads are style keys: `headStart` and `headEnd` name the head,
+`headStartSize` and `headEndSize` are `s` or `l` (medium is left out).
 
 Shapes are selected, moved, resized, coloured, grouped and z-ordered exactly
 like cells. An unfilled shape is clickable across its whole area, not just its

@@ -103,6 +103,14 @@ HOP_RADIUS = 5.0
 CELL_TEXT = {"pad": 8.0, "step": 1.3, "char": 0.62, "stack": 6.0}
 GHOST_DASH = "4 3"
 
+# Arrowheads a drawn line can end in, PowerPoint's set, and how big each size
+# is. A head's length is the factor times the line's weight, so a heavier line
+# gets a proportionally bigger head, as it does in a slide editor; its half
+# width is LINE_HEAD_SPREAD of the length. The first entry is the default.
+LINE_HEADS = ("none", "triangle", "open", "stealth", "diamond", "oval")
+LINE_HEAD_SIZES = {"s": 3.5, "m": 5.0, "l": 7.0}
+LINE_HEAD_SPREAD = 0.45
+
 # Line patterns a wire can be drawn with, by the name its style stores. A
 # dotted wire gets round caps, which is what turns near-zero dashes into dots.
 WIRE_DASHES = {

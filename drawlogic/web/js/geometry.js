@@ -369,3 +369,43 @@ export function hopRadii(positions, radius, flat, smallest) {
     return Math.max(smallest, Math.min(radius, (room - flat) / 2));
   });
 }
+
+// The arrowhead at `tip` of a line arriving from `before`: [shape, trim], with
+// `shape` ["polygon", points], ["polyline", points] or ["ellipse",
+// [cx, cy, rx, ry, angleDegrees]], or null for no head, and `trim` where the
+// line itself stops. Mirrors line_head in geometry.py line for line.
+export function lineHead(tip, before, kind, length, spread) {
+  const dx = tip[0] - before[0];
+  const dy = tip[1] - before[1];
+  const run = Math.hypot(dx, dy);
+  if (!kind || kind === "none" || run < 1e-9 || length <= 0) return [null, tip];
+  const ux = dx / run;
+  const uy = dy / run;
+  const nx = -uy;
+  const ny = ux;
+  const half = length * spread;
+  const at = (back, side) => [tip[0] - ux * back + nx * side,
+                              tip[1] - uy * back + ny * side];
+
+  if (kind === "triangle") {
+    return [["polygon", [tip, at(length, half), at(length, -half)]], at(length, 0)];
+  }
+  if (kind === "open") {
+    return [["polyline", [at(length, half), tip, at(length, -half)]], tip];
+  }
+  if (kind === "stealth") {
+    const notch = at(length * 0.6, 0);
+    return [["polygon", [tip, at(length, half), notch, at(length, -half)]], notch];
+  }
+  if (kind === "diamond") {
+    return [["polygon", [at(-length / 2, 0), at(0, half), at(length / 2, 0),
+                         at(0, -half)]],
+            at(length / 2, 0)];
+  }
+  if (kind === "oval") {
+    const angle = Math.atan2(uy, ux) * 180 / Math.PI;
+    return [["ellipse", [tip[0], tip[1], length / 2, half, angle]], at(length / 2, 0)];
+  }
+  return [null, tip];
+}
+

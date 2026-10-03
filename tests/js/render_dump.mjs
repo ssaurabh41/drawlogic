@@ -109,6 +109,13 @@ console.log(JSON.stringify({
     .map((n) => [n._text, n.attrs.x, n.attrs.y]).sort(),
   stacks: all.filter((n) => n.tag === "rect" && /dl-(stack|copies)/.test(n.attrs.class || ""))
     .map((n) => [n.attrs.class, n.attrs.x, n.attrs.y, n.attrs.width, n.attrs.height]).sort(),
+  // Arrowheads on drawn lines, and the lines they trim.
+  heads: all.filter((n) => (n.attrs.class || "") === "dl-head")
+    .map((n) => [n.tag, n.attrs.points || null, n.attrs.cx || null,
+                 n.attrs.cy || null, n.attrs.rx || null, n.attrs.ry || null,
+                 n.attrs.transform || null]).sort(),
+  shapeLines: all.filter((n) => n.tag === "polyline" && !(n.attrs.class || ""))
+    .map((n) => n.attrs.points).sort(),
   // A copy drawn as the symbol's own body: where it sits, and what it draws.
   stackBodies: all.filter((n) => n.tag === "g" && n.attrs.class === "dl-stack")
     .map((n) => [n.attrs.transform, (n.children || []).map((c) => c.tag)]).sort(),

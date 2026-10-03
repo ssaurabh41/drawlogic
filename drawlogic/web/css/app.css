@@ -519,6 +519,33 @@ select {
 .pstep-btn:hover { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
 .pstep-btn:active { background: var(--accent); color: var(--accent-on); }
 .pstep-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* A row of exclusive choices drawn as joined buttons: arrowhead kind and size. */
+.seg { display: flex; flex-wrap: wrap; gap: 3px; }
+.seg-btn {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 11px/1 var(--mono);
+  color: var(--ink-2);
+  background: var(--chrome-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.seg-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
+.seg-btn[aria-checked="true"] {
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink);
+}
+.seg-btn:disabled { opacity: .45; cursor: default; }
+.seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg-heads .seg-btn { width: 32px; padding: 0; }
+.head-ico { width: 26px; height: 14px; }
+.head-ico line, .head-ico .open { stroke: currentColor; stroke-width: 1.5; fill: none; }
+.head-ico .solid { fill: currentColor; stroke: none; }
 .pval.unconnected { color: var(--warm-ink); }
 
 /* A pin row carries its name field above what the pin is wired to. */
@@ -1038,3 +1065,22 @@ select {
 /* The several-line box for text written inside a cell. */
 textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
                  line-height: 1.4; }
+
+/* The Shapes gallery: shapes in labelled groups, as tiles to pick by look. */
+.shape-gallery { min-width: 0; width: 248px; padding: 6px 8px 8px; }
+.gal-head {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); padding: 6px 2px 4px;
+}
+.gal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.menu-item.gal-tile {
+  flex-direction: column; justify-content: center; gap: 3px;
+  width: auto; height: 52px; padding: 6px 2px 4px;
+  border: 1px solid transparent; text-align: center;
+}
+.menu-item.gal-tile > span { flex: none; font-size: 10.5px; color: var(--ink-2); }
+.menu-item.gal-tile .ico { width: 20px; height: 20px; }
+.menu-item.gal-tile:hover, .menu-item.gal-tile:focus-visible {
+  background: var(--accent-soft); border-color: var(--accent);
+}
+.menu-item.gal-tile:hover > span { color: var(--accent-ink); }

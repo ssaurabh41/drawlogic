@@ -863,6 +863,54 @@ function renderNets(doc, fontScale, into) {
   return junctions;
 }
 
+// A line shape's arrowheads, and its points trimmed to meet them. Mirrors
+// line_heads in render_svg.py.
+export function lineHeads(shape) {
+  const points = (shape.points || []).map((p) => [p[0], p[1]]);
+  if (!["line", "polyline"].includes(shape.kind) || points.length < 2) {
+    return [points, []];
+  }
+  const style = shape.style || {};
+  const heads = theme.lineHeads || { sizes: { m: 5 }, spread: 0.45 };
+  const width = Number(style.strokeWidth || theme.widths.stroke);
+  const found = [];
+  const ends = [["headStart", points[0], points[1], 0],
+                ["headEnd", points[points.length - 1], points[points.length - 2],
+                 points.length - 1]];
+  for (const [key, tip, before, where] of ends) {
+    const size = heads.sizes[style[key + "Size"] || "m"] || heads.sizes.m;
+    const [head, trim] = geometry.lineHead(tip, before, style[key] || "none",
+                                           size * width, heads.spread);
+    if (head) {
+      found.push(head);
+      points[where] = trim;
+    }
+  }
+  return [points, found];
+}
+
+function headElement(head, stroke, width) {
+  const [kind, data] = head;
+  if (kind === "ellipse") {
+    const [cx, cy, rx, ry, angle] = data;
+    return el("ellipse", {
+      class: "dl-head", cx: geometry.fmt(cx), cy: geometry.fmt(cy),
+      rx: geometry.fmt(rx), ry: geometry.fmt(ry),
+      transform: `rotate(${geometry.fmt(angle)} ${geometry.fmt(cx)} ${geometry.fmt(cy)})`,
+      fill: stroke, stroke: "none",
+    });
+  }
+  const points = data.map(([x, y]) => `${geometry.fmt(x)},${geometry.fmt(y)}`).join(" ");
+  if (kind === "polyline") {
+    return el("polyline", {
+      class: "dl-head", points, fill: "none", stroke,
+      "stroke-width": geometry.fmt(width, 3),
+      "stroke-linejoin": "miter", "stroke-linecap": "round",
+    });
+  }
+  return el("polygon", { class: "dl-head", points, fill: stroke, stroke: "none" });
+}
+
 function renderShape(shape, fontScale, parent) {
   const style = shape.style || {};
   const into = el("g", { class: "dl-shape", "data-id": shape.id,
@@ -885,9 +933,14 @@ function renderShape(shape, fontScale, parent) {
       rx: shape.w / 2, ry: shape.h / 2, ...paint,
     }));
   } else if (["polygon", "polyline", "line"].includes(shape.kind)) {
-    const points = (shape.points || []).map((p) => `${p[0]},${p[1]}`).join(" ");
+    const [trimmed, heads] = lineHeads(shape);
+    const points = trimmed.map((p) => `${geometry.fmt(p[0])},${geometry.fmt(p[1])}`).join(" ");
     into.appendChild(el(shape.kind === "polygon" ? "polygon" : "polyline",
                         { points, ...paint }));
+    for (const head of heads) {
+      into.appendChild(headElement(head, paint.stroke,
+                                   Number(style.strokeWidth || theme.widths.stroke)));
+    }
   } else if (shape.kind === "text") {
     const text = el("text", {
       x: shape.x, y: shape.y,

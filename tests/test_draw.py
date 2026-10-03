@@ -1314,3 +1314,63 @@ class TestNoWobbleBesideAPin(unittest.TestCase):
     self.assertNotEqual(first[2][1], port[1],
                         "the cin wire runs along the port's own row now, so "
                         "no crossover row is being chosen")
+
+
+class TestLineArrowheads(unittest.TestCase):
+  """A drawn line can end in any of PowerPoint's arrowheads, at either end."""
+
+  def line(self, **style):
+    doc = new_document("arrow", 400, 300)
+    doc.shapes.append({"id": "s1", "kind": "line",
+                       "points": [[100, 150], [300, 150]], "style": style})
+    doc.normalize()
+    return doc
+
+  def test_each_kind_draws_its_own_head(self):
+    expected = {"triangle": "polygon", "open": "polyline",
+                "stealth": "polygon", "diamond": "polygon", "oval": "ellipse"}
+    self.assertEqual(sorted(expected), sorted(k for k in theme.LINE_HEADS
+                                              if k != "none"))
+    for kind, tag in expected.items():
+      with self.subTest(head=kind):
+        svg = render_svg.render(self.line(headEnd=kind))
+        self.assertEqual(re.findall(r'<(\w+) class="dl-head"', svg), [tag])
+
+  def test_none_and_no_style_draw_no_head(self):
+    for doc in (self.line(), self.line(headEnd="none", headStart="none")):
+      self.assertNotIn("dl-head", render_svg.render(doc))
+
+  def test_a_double_arrow_has_one_at_each_end(self):
+    svg = render_svg.render(self.line(headStart="triangle", headEnd="triangle"))
+    self.assertEqual(svg.count('class="dl-head"'), 2)
+
+  def test_a_solid_head_trims_the_line_and_an_open_one_does_not(self):
+    doc = self.line(headEnd="triangle", headEndSize="l", strokeWidth=2)
+    points, _ = render_svg.line_heads(doc.shapes[0])
+    self.assertAlmostEqual(points[-1][0],
+                           300 - theme.LINE_HEAD_SIZES["l"] * 2)
+    points, _ = render_svg.line_heads(self.line(headEnd="open").shapes[0])
+    self.assertEqual(points[-1], (300, 150))
+
+  def test_a_bigger_size_or_a_heavier_line_makes_a_bigger_head(self):
+    def length(**style):
+      points, _ = render_svg.line_heads(self.line(headEnd="triangle",
+                                                  **style).shapes[0])
+      return 300 - points[-1][0]
+    self.assertLess(length(headEndSize="s"), length(headEndSize="m"))
+    self.assertLess(length(headEndSize="m"), length(headEndSize="l"))
+    self.assertLess(length(strokeWidth=1), length(strokeWidth=3))
+
+  def test_a_polygon_has_no_ends_to_put_a_head_on(self):
+    doc = new_document("poly", 400, 300)
+    doc.shapes.append({"id": "p", "kind": "polygon",
+                       "points": [[50, 50], [150, 50], [100, 120]],
+                       "style": {"headEnd": "triangle"}})
+    doc.normalize()
+    self.assertNotIn("dl-head", render_svg.render(doc))
+
+  def test_a_cropped_export_keeps_the_whole_head(self):
+    doc = self.line(headEnd="diamond", headEndSize="l", strokeWidth=3)
+    box = doc.content_bbox(default_registry())
+    self.assertGreater(box[0] + box[2], 300,
+                       "a diamond centred on the end reaches past it")

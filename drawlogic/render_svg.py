@@ -27,7 +27,7 @@ import math
 from . import routing
 from . import drc
 from . import theme
-from .geometry import Buckets, corners, fmt, hop_radii, label_lines
+from .geometry import Buckets, corners, fmt, hop_radii, label_lines, line_head
 from .symbols import default_registry
 
 DEFAULT_MARGIN = 24.0
@@ -1166,6 +1166,64 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   return junctions
 
 
+def line_heads(shape):
+  """A line shape's arrowheads, and its points trimmed to meet them.
+
+  Returns (points, heads): `points` is the line to draw, each end pulled back
+  to where its head begins, and `heads` the heads as line_head gives them.
+  Only open lines -- line and polyline -- take heads; a polygon has no ends.
+  """
+  points = [tuple(p) for p in shape.get("points") or []]
+  if shape.get("kind") not in ("line", "polyline") or len(points) < 2:
+    return points, []
+  style = shape.get("style") or {}
+  width = float(style.get("strokeWidth", theme.WIDTHS["stroke"]))
+  heads = []
+  for key, tip, before, where in (("headStart", points[0], points[1], 0),
+                                  ("headEnd", points[-1], points[-2], -1)):
+    kind = style.get(key) or "none"
+    size = theme.LINE_HEAD_SIZES.get(style.get(key + "Size") or "m",
+                                     theme.LINE_HEAD_SIZES["m"])
+    head, trim = line_head(tip, before, kind, size * width,
+                           theme.LINE_HEAD_SPREAD)
+    if head is not None:
+      heads.append(head)
+      points[where] = trim
+  return points, heads
+
+
+def line_head_points(head):
+  """Points that bound one head, for measuring how far a drawing reaches."""
+  kind, data = head
+  if kind == "ellipse":
+    cx, cy, rx, ry, _angle = data
+    reach = max(rx, ry)
+    return [(cx - reach, cy - reach), (cx + reach, cy + reach)]
+  return list(data)
+
+
+def _render_head(head, stroke, width, out):
+  kind, data = head
+  if kind == "ellipse":
+    cx, cy, rx, ry, angle = data
+    out.append("<ellipse %s />" % _attrs([
+      ("class", "dl-head"), ("cx", fmt(cx)), ("cy", fmt(cy)),
+      ("rx", fmt(rx)), ("ry", fmt(ry)),
+      ("transform", "rotate(%s %s %s)" % (fmt(angle), fmt(cx), fmt(cy))),
+      ("fill", stroke), ("stroke", "none")]))
+    return
+  coords = " ".join("%s,%s" % (fmt(x), fmt(y)) for x, y in data)
+  if kind == "polyline":
+    out.append("<polyline %s />" % _attrs([
+      ("class", "dl-head"), ("points", coords), ("fill", "none"),
+      ("stroke", stroke), ("stroke-width", fmt(width, 3)),
+      ("stroke-linejoin", "miter"), ("stroke-linecap", "round")]))
+    return
+  out.append("<polygon %s />" % _attrs([
+    ("class", "dl-head"), ("points", coords), ("fill", stroke),
+    ("stroke", "none")]))
+
+
 def _render_shape(shape, font_scale, out):
   style = shape.get("style") or {}
   kind = shape.get("kind")
@@ -1188,12 +1246,15 @@ def _render_shape(shape, font_scale, out):
       ("rx", fmt(shape.get("w", 0) / 2.0)),
       ("ry", fmt(shape.get("h", 0) / 2.0))] + paint))
   elif kind in ("polygon", "polyline", "line"):
-    points = shape.get("points", [])
-    if kind == "line" and len(points) < 2:
+    if kind == "line" and len(shape.get("points") or []) < 2:
       return
+    points, heads = line_heads(shape)
     coords = " ".join("%s,%s" % (fmt(p[0]), fmt(p[1])) for p in points)
     tag = "polygon" if kind == "polygon" else "polyline"
     out.append("<%s %s />" % (tag, _attrs([("points", coords)] + paint)))
+    for head in heads:
+      _render_head(head, style.get("stroke", theme.COLORS["stroke"]),
+                   float(style.get("strokeWidth", theme.WIDTHS["stroke"])), out)
   elif kind == "text":
     out.append("<text %s>%s</text>" % (
       _attrs([

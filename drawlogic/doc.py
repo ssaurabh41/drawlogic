@@ -734,6 +734,11 @@ class Document(object):
                                shape.get("w", 0), shape.get("h", 0)))
       for point in shape.get("points", []):
         box = union_bbox(box, (point[0], point[1], 0, 0))
+      # An arrowhead reaches past the end of its line by up to half its
+      # width, sideways; a diamond or an oval past the tip itself.
+      for head in render_svg.line_heads(shape)[1]:
+        for point in render_svg.line_head_points(head):
+          box = union_bbox(box, (point[0], point[1], 0, 0))
 
     return box
 

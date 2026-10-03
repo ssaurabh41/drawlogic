@@ -152,7 +152,7 @@
 <text x="499.714" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rptr_g2</text>
 <text x="340.286" y="729" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wfull</text>
 <text x="420" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">full_cmp</text>
-<g class="dl-cell" data-id="sr1" data-type="reg" transform="matrix(-1,0,0,1,830,750)">
+<g class="dl-cell" data-id="sr1" data-type="dff" transform="matrix(-1,0,0,1,830,750)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
   <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#e8f2f6" stroke="#16202b" stroke-width="1.6" />
@@ -163,7 +163,7 @@
 <text x="809" y="799" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
 <text x="774" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
 <text x="795" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">r2w_1</text>
-<g class="dl-cell" data-id="sr2" data-type="reg" transform="matrix(-1,0,0,1,710,750)">
+<g class="dl-cell" data-id="sr2" data-type="dff" transform="matrix(-1,0,0,1,710,750)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
   <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#e8f2f6" stroke="#16202b" stroke-width="1.6" />
@@ -211,7 +211,7 @@
 <text x="1300.286" y="769" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">wptr_g2</text>
 <text x="1459.714" y="729" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">rempty</text>
 <text x="1380" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">empty_cmp</text>
-<g class="dl-cell" data-id="sw1" data-type="reg" transform="matrix(1,0,0,1,970,750)">
+<g class="dl-cell" data-id="sw1" data-type="dff" transform="matrix(1,0,0,1,970,750)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
   <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#f7efe6" stroke="#16202b" stroke-width="1.6" />
@@ -222,7 +222,7 @@
 <text x="991" y="799" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">CK</text>
 <text x="1026" y="769" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">Q</text>
 <text x="1005" y="745" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">w2r_1</text>
-<g class="dl-cell" data-id="sw2" data-type="reg" transform="matrix(1,0,0,1,1090,750)">
+<g class="dl-cell" data-id="sw2" data-type="dff" transform="matrix(1,0,0,1,1090,750)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="1.6" />
   <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="1.6" />
   <rect x="10" y="0" width="50" height="60" fill="#f7efe6" stroke="#16202b" stroke-width="1.6" />

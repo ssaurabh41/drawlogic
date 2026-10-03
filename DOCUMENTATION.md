@@ -342,7 +342,7 @@ ok    route a wire
 ok    check the rules
 ok    lay it out
 ok    render to SVG
-40 built-in symbols
+39 built-in symbols
 ok     15 browser modules, 0 import mismatches
 ok     36 files against manifest.txt, 0 differ
 
@@ -1001,8 +1001,8 @@ Buses are drawn with the same line weight as a single bit; the name carries
 the width, not the stroke.
 
 A pin may declare `"width": 0`, meaning it accepts a bus of any width. Ports,
-generic block ports and the bus ripper use this. An ordinary gate pin is one
-bit and rejects a bus.
+generic block ports, the bus ripper and a `dff`'s D and Q use this. An
+ordinary gate pin is one bit and rejects a bus.
 
 `ripper` and `bus_tap` symbols are provided for pulling a bit off a bus, and
 `bus_join` (a ripper facing the other way) for putting one on. `tie0` and
@@ -1013,8 +1013,9 @@ out, `en` on top), and `iocell`, an IO pad cell: `pad` (inout) on the left,
 `a` (in, data from the core) and `y` (out, data to the core) on the right,
 `oe` (output enable) on top and `ie` (input enable) underneath.
 
-A bus synchroniser stage is an n-bit `reg`, not a single `dff`: a `dff`'s D pin
-is one bit, so wiring a bus to it is an error the checker will catch.
+A `dff` is a register of any width: its D and Q take a bus as readily as a
+bit. There used to be a separate `reg` for the n-bit case, drawn exactly like
+a `dff`, so the only way to tell them apart was to read the file.
 
 ### Naming the pins on one instance
 

@@ -848,7 +848,8 @@
         "name": "d",
         "x": 0,
         "y": 15,
-        "dir": "in"
+        "dir": "in",
+        "width": 0
       },
       {
         "name": "ck",
@@ -860,7 +861,8 @@
         "name": "q",
         "x": 70,
         "y": 15,
-        "dir": "out"
+        "dir": "out",
+        "width": 0
       }
     ],
     "draw": [
@@ -1450,13 +1452,13 @@
       {
         "name": "ck",
         "x": 0,
-        "y": 15,
+        "y": 45,
         "dir": "in"
       },
       {
         "name": "e",
         "x": 0,
-        "y": 45,
+        "y": 15,
         "dir": "in"
       },
       {
@@ -1493,12 +1495,15 @@
       },
       {
         "op": "path",
-        "d": "M10 9 L18 15 L10 21",
+        "d": "M10 39 L18 45 L10 51",
         "role": "decor"
       },
       {
-        "op": "path",
-        "d": "M42 24 L36 34 H44 L38 44",
+        "op": "text",
+        "x": 40,
+        "y": 34,
+        "text": "ICG",
+        "anchor": "middle",
         "role": "decor"
       },
       {
@@ -1512,7 +1517,7 @@
       {
         "op": "text",
         "x": 21,
-        "y": 19,
+        "y": 49,
         "text": "CK",
         "anchor": "start",
         "role": "pin_label",
@@ -1521,7 +1526,7 @@
       {
         "op": "text",
         "x": 14,
-        "y": 49,
+        "y": 19,
         "text": "E",
         "anchor": "start",
         "role": "pin_label",
@@ -2829,102 +2834,6 @@
         "anchor": "middle",
         "role": "pin_label",
         "pin": "ie"
-      }
-    ]
-  },
-  "reg": {
-    "name": "N-bit register",
-    "category": "sequential",
-    "size": [
-      70,
-      60
-    ],
-    "pins": [
-      {
-        "name": "d",
-        "x": 0,
-        "y": 15,
-        "dir": "in",
-        "width": 0
-      },
-      {
-        "name": "ck",
-        "x": 0,
-        "y": 45,
-        "dir": "in"
-      },
-      {
-        "name": "q",
-        "x": 70,
-        "y": 15,
-        "dir": "out",
-        "width": 0
-      }
-    ],
-    "draw": [
-      {
-        "op": "line",
-        "x1": 0,
-        "y1": 15,
-        "x2": 10,
-        "y2": 15,
-        "role": "pin"
-      },
-      {
-        "op": "line",
-        "x1": 0,
-        "y1": 45,
-        "x2": 10,
-        "y2": 45,
-        "role": "pin"
-      },
-      {
-        "op": "rect",
-        "x": 10,
-        "y": 0,
-        "w": 50,
-        "h": 60,
-        "role": "body"
-      },
-      {
-        "op": "path",
-        "d": "M10 39 L18 45 L10 51",
-        "role": "decor"
-      },
-      {
-        "op": "line",
-        "x1": 60,
-        "y1": 15,
-        "x2": 70,
-        "y2": 15,
-        "role": "pin"
-      },
-      {
-        "op": "text",
-        "x": 14,
-        "y": 19,
-        "text": "D",
-        "anchor": "start",
-        "role": "pin_label",
-        "pin": "d"
-      },
-      {
-        "op": "text",
-        "x": 21,
-        "y": 49,
-        "text": "CK",
-        "anchor": "start",
-        "role": "pin_label",
-        "pin": "ck"
-      },
-      {
-        "op": "text",
-        "x": 56,
-        "y": 19,
-        "text": "Q",
-        "anchor": "end",
-        "role": "pin_label",
-        "pin": "q"
       }
     ]
   },

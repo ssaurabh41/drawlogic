@@ -135,7 +135,7 @@
 <text x="319.6" y="622.333" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">shifted</text>
 <text x="337.8" y="600.333" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">S</text>
 <text x="335" y="527.5" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">M1</text>
-<g class="dl-cell" data-id="shr" data-type="reg" transform="matrix(2,0,0,2,500,530)">
+<g class="dl-cell" data-id="shr" data-type="dff" transform="matrix(2,0,0,2,500,530)">
   <line x1="0" y1="15" x2="10" y2="15" stroke="#16202b" stroke-width="0.8" />
   <line x1="0" y1="45" x2="10" y2="45" stroke="#16202b" stroke-width="0.8" />
   <rect x="10" y="0" width="50" height="60" fill="#f7efe6" stroke="#16202b" stroke-width="0.8" />

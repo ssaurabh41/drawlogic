@@ -502,8 +502,9 @@ resizes as a single object.
 
 Ports and the tie cells (`tie0`, `tie1`) have no resize handles: they are
 moved, never resized, and on something that small the handles covered most
-of it. A press anywhere on or just beside one picks it up. Its size can
-still be typed in the properties panel.
+of it. A press anywhere on or just beside one picks it up. The properties
+panel leaves out what such a cell cannot use -- width, height, text inside
+and copies -- and shows only its position, name and pins.
 
 ### Autoshapes
 
@@ -515,9 +516,10 @@ click-by-click: each click adds a point, double-click or `Esc` closes it.
 
 An arrow is a line with a head on it, not a shape of its own, so any line can
 have heads and any arrow can lose them. Selecting a line shows **Arrows** in
-the properties panel: for its begin and its end, PowerPoint's heads -- none,
-triangle, open, stealth, diamond, oval -- each drawn on its button, and a size,
-S, M or L. A head grows with the line's weight, as it does in a slide editor,
+the properties panel: for its begin and its end, a button showing the head
+now on it, which opens a gallery of PowerPoint's heads -- none, triangle,
+open, stealth, diamond, oval -- each drawn as it will look, and beside it a
+size, S, M or L. A head grows with the line's weight, as it does in a slide editor,
 and a solid head trims the line so it does not poke through the tip. In the
 file the heads are style keys: `headStart` and `headEnd` name the head,
 `headStartSize` and `headEndSize` are `s` or `l` (medium is left out).

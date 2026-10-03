@@ -453,7 +453,9 @@ select {
 /* ---- inspector ---- */
 
 .inspector {
-  width: 214px;
+  /* Wide enough that a select's longest choice ("Auto (forward)") and a
+     paired X | Y row both fit without being cut off. */
+  width: 248px;
   flex: none;
   background: var(--chrome);
   border-left: 1px solid var(--line);
@@ -495,6 +497,38 @@ select {
   font-variant-numeric: tabular-nums;
 }
 .pval { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A value you can read but not change is drawn as text, not as a box: a box
+   says "type here", and typing there did nothing. */
+.pval { background: none; border-color: transparent; padding-left: 0; color: var(--ink-2); }
+
+/* Two labelled number fields side by side: X | Y, W | H. */
+.prow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.phalf { display: grid; grid-template-columns: 12px minmax(0, 1fr); align-items: center; gap: 4px; }
+.phalf > span { font-size: 11px; color: var(--ink-3); }
+.phalf .pstep { grid-template-columns: minmax(0, 1fr) 20px 20px; gap: 2px; }
+.phalf .pstep-btn { font-size: 12px; }
+.psub { font-size: 11px; color: var(--ink-3); margin-bottom: -3px; }
+
+/* An arrowhead: the button showing the head now on that end, and its size. */
+.headrow { display: flex; align-items: center; gap: 6px; }
+.headpick {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 6px 0 8px;
+  color: var(--ink); background: var(--chrome-2);
+  border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
+}
+.headpick:hover { border-color: var(--accent); color: var(--accent-ink); }
+.headpick .chev { font-size: 10px; color: var(--ink-3); }
+.headpick .head-ico { width: 34px; height: 16px; }
+.headpop { display: grid; grid-template-columns: repeat(3, 44px); gap: 4px; padding: 6px; }
+.headopt {
+  height: 30px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink); background: var(--chrome-2);
+  border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
+}
+.headopt .head-ico { width: 34px; height: 16px; }
+.headopt:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+.headopt[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
 
 /* A number field with its own minus and plus buttons; see stepper() in
    panels.js. The browser's tiny built-in arrows are hidden in favour of these. */
@@ -542,16 +576,9 @@ select {
 }
 .seg-btn:disabled { opacity: .45; cursor: default; }
 .seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.seg-heads .seg-btn { width: 32px; padding: 0; }
 .head-ico { width: 26px; height: 14px; }
 .head-ico line, .head-ico .open { stroke: currentColor; stroke-width: 1.5; fill: none; }
 .head-ico .solid { fill: currentColor; stroke: none; }
-.pval.unconnected { color: var(--warm-ink); }
-
-/* A pin row carries its name field above what the pin is wired to. */
-.pinrow { display: grid; gap: 3px; min-width: 0; }
-.pinrow .pinwire { background: none; border: 0; padding: 0 1px; font-size: 11px;
-                   color: var(--ink-3); }
 
 /* The swatch that opens the colour grid. A plain filled rectangle: it is
    showing a colour, so anything else drawn on it would be a second colour. */

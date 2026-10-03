@@ -77,6 +77,20 @@ function row(label, control) {
   return wrap;
 }
 
+// Two labelled number fields side by side, each with its own steppers.
+function pairRow(first, second) {
+  const wrap = element("div", "prow2");
+  for (const pair of [first, second]) {
+    if (!pair) continue;
+    const [label, field] = pair;
+    const half = element("label", "phalf");
+    half.appendChild(element("span", null, label));
+    half.appendChild(stepper(field));
+    wrap.appendChild(half);
+  }
+  return wrap;
+}
+
 // A number field with a minus and a plus button beside it.
 //
 // The browser's own spinner is two arrows, each about 7px tall, stacked inside
@@ -266,6 +280,34 @@ function openPalette(anchor, current, apply) {
   more.appendChild(native);
   popup.appendChild(more);
 
+  showPopup(anchor, popup);
+}
+
+// The arrowheads as a small gallery under the button that opened it.
+function openHeadPicker(anchor, current, atStart, apply) {
+  closePalette();
+  const popup = element("div", "cpop headpop");
+  popup.setAttribute("role", "listbox");
+  for (const kind of HEAD_KINDS) {
+    const option = element("button", "headopt");
+    option.type = "button";
+    option.title = kind === "none" ? "no arrowhead" : kind;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-label", option.title);
+    option.setAttribute("aria-selected", String(kind === current));
+    option.appendChild(headPreview(kind, atStart));
+    option.addEventListener("click", () => {
+      closePalette();
+      apply(kind);
+    });
+    popup.appendChild(option);
+  }
+  showPopup(anchor, popup);
+}
+
+// Put a popup under the control that opened it, and close it on a click
+// elsewhere or Escape. Shared by the colour grid and the arrowhead picker.
+function showPopup(anchor, popup) {
   document.body.appendChild(popup);
   // Measured after it is in the document, then kept on screen: the fill
   // swatch sits low in a tall properties panel, so below the button is often
@@ -542,7 +584,11 @@ export class Inspector {
     }
   }
 
+  // Position and size two to a row -- X beside Y, W beside H -- as a slide
+  // editor sets them out: they are read and changed as pairs, and one per
+  // row made the panel twice as long for no more information.
   renderGeometry(item, keys) {
+    const fields = [];
     for (const [key, label] of keys) {
       if (item[key] === undefined) continue;
       const field = input(Math.round(item[key]), "number");
@@ -554,7 +600,10 @@ export class Inspector {
           target[key] = (key === "w" || key === "h") ? Math.max(4, number) : number;
         }
       }, "edit");
-      this.root.appendChild(row(label, field));
+      fields.push([label, field]);
+    }
+    for (let i = 0; i < fields.length; i += 2) {
+      this.root.appendChild(pairRow(fields[i], fields[i + 1]));
     }
   }
 
@@ -578,8 +627,12 @@ export class Inspector {
     this.bind(name, (doc, value) => model.setLabel(doc, cell.id, value), "rename");
     root.appendChild(row("Name", name));
 
+    // A port or a tie cell is moved, never resized, and holds no text: the
+    // fields for those would only be things that do nothing.
+    const fixed = geometry.FIXED_SIZE_TYPES.has(cell.type);
     root.appendChild(element("div", "ptitle", "Geometry"));
-    this.renderGeometry(cell, [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"]]);
+    this.renderGeometry(cell, fixed ? [["x", "X"], ["y", "Y"]]
+      : [["x", "X"], ["y", "Y"], ["w", "W"], ["h", "H"]]);
 
     const rotation = document.createElement("select");
     rotation.className = "pinput";
@@ -614,7 +667,7 @@ export class Inspector {
     });
     root.appendChild(row("Pinned", pinned));
 
-    this.renderCellText(cell);
+    if (!fixed) this.renderCellText(cell);
 
     // A custom cell can carry its own picture, embedded so the .dlg stays one
     // shippable file.
@@ -719,34 +772,39 @@ export class Inspector {
     if (shape.kind === "line" || shape.kind === "polyline") this.renderHeads(shape);
 
     root.appendChild(element("div", "ptitle", "Geometry"));
-    this.renderGeometry(shape, [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"]]);
+    this.renderGeometry(shape, [["x", "X"], ["y", "Y"], ["w", "W"], ["h", "H"]]);
     if (shape.points) {
       root.appendChild(row("Points", element("div", "pval",
                                              `${shape.points.length} points`)));
     }
   }
 
-  // Arrowheads for an open line, as a slide editor offers them: for each end,
-  // a row of the heads drawn small -- picked by looking, not by name -- and a
-  // size. The start is the end the line was drawn from.
+  // Arrowheads for an open line, as a slide editor offers them: one row per
+  // end, holding a button that shows the head now on it -- press it for a
+  // gallery of the others -- and the size beside it. Picked by looking, not
+  // by name. The start is the end the line was drawn from.
   renderHeads(shape) {
     const root = this.root;
     const style = shape.style || {};
     root.appendChild(element("div", "ptitle", "Arrows"));
     for (const [key, label] of [["headStart", "Begin"], ["headEnd", "End"]]) {
+      const atStart = key === "headStart";
       const current = style[key] || "none";
-      const kinds = element("div", "seg seg-heads");
-      kinds.setAttribute("role", "radiogroup");
-      kinds.setAttribute("aria-label", `${label} arrowhead`);
-      for (const kind of HEAD_KINDS) {
-        const button = segButton(headPreview(kind, key === "headStart"),
-                                 kind === "none" ? "no arrowhead" : `${kind} arrowhead`,
-                                 kind === current);
-        button.addEventListener("click", () => this.setShapeStyle(
+      const line = element("div", "headrow");
+
+      const pick = element("button", "headpick");
+      pick.type = "button";
+      pick.title = `${label} arrowhead: ${current}`;
+      pick.setAttribute("aria-label", `${label} arrowhead: ${current}`);
+      pick.setAttribute("aria-haspopup", "true");
+      pick.appendChild(headPreview(current, atStart));
+      pick.appendChild(element("span", "chev", "\u25be"));
+      pick.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openHeadPicker(pick, current, atStart, (kind) => this.setShapeStyle(
           shape, key, kind === "none" ? null : kind, "arrowhead"));
-        kinds.appendChild(button);
-      }
-      root.appendChild(row(label, kinds));
+      });
+      line.appendChild(pick);
 
       const size = element("div", "seg seg-size");
       size.setAttribute("role", "radiogroup");
@@ -763,7 +821,8 @@ export class Inspector {
           shape, key + "Size", value === "m" ? null : value, "arrowhead size"));
         size.appendChild(button);
       }
-      root.appendChild(row("Size", size));
+      line.appendChild(size);
+      root.appendChild(row(label, line));
     }
   }
 
@@ -882,6 +941,9 @@ export class Inspector {
 
     const labels = cell.pins || {};
 
+    // One line per pin: its name on this instance. What it is wired to is on
+    // the canvas already, and a line under each pin saying so doubled the
+    // section's length; the direction and the wire stay in the tooltip.
     for (const pin of symbol.pins) {
       const touches = (endpoint) =>
         endpoint && endpoint.cell === cell.id && endpoint.pin === pin.name;
@@ -892,21 +954,11 @@ export class Inspector {
       // symbol draws, which for a generic block is nothing at all.
       const field = input(labels[pin.name] || "");
       field.placeholder = pin.name;
+      field.title = `${pin.dir}, ${nets.length
+        ? nets.map((n) => n.name || n.id).join(", ") : "unconnected"}`;
       this.bind(field, (d, value) =>
         model.setPinLabel(d, cell.id, pin.name, value.trim()), "name pin");
-
-      const value = element("div", "pval pinwire");
-      if (!nets.length) {
-        value.textContent = `${pin.dir} - unconnected`;
-        value.classList.add("unconnected");
-      } else {
-        value.textContent = `${pin.dir} - ${nets.map((n) => n.name || n.id).join(", ")}`;
-      }
-
-      const wrap = element("div", "pinrow");
-      wrap.appendChild(field);
-      wrap.appendChild(value);
-      root.appendChild(row(pin.name, wrap));
+      root.appendChild(row(pin.name, field));
     }
   }
 
@@ -915,10 +967,13 @@ export class Inspector {
     root.appendChild(element("div", "ptitle", "Appearance"));
     const first = items[0].style || {};
 
+    // A line has no inside, so a fill for it would do nothing.
+    const open = items.every((item) => item.kind === "line" || item.kind === "polyline");
     for (const [key, label, fallback] of [
       ["fill", "Fill", "#ffffff"],
       ["stroke", "Line", "#16202b"],
     ]) {
+      if (key === "fill" && open) continue;
       root.appendChild(row(label, this.colourControl(key, first[key], fallback)));
     }
 
@@ -977,15 +1032,18 @@ export class Inspector {
     this.bind(title, (d, value) => { d.title = value || "untitled"; }, "title");
     root.appendChild(row("Title", title));
 
-    for (const [key, label] of [["width", "Sheet W"], ["height", "Sheet H"]]) {
+    const sheet = [];
+    for (const [key, label] of [["width", "W"], ["height", "H"]]) {
       const field = input(doc.canvas[key], "number");
       this.bind(field, (d, value) => {
         const number = numberFrom(value);
         if (!Number.isFinite(number) || number < 50) return false;
         d.canvas[key] = number;
       }, "sheet");
-      root.appendChild(row(label, field));
+      sheet.push([label, field]);
     }
+    root.appendChild(element("div", "psub", "Sheet size"));
+    root.appendChild(pairRow(sheet[0], sheet[1]));
 
     const step = input(model.gridStep(doc), "number");
     step.min = "1";

@@ -103,7 +103,7 @@ HOP_RADIUS = 5.0
 # -- a fixed distance looked deep behind a small gate and shallow behind a big
 # block -- but never less than `stackMin`, under which the two outlines run
 # into each other at the usual line weight.
-CELL_TEXT = {"pad": 8.0, "step": 1.3, "char": 0.62, "stack": 0.05,
+CELL_TEXT = {"pad": 8.0, "step": 1.3, "char": 0.62, "stack": 0.03,
              "stackMin": 3.0}
 GHOST_DASH = "4 3"
 

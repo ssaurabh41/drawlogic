@@ -1448,11 +1448,17 @@ def _below_headings(doc, registry, cells, margin):
   bottoms = []
   for shape in doc.shapes:
     box = render_svg.text_shape_box(shape, doc.font_scale)
-    if box is not None and box[3] <= highest:
+    # Starting above the drawing is enough. Ending above it was the test
+    # once, and a subtitle reaching down past the room left for the top
+    # cell's name was then not a heading -- until a first layout had moved
+    # the drawing below it, so a second layout came out different.
+    if box is not None and box[1] <= highest:
       bottoms.append(box[3])
   if not bottoms:
     return None
-  return max(margin, max(bottoms) + drc.LABEL_HEADROOM)
+  # On the grid, so the drawing can still be settled onto it afterwards.
+  below = max(bottoms) + drc.LABEL_HEADROOM
+  return max(margin, math.ceil(below / drc.PIN_GRID) * drc.PIN_GRID)
 
 
 def _normalise(doc, registry, cells, margin, top_at=None):
@@ -1483,9 +1489,11 @@ def _normalise(doc, registry, cells, margin, top_at=None):
   left = min(lefts)
   top = min(tops)
   start = margin if top_at is None else top_at
+  # Rounded, or a shift that came out a hair different on a second layout
+  # wrote 251.84999999999997 where the first wrote 251.85.
   for cell in cells:
-    cell["x"] += margin - left
-    cell["y"] += start - top
+    cell["x"] = round(cell["x"] + margin - left, 6)
+    cell["y"] = round(cell["y"] + start - top, 6)
 
 
 def _fit(doc, registry, margin):

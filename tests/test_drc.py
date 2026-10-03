@@ -703,7 +703,7 @@ class TestOddDocuments(unittest.TestCase):
 class TestExamples(unittest.TestCase):
   """The drawings shipped with the project are the drawings people copy."""
 
-  EXAMPLES = ("alu_slice", "cdc_fifo", "dff_slice", "fifo_top", "mac_pipe",
+  EXAMPLES = ("alu_slice", "cdc_fifo", "dff_slice", "fifo_top", "shift_reg4",
               "soc_top", "spi_master")
 
   def test_no_example_has_a_drc_error(self):

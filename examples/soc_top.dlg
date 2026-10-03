@@ -22,18 +22,25 @@
   "cells": [
     {
       "id": "u_mac",
-      "type": "sheet",
+      "type": "block8",
       "x": 340,
-      "y": 200,
-      "w": 191.60000000000002,
-      "h": 140.0,
+      "y": 196,
+      "w": 180,
+      "h": 160,
       "rotate": 0,
       "mirror": false,
       "label": "U_MAC",
+      "pins": {
+        "in1": "a",
+        "in2": "b",
+        "in3": "en",
+        "in4": "clk",
+        "out1": "result",
+        "out2": "overflow"
+      },
       "style": {
         "fill": "#e8f2f6"
-      },
-      "ref": "mac_pipe.dlg"
+      }
     },
     {
       "id": "u_fifo",
@@ -312,7 +319,7 @@
       "to": [
         {
           "cell": "u_mac",
-          "pin": "en",
+          "pin": "in3",
           "waypoints": []
         }
       ],
@@ -449,7 +456,7 @@
       "to": [
         {
           "cell": "u_mac",
-          "pin": "a[15:0]",
+          "pin": "in1",
           "waypoints": []
         }
       ],
@@ -467,7 +474,7 @@
       "to": [
         {
           "cell": "u_mac",
-          "pin": "b[15:0]",
+          "pin": "in2",
           "waypoints": []
         }
       ],
@@ -480,7 +487,7 @@
       "width": 32,
       "from": {
         "cell": "u_mac",
-        "pin": "result[31:0]"
+        "pin": "out1"
       },
       "to": [
         {
@@ -601,7 +608,7 @@
       "width": 1,
       "from": {
         "cell": "u_mac",
-        "pin": "overflow"
+        "pin": "out2"
       },
       "to": [
         {
@@ -687,17 +694,8 @@
       "to": [
         {
           "cell": "u_mac",
-          "pin": "clk",
-          "waypoints": [
-            [
-              300,
-              700
-            ],
-            [
-              300,
-              286
-            ]
-          ]
+          "pin": "in4",
+          "waypoints": []
         },
         {
           "cell": "u_fifo",
@@ -764,7 +762,7 @@
       "kind": "text",
       "x": 200,
       "y": 118,
-      "text": "mac -> byte packer -> fifo -> spi;  three of the four blocks are other drawings in examples/",
+      "text": "mac -> byte packer -> fifo -> spi;  two of the four blocks are other drawings in examples/",
       "rotate": 0,
       "style": {
         "fontSize": 13,

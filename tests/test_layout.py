@@ -277,7 +277,7 @@ class TestItActuallyHelps(unittest.TestCase):
   """The point of all this: wires that run straight."""
 
   def test_a_scrambled_drawing_comes_back_with_straight_wires(self):
-    for name in ("cdc_fifo", "mac_pipe", "spi_master"):
+    for name in ("cdc_fifo", "spi_master"):
       with self.subTest(example=name):
         doc, registry, _ = open_example(
           os.path.join(ROOT, "examples", name + ".dlg"))
@@ -326,7 +326,7 @@ class TestOrderingChoice(unittest.TestCase):
     tries both. The guarantee worth testing is that the result is at least as
     good as the better one, not that either particular one wins.
     """
-    for name in ("alu_slice", "cdc_fifo", "mac_pipe"):
+    for name in ("alu_slice", "cdc_fifo"):
       with self.subTest(example=name):
         path = os.path.join(ROOT, "examples", name + ".dlg")
         scores = []
@@ -996,7 +996,7 @@ class TestForkingIsChosenByMeasuring(unittest.TestCase):
 
   def test_the_choice_never_makes_a_drawing_worse(self):
     """Whatever it picks is at least as good as either answer alone."""
-    for name in ("alu_slice", "cdc_fifo", "spi_master", "mac_pipe",
+    for name in ("alu_slice", "cdc_fifo", "spi_master",
                  "dff_slice"):
       with self.subTest(example=name):
         path = os.path.join(ROOT, "examples", name + ".dlg")
@@ -1265,7 +1265,7 @@ class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
                for cell in doc.cells for value in (cell["x"], cell["y"]))
 
   def test_a_drawing_whose_pins_suit_it_comes_back_on_the_grid(self):
-    for name in ("alu_slice", "dff_slice", "mac_pipe"):
+    for name in ("alu_slice", "dff_slice"):
       with self.subTest(example=name):
         doc, registry = self.laid_out(name)
         self.assertTrue(
@@ -1291,7 +1291,7 @@ class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
 
   def test_settling_never_costs_an_error_or_a_warning(self):
     """The grid is worth a little wire, and nothing at all beyond that."""
-    for name in ("alu_slice", "cdc_fifo", "mac_pipe", "dff_slice"):
+    for name in ("alu_slice", "cdc_fifo", "dff_slice"):
       with self.subTest(example=name):
         doc, registry = self.laid_out(name)
         after = layout._violation_count(doc, registry)

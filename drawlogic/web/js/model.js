@@ -200,7 +200,7 @@ function uniqueId(doc, prefix) {
 function labelFor(doc, type) {
   const prefixes = {
     port_in: "in", port_out: "out", port_inout: "io", block: "B", dff: "FF",
-    dffr: "FF", dlatch: "L", icg: "ICG", mux2: "M", mux4: "M",
+    dffr: "FF", dlatch: "L", mux2: "M", mux4: "M",
     nmos: "MN", pmos: "MP", resistor: "R", capacitor: "C",
   };
   const prefix = prefixes[type] || "U";

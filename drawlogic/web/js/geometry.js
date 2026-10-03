@@ -224,7 +224,7 @@ export function cellLabelBox(symbol, cell, scale, size, textToCell, textToWire) 
 // Mirrors cell_text_lines, cell_copies, cell_text_needs, cell_text_layout and
 // fit_cell_text in render_svg.py. The sizes come from the theme the server
 // sends; these defaults are theme.py's, for when this runs on its own.
-let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 0.05, stackMin: 3 };
+let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 0.03, stackMin: 3 };
 
 export function setCellTextMetrics(sizes, metrics) {
   cellText = { ...cellText, ...(metrics || {}) };

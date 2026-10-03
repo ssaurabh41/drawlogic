@@ -1,0 +1,316 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "shift_reg4",
+  "canvas": {
+    "width": 860,
+    "height": 290,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "p_din",
+      "type": "port_in",
+      "x": 40,
+      "y": 150,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "din",
+      "style": {}
+    },
+    {
+      "id": "p_clk",
+      "type": "port_in",
+      "x": 40,
+      "y": 215,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "clk",
+      "style": {}
+    },
+    {
+      "id": "ff0",
+      "type": "dff",
+      "x": 140,
+      "y": 140,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "FF1",
+      "style": {}
+    },
+    {
+      "id": "p_q0",
+      "type": "port_out",
+      "x": 225,
+      "y": 60,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 270,
+      "mirror": false,
+      "label": "q[0]",
+      "style": {}
+    },
+    {
+      "id": "ff1",
+      "type": "dff",
+      "x": 310,
+      "y": 140,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "FF2",
+      "style": {}
+    },
+    {
+      "id": "p_q1",
+      "type": "port_out",
+      "x": 395,
+      "y": 60,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 270,
+      "mirror": false,
+      "label": "q[1]",
+      "style": {}
+    },
+    {
+      "id": "ff2",
+      "type": "dff",
+      "x": 480,
+      "y": 140,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "FF3",
+      "style": {}
+    },
+    {
+      "id": "p_q2",
+      "type": "port_out",
+      "x": 565,
+      "y": 60,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 270,
+      "mirror": false,
+      "label": "q[2]",
+      "style": {}
+    },
+    {
+      "id": "ff3",
+      "type": "dff",
+      "x": 650,
+      "y": 140,
+      "w": 70.0,
+      "h": 60.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "FF4",
+      "style": {}
+    },
+    {
+      "id": "p_q3",
+      "type": "port_out",
+      "x": 735,
+      "y": 60,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 270,
+      "mirror": false,
+      "label": "q[3]",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "name": "din",
+      "width": 1,
+      "from": {
+        "cell": "p_din",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "ff0",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "name": "clk",
+      "width": 1,
+      "from": {
+        "cell": "p_clk",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "ff0",
+          "pin": "ck",
+          "waypoints": [
+            [
+              125,
+              225
+            ],
+            [
+              125,
+              185
+            ]
+          ]
+        },
+        {
+          "cell": "ff1",
+          "pin": "ck",
+          "waypoints": [
+            [
+              295,
+              225
+            ],
+            [
+              295,
+              185
+            ]
+          ]
+        },
+        {
+          "cell": "ff2",
+          "pin": "ck",
+          "waypoints": [
+            [
+              465,
+              225
+            ],
+            [
+              465,
+              185
+            ]
+          ]
+        },
+        {
+          "cell": "ff3",
+          "pin": "ck",
+          "waypoints": [
+            [
+              635,
+              225
+            ],
+            [
+              635,
+              185
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "name": "q0",
+      "width": 1,
+      "from": {
+        "cell": "ff0",
+        "pin": "q"
+      },
+      "to": [
+        {
+          "cell": "p_q0",
+          "pin": "p",
+          "waypoints": []
+        },
+        {
+          "cell": "ff1",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "name": "q1",
+      "width": 1,
+      "from": {
+        "cell": "ff1",
+        "pin": "q"
+      },
+      "to": [
+        {
+          "cell": "p_q1",
+          "pin": "p",
+          "waypoints": []
+        },
+        {
+          "cell": "ff2",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "name": "q2",
+      "width": 1,
+      "from": {
+        "cell": "ff2",
+        "pin": "q"
+      },
+      "to": [
+        {
+          "cell": "p_q2",
+          "pin": "p",
+          "waypoints": []
+        },
+        {
+          "cell": "ff3",
+          "pin": "d",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "name": "q3",
+      "width": 1,
+      "from": {
+        "cell": "ff3",
+        "pin": "q"
+      },
+      "to": [
+        {
+          "cell": "p_q3",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": []
+}

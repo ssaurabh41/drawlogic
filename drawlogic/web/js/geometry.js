@@ -291,12 +291,18 @@ export function cellTextAlign(cell) {
 }
 
 export function cellTextLayout(symbol, cell, scale = 1, fontScale = 1) {
-  const lines = cellTextLines(cell);
+  return textLayoutIn(cellBounds(symbol, cell, scale), cell, fontScale);
+}
+
+// cellTextLayout for any box [x, y, w, h] and any item carrying text and its
+// alignment -- a cell, or a shape. Mirrors text_layout_in in render_svg.py.
+export function textLayoutIn(box, item, fontScale = 1) {
+  const lines = cellTextLines(item);
   if (!lines.length) return [[], false];
-  const [x, y, w, h] = cellBounds(symbol, cell, scale);
+  const [x, y, w, h] = box;
   const [size, pad, step, char] = textSizes(fontScale);
   const room = Math.max(0, Math.trunc((w - 2 * pad) / char + 1e-6));
-  const [across, down] = cellTextAlign(cell);
+  const [across, down] = cellTextAlign(item);
   const at = { left: x + pad, center: x + w / 2, right: x + w - pad }[across];
   const placed = [];
   let clipped = false;
@@ -428,6 +434,92 @@ export function lineHead(tip, before, kind, length, spread) {
     return [["ellipse", [tip[0], tip[1], length / 2, half, angle]], at(length / 2, 0)];
   }
   return [null, tip];
+}
+
+// Shapes that can have writing in them, and those that can stand for several
+// copies. Mirrors SHAPE_TEXT_KINDS, SHAPE_STACK_KINDS and LINE_TEXT_LIFT in
+// render_svg.py.
+export const SHAPE_TEXT_KINDS = ["rect", "ellipse", "polygon", "line", "polyline"];
+export const SHAPE_STACK_KINDS = ["rect", "ellipse", "polygon"];
+const LINE_TEXT_LIFT = 5;
+
+// A shape's box [x, y, w, h], or null for a text shape. Mirrors shape_box.
+export function shapeBox(shape) {
+  const points = shape.points;
+  if (["line", "polyline", "polygon"].includes(shape.kind) && points && points.length) {
+    const xs = points.map((p) => p[0]);
+    const ys = points.map((p) => p[1]);
+    return [Math.min(...xs), Math.min(...ys),
+            Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+  }
+  if (shape.kind === "rect" || shape.kind === "ellipse") {
+    return [shape.x || 0, shape.y || 0, shape.w || 0, shape.h || 0];
+  }
+  return null;
+}
+
+// Halfway along a line, measured along it, and which way it runs there:
+// [point, [ux, uy]]. Mirrors line_middle.
+export function lineMiddle(points) {
+  const pairs = points.slice(1).map((b, i) => [points[i], b]);
+  const lengths = pairs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]));
+  let left = lengths.reduce((sum, l) => sum + l, 0) / 2;
+  for (let i = 0; i < pairs.length; i += 1) {
+    const [a, b] = pairs[i];
+    if (lengths[i] > 0 && left <= lengths[i]) {
+      const t = left / lengths[i];
+      return [[a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t],
+              [(b[0] - a[0]) / lengths[i], (b[1] - a[1]) / lengths[i]]];
+    }
+    left -= lengths[i];
+  }
+  return [points[0], [1, 0]];
+}
+
+// A line's caption, [[[x, baseline, text], ...], anchor]: above a level-ish
+// line and raised by its climb under half the caption, right of a steep one.
+// Mirrors _line_caption.
+export function lineCaption(shape, fontScale = 1) {
+  const lines = cellTextLines(shape);
+  const points = shape.points || [];
+  if (!lines.length || points.length < 2) return [[], "middle"];
+  const [[mx, my], [ux, uy]] = lineMiddle(points);
+  const [size, , step, char] = textSizes(fontScale);
+  const block = size + (lines.length - 1) * step;
+  if (Math.abs(uy) <= Math.abs(ux)) {
+    const climb = Math.max(...lines.map((l) => l.length)) * char / 2 * Math.abs(uy / ux);
+    const last = my - LINE_TEXT_LIFT - climb;
+    return [lines.map((line, i) => [mx, last - (lines.length - 1 - i) * step, line]), "middle"];
+  }
+  const lean = block / 2 * Math.abs(ux / uy);
+  const first = my - block / 2 + size * 0.8;
+  return [lines.map((line, i) => [mx + LINE_TEXT_LIFT + lean, first + i * step, line]), "start"];
+}
+
+export function shapeCopies(shape) {
+  return SHAPE_STACK_KINDS.includes(shape.kind) ? cellCopies(shape) : 0;
+}
+
+export function shapeStackOffset(shape) {
+  const [, , w, h] = shapeBox(shape);
+  return Math.max(cellText.stackMin, cellText.stack * Math.min(w, h));
+}
+
+// [[x, baseline, text], ...] for the writing in a shape. Mirrors
+// shape_text_layout: in the box, in the box an ellipse's curve leaves room
+// for, or centred just above a line's middle.
+export function shapeTextLayout(shape, fontScale = 1) {
+  if (!SHAPE_TEXT_KINDS.includes(shape.kind)) return [];
+  let box = shapeBox(shape);
+  if (!box) return [];
+  if (shape.kind === "line" || shape.kind === "polyline") return lineCaption(shape, fontScale)[0];
+  if (shape.kind === "ellipse") {
+    const [x, y, w, h] = box;
+    const iw = w / Math.SQRT2;
+    const ih = h / Math.SQRT2;
+    box = [x + (w - iw) / 2, y + (h - ih) / 2, iw, ih];
+  }
+  return textLayoutIn(box, shape, fontScale)[0];
 }
 
 // How far the copy behind a replicated cell sits, right and down: a share of

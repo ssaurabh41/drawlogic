@@ -789,3 +789,75 @@ class TestForkingLateAgreesInBothRenderers(unittest.TestCase):
     self.assertNotEqual(early, late,
                         "forkLate changed nothing, so the parity above is "
                         "comparing two wires that fork early")
+
+
+def _stacked_drawing():
+  """Shapes with writing and copies, restacked among a gate and a wire."""
+  doc = new_document("stacked", 600, 400)
+  doc.canvas["grid"]["style"] = "blank"
+  doc.shapes.extend([
+    {"id": "box", "kind": "rect", "x": 40, "y": 40, "w": 140, "h": 70,
+     "text": ["two", "lines"], "copies": 3, "textAlign": "left"},
+    {"id": "oval", "kind": "ellipse", "x": 220, "y": 40, "w": 120, "h": 80,
+     "text": ["in an ellipse"], "copies": 2, "style": {"fill": "#fde2e2"}},
+    {"id": "tri", "kind": "polygon", "points": [[380, 40], [500, 40], [440, 130]],
+     "text": "top", "textVAlign": "top", "z": 2},
+    {"id": "cap", "kind": "line", "points": [[40, 300], [260, 240]],
+     "text": ["a caption"], "copies": 5},
+    {"id": "up", "kind": "line", "points": [[560, 380], [540, 200]],
+     "text": ["beside", "it"]},
+  ])
+  doc.cells.extend([
+    {"id": "g1", "type": "and2", "x": 400, "y": 60},
+    {"id": "g2", "type": "inv", "x": 300, "y": 260, "z": -1},
+    {"id": "p", "type": "port_in", "x": 300, "y": 200},
+  ])
+  doc.nets.append({"id": "n1", "from": {"cell": "p", "pin": "p"},
+                   "to": [{"cell": "g1", "pin": "a"}]})
+  doc.normalize()
+  return doc
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestShapesStackAndWriteAlike(unittest.TestCase):
+  """Restacked shapes and cells, and the writing and copies on shapes, come
+  out the same in the editor as in the exported file."""
+
+  @classmethod
+  def setUpClass(cls):
+    cls.doc = _stacked_drawing()
+    cls.svg = render_svg.render(cls.doc)
+    cls.browser = _browser_render(cls.doc, default_registry())
+
+  def test_the_paint_order_is_the_same(self):
+    order, wires_at = render_svg.draw_order(self.doc.cells, self.doc.shapes)
+    exported = [item["id"] for _kind, item in order]
+    exported.insert(wires_at, "nets")
+    # Some of what is at stake: the gate sent back is under every shape, the
+    # wires are just under the first cell at z 0, and the polygon brought
+    # forward is over everything.
+    self.assertEqual(exported, ["g2", "box", "oval", "cap", "up", "nets", "g1", "p", "tri"])
+    self.assertEqual(self.browser["paintOrder"], exported)
+    # And the file is painted in that order, a group to each run.
+    self.assertEqual(re.findall(r'<g class="dl-(shapes|cells|nets)">', self.svg),
+                     ["cells", "shapes", "nets", "cells", "shapes"])
+
+  def test_the_writing_is_in_the_same_places(self):
+    exported = sorted(
+      [text, x, y, anchor] for x, y, anchor, text in re.findall(
+        r'<text class="dl-shape-text" x="([^"]+)" y="([^"]+)" text-anchor="([^"]+)"'
+        r'[^>]*>([^<]*)</text>', self.svg))
+    self.assertEqual(len(exported), 7)
+    # The left-aligned box's two lines, and the steep line's two beside it.
+    self.assertEqual(sum(1 for row in exported if row[3] == "start"), 4)
+    self.assertEqual(self.browser["shapeText"], exported)
+
+  def test_the_copies_are_the_same(self):
+    exported = sorted(re.findall(r'<g class="dl-stack" transform="(translate[^"]+)"', self.svg))
+    # Box and ellipse; a line stands for no copies however many it says.
+    self.assertEqual(len(exported), 2)
+    self.assertEqual(self.browser["shapeStacks"], exported)
+    # Only the unfilled box masks its copy; the filled ellipse hides its own.
+    self.assertEqual(re.findall(r'<mask id="([^"]+)"', self.svg), ["dl-hide-box"])
+    self.assertEqual(self.browser["masks"], ["dl-hide-box"])
+

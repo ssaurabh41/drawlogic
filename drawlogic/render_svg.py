@@ -246,13 +246,20 @@ def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   that way fills the box from the top, there being no room left to centre it
   in. With fit-to-text on, nothing is clipped.
   """
-  lines = cell_text_lines(cell)
+  return text_layout_in(_cell_bbox(symbol, cell, symbol_scale), cell,
+                        font_scale)
+
+
+def text_layout_in(box, item, font_scale=1.0):
+  """cell_text_layout for any box (x, y, w, h) and any item carrying text and
+  its alignment -- a cell, or a shape with writing in it."""
+  lines = cell_text_lines(item)
   if not lines:
     return [], False
-  x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
+  x, y, w, h = box
   size, pad, step, char = _cell_text_metrics(font_scale)
   room = max(0, int((w - 2 * pad) / char + 1e-6))
-  across, down = cell_text_align(cell)
+  across, down = cell_text_align(item)
   at = {"left": x + pad, "center": x + w / 2.0, "right": x + w - pad}[across]
   placed = []
   clipped = False
@@ -381,7 +388,13 @@ def _render_cell_text(symbol, cell, symbol_scale, font_scale, out):
       ("fill", theme.COLORS["label"])]), esc(line)))
   copies = cell_copies(cell)
   if copies:
-    bx, by, bw, _bh = _cell_bbox(symbol, cell, symbol_scale)
+    _render_copies_badge(_cell_bbox(symbol, cell, symbol_scale), copies, out)
+
+
+def _render_copies_badge(box, copies, out):
+  """The "x4" pill on the top right corner of anything standing for copies."""
+  if copies:
+    bx, by, bw, _bh = box
     text = "\u00d7%d" % copies
     width = 12 + len(text) * 6.5
     left = bx + bw - width + 4
@@ -1324,14 +1337,173 @@ def shape_shadow_reach():
   return (shadow["dx"] + 3 * shadow["blur"], shadow["dy"] + 3 * shadow["blur"])
 
 
+# Shapes that can have writing in them, and those that can stand for several
+# copies. A line takes a caption but not copies: a stack of lines reads as a
+# bus, not as "four of these". Any closed outline added later belongs in both.
+SHAPE_TEXT_KINDS = ("rect", "ellipse", "polygon", "line", "polyline")
+SHAPE_STACK_KINDS = ("rect", "ellipse", "polygon")
+# How far above a line its caption's last baseline sits, so the writing is
+# beside the line and not struck through by it.
+LINE_TEXT_LIFT = 5.0
+
+
+def shape_box(shape):
+  """A shape's box on the sheet, (x, y, w, h), or None for a text shape."""
+  points = shape.get("points")
+  if shape.get("kind") in ("line", "polyline", "polygon") and points:
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    return (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
+  if shape.get("kind") in ("rect", "ellipse"):
+    return (shape.get("x", 0), shape.get("y", 0), shape.get("w", 0), shape.get("h", 0))
+  return None
+
+
+def line_middle(points):
+  """Halfway along a line, measured along it rather than by its ends, and
+  which way the line runs there as (point, (ux, uy))."""
+  pairs = list(zip(points, points[1:]))
+  lengths = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in pairs]
+  left = sum(lengths) / 2.0
+  for (a, b), length in zip(pairs, lengths):
+    if length > 0 and left <= length:
+      t = left / length
+      return ((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t),
+              ((b[0] - a[0]) / length, (b[1] - a[1]) / length))
+    left -= length
+  return points[0], (1.0, 0.0)
+
+
+def shape_copies(shape):
+  """How many copies a shape stands for, or 0; only closed shapes can."""
+  if shape.get("kind") not in SHAPE_STACK_KINDS:
+    return 0
+  return cell_copies(shape)
+
+
+def shape_stack_offset(shape):
+  """How far the copy behind a shape sits, right and down; as stack_offset."""
+  _x, _y, w, h = shape_box(shape)
+  return max(theme.CELL_TEXT["stackMin"], theme.CELL_TEXT["stack"] * min(w, h))
+
+
+def _line_caption(shape, font_scale):
+  """A line's caption: ([(x, baseline, text), ...], anchor).
+
+  Beside the line's middle, never on it. A line nearer level than upright has
+  it above, centred, and raised by however much the line climbs under half
+  the caption's width, so a sloping line does not cut through the words. A
+  steeper one has it to the right, its lines centred on the middle, moved out
+  by however much the line leans over half their height.
+  """
+  lines = cell_text_lines(shape)
+  points = [tuple(p) for p in shape.get("points") or []]
+  if not lines or len(points) < 2:
+    return [], "middle"
+  (mx, my), (ux, uy) = line_middle(points)
+  size, _pad, step, char = _cell_text_metrics(font_scale)
+  block = size + (len(lines) - 1) * step
+  if abs(uy) <= abs(ux):
+    climb = max(len(line) for line in lines) * char / 2.0 * abs(uy / ux)
+    last = my - LINE_TEXT_LIFT - climb
+    return ([(mx, last - (len(lines) - 1 - i) * step, line)
+             for i, line in enumerate(lines)], "middle")
+  lean = block / 2.0 * abs(ux / uy)
+  first = my - block / 2.0 + size * 0.8
+  return ([(mx + LINE_TEXT_LIFT + lean, first + i * step, line)
+           for i, line in enumerate(lines)], "start")
+
+
+def shape_text_layout(shape, font_scale=1.0):
+  """Where each line written in a shape goes: [(x, baseline, text), ...].
+
+  In a box or a polygon, as in a cell -- centred by default, aligned as
+  textAlign/textVAlign say, cut short with an ellipsis where it does not fit.
+  In an ellipse, within the largest box the curve leaves room for, so the
+  corners of the writing stay inside it. Beside a line's middle, never cut: a
+  caption has no box to fit (see _line_caption).
+  """
+  kind = shape.get("kind")
+  if kind not in SHAPE_TEXT_KINDS:
+    return []
+  box = shape_box(shape)
+  if box is None:
+    return []
+  if kind in ("line", "polyline"):
+    return _line_caption(shape, font_scale)[0]
+  if kind == "ellipse":
+    x, y, w, h = box
+    inner_w, inner_h = w / math.sqrt(2), h / math.sqrt(2)
+    box = (x + (w - inner_w) / 2.0, y + (h - inner_h) / 2.0, inner_w, inner_h)
+  return text_layout_in(box, shape, font_scale)[0]
+
+
 def _render_shape(shape, font_scale, out):
   style = shape.get("style") or {}
   if style.get("shadow"):
     out.append('<g filter="url(#dl-shadow)">')
+  if shape_copies(shape):
+    _render_shape_stack(shape, style, font_scale, out)
+  _render_shape_body(shape, style, font_scale, out)
+  if style.get("shadow"):
+    out.append("</g>")
+  _render_shape_text(shape, font_scale, out)
+
+
+def _render_shape_stack(shape, style, font_scale, out):
+  """The copy behind a shape that stands for several.
+
+  A cell's body is filled, so it hides the copy behind it. A shape usually is
+  not, and the copy's outline showed straight through it -- a box standing
+  for four read as a box with a double border. So unless the shape is filled,
+  the copy is masked by the shape's own outline: only the part of it sticking
+  out from behind is drawn.
+  """
+  offset = shape_stack_offset(shape)
+  moved = '<g class="dl-stack" transform="translate(%s %s)">' % (fmt(offset), fmt(offset))
+  if style.get("fill", "none") not in ("none", "transparent"):
+    out.append(moved)
     _render_shape_body(shape, style, font_scale, out)
     out.append("</g>")
-  else:
-    _render_shape_body(shape, style, font_scale, out)
+    return
+  x, y, w, h = shape_box(shape)
+  reach = offset + 2 * float(style.get("strokeWidth", theme.WIDTHS["stroke"])) + 2
+  mask = "dl-hide-%s" % shape.get("id", "")
+  out.append('<mask %s>' % _attrs([
+    ("id", mask), ("maskUnits", "userSpaceOnUse"),
+    ("x", fmt(x - reach)), ("y", fmt(y - reach)),
+    ("width", fmt(w + 2 * reach)), ("height", fmt(h + 2 * reach))]))
+  out.append("<rect %s />" % _attrs([
+    ("x", fmt(x - reach)), ("y", fmt(y - reach)),
+    ("width", fmt(w + 2 * reach)), ("height", fmt(h + 2 * reach)),
+    ("fill", "#ffffff")]))
+  _render_shape_body(shape, dict(style, fill="#000000", stroke="none"),
+                     font_scale, out)
+  out.append("</mask>")
+  out.append('<g mask="url(#%s)">' % esc(mask))
+  out.append(moved)
+  _render_shape_body(shape, style, font_scale, out)
+  out.append("</g></g>")
+
+
+def _render_shape_text(shape, font_scale, out):
+  """The writing in a shape, and the count badge of one standing for copies."""
+  placed = shape_text_layout(shape, font_scale)
+  if placed:
+    size = theme.FONT_SIZES["cell_text"] * font_scale
+    if shape.get("kind") in ("line", "polyline"):
+      anchor = _line_caption(shape, font_scale)[1]
+    else:
+      anchor = TEXT_ANCHOR[cell_text_align(shape)[0]]
+    for x, y, line in placed:
+      out.append("<text %s>%s</text>" % (_attrs([
+        ("class", "dl-shape-text"),
+        ("x", fmt(x)), ("y", fmt(y)),
+        ("text-anchor", anchor),
+        ("font-family", theme.FONT_SANS),
+        ("font-size", fmt(size, 2)),
+        ("fill", theme.COLORS["label"])]), esc(line)))
+  _render_copies_badge(shape_box(shape) or (0, 0, 0, 0), shape_copies(shape), out)
 
 
 def _render_shape_body(shape, style, font_scale, out):
@@ -1374,6 +1546,29 @@ def _render_shape_body(shape, style, font_scale, out):
                           * font_scale, 2)),
         ("fill", style.get("fill", theme.COLORS["label"]))]),
       esc(shape.get("text", ""))))
+
+
+def draw_order(cells, shapes):
+  """Shapes and cells in the order they are painted, and where the wires go.
+
+  One stacking order for both: each may carry a `z`, lowest painted first, a
+  shape before a cell at the same z and the file's own order after that. With
+  no z anywhere that is every shape and then every cell -- shapes behind the
+  symbols, which is what a note or a background box wants. The wires are
+  painted just below the first cell at z 0 or above, so they lie on whatever
+  was sent behind the symbols and under whatever was brought in front.
+
+  Returns (order, wires_at): `order` a list of ("shape" | "cell", item), and
+  `wires_at` the index in it the wires are painted before.
+  """
+  ranked = sorted(
+    [((s.get("z") or 0), 0, i, "shape", s) for i, s in enumerate(shapes)]
+    + [((c.get("z") or 0), 1, i, "cell", c) for i, c in enumerate(cells)],
+    key=lambda entry: entry[:3])
+  order = [(kind, item) for _z, _rank, _i, kind, item in ranked]
+  wires_at = next((i for i, (_z, rank, _n, _k, _item) in enumerate(ranked)
+                   if rank == 1 and _z >= 0), len(order))
+  return order, wires_at
 
 
 def title_band(font_scale=1.0):
@@ -1462,25 +1657,40 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
       ("width", fmt(view[2])), ("height", fmt(view[3])),
       ("fill", "url(#dl-grid)")]))
 
-  out.append('<g class="dl-shapes">')
-  for shape in doc.shapes:
-    _render_shape(shape, font_scale, out)
-  out.append("</g>")
-
   show_arrows = canvas.get("arrows", True) if arrows is None else arrows
   show_hops = canvas.get("hops", True) if hops is None else hops
-  out.append('<g class="dl-nets">')
-  junctions = _render_nets(doc, registry, font_scale, out,
-                           show_arrows, show_hops)
-  out.append("</g>")
-
-  out.append('<g class="dl-cells">')
-  for cell in doc.cells:
-    symbol = registry.for_cell(cell)
-    if symbol is None:
-      continue
-    _render_cell(symbol, cell, font_scale, out, doc.symbol_scale)
-  out.append("</g>")
+  order, wires_at = draw_order(doc.cells, doc.shapes)
+  junctions = []
+  run = None
+  # A drawing with no shapes, or no cells, still has the (empty) group for
+  # them where it always was, so what reads an exported file finds it.
+  if not doc.shapes:
+    out.append('<g class="dl-shapes">')
+    out.append("</g>")
+  for index, (kind, item) in enumerate(order + [(None, None)]):
+    # Consecutive shapes share one group and consecutive cells another, so a
+    # drawing nobody has restacked comes out as it always did: every shape,
+    # then the wires, then every cell.
+    if kind != run or index == wires_at:
+      if run is not None:
+        out.append("</g>")
+      if index == wires_at:
+        out.append('<g class="dl-nets">')
+        junctions = _render_nets(doc, registry, font_scale, out,
+                                 show_arrows, show_hops)
+        out.append("</g>")
+      run = kind
+      if kind is not None:
+        out.append('<g class="dl-%ss">' % kind)
+    if kind == "shape":
+      _render_shape(item, font_scale, out)
+    elif kind == "cell":
+      symbol = registry.for_cell(item)
+      if symbol is not None:
+        _render_cell(symbol, item, font_scale, out, doc.symbol_scale)
+  if not doc.cells:
+    out.append('<g class="dl-cells">')
+    out.append("</g>")
 
   # Last, so nothing can paint over them: a junction dot is the only mark that
   # says two wires are connected, and one hidden behind a gate is a connection

@@ -15,7 +15,7 @@ reference, and under Tests, what is and is not covered.
 ## Commands
 
 ```bash
-python3 tests/run.py                       # everything, in parallel (~490 tests, ~17s); one line when green
+python3 tests/run.py                       # everything, in parallel (~540 tests, ~17s); one line when green
 python3 tests/run.py test_layout           # only modules whose name contains this
 python3 -m unittest discover -s tests      # everything, serially (~50s) -- what CI runs
 python3 -m unittest tests.test_drc         # one file

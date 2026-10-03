@@ -488,10 +488,10 @@ the gear at the far right is Preferences. The second row holds the tools:
 Select, Wire and Erase, then **Shapes**, one button for every autoshape that
 shows the shape last picked, then the format painter.
 
-Rotate, flip, delete, auto layout and tidy are the icon buttons after them;
-hover any of them for its name. Group, align, distribute,
-front and back are in the **Arrange** menu beside them, named in full, with
-the ones the current selection cannot use greyed out.
+Rotate, flip, delete, auto layout and tidy are the icon buttons after them,
+then group, ungroup, bring to front and send to back; hover any of them for
+its name. Align and distribute are in the **Arrange** menu beside them, named
+in full, with the ones the current selection cannot use greyed out.
 
 **Appearance** in Preferences picks between following the operating system,
 light, and dark, and remembers the choice. It starts light. The drawing itself
@@ -529,10 +529,32 @@ and a solid head trims the line so it does not poke through the tip. In the
 file the heads are style keys: `headStart` and `headEnd` name the head,
 `headStartSize` and `headEndSize` are `s` or `l` (medium is left out).
 
-Shapes are selected, moved, resized, coloured, grouped and z-ordered exactly
+Shapes are selected, moved, resized, coloured, grouped and restacked exactly
 like cells. An unfilled shape is clickable across its whole area, not just its
-outline, and cells always draw above shapes so a box drawn as an annotation
-never swallows a click meant for a gate inside it.
+outline, and a line a few pixels either side of it: it is as thin as a wire,
+and gets the same wide invisible edge to catch the pointer.
+
+A new shape has no fill, so what is behind it shows through. **Fill** offers
+**No fill** above the colours for exactly that; white is a colour like any
+other, and covers what is behind.
+
+Shapes start behind the symbols, so a box drawn round some gates as a note
+neither hides them nor swallows a click meant for them. **Bring to front** and
+**Send to back** put the selection in front of or behind everything else,
+shapes and symbols alike -- a shape brought forward covers the gates under
+it, and takes their clicks, as it would in a slide editor. In the file it is
+`z` on a cell or a shape: painted lowest first, a shape before a cell at the
+same `z`, and nothing carries one until it is restacked. The wires are
+painted just under the symbols at the default level.
+
+A box, an ellipse or a polygon takes writing inside it and copies, as a cell
+does (see Text inside a cell, and copies), from **Text inside** in the
+properties panel. The box does not grow to fit, being the size it was drawn;
+an ellipse keeps its writing inside its curve. The copy behind an unfilled
+shape is drawn only where it sticks out, or its outline would show through
+as a double border. A line takes a caption -- above its middle, or beside it
+when the line is steeper than it is wide -- and no copies: a stack of lines
+reads as a bus, not as four of something.
 
 **Shadow** in the properties panel gives selected shapes a soft shadow down
 and to the right, a slide editor's default outer shadow -- one tick for a
@@ -542,11 +564,12 @@ it. Cells do not take one: a shadow under a gate is not schematic.
 
 ### Arrange
 
-The **Arrange** menu groups and ungroups, aligns edges and centres (two or
-more items), distributes evenly (three or more), and moves things to the front
-or back. They were twelve icons in the toolbar once; each needs a particular
-selection, so most of them did nothing most of the time, and a menu can say
-what each is and whether it applies now.
+The **Arrange** menu aligns edges and centres (two or more items) and
+distributes evenly (three or more). They were icons in the toolbar once; each
+needs a particular selection, so most of them did nothing most of the time,
+and a menu can say what each is and whether it applies now. Grouping and
+stacking order went back to being buttons: they are used on shapes as much
+as symbols, and often.
 
 ### View
 
@@ -844,6 +867,7 @@ gains nothing from it has no such key at all.
 | `image` | data URI for a `custom` cell's picture; exported too |
 | `ref` | path to another drawing this cell stands for; see Hierarchy |
 | `pinned` | `true` keeps auto layout from moving it; left out otherwise |
+| `z` | stacking order among cells and shapes, lowest painted first; left out, 0 |
 
 ### nets
 
@@ -897,7 +921,10 @@ Saving writes version 2. Upgrading is safe to repeat.
 
 `kind` is `rect`, `ellipse`, `line`, `polygon`, `polyline` or `text`. Boxed
 kinds use `x`, `y`, `w`, `h`; line-like kinds use `points`; `text` uses `x`,
-`y` and `text`.
+`y` and `text`. Any other kind may carry `text` as lines written in it, with
+`textAlign` and `textVAlign` as a cell has them; `rect`, `ellipse` and
+`polygon` may carry `copies`. `z` places a shape in the stacking order, as
+for a cell; left out, a shape is behind the cells.
 
 ### groups
 

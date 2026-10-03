@@ -373,10 +373,25 @@ function onEscape(event) {
 
 // Anchored to the button rather than placed inside the panel, so it can spill
 // out over the canvas instead of being clipped by the panel's own scrollbox.
-function openPalette(anchor, current, apply) {
+// `noFill` adds a "No fill" choice above the grid: transparent, which is not
+// the same as white -- white covers whatever is behind it.
+function openPalette(anchor, current, apply, noFill = false) {
   closePalette();
 
   const popup = element("div", "cpop");
+  if (noFill) {
+    const none = element("button", "cnone");
+    none.type = "button";
+    none.appendChild(element("span", "cswatch-none"));
+    none.appendChild(document.createTextNode("No fill"));
+    none.title = "transparent: whatever is behind shows through";
+    if (current === "none") none.classList.add("current");
+    none.addEventListener("click", () => {
+      closePalette();
+      apply("none");
+    });
+    popup.appendChild(none);
+  }
   const grid = element("div", "cgrid");
   for (const colour of SWATCHES) {
     const cell = element("button", "cswatch");
@@ -401,7 +416,7 @@ function openPalette(anchor, current, apply) {
   const more = element("label", "cmore", "Custom");
   const native = document.createElement("input");
   native.type = "color";
-  native.value = current;
+  native.value = /^#[0-9a-f]{6}$/i.test(current) ? current : "#ffffff";
   // Browsers disagree about which event a colour dialog sends: some stream
   // "input" as you drag inside it, others stay silent until it closes and
   // then send only "change". Binding one leaves the control dead for whoever
@@ -839,7 +854,11 @@ export class Inspector {
 
   // What a block in a block diagram says: lines written inside it, and how
   // many copies it stands for.
-  renderCellText(cell) {
+  //
+  // A shape takes the same, less what does not apply: a box drawn by hand is
+  // the size it was drawn, so it does not grow to fit; a line's caption sits
+  // above its middle, so there is nothing to align; and a line has no copies.
+  renderCellText(cell, { fit = true, align = true, copies: stacks = true } = {}) {
     const root = this.root;
     root.appendChild(element("div", "ptitle", "Text inside"));
 
@@ -849,7 +868,7 @@ export class Inspector {
     text.className = "pinput ptext";
     text.rows = 4;
     text.placeholder = "one line per line";
-    text.value = (cell.text || []).join("\n");
+    text.value = geometry.cellTextLines(cell).join("\n");
     text.addEventListener("keydown", (event) => {
       event.stopPropagation();
       if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -863,8 +882,13 @@ export class Inspector {
     // The box may have grown to fit, so the size fields above are redrawn.
     text.addEventListener("change", () => this.render());
     root.appendChild(row("Text", text));
-    this.renderTextAlign(cell);
+    if (align) this.renderTextAlign(cell);
+    if (fit) this.renderTextFit(cell);
+    if (stacks) this.renderCopies(cell);
+  }
 
+  renderTextFit(cell) {
+    const root = this.root;
     const fit = document.createElement("input");
     fit.type = "checkbox";
     fit.className = "pcheck";
@@ -876,14 +900,16 @@ export class Inspector {
       this.render();
     });
     root.appendChild(row("Fit box", fit));
+  }
 
+  renderCopies(cell) {
     const copies = input(cell.copies || "", "number");
     copies.min = "1";
     copies.step = "1";
     copies.placeholder = "1";
-    copies.title = "2 or more draws the cell as a stack with a count";
+    copies.title = "2 or more draws it as a stack with a count";
     this.bind(copies, (doc, value) => model.setCopies(doc, cell.id, value), "copies");
-    root.appendChild(row("Copies", copies));
+    this.root.appendChild(row("Copies", copies));
   }
 
   renderImagePicker(cell) {
@@ -931,6 +957,11 @@ export class Inspector {
     }
 
     if (shape.kind === "line" || shape.kind === "polyline") this.renderHeads(shape);
+    if (geometry.SHAPE_TEXT_KINDS.includes(shape.kind)) {
+      const line = shape.kind === "line" || shape.kind === "polyline";
+      this.renderCellText(shape, { fit: false, align: !line,
+                                   copies: geometry.SHAPE_STACK_KINDS.includes(shape.kind) });
+    }
 
     root.appendChild(element("div", "ptitle", "Geometry"));
     this.renderGeometry(shape, [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"]]);
@@ -959,7 +990,12 @@ export class Inspector {
       pick.setAttribute("aria-label", `${label} arrowhead: ${current}`);
       pick.setAttribute("aria-haspopup", "true");
       pick.appendChild(headPreview(current, atStart));
-      pick.appendChild(element("span", "chev", "\u25be"));
+      // A real chevron, in its own end of the button behind a divider, as a
+      // slide editor's split button has it: the small text triangle that was
+      // here read as a speck.
+      const chev = element("span", "headpick-open");
+      chev.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg>';
+      pick.appendChild(chev);
       pick.addEventListener("click", (event) => {
         event.stopPropagation();
         openHeadPicker(pick, current, atStart, (kind) => this.setShapeStyle(
@@ -1130,12 +1166,18 @@ export class Inspector {
 
     // A line has no inside, so a fill for it would do nothing.
     const open = items.every((item) => item.kind === "line" || item.kind === "polyline");
+    // A shape starts with no fill, so what is behind it shows through; a
+    // symbol's body starts white. Text is coloured by its fill, and
+    // transparent text is no text, so it is not offered "No fill".
+    const shapes = items.every((item) => model.isShape(item));
+    const text = items.some((item) => item.kind === "text");
     for (const [key, label, fallback] of [
-      ["fill", "Fill", "#ffffff"],
+      ["fill", "Fill", shapes && !text ? "none" : "#ffffff"],
       ["stroke", "Line", "#16202b"],
     ]) {
       if (key === "fill" && open) continue;
-      root.appendChild(row(label, this.colourControl(key, first[key], fallback)));
+      root.appendChild(row(label, this.colourControl(key, first[key], fallback,
+                                                     key === "fill" && !text)));
     }
 
     // A soft shadow down and to the right, as a slide editor's default. Shapes
@@ -1168,14 +1210,16 @@ export class Inspector {
   // Clicking the swatch opens a grid to pick from, the way a slide editor
   // does. The native colour dialog is still there behind "Custom", because a
   // grid of two dozen colours is the fast path and not the only one.
-  colourControl(key, current, fallback) {
+  colourControl(key, current, fallback, noFill = false) {
     const wrap = element("div", "swatch");
     const shown = current || fallback;
 
     const button = element("button", "pswatch");
     button.type = "button";
-    button.style.background = shown;
-    button.title = current ? shown : `${shown} (default)`;
+    if (shown === "none") button.classList.add("none");
+    else button.style.background = shown;
+    const named = shown === "none" ? "no fill" : shown;
+    button.title = current ? named : `${named} (default)`;
     button.setAttribute("aria-label", `${key} colour`);
 
     const apply = (value) => {
@@ -1187,7 +1231,7 @@ export class Inspector {
 
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      openPalette(button, shown, apply);
+      openPalette(button, shown, apply, noFill);
     });
 
     const reset = element("button", "linkish", "reset");

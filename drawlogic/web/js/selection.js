@@ -5,7 +5,7 @@
 //   const selection = new Selection(store);
 //   selection.set(["u1", "u2"]);
 //   drawHandles(svg, selection, viewport.zoom,
-//               { marquee, guides, pins, wirePreview });
+//               { marquee, round, guides, pins, wirePreview });
 //
 // Cells and shapes are both selectable, so this works in item ids rather than
 // cell ids. Selecting one member of a group selects the whole group.
@@ -118,9 +118,12 @@ export function drawHandles(svg, selection, zoom, options = {}) {
 
   if (options.marquee) {
     const [x, y, w, h] = options.marquee;
-    layer.appendChild(el("rect", {
-      class: "dl-marquee", x, y, width: w, height: h, "stroke-width": 1 / zoom,
-    }));
+    // An ellipse being drawn is previewed as the ellipse, not the box round it.
+    layer.appendChild(options.round
+      ? el("ellipse", { class: "dl-marquee", cx: x + w / 2, cy: y + h / 2,
+                        rx: w / 2, ry: h / 2, "stroke-width": 1 / zoom })
+      : el("rect", { class: "dl-marquee", x, y, width: w, height: h,
+                     "stroke-width": 1 / zoom }));
   }
 
   // Alignment guides: why the thing you are dragging just jumped into line.

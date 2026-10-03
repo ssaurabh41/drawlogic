@@ -825,6 +825,7 @@ export class ShapeTool {
     } else {
       this.ctx.drawOverlay({
         hideHandles: true,
+        round: this.kind === "ellipse",
         marquee: [Math.min(this.origin[0], at[0]), Math.min(this.origin[1], at[1]),
                   Math.abs(at[0] - this.origin[0]), Math.abs(at[1] - this.origin[1])],
       });

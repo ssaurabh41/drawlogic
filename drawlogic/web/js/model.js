@@ -417,7 +417,8 @@ export function fitCell(doc, cell) {
 }
 
 export function setCellText(doc, id, raw) {
-  const cell = doc.cells.find((c) => c.id === id);
+  // A shape with writing in it takes the same.
+  const cell = itemById(doc, id);
   if (!cell) return;
   const lines = String(raw || "").replace(/\r/g, "").split("\n")
     .map((line) => line.replace(/\s+$/, ""));
@@ -439,7 +440,8 @@ export function setTextFit(doc, id, fit) {
 // (down). The default -- centre, middle -- is left out of the file rather
 // than written into it, so a drawing that never chose says nothing.
 export function setTextAlign(doc, id, key, value) {
-  const cell = doc.cells.find((c) => c.id === id);
+  // A shape with writing in it takes the same.
+  const cell = itemById(doc, id);
   const choices = key === "textAlign" ? geometry.TEXT_ALIGN : geometry.TEXT_VALIGN;
   if (!cell || !choices.includes(value)) return false;
   if (value === choices[0]) delete cell[key];
@@ -449,7 +451,8 @@ export function setTextAlign(doc, id, key, value) {
 
 // How many copies a cell stands for; anything under two is just the one.
 export function setCopies(doc, id, value) {
-  const cell = doc.cells.find((c) => c.id === id);
+  // A shape with writing in it takes the same.
+  const cell = itemById(doc, id);
   if (!cell) return false;
   const number = Math.trunc(Number(value));
   if (String(value).trim() === "" || number < 2) delete cell.copies;
@@ -499,25 +502,30 @@ export function addShape(doc, kind, box) {
 
 // ---- z-order ----
 
-export function bringToFront(doc, ids) {
+// Shapes and symbols share one stacking order: each may carry a `z`, and the
+// drawing is painted from the lowest up, a shape before a symbol at the same
+// z (see drawOrder in render.js). Nothing carries one by default, which is
+// what keeps shapes behind symbols until someone says otherwise. Front and
+// back set the selection past everything else, keeping its own order.
+function stack(doc, ids, toFront) {
+  const all = [...(doc.cells || []), ...(doc.shapes || [])];
+  const others = all.filter((i) => !ids.has(i.id)).map((i) => i.z || 0);
+  const z = toFront ? Math.max(0, ...others) + 1 : Math.min(0, ...others) - 1;
+  for (const item of all) {
+    if (ids.has(item.id)) item.z = z;
+  }
   const move = (list) => {
     const staying = list.filter((i) => !ids.has(i.id));
     const moving = list.filter((i) => ids.has(i.id));
-    return [...staying, ...moving];
+    return toFront ? [...staying, ...moving] : [...moving, ...staying];
   };
   doc.cells = move(doc.cells);
   doc.shapes = move(doc.shapes || []);
 }
 
-export function sendToBack(doc, ids) {
-  const move = (list) => {
-    const moving = list.filter((i) => ids.has(i.id));
-    const staying = list.filter((i) => !ids.has(i.id));
-    return [...moving, ...staying];
-  };
-  doc.cells = move(doc.cells);
-  doc.shapes = move(doc.shapes || []);
-}
+export function bringToFront(doc, ids) { stack(doc, ids, true); }
+
+export function sendToBack(doc, ids) { stack(doc, ids, false); }
 
 // ---- alignment ----
 

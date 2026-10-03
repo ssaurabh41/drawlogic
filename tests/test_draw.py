@@ -1534,3 +1534,124 @@ class TestShapeShadows(unittest.TestCase):
     reach = render_svg.shape_shadow_reach()
     self.assertAlmostEqual(box[0] + box[2], 180 + reach[0])
     self.assertAlmostEqual(box[1] + box[3], 150 + reach[1])
+
+
+class TestShapesAndSymbolsShareOneStackingOrder(unittest.TestCase):
+  """Shapes sit behind symbols until restacked; then either can be in front."""
+
+  def drawing(self, shape_z=None, cell_z=None):
+    doc = new_document("stack", 400, 300)
+    doc.shapes.append({"id": "s", "kind": "rect", "x": 40, "y": 40, "w": 200, "h": 120,
+                       "style": {"fill": "#fde2e2"}})
+    doc.cells.append({"id": "u", "type": "inv", "x": 100, "y": 80})
+    if shape_z is not None:
+      doc.shapes[0]["z"] = shape_z
+    if cell_z is not None:
+      doc.cells[0]["z"] = cell_z
+    doc.normalize()
+    return doc
+
+  def painted(self, doc):
+    svg = render_svg.render(doc)
+    return [m.group(1) for m in re.finditer(
+      r'<g class="dl-(shapes|cells)">(?!</g>)', svg)
+      if svg[m.end():m.end() + 4] != "</g>"]
+
+  def test_a_shape_starts_behind_the_symbols(self):
+    self.assertEqual(self.painted(self.drawing()), ["shapes", "cells"])
+
+  def test_a_shape_brought_forward_covers_them(self):
+    self.assertEqual(self.painted(self.drawing(shape_z=1)), ["cells", "shapes"])
+
+  def test_a_symbol_sent_back_goes_under_the_shapes(self):
+    self.assertEqual(self.painted(self.drawing(cell_z=-1)), ["cells", "shapes"])
+
+  def test_z_survives_a_save(self):
+    doc = self.drawing(shape_z=3)
+    again = Document.loads(doc.dumps())
+    self.assertEqual(again.shapes[0]["z"], 3)
+
+
+class TestWritingAndCopiesOnShapes(unittest.TestCase):
+  """A box, an ellipse or a polygon takes writing and copies as a cell does;
+  a line takes a caption and no copies."""
+
+  def drawing(self, **extra):
+    doc = new_document("shapes", 400, 300)
+    shape = {"id": "s", "kind": "rect", "x": 40, "y": 40, "w": 160, "h": 80}
+    shape.update(extra)
+    doc.shapes.append(shape)
+    doc.normalize()
+    return doc
+
+  def test_writing_in_a_box_is_centred(self):
+    svg = render_svg.render(self.drawing(text=["hello"]))
+    spot = re.search(r'<text class="dl-shape-text" x="([^"]+)" y="([^"]+)" '
+                     r'text-anchor="middle"[^>]*>hello</text>', svg)
+    self.assertIsNotNone(spot)
+    self.assertEqual(float(spot.group(1)), 120.0)
+    self.assertTrue(40 + 30 < float(spot.group(2)) < 40 + 50)
+
+  def test_lines_of_writing_survive_a_save(self):
+    doc = self.drawing(text=["one", "two"])
+    self.assertEqual(Document.loads(doc.dumps()).shapes[0]["text"], ["one", "two"])
+
+  def test_a_line_has_its_caption_above_its_middle(self):
+    doc = new_document("cap", 400, 300)
+    doc.shapes.append({"id": "l", "kind": "line", "points": [[0, 100], [200, 100]],
+                       "text": ["over"], "copies": 3})
+    doc.normalize()
+    (x, y, text), = render_svg.shape_text_layout(doc.shapes[0])
+    self.assertEqual((x, text), (100.0, "over"))
+    self.assertLess(y, 100)
+    svg = render_svg.render(doc)
+    self.assertNotIn("dl-stack", svg)
+    self.assertNotIn("dl-copies", svg)
+
+  def test_a_sloping_line_does_not_cut_through_its_caption(self):
+    doc = new_document("cap", 400, 300)
+    doc.shapes.append({"id": "l", "kind": "line", "points": [[0, 200], [200, 140]],
+                       "text": ["a long caption"]})
+    doc.normalize()
+    (x, y, text), = render_svg.shape_text_layout(doc.shapes[0])
+    half = len(text) * theme.CELL_TEXT["char"] * theme.FONT_SIZES["cell_text"] / 2
+    # The line under the caption's right-hand end, where it climbs highest.
+    under = 200 - 60 * (x + half) / 200
+    self.assertLess(y, under, "the caption's baseline is below the line")
+
+  def test_a_text_shape_is_not_written_into_twice(self):
+    doc = new_document("t", 400, 300)
+    doc.shapes.append({"id": "t", "kind": "text", "x": 50, "y": 50, "text": "note"})
+    doc.normalize()
+    self.assertEqual(render_svg.shape_text_layout(doc.shapes[0]), [])
+
+  def test_copies_stack_behind_and_are_counted(self):
+    svg = render_svg.render(self.drawing(copies=4))
+    self.assertEqual(svg.count('class="dl-stack"'), 1)
+    self.assertIn(">×4</text>", svg)
+
+  def test_an_unfilled_shape_hides_its_copy_behind_it(self):
+    # Without the mask the copy's outline shows through the shape it is
+    # behind, and a box standing for four reads as one with a double border.
+    self.assertIn('mask="url(#dl-hide-s)"', render_svg.render(self.drawing(copies=2)))
+    filled = self.drawing(copies=2, style={"fill": "#ffffff"})
+    self.assertNotIn("<mask", render_svg.render(filled))
+
+  def test_a_cropped_export_keeps_the_copy(self):
+    plain = self.drawing().content_bbox(default_registry())
+    stacked = self.drawing(copies=2).content_bbox(default_registry())
+    self.assertGreater(stacked[0] + stacked[2], plain[0] + plain[2] + 2)
+
+
+class TestFlipFlopsAndClockGates(unittest.TestCase):
+  """reg was a dff that took a bus, drawn identically; there is one now."""
+
+  def test_there_is_one_flip_flop_and_it_takes_a_bus(self):
+    registry = default_registry()
+    self.assertIsNone(registry.get("reg"))
+    widths = {pin["name"]: pin.get("width", 1) for pin in registry.get("dff").pins}
+    self.assertEqual((widths["d"], widths["q"], widths["ck"]), (0, 0, 1))
+
+  def test_the_clock_gate_has_its_enable_above_its_clock(self):
+    pins = {pin["name"]: pin for pin in default_registry().get("icg").pins}
+    self.assertLess(pins["e"]["y"], pins["ck"]["y"])

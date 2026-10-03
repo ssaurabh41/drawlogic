@@ -48,12 +48,13 @@ GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
              "text", "textFit", "textAlign", "textVAlign", "copies", "pins", "style", "image", "ref",
-             "pinned"]
+             "pinned", "z"]
 NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 # A load is a point that may also say which way the wire to it should go.
 LOAD_KEYS = POINT_KEYS + ["waypoints"]
-SHAPE_KEYS = ["id", "kind", "x", "y", "w", "h", "points", "text", "rotate", "style"]
+SHAPE_KEYS = ["id", "kind", "x", "y", "w", "h", "points", "text", "textAlign",
+              "textVAlign", "copies", "rotate", "z", "style"]
 GROUP_KEYS = ["id", "label", "members"]
 
 SHAPE_KINDS = ("rect", "ellipse", "line", "polygon", "polyline", "text")
@@ -649,7 +650,11 @@ class Document(object):
     for shape in _list_of_objects(data, "shapes"):
       shape.setdefault("style", {})
       shape.setdefault("rotate", 0)
-      _text_field(shape, "text")
+      if shape.get("kind") == "text" or not isinstance(shape.get("text"), list):
+        _text_field(shape, "text")
+      else:
+        # Writing inside a box or along a line is lines, as a cell's is.
+        shape["text"] = [str(line) for line in shape["text"]]
 
     _list_of_objects(data, "groups")
     return self
@@ -746,6 +751,14 @@ class Document(object):
         for point in shape.get("points") or [(shape.get("x", 0) + shape.get("w", 0),
                                               shape.get("y", 0) + shape.get("h", 0))]:
           box = union_bbox(box, (point[0] + reach[0], point[1] + reach[1], 0, 0))
+      # The copy behind a shape standing for several sits down and right of
+      # it, and the writing along a line sits above it.
+      if render_svg.shape_copies(shape):
+        x, y, w, h = render_svg.shape_box(shape)
+        offset = render_svg.shape_stack_offset(shape)
+        box = union_bbox(box, (x + offset, y + offset, w, h))
+      for x, y, _line in render_svg.shape_text_layout(shape, self.font_scale):
+        box = union_bbox(box, (x, y - theme.FONT_SIZES["cell_text"] * self.font_scale, 0, 0))
 
     return box
 

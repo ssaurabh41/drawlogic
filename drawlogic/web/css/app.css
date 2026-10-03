@@ -521,14 +521,25 @@ select {
 /* An arrowhead: the button showing the head now on that end, and its size. */
 .headrow { display: flex; align-items: center; gap: 6px; }
 .headpick {
-  display: inline-flex; align-items: center; gap: 4px;
-  height: 26px; padding: 0 6px 0 8px;
+  display: inline-flex; align-items: stretch; flex: none;
+  height: 26px; padding: 0;
   color: var(--ink); background: var(--chrome-2);
   border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
 }
 .headpick:hover { border-color: var(--accent); color: var(--accent-ink); }
-.headpick .chev { font-size: 10px; color: var(--ink-3); }
-.headpick .head-ico { width: 34px; height: 16px; }
+.headpick .head-ico { width: 32px; height: 16px; margin: auto 5px; }
+.headpick-open {
+  display: flex; align-items: center; padding: 0 3px;
+  border-left: 1px solid var(--line); color: var(--ink-2);
+}
+.headpick:hover .headpick-open { border-left-color: var(--accent); color: var(--accent-ink); }
+.headpick-open svg {
+  width: 14px; height: 14px;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.headrow .seg-size { flex-wrap: nowrap; }
+.headrow .seg-size .seg-btn { min-width: 22px; }
 .headpop { display: grid; grid-template-columns: repeat(3, 44px); gap: 4px; padding: 6px; }
 .headopt {
   height: 30px; display: flex; align-items: center; justify-content: center;
@@ -607,6 +618,12 @@ select {
   border-radius: var(--radius);
 }
 .pswatch:hover { border-color: var(--ink-3); }
+/* No fill: white crossed by a red stroke, the usual sign for "transparent". */
+.pswatch.none, .cswatch-none {
+  background: linear-gradient(to top right, transparent calc(50% - 1px),
+                              #c0392b calc(50% - 1px), #c0392b calc(50% + 1px),
+                              transparent calc(50% + 1px)) #ffffff;
+}
 .pswatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Anchored to the button and placed on the body, so it spills over the canvas
@@ -619,6 +636,30 @@ select {
   border-radius: var(--radius);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
   padding: 8px;
+}
+
+.cnone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 3px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.cnone:hover { color: var(--ink); border-color: var(--line); }
+.cnone.current { outline: 2px solid var(--accent); outline-offset: -1px; }
+.cswatch-none {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
 }
 
 .cgrid {

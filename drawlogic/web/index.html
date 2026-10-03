@@ -160,17 +160,23 @@
     <button class="tool icon" data-command="tidy" title="Tidy up - straighten wires" aria-label="Tidy up"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tidy"/></svg></button>
   </div>
 
-  <!-- Twelve commands that each need a particular selection, so they were
-       twelve icons that mostly did nothing. In a menu they get their names
+  <!-- Grouping and stacking order are used on shapes and symbols alike, and
+       often, so they are buttons rather than menu items. -->
+  <div class="tgroup">
+    <button class="tool icon" data-command="group" title="Group (Ctrl+G)" aria-label="Group"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg></button>
+    <button class="tool icon" data-command="ungroup" title="Ungroup (Ctrl+Shift+G)" aria-label="Ungroup"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg></button>
+    <button class="tool icon" data-command="front" title="Bring to front (Ctrl+]) - in front of shapes and symbols alike" aria-label="Bring to front"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-front"/></svg></button>
+    <button class="tool icon" data-command="back" title="Send to back (Ctrl+[) - behind shapes and symbols alike" aria-label="Send to back"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-back"/></svg></button>
+  </div>
+
+  <!-- Eight commands that each need a particular selection, so they were
+       eight icons that mostly did nothing. In a menu they get their names
        written out, and the ones the selection cannot use are greyed when it
        opens (data-min: how many items each needs). -->
   <div class="menu">
     <button id="menu-arrange-button" class="tool menu-button" type="button"
             aria-haspopup="menu" aria-expanded="false" aria-controls="menu-arrange">Arrange<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
     <div id="menu-arrange" class="menu-panel" role="menu" aria-labelledby="menu-arrange-button" hidden>
-      <button class="menu-item" type="button" role="menuitem" data-command="group" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg><span>Group</span><kbd>Ctrl+G</kbd></button>
-      <button class="menu-item" type="button" role="menuitem" data-command="ungroup" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg><span>Ungroup</span><kbd>Ctrl+Shift+G</kbd></button>
-      <div class="menu-sep" role="separator"></div>
       <button class="menu-item" type="button" role="menuitem" data-command="align-left" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-left"/></svg><span>Align left</span></button>
       <button class="menu-item" type="button" role="menuitem" data-command="align-hcenter" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-hcenter"/></svg><span>Align centre</span></button>
       <button class="menu-item" type="button" role="menuitem" data-command="align-right" data-min="2"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-align-right"/></svg><span>Align right</span></button>
@@ -180,9 +186,6 @@
       <div class="menu-sep" role="separator"></div>
       <button class="menu-item" type="button" role="menuitem" data-command="distribute-h" data-min="3"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-h"/></svg><span>Distribute across</span></button>
       <button class="menu-item" type="button" role="menuitem" data-command="distribute-v" data-min="3"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-v"/></svg><span>Distribute down</span></button>
-      <div class="menu-sep" role="separator"></div>
-      <button class="menu-item" type="button" role="menuitem" data-command="front" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-front"/></svg><span>Bring to front</span><kbd>Ctrl+]</kbd></button>
-      <button class="menu-item" type="button" role="menuitem" data-command="back" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-back"/></svg><span>Send to back</span><kbd>Ctrl+[</kbd></button>
     </div>
   </div>
 

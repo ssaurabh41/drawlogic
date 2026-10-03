@@ -329,9 +329,14 @@ function renderCellText(symbol, cell, scale, fontScale, into) {
     text.textContent = line;
     into.appendChild(text);
   }
-  const copies = geometry.cellCopies(cell);
+  copiesBadge(geometry.cellBounds(symbol, cell, scale),
+              geometry.cellCopies(cell), into);
+}
+
+// The "x4" pill on the top right corner. Mirrors _render_copies_badge.
+function copiesBadge(box, copies, into) {
   if (copies) {
-    const [bx, by, bw] = geometry.cellBounds(symbol, cell, scale);
+    const [bx, by, bw] = box;
     const label = `\u00d7${copies}`;
     const width = 12 + label.length * 6.5;
     const left = bx + bw - width + 4;
@@ -955,12 +960,71 @@ function shadowFilter(region) {
   return filter;
 }
 
+// One shape, with the copy behind it and the writing in it. Mirrors
+// _render_shape. The shadow is on an inner group, so the writing -- drawn
+// after, outside it -- casts none, as in the exported file.
 function renderShape(shape, fontScale, parent) {
   const style = shape.style || {};
-  const into = el("g", { class: "dl-shape", "data-id": shape.id,
-                         "data-kind": shape.kind,
-                         filter: style.shadow ? "url(#dl-shadow)" : null });
-  parent.appendChild(into);
+  const outer = el("g", { class: "dl-shape", "data-id": shape.id,
+                          "data-kind": shape.kind });
+  parent.appendChild(outer);
+  const into = style.shadow ? el("g", { filter: "url(#dl-shadow)" }) : outer;
+  if (into !== outer) outer.appendChild(into);
+  if (geometry.shapeCopies(shape)) renderShapeStack(shape, style, fontScale, into);
+  renderShapeBody(shape, style, fontScale, into);
+  renderShapeText(shape, fontScale, outer);
+  shapeHit(shape, outer);
+}
+
+// The copy behind a shape standing for several, masked by the shape itself
+// when it has no fill. Mirrors _render_shape_stack.
+function renderShapeStack(shape, style, fontScale, into) {
+  const offset = geometry.shapeStackOffset(shape);
+  const moved = el("g", { class: "dl-stack",
+                          transform: `translate(${geometry.fmt(offset)} ${geometry.fmt(offset)})` });
+  renderShapeBody(shape, style, fontScale, moved);
+  const fill = style.fill || "none";
+  if (fill !== "none" && fill !== "transparent") {
+    into.appendChild(moved);
+    return;
+  }
+  const [x, y, w, h] = geometry.shapeBox(shape);
+  const reach = offset + 2 * Number(style.strokeWidth || theme.widths.stroke) + 2;
+  const id = `dl-hide-${shape.id || ""}`;
+  const region = { x: geometry.fmt(x - reach), y: geometry.fmt(y - reach),
+                   width: geometry.fmt(w + 2 * reach), height: geometry.fmt(h + 2 * reach) };
+  const mask = el("mask", { id, maskUnits: "userSpaceOnUse", ...region });
+  mask.appendChild(el("rect", { ...region, fill: "#ffffff" }));
+  renderShapeBody(shape, { ...style, fill: "#000000", stroke: "none" }, fontScale, mask);
+  into.appendChild(mask);
+  const masked = el("g", { mask: `url(#${id})` });
+  masked.appendChild(moved);
+  into.appendChild(masked);
+}
+
+// Mirrors _render_shape_text.
+function renderShapeText(shape, fontScale, into) {
+  const placed = geometry.shapeTextLayout(shape, fontScale);
+  const size = geometry.cellTextMetrics().size * fontScale;
+  const anchor = shape.kind === "line" || shape.kind === "polyline"
+    ? geometry.lineCaption(shape, fontScale)[1]
+    : geometry.TEXT_ANCHOR[geometry.cellTextAlign(shape)[0]];
+  for (const [x, y, line] of placed) {
+    const text = el("text", {
+      class: "dl-shape-text",
+      x: geometry.fmt(x), y: geometry.fmt(y),
+      "text-anchor": anchor,
+      "font-family": theme.fontSans,
+      "font-size": geometry.fmt(size, 2),
+      fill: theme.colors.label,
+    });
+    text.textContent = line;
+    into.appendChild(text);
+  }
+  copiesBadge(geometry.shapeBox(shape) || [0, 0, 0, 0], geometry.shapeCopies(shape), into);
+}
+
+function renderShapeBody(shape, style, fontScale, into) {
   const paint = {
     fill: style.fill || "none",
     stroke: style.stroke || theme.colors.stroke,
@@ -997,6 +1061,34 @@ function renderShape(shape, fontScale, parent) {
     text.textContent = shape.text || "";
     into.appendChild(text);
   }
+
+}
+
+function shapeHit(shape, into) {
+  // A line is as thin as a wire and as hard to hit, so it gets the same wide
+  // invisible stroke to catch the pointer, its full length, heads included.
+  // Anything else is clickable across its whole area already (app.css).
+  // Canvas only, like the wire's.
+  if (shape.kind !== "line" && shape.kind !== "polyline") return;
+  const points = (shape.points || [])
+    .map((p) => `${geometry.fmt(p[0])},${geometry.fmt(p[1])}`).join(" ");
+  into.appendChild(el("polyline", {
+    class: "dl-shape-hit", points, fill: "none", stroke: "transparent",
+    "stroke-width": 12, "pointer-events": "stroke",
+  }));
+}
+
+// Shapes and cells in the order they are painted, and the index in it the
+// wires are painted before. Mirrors draw_order in render_svg.py: lowest z
+// first, a shape before a cell at the same z, then the file's own order; the
+// wires go just below the first cell at z 0 or above.
+export function drawOrder(cells, shapes) {
+  const ranked = [
+    ...shapes.map((s, i) => [s.z || 0, 0, i, "shape", s]),
+    ...cells.map((c, i) => [c.z || 0, 1, i, "cell", c]),
+  ].sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  const at = ranked.findIndex((entry) => entry[1] === 1 && entry[0] >= 0);
+  return [ranked.map((entry) => [entry[3], entry[4]]), at < 0 ? ranked.length : at];
 }
 
 // Everything the document owns lives in one content layer that is rebuilt
@@ -1055,20 +1147,33 @@ export function render(svg, doc) {
     }));
   }
 
-  const shapes = el("g", { class: "dl-shapes" });
-  for (const shape of doc.shapes || []) renderShape(shape, fontScale, shapes);
-  content.appendChild(shapes);
-
-  const nets = el("g", { class: "dl-nets" });
-  const junctions = renderNets(doc, fontScale, nets);
-  content.appendChild(nets);
-
-  const cells = el("g", { class: "dl-cells" });
-  for (const cell of doc.cells || []) {
-    const symbol = geometry.forCell(cell);
-    if (symbol) renderCell(symbol, cell, fontScale, scale, cells);
-  }
-  content.appendChild(cells);
+  // Shapes and cells in one stacking order, the wires among them; see
+  // drawOrder. Consecutive shapes share a group, as consecutive cells do.
+  const [order, wiresAt] = drawOrder(doc.cells || [], doc.shapes || []);
+  let junctions = [];
+  let run = null;
+  let group = null;
+  if (!(doc.shapes || []).length) content.appendChild(el("g", { class: "dl-shapes" }));
+  [...order, [null, null]].forEach(([kind, item], index) => {
+    if (kind !== run || index === wiresAt) {
+      if (index === wiresAt) {
+        const nets = el("g", { class: "dl-nets" });
+        junctions = renderNets(doc, fontScale, nets);
+        content.appendChild(nets);
+      }
+      run = kind;
+      if (kind !== null) {
+        group = el("g", { class: `dl-${kind}s` });
+        content.appendChild(group);
+      }
+    }
+    if (kind === "shape") renderShape(item, fontScale, group);
+    else if (kind === "cell") {
+      const symbol = geometry.forCell(item);
+      if (symbol) renderCell(symbol, item, fontScale, scale, group);
+    }
+  });
+  if (!(doc.cells || []).length) content.appendChild(el("g", { class: "dl-cells" }));
 
   // Last, so nothing can paint over them: a junction dot is the only mark that
   // says two wires are connected, and one hidden behind a gate is a connection

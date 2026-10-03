@@ -47,6 +47,7 @@ const EXPECTED = [
   ["stale answers", 8],
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
+  ["stacking and writing on shapes", 8],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -770,6 +771,43 @@ section("carrying a placed cell to a pin");
                   to: [{ cell: "b", pin: "a", waypoints: [] }] });
   check("a pin already wired does not snap",
         model.snapCell(doc, b) === null, JSON.stringify(model.snapCell(doc, b)));
+}
+
+// ---- stacking and writing on shapes ----
+//
+// Asked for: shapes behind symbols unless brought forward, front and back
+// working across shapes and symbols alike, and writing and copies on a shape
+// as on a cell.
+section("stacking and writing on shapes");
+{
+  const doc = {
+    canvas: { width: 600, height: 400, symbolScale: 1, grid: { size: 5 } },
+    cells: [{ id: "u", type: "inv", x: 100, y: 100, w: 40, h: 30, rotate: 0, mirror: false }],
+    nets: [], shapes: [], groups: [],
+  };
+  const box = model.addShape(doc, "rect", { x: 60, y: 60, w: 160, h: 100 });
+  const line = model.addShape(doc, "line", { x: 0, y: 0, w: 0, h: 0,
+                                             points: [[0, 300], [200, 300]] });
+  check("a new shape has no fill and no place in the stack",
+        !("fill" in box.style) && box.z === undefined);
+  model.bringToFront(doc, new Set([box.id]));
+  check("brought to front, a shape is above every symbol",
+        box.z > Math.max(...doc.cells.map((c) => c.z || 0)));
+  model.bringToFront(doc, new Set(["u"]));
+  check("and a symbol brought to front goes back above it", doc.cells[0].z > box.z);
+  model.sendToBack(doc, new Set(["u"]));
+  check("sent to back, a symbol is below every shape",
+        doc.cells[0].z < Math.min(...doc.shapes.map((s) => s.z || 0)));
+  model.setCellText(doc, box.id, "one\ntwo\n");
+  check("a shape takes lines of writing", JSON.stringify(box.text) === '["one","two"]',
+        JSON.stringify(box.text));
+  check("and is not grown to fit them, as a cell would be", box.w === 160 && box.h === 100);
+  model.setCopies(doc, box.id, "3");
+  model.setTextAlign(doc, box.id, "textAlign", "left");
+  check("copies and alignment, as a cell", box.copies === 3 && box.textAlign === "left");
+  model.setCopies(doc, line.id, "4");
+  check("a line says what it was told but stands for no copies",
+        geometry.shapeCopies(line) === 0 && geometry.shapeCopies(box) === 3);
 }
 
 // Every area has to have run, and to have run the number of checks it says.

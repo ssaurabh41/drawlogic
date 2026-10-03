@@ -301,7 +301,13 @@ export function cellTextLayout(symbol, cell, scale = 1, fontScale = 1) {
       clipped = true;
       line = ellipsis(line, room);
     }
-    placed.push([x + pad, baseline, line]);
+    placed.push([x + w / 2, baseline, line]);
+  }
+  if (placed.length && !clipped) {
+    // Down the middle. Mirrors cell_text_layout in render_svg.py.
+    const block = size + (placed.length - 1) * step;
+    const drop = Math.max(0, (h - 2 * pad - block) / 2);
+    return [placed.map(([px, py, text]) => [px, py + drop, text]), clipped];
   }
   return [placed, clipped];
 }

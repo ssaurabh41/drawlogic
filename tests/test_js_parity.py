@@ -247,8 +247,8 @@ def _block_diagram_drawing():
 
 def _exported_inside(svg):
   start = svg.index('<g class="dl-cells">')
-  found = re.findall(r'<text x="([^"]+)" y="([^"]+)" font-family="[^"]+" '
-                     r'font-size="[^"]+" fill="[^"]+">([^<]*)<', svg[start:])
+  found = re.findall(r'<text class="dl-cell-text" x="([^"]+)" y="([^"]+)" '
+                     r'text-anchor="middle"[^>]*>([^<]*)<', svg[start:])
   return sorted([text, x, y] for x, y, text in found)
 
 

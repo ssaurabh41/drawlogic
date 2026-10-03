@@ -1225,12 +1225,30 @@ class TestTextInsideCells(unittest.TestCase):
     self.assertTrue(placed[-1][2].endswith("…"))
     self.assertEqual(doc.cells[0]["h"], self.registry.for_cell(doc.cells[0]).height)
 
-  def test_text_is_left_aligned_inside_the_box(self):
+  def test_text_is_centred_across_and_down_the_box(self):
     doc = self.block(text=["one", "two"])
+    cell = doc.cells[0]
     placed, _ = self.layout(doc)
     xs = {round(x, 3) for x, _y, _t in placed}
-    self.assertEqual(xs, {100 + theme.CELL_TEXT["pad"]})
+    self.assertEqual(xs, {round(100 + cell["w"] / 2.0, 3)})
     self.assertLess(placed[0][1], placed[1][1])
+    # The block's middle -- half a line above the last baseline's descent
+    # line, measured as the renderer measures a line -- is the box's.
+    size = theme.FONT_SIZES["cell_text"]
+    top = placed[0][1] - size * 0.8
+    bottom = placed[-1][1] + size * 0.2
+    self.assertAlmostEqual((top + bottom) / 2.0, 100 + cell["h"] / 2.0, places=3)
+    svg = render_svg.render(doc, registry=self.registry)
+    self.assertIn('class="dl-cell-text"', svg)
+    self.assertRegex(svg, r'class="dl-cell-text" [^>]*text-anchor="middle"')
+
+  def test_text_cut_short_still_starts_at_the_top(self):
+    doc = self.block(text=["a"] * 12, textFit=False)
+    placed, clipped = self.layout(doc)
+    self.assertTrue(clipped)
+    size = theme.FONT_SIZES["cell_text"]
+    self.assertAlmostEqual(placed[0][1],
+                           100 + theme.CELL_TEXT["pad"] + size * 0.8, places=3)
 
   def test_copies_draw_one_outline_behind_and_a_count(self):
     svg = render_svg.render(self.block(copies=4), registry=self.registry)

@@ -319,7 +319,8 @@ function renderCellText(symbol, cell, scale, fontScale, into) {
   const [placed] = geometry.cellTextLayout(symbol, cell, scale, fontScale);
   for (const [x, y, line] of placed) {
     const text = el("text", {
-      x: geometry.fmt(x), y: geometry.fmt(y),
+      class: "dl-cell-text",
+      x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": "middle",
       "font-family": theme.fontSans,
       "font-size": geometry.fmt(size, 2),
       fill: theme.colors.label,

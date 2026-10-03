@@ -624,8 +624,9 @@ panel then shows:
 For block diagrams, any cell can carry lines of text inside it: select it
 and type into **Text inside** in the properties panel, one line per line
 (Enter makes a new line; leaving the box or `Ctrl+Enter` keeps it). The lines
-are left-aligned from the top-left of the box and stay upright however the
-cell is turned. The instance name stays where it is, above.
+are centred in the box, across and down, and stay upright however the cell is
+turned; text too long for a box that does not grow is cut short and fills it
+from the top. The instance name stays where it is, above.
 
 **Fit box** is on by default: the box grows to hold the text, and cannot be
 resized smaller than it. It never shrinks on its own, so a box made bigger on
@@ -818,7 +819,7 @@ gains nothing from it has no such key at all.
 | `rotate` | 0, 90, 180 or 270, about the cell's centre |
 | `mirror` | flipped left-to-right |
 | `label` | instance name, drawn above the cell -- or beside its top-left corner when a pin comes in at the top, so that pin's wire does not run through it |
-| `text` | lines written inside the cell, e.g. `["CPU cluster", "4 cores", "1 MB L2"]`; left-aligned from the top |
+| `text` | lines written inside the cell, e.g. `["CPU cluster", "4 cores", "1 MB L2"]`; centred in the box |
 | `textFit` | `false` keeps the box its size and cuts text that does not fit; left out, the box grows to hold the text |
 | `copies` | 2 or more draws a copy of the cell's body behind it (a gate behind a gate, a box behind a flop) and a `×N` badge; still one cell |
 | `pins` | per-pin names, e.g. `{"in1": "wptr"}`; see below |

@@ -221,11 +221,14 @@ def cell_text_needs(lines, font_scale=1.0):
 def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   """Where each line inside a cell is drawn, and whether any had to be cut.
 
-  Returns ([(x, baseline, text), ...], clipped). Left-aligned from the top-left
-  of the cell's box on the sheet, upright whatever the cell's rotation. A line
-  too wide for the box ends in an ellipsis, and the lines that do not fit
-  below are dropped with an ellipsis on the last one shown -- `clipped` says
-  so, which is what the DRC reports. With fit-to-text on, nothing is clipped.
+  Returns ([(x, baseline, text), ...], clipped), `x` being each line's
+  middle. Centred in the cell's box on the sheet, across and down, upright
+  whatever the cell's rotation: a block reads as a label on the thing, and a
+  label sits in the middle. A line too wide for the box ends in an ellipsis,
+  and the lines that do not fit are dropped with an ellipsis on the last one
+  shown -- `clipped` says so, which is what the DRC reports. Text cut short
+  that way fills the box from the top, there being no room left to centre it
+  in. With fit-to-text on, nothing is clipped.
   """
   lines = cell_text_lines(cell)
   if not lines:
@@ -246,7 +249,12 @@ def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
     if len(line) > room:
       clipped = True
       line = _ellipsis(line, room)
-    placed.append((x + pad, baseline, line))
+    placed.append((x + w / 2.0, baseline, line))
+  if placed and not clipped:
+    # Down the middle: what is left over below the block, shared above it.
+    block = size + (len(placed) - 1) * step
+    drop = max(0.0, (h - 2 * pad - block) / 2.0)
+    placed = [(px, py + drop, text) for px, py, text in placed]
   return placed, clipped
 
 
@@ -338,7 +346,9 @@ def _render_cell_text(symbol, cell, symbol_scale, font_scale, out):
   placed, _clipped = cell_text_layout(symbol, cell, symbol_scale, font_scale)
   for x, y, line in placed:
     out.append("<text %s>%s</text>" % (_attrs([
+      ("class", "dl-cell-text"),
       ("x", fmt(x)), ("y", fmt(y)),
+      ("text-anchor", "middle"),
       ("font-family", theme.FONT_SANS),
       ("font-size", fmt(size, 2)),
       ("fill", theme.COLORS["label"])]), esc(line)))

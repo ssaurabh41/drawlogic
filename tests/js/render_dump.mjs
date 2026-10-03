@@ -105,8 +105,7 @@ console.log(JSON.stringify({
                         && !(n.attrs.y && Number(n.attrs.x) < 20 && n.attrs["font-size"] > 16))
     .map((n) => [n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]).sort(),
   // Text written inside cells: the only text with neither an anchor nor a weight.
-  inside: all.filter((n) => n.tag === "text" && n.attrs["text-anchor"] === undefined
-                     && n.attrs["font-weight"] === undefined)
+  inside: all.filter((n) => n.tag === "text" && n.attrs.class === "dl-cell-text")
     .map((n) => [n._text, n.attrs.x, n.attrs.y]).sort(),
   stacks: all.filter((n) => n.tag === "rect" && /dl-(stack|copies)/.test(n.attrs.class || ""))
     .map((n) => [n.attrs.class, n.attrs.x, n.attrs.y, n.attrs.width, n.attrs.height]).sort(),

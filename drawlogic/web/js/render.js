@@ -931,10 +931,35 @@ function headElement(head, stroke, width) {
   return el("polygon", { class: "dl-head", points, fill: stroke, stroke: "none" });
 }
 
+// The filter shadowed shapes use. Mirrors shadow_filter in render_svg.py,
+// region and all: given on the sheet, since a flat line's own box has no
+// height to measure a shadow from.
+function shadowFilter(region) {
+  const shadow = theme.shapeShadow || { dx: 3, dy: 3, blur: 2, opacity: 0.35,
+                                        color: "#16202b" };
+  const filter = el("filter", {
+    id: "dl-shadow", filterUnits: "userSpaceOnUse",
+    x: region[0], y: region[1], width: region[2], height: region[3],
+  });
+  filter.appendChild(el("feGaussianBlur", { in: "SourceAlpha",
+                                            stdDeviation: shadow.blur, result: "blur" }));
+  filter.appendChild(el("feOffset", { in: "blur", dx: shadow.dx, dy: shadow.dy,
+                                      result: "moved" }));
+  filter.appendChild(el("feFlood", { "flood-color": shadow.color,
+                                     "flood-opacity": shadow.opacity }));
+  filter.appendChild(el("feComposite", { in2: "moved", operator: "in", result: "shade" }));
+  const merge = el("feMerge");
+  merge.appendChild(el("feMergeNode", { in: "shade" }));
+  merge.appendChild(el("feMergeNode", { in: "SourceGraphic" }));
+  filter.appendChild(merge);
+  return filter;
+}
+
 function renderShape(shape, fontScale, parent) {
   const style = shape.style || {};
   const into = el("g", { class: "dl-shape", "data-id": shape.id,
-                         "data-kind": shape.kind });
+                         "data-kind": shape.kind,
+                         filter: style.shadow ? "url(#dl-shadow)" : null });
   parent.appendChild(into);
   const paint = {
     fill: style.fill || "none",
@@ -1008,6 +1033,13 @@ export function render(svg, doc) {
   const pattern = gridPattern(canvas.grid || {});
   if (Array.isArray(pattern)) pattern.forEach((p) => defs.appendChild(p));
   else if (pattern) defs.appendChild(pattern);
+  if ((doc.shapes || []).some((s) => (s.style || {}).shadow)) {
+    // The sheet and a margin round it: a shape dragged just off the page
+    // keeps its shadow while it is there.
+    const margin = 400;
+    defs.appendChild(shadowFilter([-margin, -margin, (canvas.width || 0) + 2 * margin,
+                                   (canvas.height || 0) + 2 * margin]));
+  }
   content.appendChild(defs);
 
   // The sheet is a fixed size, so draw it as a page sitting on the workspace.

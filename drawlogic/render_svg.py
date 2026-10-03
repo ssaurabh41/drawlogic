@@ -1293,8 +1293,48 @@ def _render_head(head, stroke, width, out):
     ("stroke", "none")]))
 
 
+def shadow_filter(region):
+  """The one filter every shadowed shape uses, as an SVG <filter>.
+
+  Built from the plain primitives -- blur the shape's outline, shift it,
+  colour it, put the shape back on top -- rather than feDropShadow, which
+  fewer of the programs an exported file ends up in understand. Its region is
+  given on the sheet, `region` = (x, y, w, h), not as a share of each shape's
+  own box: a flat line has a box of no height, and a shadow measured from
+  that is clipped to nothing.
+  """
+  shadow = theme.SHAPE_SHADOW
+  return (
+    '<filter id="dl-shadow" filterUnits="userSpaceOnUse" '
+    'x="%s" y="%s" width="%s" height="%s">'
+    '<feGaussianBlur in="SourceAlpha" stdDeviation="%s" result="blur" />'
+    '<feOffset in="blur" dx="%s" dy="%s" result="moved" />'
+    '<feFlood flood-color="%s" flood-opacity="%s" />'
+    '<feComposite in2="moved" operator="in" result="shade" />'
+    '<feMerge><feMergeNode in="shade" /><feMergeNode in="SourceGraphic" />'
+    '</feMerge></filter>' % (
+      fmt(region[0]), fmt(region[1]), fmt(region[2]), fmt(region[3]),
+      fmt(shadow["blur"]), fmt(shadow["dx"]), fmt(shadow["dy"]),
+      shadow["color"], fmt(shadow["opacity"])))
+
+
+def shape_shadow_reach():
+  """How far past a shadowed shape its shadow can show, right and down."""
+  shadow = theme.SHAPE_SHADOW
+  return (shadow["dx"] + 3 * shadow["blur"], shadow["dy"] + 3 * shadow["blur"])
+
+
 def _render_shape(shape, font_scale, out):
   style = shape.get("style") or {}
+  if style.get("shadow"):
+    out.append('<g filter="url(#dl-shadow)">')
+    _render_shape_body(shape, style, font_scale, out)
+    out.append("</g>")
+  else:
+    _render_shape_body(shape, style, font_scale, out)
+
+
+def _render_shape_body(shape, style, font_scale, out):
   kind = shape.get("kind")
   paint = [
     ("fill", style.get("fill", "none")),
@@ -1405,8 +1445,11 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
   out.append("<title>%s</title>" % esc(doc.title))
 
   grid_defs = _grid_defs(canvas.get("grid") or {}) if show_grid else ""
-  if grid_defs:
-    out.append("<defs>%s</defs>" % grid_defs)
+  shadow_defs = (shadow_filter(view)
+                 if any((s.get("style") or {}).get("shadow") for s in doc.shapes)
+                 else "")
+  if grid_defs or shadow_defs:
+    out.append("<defs>%s%s</defs>" % (grid_defs, shadow_defs))
 
   if paper and paper != "none":
     out.append("<rect %s />" % _attrs([

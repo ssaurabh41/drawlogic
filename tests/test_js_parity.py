@@ -340,6 +340,40 @@ class TestPinLabelsAgree(unittest.TestCase):
     self.assertEqual(browser["pinLabels"], exported)
 
 
+@unittest.skipUnless(NODE, "node is not installed")
+class TestShadowsAgree(unittest.TestCase):
+  """Shadowed shapes look the same in the editor and the file."""
+
+  def test_the_same_shapes_cast_the_same_shadow(self):
+    doc = new_document("shade", 500, 300)
+    doc.canvas["grid"]["style"] = "blank"
+    doc.shapes.extend([
+      {"id": "a", "kind": "rect", "x": 40, "y": 40, "w": 80, "h": 50,
+       "style": {"shadow": True}},
+      {"id": "b", "kind": "ellipse", "x": 160, "y": 40, "w": 60, "h": 60,
+       "style": {"shadow": True}},
+      {"id": "c", "kind": "line", "points": [[40, 200], [300, 200]],
+       "style": {"shadow": True, "headEnd": "triangle"}},
+      {"id": "d", "kind": "rect", "x": 300, "y": 40, "w": 60, "h": 40,
+       "style": {}},
+    ])
+    doc.normalize()
+    browser = _browser_render(doc, default_registry())
+    svg = render_svg.render(doc)
+    self.assertEqual(browser["shadowed"], ["ellipse", "line", "rect"])
+    self.assertEqual(svg.count('filter="url(#dl-shadow)"'), 3)
+    blur = re.search(r'<feGaussianBlur [^>]*stdDeviation="([^"]+)"', svg).group(1)
+    dx, dy = re.search(r'<feOffset [^>]*dx="([^"]+)" dy="([^"]+)"', svg).groups()
+    color, opacity = re.search(
+      r'<feFlood flood-color="([^"]+)" flood-opacity="([^"]+)"', svg).groups()
+    numbers = {tag: row for tag, *row in browser["shadow"]}
+    self.assertEqual(float(numbers["feGaussianBlur"][0]), float(blur))
+    self.assertEqual([float(numbers["feOffset"][1]), float(numbers["feOffset"][2])],
+                     [float(dx), float(dy)])
+    self.assertEqual(numbers["feFlood"][3], color)
+    self.assertEqual(float(numbers["feFlood"][4]), float(opacity))
+
+
 class TestTheGridDefaultsAgree(unittest.TestCase):
   """A new drawing snaps to the pin grid, in the file and in the editor alike.
 

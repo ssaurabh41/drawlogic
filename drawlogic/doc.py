@@ -739,6 +739,13 @@ class Document(object):
       for head in render_svg.line_heads(shape)[1]:
         for point in render_svg.line_head_points(head):
           box = union_bbox(box, (point[0], point[1], 0, 0))
+      # A shadow falls past the shape's lower right, so a cropped export
+      # that stopped at the shape would cut it off.
+      if (shape.get("style") or {}).get("shadow") and box is not None:
+        reach = render_svg.shape_shadow_reach()
+        for point in shape.get("points") or [(shape.get("x", 0) + shape.get("w", 0),
+                                              shape.get("y", 0) + shape.get("h", 0))]:
+          box = union_bbox(box, (point[0] + reach[0], point[1] + reach[1], 0, 0))
 
     return box
 

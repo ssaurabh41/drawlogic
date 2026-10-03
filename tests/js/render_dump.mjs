@@ -112,6 +112,13 @@ console.log(JSON.stringify({
   // Pin names: the only text in the pin-label colour.
   pinLabels: all.filter((n) => n.tag === "text" && n.attrs.fill === theme.colors.pin_label)
     .map((n) => [n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]).sort(),
+  // Shapes drawn through the shadow filter, and the filter's own numbers.
+  shadowed: all.filter((n) => (n.attrs.class || "") === "dl-shape" && n.attrs.filter)
+    .map((n) => n.attrs["data-kind"]).sort(),
+  shadow: all.filter((n) => ["feGaussianBlur", "feOffset", "feFlood"].includes(n.tag))
+    .map((n) => [n.tag, String(n.attrs.stdDeviation ?? ""), String(n.attrs.dx ?? ""),
+                 String(n.attrs.dy ?? ""), String(n.attrs["flood-color"] ?? ""),
+                 String(n.attrs["flood-opacity"] ?? "")]),
   // Arrowheads on drawn lines, and the lines they trim.
   heads: all.filter((n) => (n.attrs.class || "") === "dl-head")
     .map((n) => [n.tag, n.attrs.points || null, n.attrs.cx || null,

@@ -1488,3 +1488,49 @@ class TestPinNamesStayInsideARotatedCell(unittest.TestCase):
                             "%s at %s sits outside %s"
                             % (text, (round(x0), round(y0), round(x1), round(y1)),
                                tuple(round(v) for v in inner)))
+
+
+class TestShapeShadows(unittest.TestCase):
+  """An autoshape can carry a soft shadow, as in a slide editor."""
+
+  def drawing(self, **style):
+    doc = new_document("shade", 400, 300)
+    doc.shapes.append({"id": "s1", "kind": "rect", "x": 100, "y": 100,
+                       "w": 80, "h": 50, "style": dict(style)})
+    doc.shapes.append({"id": "s2", "kind": "line",
+                       "points": [[50, 250], [300, 250]], "style": {}})
+    doc.normalize()
+    return doc
+
+  def test_a_shadowed_shape_is_drawn_through_the_filter(self):
+    svg = render_svg.render(self.drawing(shadow=True))
+    self.assertEqual(svg.count('filter="url(#dl-shadow)"'), 1)
+    self.assertEqual(svg.count('<filter id="dl-shadow"'), 1)
+    for part in ("feGaussianBlur", "feOffset", "feFlood", "feComposite", "feMerge"):
+      self.assertIn(part, svg)
+
+  def test_no_shadow_no_filter(self):
+    svg = render_svg.render(self.drawing())
+    self.assertNotIn("dl-shadow", svg)
+
+  def test_the_filter_covers_the_sheet_so_a_flat_line_keeps_its_shadow(self):
+    doc = self.drawing()
+    doc.shapes[1]["style"]["shadow"] = True
+    svg = render_svg.render(doc)
+    region = re.search(r'<filter id="dl-shadow" filterUnits="userSpaceOnUse" '
+                       r'x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"',
+                       svg)
+    self.assertIsNotNone(region)
+    self.assertGreaterEqual(float(region.group(3)), 400)
+    self.assertGreaterEqual(float(region.group(4)), 300)
+
+  def test_a_cropped_export_keeps_the_shadow(self):
+    plain = self.drawing().content_bbox(default_registry())
+    shaded = self.drawing(shadow=True).content_bbox(default_registry())
+    self.assertGreater(shaded[0] + shaded[2], plain[0] + plain[2] - 1e-9)
+    doc = self.drawing(shadow=True)
+    doc.shapes.pop()
+    box = doc.content_bbox(default_registry())
+    reach = render_svg.shape_shadow_reach()
+    self.assertAlmostEqual(box[0] + box[2], 180 + reach[0])
+    self.assertAlmostEqual(box[1] + box[3], 150 + reach[1])

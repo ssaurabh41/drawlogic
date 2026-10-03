@@ -144,6 +144,12 @@ ROLE_STYLES = {
 
 GRID_STYLES = ("blank", "dots", "dots-wide", "lines", "lines-heavy")
 
+# The shadow an autoshape can carry, as a slide editor's default outer shadow
+# falls: down and to the right, softened, in the ink colour at a third of its
+# strength. `blur` is the blur's standard deviation.
+SHAPE_SHADOW = {"dx": 3.0, "dy": 3.0, "blur": 2.0, "opacity": 0.35,
+                "color": INK}
+
 
 def as_data():
   """Everything the browser needs to draw as the exporter does.
@@ -170,4 +176,5 @@ def as_data():
     "pinLabelInset": PIN_LABEL_INSET,
     "titlePad": TITLE_PAD,
     "gridStyles": list(GRID_STYLES),
+    "shapeShadow": SHAPE_SHADOW,
   }

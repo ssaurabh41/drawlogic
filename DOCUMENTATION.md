@@ -530,6 +530,12 @@ like cells. An unfilled shape is clickable across its whole area, not just its
 outline, and cells always draw above shapes so a box drawn as an annotation
 never swallows a click meant for a gate inside it.
 
+**Shadow** in the properties panel gives selected shapes a soft shadow down
+and to the right, a slide editor's default outer shadow -- one tick for a
+whole selection. It is `"shadow": true` in the shape's style, drawn the same
+on the canvas and in an exported file, and a cropped export leaves room for
+it. Cells do not take one: a shadow under a gate is not schematic.
+
 ### Arrange
 
 The **Arrange** menu groups and ungroups, aligns edges and centres (two or

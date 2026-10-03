@@ -1073,6 +1073,22 @@ export class Inspector {
       root.appendChild(row(label, this.colourControl(key, first[key], fallback)));
     }
 
+    // A soft shadow down and to the right, as a slide editor's default. Shapes
+    // only: a cell is a symbol, and a shadow under a gate is not schematic.
+    if (items.every((item) => model.isShape(item))) {
+      const shadow = document.createElement("input");
+      shadow.type = "checkbox";
+      shadow.className = "pcheck";
+      shadow.checked = items.every((item) => (item.style || {}).shadow);
+      shadow.title = "a soft shadow below and to the right";
+      shadow.addEventListener("change", () => {
+        this.store.mutate(shadow.checked ? "shadow" : "no shadow", (doc) =>
+          model.setStyle(doc, this.selection.ids, "shadow", shadow.checked || null));
+        this.onChange();
+      });
+      root.appendChild(row("Shadow", shadow));
+    }
+
     const weight = input(first.strokeWidth || 1.6, "number");
     weight.step = "0.1";
     weight.min = "0.2";

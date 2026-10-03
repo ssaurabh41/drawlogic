@@ -147,9 +147,16 @@ function stepper(field) {
 // starts from zero -- and an empty field here means "mixed", where there is no
 // single value to step from.
 // Returns whether the value changed; the caller decides when to commit it.
+//
+// An empty field steps from its placeholder when that is a number: Copies
+// shows a grey "1" for a cell that has never been copied, and pressing up
+// there has to give 2 -- refusing it meant a cell could never be made into a
+// stack with the arrows at all. A placeholder that is not a number ("mixed",
+// "default") has no single value to step from, so those still do nothing.
 function nudgeNumber(field, sign) {
-  if (field.value === "") return false;
-  const current = Number(field.value);
+  const shown = field.value === "" ? field.placeholder : field.value;
+  if (shown === "") return false;
+  const current = Number(shown);
   if (!Number.isFinite(current)) return false;
   const step = Number(field.step) > 0 ? Number(field.step) : 1;
   let next = Math.round((current + sign * step) / step) * step;

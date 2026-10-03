@@ -154,6 +154,27 @@ function freePinLabel(symbol, cell, pinName, scale) {
 // render_svg.py.
 const STACK_ROLES = new Set(["body", "bubble", "port_in", "port_out", "port_inout"]);
 
+// Mirrors PIN_LABEL_RISE in render_svg.py.
+const PIN_LABEL_RISE = 0.35;
+
+// Where a symbol's own pin label is drawn: [x, baseline, anchor]. Upright, as
+// the symbol places it; rotated, centred on where its middle lands, so it
+// stays inside the body. Mirrors pin_label_spot in render_svg.py.
+export function pinLabelSpot(op, text, cell, matrix, fontScale = 1) {
+  let anchor = op.anchor || "start";
+  if (!((cell.rotate || 0) % 360)) {
+    const [x, y] = matrix.apply(op.x, op.y);
+    if (cell.mirror) anchor = { start: "end", end: "start" }[anchor] || anchor;
+    return [x, y, anchor];
+  }
+  const size = theme.fontSizes.pin_label * fontScale;
+  const factor = matrix.scaleFactor() || 1;
+  const half = text.length * size * geometry.LABEL_CHAR / 2 / factor;
+  const shift = { start: half, end: -half }[anchor] || 0;
+  const [x, y] = matrix.apply(op.x + shift, op.y - size * PIN_LABEL_RISE / factor);
+  return [x, y + size * PIN_LABEL_RISE, "middle"];
+}
+
 function renderCell(symbol, cell, fontScale, scale, into) {
   const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
@@ -227,7 +248,6 @@ function renderCell(symbol, cell, fontScale, scale, into) {
 
   // Pin labels travel with the cell but are drawn upright at a fixed size, so
   // a rotated or enlarged gate still has readable pin names.
-  const mirrored = Boolean(cell.mirror);
   const overrides = { ...(cell.pins || {}) };
   const pinLabel = (x, y, anchor, content) => {
     const text = el("text", {
@@ -249,9 +269,7 @@ function renderCell(symbol, cell, fontScale, scale, into) {
       delete overrides[op.pin];
       if (!content) continue;
     }
-    const [x, y] = matrix.apply(op.x, op.y);
-    let anchor = op.anchor || "start";
-    if (mirrored) anchor = { start: "end", end: "start" }[anchor] || anchor;
+    const [x, y, anchor] = pinLabelSpot(op, content, cell, matrix, fontScale);
     pinLabel(x, y, anchor, content);
   }
 

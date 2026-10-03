@@ -412,10 +412,7 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
       text = overrides.pop(named)
       if not text:
         continue
-    x, y = matrix.apply(op["x"], op["y"])
-    anchor = op.get("anchor", "start")
-    if mirrored:
-      anchor = {"start": "end", "end": "start"}.get(anchor, anchor)
+    x, y, anchor = pin_label_spot(op, text, cell, matrix, font_scale)
     _pin_label(x, y, anchor, text, font_scale, out)
 
   # Whatever is left names a pin the symbol draws no label for -- a generic
@@ -456,6 +453,41 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
       spans))
 
   _render_cell_text(symbol, cell, symbol_scale, font_scale, out)
+
+
+# Where a pin name's middle sits above its baseline, as a fraction of the font
+# size: near enough the centre of a capital for a label to be centred on it.
+PIN_LABEL_RISE = 0.35
+
+
+def pin_label_spot(op, text, cell, matrix, font_scale=1.0):
+  """Where a symbol's own pin label is drawn: (x, baseline, anchor).
+
+  The symbol places it for the cell standing upright: an anchor point inside
+  the body and a direction for the text to run. Mirrored, the direction
+  flips and that is all. Rotated, carrying only the anchor point round left
+  the text running the way it always did -- off the edge the point now sat
+  by, so a turned flop had its pin names outside the box.
+
+  So a rotated label is placed by its middle instead: the middle of where
+  the text sits upright, carried through the rotation, with the text centred
+  on it. A label inside the body stays inside the body at any angle. Upright
+  cells are drawn exactly as before.
+  """
+  anchor = op.get("anchor", "start")
+  if not (cell.get("rotate") or 0) % 360:
+    x, y = matrix.apply(op["x"], op["y"])
+    if cell.get("mirror"):
+      anchor = {"start": "end", "end": "start"}.get(anchor, anchor)
+    return x, y, anchor
+  size = theme.FONT_SIZES["pin_label"] * font_scale
+  # The text is a fixed size whatever the cell's scale, so its width in the
+  # symbol's own units is its drawn width undone by the cell's magnification.
+  factor = matrix.scale_factor() or 1.0
+  half = len(text) * size * LABEL_CHAR / 2.0 / factor
+  shift = {"start": half, "end": -half}.get(anchor, 0.0)
+  x, y = matrix.apply(op["x"] + shift, op["y"] - size * PIN_LABEL_RISE / factor)
+  return x, y + size * PIN_LABEL_RISE, "middle"
 
 
 def _pin_label(x, y, anchor, text, font_scale, out):

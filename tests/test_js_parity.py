@@ -299,6 +299,42 @@ def _exported_shape_lines(svg):
   return sorted(re.findall(r'<polyline points="([^"]+)"', svg))
 
 
+def _rotated_drawing():
+  """Symbols with their own pin names, at every angle, mirrored and not."""
+  doc = new_document("turned", 900, 500)
+  doc.canvas["grid"]["style"] = "blank"
+  for row, type_id in enumerate(("dff", "mux2", "iocell")):
+    for col, (rotate, mirror) in enumerate([(0, False), (90, False),
+                                            (180, False), (270, False),
+                                            (90, True), (270, True)]):
+      doc.cells.append({"id": "%s_%d" % (type_id, col), "type": type_id,
+                        "x": 40 + col * 140, "y": 40 + row * 150,
+                        "rotate": rotate, "mirror": mirror})
+  doc.normalize()
+  return doc
+
+
+def _exported_pin_labels(svg):
+  found = re.findall(
+    r'<text x="([^"]+)" y="([^"]+)" text-anchor="([^"]+)" font-family="[^"]+" '
+    r'font-size="[^"]+" fill="%s">([^<]*)<' % re.escape(theme.COLORS["pin_label"]),
+    svg)
+  return sorted([text, x, y, anchor] for x, y, anchor, text in found)
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestPinLabelsAgree(unittest.TestCase):
+  """Pin names land in the same place in the editor and the file, at any angle."""
+
+  def test_turned_and_flipped_cells_name_their_pins_alike(self):
+    registry = default_registry()
+    doc = _rotated_drawing()
+    browser = _browser_render(doc, registry)
+    exported = _exported_pin_labels(render_svg.render(doc, registry=registry))
+    self.assertGreater(len(exported), 40, "the fixture names too few pins")
+    self.assertEqual(browser["pinLabels"], exported)
+
+
 class TestTheGridDefaultsAgree(unittest.TestCase):
   """A new drawing snaps to the pin grid, in the file and in the editor alike.
 

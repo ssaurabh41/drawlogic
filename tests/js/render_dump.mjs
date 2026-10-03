@@ -60,7 +60,8 @@ globalThis.document = {
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 const doc = JSON.parse(readFileSync(process.argv[3], "utf8"));
-render.setTheme(JSON.parse(readFileSync(process.argv[4], "utf8")));
+const theme = JSON.parse(readFileSync(process.argv[4], "utf8"));
+render.setTheme(theme);
 // The DRC limits decide how the router picks corridors. Without them
 // routing.js falls back to its own defaults and draws a different
 // drawing from the exporter, which is the drift this file exists to catch.
@@ -109,6 +110,9 @@ console.log(JSON.stringify({
     .map((n) => [n._text, n.attrs.x, n.attrs.y]).sort(),
   stacks: all.filter((n) => n.tag === "rect" && /dl-(stack|copies)/.test(n.attrs.class || ""))
     .map((n) => [n.attrs.class, n.attrs.x, n.attrs.y, n.attrs.width, n.attrs.height]).sort(),
+  // Pin names: the only text in the pin-label colour.
+  pinLabels: all.filter((n) => n.tag === "text" && n.attrs.fill === theme.colors.pin_label)
+    .map((n) => [n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]).sort(),
   // Arrowheads on drawn lines, and the lines they trim.
   heads: all.filter((n) => (n.attrs.class || "") === "dl-head")
     .map((n) => [n.tag, n.attrs.points || null, n.attrs.cx || null,

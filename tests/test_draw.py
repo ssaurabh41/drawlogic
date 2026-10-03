@@ -1374,3 +1374,46 @@ class TestLineArrowheads(unittest.TestCase):
     box = doc.content_bbox(default_registry())
     self.assertGreater(box[0] + box[2], 300,
                        "a diamond centred on the end reaches past it")
+
+
+class TestPinNamesStayInsideARotatedCell(unittest.TestCase):
+  """Reported: a flop rotated from the properties panel had its pin names
+  outside the box. The label's anchor was carried round with the cell, but
+  the text still ran the way it did upright, off the edge."""
+
+  def label_boxes(self, rotate, mirror=False):
+    doc = new_document("turn", 400, 300)
+    doc.cells.append({"id": "ff", "type": "dff", "x": 150, "y": 100,
+                      "rotate": rotate, "mirror": mirror})
+    doc.normalize()
+    registry = default_registry()
+    symbol = registry.for_cell(doc.cells[0])
+    svg = render_svg.render(doc, registry=registry)
+    size = theme.FONT_SIZES["pin_label"]
+    found = re.findall(
+      r'<text x="([^"]+)" y="([^"]+)" text-anchor="([^"]+)" [^>]*fill="%s">'
+      r'([^<]*)<' % re.escape(theme.COLORS["pin_label"]), svg)
+    boxes = []
+    for x, y, anchor, text in found:
+      width = len(text) * size * render_svg.LABEL_CHAR
+      left = {"start": 0, "middle": width / 2, "end": width}[anchor]
+      boxes.append((text, float(x) - left, float(y) - size * 0.75,
+                    float(x) - left + width, float(y)))
+    return boxes, render_svg._cell_bbox(symbol, doc.cells[0], 1.0)
+
+  def test_every_name_is_inside_the_body_at_every_angle(self):
+    for rotate in (0, 90, 180, 270):
+      for mirror in (False, True):
+        with self.subTest(rotate=rotate, mirror=mirror):
+          boxes, (bx, by, bw, bh) = self.label_boxes(rotate, mirror)
+          self.assertEqual(len(boxes), 3)
+          # The body is the box less its pin stubs, which are 10 long.
+          inner = (bx + 10 - 0.5, by - 0.5, bx + bw - 10 + 0.5, by + bh + 0.5) \
+            if rotate in (0, 180) else \
+            (bx - 0.5, by + 10 - 0.5, bx + bw + 0.5, by + bh - 10 + 0.5)
+          for text, x0, y0, x1, y1 in boxes:
+            self.assertTrue(inner[0] <= x0 and x1 <= inner[2]
+                            and inner[1] <= y0 and y1 <= inner[3],
+                            "%s at %s sits outside %s"
+                            % (text, (round(x0), round(y0), round(x1), round(y1)),
+                               tuple(round(v) for v in inner)))

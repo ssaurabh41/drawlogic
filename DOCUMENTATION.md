@@ -595,11 +595,14 @@ short wire away, with the pin ringed and the wire drawn in. Let go and it is
 placed and wired, as one undo step. Away from any free pin it lands where it
 was let go, unwired.
 
-**Moving a cell already on the sheet** works the way Logisim does it: drop it
-so one of its free pins lands on another cell's free pin, or on a wire end
-that stops on nothing, and the two are joined. Only pins with nothing on them
-are joined, cells dropped together are never joined to each other, and a pin
-has to land within about half a grid step of the other.
+**Moving a cell already on the sheet** does the same: carry one cell so a
+free pin of it comes near a free pin facing it, and it snaps into line a short
+wire away, the pin it will join ringed and the wire drawn in; let go and they
+are joined, in the same undo step as the move. `Alt` while dragging places it
+exactly where it is put, with no snapping. A selection of several cells does
+not snap, but drop one so a free pin lands on another cell's free pin, or on a
+wire end that stops on nothing, and the two are joined, as in Logisim -- never
+two cells of the same selection to each other.
 
 Either way the status bar says what was joined. Switch it off in Preferences.
 

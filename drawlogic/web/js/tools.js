@@ -45,6 +45,7 @@ export class SelectTool {
 
   reset() {
     this.mode = null;
+    this.snapped = null;
     this.origin = null;
     this.handle = null;
     this.startBoxes = null;
@@ -220,6 +221,7 @@ export class SelectTool {
       // put it, with no help.
       const helping = !event.altKey;
       let lines = [];
+      let snapped = null;
 
       store.mutate(this.gestureLabel, (doc) => {
         const shift = (fx, fy) => {
@@ -243,9 +245,28 @@ export class SelectTool {
         const fixY = straight && across ? 0 : fix.dy;
         if (fixX || fixY) shift(sdx + fixX, sdy + fixY);
         lines = fix.guides;
-      });
 
-      this.ctx.drawOverlay({ guides: lines });
+        // One cell carried near a free pin snaps into line with it, as a cell
+        // dropped from the palette does, and the pin it will join is ringed.
+        // Not for a group, nor along a Shift line it would bend.
+        snapped = null;
+        if (straight || !prefs.get("autoConnect") || this.startBoxes.size !== 1) return;
+        const [id] = this.startBoxes.keys();
+        const cell = doc.cells.find((c) => c.id === id);
+        if (!cell) return;
+        snapped = model.snapCell(doc, cell);
+        if (snapped) {
+          cell.x = snapped.x;
+          cell.y = snapped.y;
+          snapped.cell = id;
+        }
+      });
+      this.snapped = snapped;
+
+      this.ctx.drawOverlay(snapped
+        ? { ghost: { box: snapped.box, target: snapped.wire[1] },
+            wirePreview: snapped.wire }
+        : { guides: lines });
       return true;
     }
 
@@ -413,8 +434,15 @@ export class SelectTool {
       const cellIds = [...this.startBoxes.keys()]
         .filter((id) => store.doc.cells.some((c) => c.id === id));
       let joined = [];
+      const snapped = this.snapped;
       store.mutate(this.gestureLabel || "move", (doc) => {
-        joined = model.autoConnect(doc, cellIds);
+        // The pin the drag snapped to and ringed is the join it promised.
+        if (snapped && !snapped.target.loose
+            && model.addNet(doc, { cell: snapped.cell, pin: snapped.pin },
+                            { cell: snapped.target.cell, pin: snapped.target.pin })) {
+          joined.push(`${snapped.cell}.${snapped.pin} to ${snapped.target.cell}.${snapped.target.pin}`);
+        }
+        joined.push(...model.autoConnect(doc, cellIds));
         if (!joined.length) return false;
       });
       if (joined.length) this.ctx.say(`joined ${joined.join(", ")}`);

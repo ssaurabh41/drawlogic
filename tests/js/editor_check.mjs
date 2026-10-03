@@ -46,6 +46,7 @@ const EXPECTED = [
   ["duplicating a group", 6],
   ["stale answers", 8],
   ["drawing a shape with Shift", 7],
+  ["carrying a placed cell to a pin", 5],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -728,6 +729,47 @@ section("drawing a shape with Shift");
         same(constrainShape("line", [0, 0], [60, -50]), [60, -60]));
   check("a polygon edge is held the same way from its last point",
         same(constrainShape("polygon", [20, 20], [25, 90]), [20, 90]));
+}
+
+// ---- carrying a placed cell to a pin ----
+//
+// Reported: dropping from the palette rings the pin a cell will join, but
+// carrying a cell already on the sheet to a pin showed nothing, and joined
+// only if the two pins were laid almost exactly on each other. The move asks
+// the same question the drop does.
+section("carrying a placed cell to a pin");
+{
+  const inv = (id, x, y) => ({ id, type: "inv", x, y, w: 40, h: 30,
+                               rotate: 0, mirror: false });
+  const pin = (cell, name) =>
+    geometry.pinPosition(geometry.forCell(cell), cell, name, 1);
+  const doc = {
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 5 } },
+    cells: [inv("a", 100, 100), inv("b", 300, 300)], nets: [], shapes: [], groups: [],
+  };
+  const out = pin(doc.cells[0], "y");
+  // Carry b so its input sits a little short of a's output and a little low.
+  const b = doc.cells[1];
+  const into = pin(b, "a");
+  b.x += out[0] + model.SNAP_LEAD - 4 - into[0];
+  b.y += out[1] + 6 - into[1];
+  const snapped = model.snapCell(doc, b);
+  check("a placed cell carried near a free pin finds it",
+        snapped && snapped.target.cell === "a" && snapped.target.pin === "y",
+        JSON.stringify(snapped));
+  check("and would land in line with it, a lead away", snapped
+        && Math.abs(snapped.wire[0][1] - out[1]) < 1e-9
+        && Math.abs(snapped.wire[0][0] - out[0] - model.SNAP_LEAD) < 1e-9,
+        JSON.stringify(snapped && snapped.wire));
+  check("the ring goes on the pin it will join", snapped
+        && snapped.wire[1][0] === out[0] && snapped.wire[1][1] === out[1]);
+  check("it is never offered one of its own pins", snapped
+        && snapped.target.cell !== "b");
+  // Once b.a is wired, it has somewhere to go and no longer snaps.
+  doc.nets.push({ id: "n1", from: { cell: "x", pin: "y" },
+                  to: [{ cell: "b", pin: "a", waypoints: [] }] });
+  check("a pin already wired does not snap",
+        model.snapCell(doc, b) === null, JSON.stringify(model.snapCell(doc, b)));
 }
 
 // Every area has to have run, and to have run the number of checks it says.

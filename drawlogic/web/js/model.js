@@ -909,13 +909,23 @@ export function snapPlacement(doc, type, point) {
   const symbol = geometry.get(type);
   if (!symbol) return null;
   const step = gridStep(doc);
-  const scale = symbolScale(doc);
-  const probe = {
+  return snapCell(doc, {
     id: "\u0000probe", type, rotate: 0, mirror: false,
     x: snap(point[0] - symbol.size[0] / 2, step),
     y: snap(point[1] - symbol.size[1] / 2, step),
     w: symbol.size[0], h: symbol.size[1],
-  };
+  });
+}
+
+// The same question for a cell already on the sheet, as it is being dragged:
+// where it would land snapped to a free pin in reach, or null. Its own pins
+// are never targets, and a pin of it that is already wired does not snap --
+// it has somewhere to go. Used by the move, so carrying a placed cell to a
+// pin rings that pin and joins it, exactly as dropping one from the palette.
+export function snapCell(doc, probe) {
+  const symbol = geometry.forCell(probe);
+  if (!symbol) return null;
+  const scale = symbolScale(doc);
 
   const used = new Set();
   const loose = [];
@@ -928,6 +938,7 @@ export function snapPlacement(doc, type, point) {
   }
   const targets = [];
   for (const cell of doc.cells) {
+    if (cell.id === probe.id) continue;
     const other = geometry.forCell(cell);
     if (!other) continue;
     for (const pin of other.pins) {
@@ -940,6 +951,7 @@ export function snapPlacement(doc, type, point) {
 
   let best = null;
   for (const pin of symbol.pins) {
+    if (used.has(`${probe.id}|${pin.name}`)) continue;
     const at = geometry.pinPosition(symbol, probe, pin.name, scale);
     const facing = pinFacing(probe, at, scale);
     if (!at) continue;
@@ -961,7 +973,8 @@ export function snapPlacement(doc, type, point) {
       best = {
         distance, pin: pin.name, target,
         x: probe.x + dx, y: probe.y + dy,
-        box: [probe.x + dx, probe.y + dy, probe.w, probe.h],
+        box: [probe.x + dx, probe.y + dy, probe.w || symbol.size[0],
+              probe.h || symbol.size[1]],
         wire: [want, target.loose || target.at],
       };
     }

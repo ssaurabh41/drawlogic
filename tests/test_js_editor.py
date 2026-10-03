@@ -52,6 +52,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "duplicating a group",
     "stale answers",
     "drawing a shape with Shift",
+    "carrying a placed cell to a pin",
   )
 
   def test_alignment_and_tidy(self):

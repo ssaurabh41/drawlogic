@@ -39,22 +39,6 @@ def _rounded(branches):
   return [[[_round(x), _round(y)] for x, y in points] for points in branches]
 
 
-def _theme_payload():
-  """The same theme the server hands the browser."""
-  return {
-    "colors": theme.COLORS, "widths": theme.WIDTHS,
-    "fontSizes": theme.FONT_SIZES, "roleStyles": theme.ROLE_STYLES,
-    "fontSans": theme.FONT_SANS, "fontMono": theme.FONT_MONO,
-    "junctionRadius": theme.JUNCTION_RADIUS, "arrowSize": theme.ARROW_SIZE,
-    "arrowSpacing": theme.ARROW_SPACING, "hopRadius": theme.HOP_RADIUS,
-    "pinLabelInset": theme.PIN_LABEL_INSET, "wireDashes": theme.WIRE_DASHES,
-    "cellText": theme.CELL_TEXT,
-    "lineHeads": {"kinds": list(theme.LINE_HEADS),
-                  "sizes": theme.LINE_HEAD_SIZES,
-                  "spread": theme.LINE_HEAD_SPREAD},
-  }
-
-
 def _browser_result(path, registry):
   """Route and lay out a drawing in node, using what Python resolved for it.
 
@@ -64,7 +48,7 @@ def _browser_result(path, registry):
   """
   handles = []
   try:
-    for payload in (registry.as_data(), _theme_payload(), drc.as_data()):
+    for payload in (registry.as_data(), theme.as_data(), drc.as_data()):
       handle, name = tempfile.mkstemp(suffix=".json")
       with os.fdopen(handle, "w") as out:
         json.dump(payload, out)
@@ -84,7 +68,7 @@ def _browser_render(doc, registry):
   """What the browser renderer actually draws, from render.render() itself."""
   handles = []
   try:
-    for payload in (registry.as_data(), doc.ordered(), _theme_payload(),
+    for payload in (registry.as_data(), doc.ordered(), theme.as_data(),
                     drc.as_data()):
       handle, name = tempfile.mkstemp(suffix=".json")
       with os.fdopen(handle, "w") as out:

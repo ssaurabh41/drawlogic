@@ -300,26 +300,7 @@ class Handler(BaseHTTPRequestHandler):
     if route == "/api/theme":
       # Served rather than restated in JS, so the canvas and the exporter
       # cannot drift apart on colours, weights or role painting.
-      return self._send_json({
-        "colors": theme.COLORS,
-        "widths": theme.WIDTHS,
-        "fontSizes": theme.FONT_SIZES,
-        "roleStyles": theme.ROLE_STYLES,
-        "fontSans": theme.FONT_SANS,
-        "fontMono": theme.FONT_MONO,
-        "junctionRadius": theme.JUNCTION_RADIUS,
-        "arrowSize": theme.ARROW_SIZE,
-        "arrowSpacing": theme.ARROW_SPACING,
-        "hopRadius": theme.HOP_RADIUS,
-        "wireDashes": theme.WIRE_DASHES,
-        "cellText": theme.CELL_TEXT,
-        "lineHeads": {"kinds": list(theme.LINE_HEADS),
-                      "sizes": theme.LINE_HEAD_SIZES,
-                      "spread": theme.LINE_HEAD_SPREAD},
-        "pinLabelInset": theme.PIN_LABEL_INSET,
-        "titlePad": theme.TITLE_PAD,
-        "gridStyles": list(theme.GRID_STYLES),
-      })
+      return self._send_json(theme.as_data())
 
     if route == "/api/files":
       return self._send_json({"root": os.path.abspath(self.root),

@@ -139,3 +139,31 @@ ROLE_STYLES = {
 }
 
 GRID_STYLES = ("blank", "dots", "dots-wide", "lines", "lines-heavy")
+
+
+def as_data():
+  """Everything the browser needs to draw as the exporter does.
+
+  Served at /api/theme, and handed to the node parity harness by the tests --
+  the one place this list is written, so a value added here reaches both.
+  """
+  return {
+    "colors": COLORS,
+    "widths": WIDTHS,
+    "fontSizes": FONT_SIZES,
+    "roleStyles": ROLE_STYLES,
+    "fontSans": FONT_SANS,
+    "fontMono": FONT_MONO,
+    "junctionRadius": JUNCTION_RADIUS,
+    "arrowSize": ARROW_SIZE,
+    "arrowSpacing": ARROW_SPACING,
+    "hopRadius": HOP_RADIUS,
+    "wireDashes": WIRE_DASHES,
+    "cellText": CELL_TEXT,
+    "lineHeads": {"kinds": list(LINE_HEADS),
+                  "sizes": LINE_HEAD_SIZES,
+                  "spread": LINE_HEAD_SPREAD},
+    "pinLabelInset": PIN_LABEL_INSET,
+    "titlePad": TITLE_PAD,
+    "gridStyles": list(GRID_STYLES),
+  }

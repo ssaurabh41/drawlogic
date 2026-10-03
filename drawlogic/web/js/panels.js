@@ -23,6 +23,42 @@ function element(tag, className, text) {
 // missing here.
 export const HEAD_KINDS = ["none", "triangle", "open", "stealth", "diamond", "oval"];
 
+// Three short lines showing where text would sit: across, ragged to a side
+// or centred; down, a block at the top, middle or bottom of a frame.
+function alignIcon(key, value) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("class", "align-ico");
+  const line = (x1, y, x2) => {
+    const node = document.createElementNS(ns, "line");
+    node.setAttribute("x1", x1);
+    node.setAttribute("y1", y);
+    node.setAttribute("x2", x2);
+    node.setAttribute("y2", y);
+    svg.appendChild(node);
+  };
+  if (key === "textAlign") {
+    [12, 8, 10].forEach((length, index) => {
+      const x1 = value === "left" ? 2 : value === "right" ? 14 - length : 8 - length / 2;
+      line(x1, 4 + index * 4, x1 + length);
+    });
+  } else {
+    const frame = document.createElementNS(ns, "rect");
+    frame.setAttribute("x", "1.5");
+    frame.setAttribute("y", "1.5");
+    frame.setAttribute("width", "13");
+    frame.setAttribute("height", "13");
+    frame.setAttribute("class", "frame");
+    svg.appendChild(frame);
+    const top = { top: 4.5, middle: 7, bottom: 9.5 }[value];
+    line(4, top, 12);
+    line(5, top + 2.5, 11);
+  }
+  return svg;
+}
+
 // One option in a row of exclusive choices.
 function segButton(content, title, pressed) {
   const button = element("button", "seg-btn");
@@ -711,6 +747,31 @@ export class Inspector {
     if (symbol) this.renderPins(cell, symbol);
   }
 
+  // Where the text sits in the box, as a slide editor offers it: three
+  // buttons across and three down, each drawing what it does.
+  renderTextAlign(cell) {
+    const [across, down] = geometry.cellTextAlign(cell);
+    for (const [key, label, now, order] of [
+      ["textAlign", "Align", across, ["left", "center", "right"]],
+      ["textVAlign", "Vertical", down, ["top", "middle", "bottom"]],
+    ]) {
+      const group = element("div", "seg seg-align");
+      group.setAttribute("role", "radiogroup");
+      group.setAttribute("aria-label", `${label} text`);
+      for (const value of order) {
+        const button = segButton(alignIcon(key, value), value, value === now);
+        button.addEventListener("click", () => {
+          this.store.mutate("align text",
+                            (doc) => model.setTextAlign(doc, cell.id, key, value));
+          this.onChange();
+          this.render();
+        });
+        group.appendChild(button);
+      }
+      this.root.appendChild(row(label, group));
+    }
+  }
+
   // What a block in a block diagram says: lines written inside it, and how
   // many copies it stands for.
   renderCellText(cell) {
@@ -737,6 +798,7 @@ export class Inspector {
     // The box may have grown to fit, so the size fields above are redrawn.
     text.addEventListener("change", () => this.render());
     root.appendChild(row("Text", text));
+    this.renderTextAlign(cell);
 
     const fit = document.createElement("input");
     fit.type = "checkbox";

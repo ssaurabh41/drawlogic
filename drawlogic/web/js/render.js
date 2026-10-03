@@ -317,10 +317,11 @@ function renderCell(symbol, cell, fontScale, scale, into) {
 function renderCellText(symbol, cell, scale, fontScale, into) {
   const size = geometry.cellTextMetrics().size * fontScale;
   const [placed] = geometry.cellTextLayout(symbol, cell, scale, fontScale);
+  const anchor = geometry.TEXT_ANCHOR[geometry.cellTextAlign(cell)[0]];
   for (const [x, y, line] of placed) {
     const text = el("text", {
       class: "dl-cell-text",
-      x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": "middle",
+      x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": anchor,
       "font-family": theme.fontSans,
       "font-size": geometry.fmt(size, 2),
       fill: theme.colors.label,

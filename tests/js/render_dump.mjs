@@ -106,7 +106,7 @@ console.log(JSON.stringify({
     .map((n) => [n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]).sort(),
   // Text written inside cells: the only text with neither an anchor nor a weight.
   inside: all.filter((n) => n.tag === "text" && n.attrs.class === "dl-cell-text")
-    .map((n) => [n._text, n.attrs.x, n.attrs.y]).sort(),
+    .map((n) => [n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]).sort(),
   stacks: all.filter((n) => n.tag === "rect" && /dl-(stack|copies)/.test(n.attrs.class || ""))
     .map((n) => [n.attrs.class, n.attrs.x, n.attrs.y, n.attrs.width, n.attrs.height]).sort(),
   // Pin names: the only text in the pin-label colour.

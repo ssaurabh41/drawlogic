@@ -1242,6 +1242,35 @@ class TestTextInsideCells(unittest.TestCase):
     self.assertIn('class="dl-cell-text"', svg)
     self.assertRegex(svg, r'class="dl-cell-text" [^>]*text-anchor="middle"')
 
+  def test_every_alignment_puts_the_text_where_it_says(self):
+    size = theme.FONT_SIZES["cell_text"]
+    pad = theme.CELL_TEXT["pad"]
+    for across in ("left", "center", "right"):
+      for down in ("top", "middle", "bottom"):
+        with self.subTest(across=across, down=down):
+          doc = self.block(text=["one"], textAlign=across, textVAlign=down)
+          cell = doc.cells[0]
+          [(x, y, _t)], _ = self.layout(doc)
+          self.assertAlmostEqual(x, {"left": 100 + pad,
+                                     "center": 100 + cell["w"] / 2.0,
+                                     "right": 100 + cell["w"] - pad}[across])
+          top = y - size * 0.8
+          bottom = y + size * 0.2
+          expect = {"top": top - (100 + pad),
+                    "middle": (top + bottom) / 2.0 - (100 + cell["h"] / 2.0),
+                    "bottom": bottom - (100 + cell["h"] - pad)}[down]
+          self.assertAlmostEqual(expect, 0.0, places=3)
+          svg = render_svg.render(doc, registry=self.registry)
+          anchor = {"left": "start", "center": "middle", "right": "end"}[across]
+          self.assertIn('text-anchor="%s"' % anchor,
+                        re.search(r'<text class="dl-cell-text"[^>]*>', svg).group(0))
+
+  def test_an_alignment_it_does_not_know_reads_as_the_default(self):
+    odd = self.layout(self.block(text=["one"], textAlign="diagonal",
+                                 textVAlign="sideways"))
+    plain = self.layout(self.block(text=["one"]))
+    self.assertEqual(odd, plain)
+
   def test_text_cut_short_still_starts_at_the_top(self):
     doc = self.block(text=["a"] * 12, textFit=False)
     placed, clipped = self.layout(doc)

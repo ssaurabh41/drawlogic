@@ -237,6 +237,11 @@ def _block_diagram_drawing():
     {"id": "ff", "type": "dff", "x": 220, "y": 380, "copies": 3,
      "mirror": True},
     {"id": "io", "type": "iocell", "x": 420, "y": 300, "copies": 2},
+    # Text moved to each side, across and down.
+    {"id": "tl", "type": "block", "x": 600, "y": 380, "text": ["top", "left"],
+     "textAlign": "left", "textVAlign": "top", "w": 120, "h": 90},
+    {"id": "br", "type": "block", "x": 740, "y": 380, "text": ["bottom right"],
+     "textAlign": "right", "textVAlign": "bottom", "w": 120, "h": 90},
     {"id": "t0", "type": "tie0", "x": 120, "y": 460, "copies": 2},
   ])
   doc.nets.append({"id": "n1", "from": {"cell": "cpu", "pin": "out1"},
@@ -248,8 +253,8 @@ def _block_diagram_drawing():
 def _exported_inside(svg):
   start = svg.index('<g class="dl-cells">')
   found = re.findall(r'<text class="dl-cell-text" x="([^"]+)" y="([^"]+)" '
-                     r'text-anchor="middle"[^>]*>([^<]*)<', svg[start:])
-  return sorted([text, x, y] for x, y, text in found)
+                     r'text-anchor="([^"]+)"[^>]*>([^<]*)<', svg[start:])
+  return sorted([text, x, y, anchor] for x, y, anchor, text in found)
 
 
 def _exported_stacks(svg):
@@ -412,7 +417,7 @@ class TestCellTextAgrees(unittest.TestCase):
     exported = render_svg.render(doc, registry=self.registry)
     self.assertTrue(browser["inside"], "the fixture draws no text inside")
     self.assertEqual(browser["inside"], _exported_inside(exported))
-    self.assertTrue(any(text.endswith("\u2026") for text, _x, _y in browser["inside"]),
+    self.assertTrue(any(text.endswith("\u2026") for text, _x, _y, _anchor in browser["inside"]),
                     "the fixture cuts nothing short, so clipping is untested")
 
   def test_the_same_stacks_and_badges(self):

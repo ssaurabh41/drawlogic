@@ -435,6 +435,18 @@ export function setTextFit(doc, id, fit) {
   fitCell(doc, cell);
 }
 
+// Where a cell's text sits: `key` is "textAlign" (across) or "textVAlign"
+// (down). The default -- centre, middle -- is left out of the file rather
+// than written into it, so a drawing that never chose says nothing.
+export function setTextAlign(doc, id, key, value) {
+  const cell = doc.cells.find((c) => c.id === id);
+  const choices = key === "textAlign" ? geometry.TEXT_ALIGN : geometry.TEXT_VALIGN;
+  if (!cell || !choices.includes(value)) return false;
+  if (value === choices[0]) delete cell[key];
+  else cell[key] = value;
+  return true;
+}
+
 // How many copies a cell stands for; anything under two is just the one.
 export function setCopies(doc, id, value) {
   const cell = doc.cells.find((c) => c.id === id);

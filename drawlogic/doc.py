@@ -47,7 +47,7 @@ CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
-             "text", "textFit", "copies", "pins", "style", "image", "ref",
+             "text", "textFit", "textAlign", "textVAlign", "copies", "pins", "style", "image", "ref",
              "pinned"]
 NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]

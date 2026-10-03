@@ -278,12 +278,26 @@ function ellipsis(line, room, force = false) {
 }
 
 // [[x, baseline, text], ...] and whether anything had to be cut.
+// How text inside a cell can be aligned, default first. Mirrors TEXT_ALIGN,
+// TEXT_VALIGN and TEXT_ANCHOR in render_svg.py.
+export const TEXT_ALIGN = ["center", "left", "right"];
+export const TEXT_VALIGN = ["middle", "top", "bottom"];
+export const TEXT_ANCHOR = { left: "start", center: "middle", right: "end" };
+
+// A cell's text alignment as [across, down], defaults filled in.
+export function cellTextAlign(cell) {
+  return [TEXT_ALIGN.includes(cell.textAlign) ? cell.textAlign : TEXT_ALIGN[0],
+          TEXT_VALIGN.includes(cell.textVAlign) ? cell.textVAlign : TEXT_VALIGN[0]];
+}
+
 export function cellTextLayout(symbol, cell, scale = 1, fontScale = 1) {
   const lines = cellTextLines(cell);
   if (!lines.length) return [[], false];
   const [x, y, w, h] = cellBounds(symbol, cell, scale);
   const [size, pad, step, char] = textSizes(fontScale);
   const room = Math.max(0, Math.trunc((w - 2 * pad) / char + 1e-6));
+  const [across, down] = cellTextAlign(cell);
+  const at = { left: x + pad, center: x + w / 2, right: x + w - pad }[across];
   const placed = [];
   let clipped = false;
   for (let index = 0; index < lines.length; index += 1) {
@@ -301,12 +315,13 @@ export function cellTextLayout(symbol, cell, scale = 1, fontScale = 1) {
       clipped = true;
       line = ellipsis(line, room);
     }
-    placed.push([x + w / 2, baseline, line]);
+    placed.push([at, baseline, line]);
   }
-  if (placed.length && !clipped) {
-    // Down the middle. Mirrors cell_text_layout in render_svg.py.
+  if (placed.length && !clipped && down !== "top") {
+    // Mirrors cell_text_layout in render_svg.py.
     const block = size + (placed.length - 1) * step;
-    const drop = Math.max(0, (h - 2 * pad - block) / 2);
+    const spare = Math.max(0, h - 2 * pad - block);
+    const drop = down === "bottom" ? spare : spare / 2;
     return [placed.map(([px, py, text]) => [px, py + drop, text]), clipped];
   }
   return [placed, clipped];

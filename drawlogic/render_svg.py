@@ -218,13 +218,29 @@ def cell_text_needs(lines, font_scale=1.0):
   return (2 * pad + widest * char, 2 * pad + size + (len(lines) - 1) * step)
 
 
+# How text inside a cell can be aligned, across and down, default first. A
+# value the file holds that is not one of these is read as the default.
+TEXT_ALIGN = ("center", "left", "right")
+TEXT_VALIGN = ("middle", "top", "bottom")
+TEXT_ANCHOR = {"left": "start", "center": "middle", "right": "end"}
+
+
+def cell_text_align(cell):
+  """A cell's text alignment as (across, down), defaults filled in."""
+  across = cell.get("textAlign")
+  down = cell.get("textVAlign")
+  return (across if across in TEXT_ALIGN else TEXT_ALIGN[0],
+          down if down in TEXT_VALIGN else TEXT_VALIGN[0])
+
+
 def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   """Where each line inside a cell is drawn, and whether any had to be cut.
 
-  Returns ([(x, baseline, text), ...], clipped), `x` being each line's
-  middle. Centred in the cell's box on the sheet, across and down, upright
+  Returns ([(x, baseline, text), ...], clipped), `x` being where each line is
+  anchored -- its left end, middle or right end, as cell_text_align says.
+  Centred in the cell's box on the sheet by default, across and down, upright
   whatever the cell's rotation: a block reads as a label on the thing, and a
-  label sits in the middle. A line too wide for the box ends in an ellipsis,
+  label sits in the middle. `textAlign` and `textVAlign` move it to a side. A line too wide for the box ends in an ellipsis,
   and the lines that do not fit are dropped with an ellipsis on the last one
   shown -- `clipped` says so, which is what the DRC reports. Text cut short
   that way fills the box from the top, there being no room left to centre it
@@ -236,6 +252,8 @@ def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
   size, pad, step, char = _cell_text_metrics(font_scale)
   room = max(0, int((w - 2 * pad) / char + 1e-6))
+  across, down = cell_text_align(cell)
+  at = {"left": x + pad, "center": x + w / 2.0, "right": x + w - pad}[across]
   placed = []
   clipped = False
   for index, line in enumerate(lines):
@@ -249,11 +267,13 @@ def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
     if len(line) > room:
       clipped = True
       line = _ellipsis(line, room)
-    placed.append((x + w / 2.0, baseline, line))
-  if placed and not clipped:
-    # Down the middle: what is left over below the block, shared above it.
+    placed.append((at, baseline, line))
+  if placed and not clipped and down != "top":
+    # What is left over below the block: all of it moved above for the
+    # bottom, half of it for the middle.
     block = size + (len(placed) - 1) * step
-    drop = max(0.0, (h - 2 * pad - block) / 2.0)
+    spare = max(0.0, h - 2 * pad - block)
+    drop = spare if down == "bottom" else spare / 2.0
     placed = [(px, py + drop, text) for px, py, text in placed]
   return placed, clipped
 
@@ -344,11 +364,12 @@ def _render_cell_text(symbol, cell, symbol_scale, font_scale, out):
   """The lines written inside a cell, and the count badge of a replicated one."""
   size = theme.FONT_SIZES["cell_text"] * font_scale
   placed, _clipped = cell_text_layout(symbol, cell, symbol_scale, font_scale)
+  anchor = TEXT_ANCHOR[cell_text_align(cell)[0]]
   for x, y, line in placed:
     out.append("<text %s>%s</text>" % (_attrs([
       ("class", "dl-cell-text"),
       ("x", fmt(x)), ("y", fmt(y)),
-      ("text-anchor", "middle"),
+      ("text-anchor", anchor),
       ("font-family", theme.FONT_SANS),
       ("font-size", fmt(size, 2)),
       ("fill", theme.COLORS["label"])]), esc(line)))

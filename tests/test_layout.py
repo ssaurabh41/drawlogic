@@ -447,6 +447,46 @@ class TestLayingOutPartOfADrawing(unittest.TestCase):
                     "the group should land near where its cells were")
 
 
+class TestNoWobbleBetweenMismatchedPitches(unittest.TestCase):
+  """Two cells joined by several wires whose pin spacings differ.
+
+  cdc_fifo's write pointer has its outputs 45 apart and the memory its
+  inputs 40 apart, so lining up waddr left wclken 5 units off: a wobble. Only
+  one of the two can be straight, so layout steps the cell until neither
+  wire is within WIRE_MIN_JOG of straight without being straight.
+  """
+
+  def test_no_example_comes_out_of_layout_with_a_wobble(self):
+    for name in EXAMPLE_NAMES:
+      with self.subTest(example=name):
+        doc, registry = laid_out(name)
+        jogs = [str(v) for v in drc.check(doc, registry)
+                if v.rule == "wire-jog"]
+        self.assertEqual(jogs, [])
+
+  def test_the_fixture_really_does_pair_two_pitches(self):
+    """Otherwise the test above passes with nothing at stake."""
+    doc, registry, _ = open_example(os.path.join(ROOT, "examples",
+                                                 "cdc_fifo.dlg"))
+    out = [layout._pin_offset(registry, doc, doc.cell("wptr"), p)[1]
+           for p in ("out1", "out2")]
+    into = [layout._pin_offset(registry, doc, doc.cell("mem"), p)[1]
+            for p in ("waddr", "wen")]
+    self.assertNotEqual(out[1] - out[0], into[1] - into[0])
+
+  def test_it_moves_by_the_least_that_works(self):
+    # Two wires: one from row 100 to an offset of 0, one from row 145 to an
+    # offset of 40. Straight on the first leaves the second 5 out.
+    rows = [(100.0, 0.0), (145.0, 40.0)]
+    y = layout._without_wobble(100.0, rows)
+    self.assertNotEqual(y, 100.0)
+    for row, offset in rows:
+      gap = abs(row - (y + offset))
+      self.assertTrue(gap < 1e-9 or gap >= drc.WIRE_MIN_JOG, (y, gap))
+    # A single wire is just followed.
+    self.assertEqual(layout._without_wobble(100.0, rows[:1]), 100.0)
+
+
 class TestAutoLayoutLeavesNoErrors(unittest.TestCase):
   """Every DRC error auto-layout has produced so far was the router drawing
   two nets as one; this holds the examples to none."""

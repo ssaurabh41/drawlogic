@@ -1216,14 +1216,17 @@ def _place(doc, registry, cells, edges, ranks, order, gap_x, gap_y,
       # single driver rather than the average of them: the nearest column
       # first, and within that the first net stated.
       best = None
+      rows = []
       for gap, source, source_pin, target_pin in arriving[cell_id]:
-        if best is not None and gap >= best[0]:
-          continue
         driver = by_id[source]
         driver_y = driver["y"] + _pin_offset(registry, doc, driver, source_pin)[1]
-        best = (gap, driver_y - _pin_offset(registry, doc, cell, target_pin)[1])
+        mine = _pin_offset(registry, doc, cell, target_pin)[1]
+        rows.append((driver_y, mine))
+        if best is not None and gap >= best[0]:
+          continue
+        best = (gap, driver_y - mine)
       if best is not None:
-        desired[cell_id] = best[1]
+        desired[cell_id] = _without_wobble(best[1], rows)
     _stack(by_id, boxes, column, desired, gap_y, ports)
 
   if settle:
@@ -1334,21 +1337,56 @@ def _settle_followers(doc, registry, by_id, boxes, order, ranks, edges, gap_y,
         desired[cell_id] = cell["y"]
         continue
       best = None
+      rows = []
       for gap, target, source_pin, target_pin in leaving[cell_id]:
-        if best is not None and gap >= best[0]:
-          continue
         load = by_id.get(target)
         if load is None:
           continue
         load_y = load["y"] + _pin_offset(registry, doc, load, target_pin)[1]
-        best = (gap, load_y - _pin_offset(registry, doc, cell, source_pin)[1])
+        mine = _pin_offset(registry, doc, cell, source_pin)[1]
+        rows.append((load_y, mine))
+        if best is not None and gap >= best[0]:
+          continue
+        best = (gap, load_y - mine)
       if best is None:
         desired[cell_id] = cell["y"]
       else:
-        desired[cell_id] = best[1]
+        desired[cell_id] = _without_wobble(best[1], rows)
         settling = True
     if settling:
       _stack(by_id, boxes, column, desired, gap_y, ports)
+
+
+def _without_wobble(y, rows):
+  """`y`, or the nearest height to it at which no wire wobbles.
+
+  A cell follows one wire, which then runs dead straight. Any other wire it
+  shares with a cell already placed lands wherever the two cells' pin spacing
+  puts it, and when the spacings differ -- wptr's outputs 45 apart, the
+  memory's inputs 40 -- the second wire comes out a few units off its pin's
+  row: a jog too short to read as anything but a wobble, and a wire-jog
+  warning. Every such wire has to be straight or at least WIRE_MIN_JOG out;
+  if lining one up leaves another 5 off, the cell steps away until both are
+  plainly steps.
+
+  `rows` holds (row the wire comes from, pin offset on this cell) for each
+  wire to a cell already placed. Moves are in pin-grid steps, so the cell
+  stays where a hand edit can line it up; the nearest that works wins, down
+  before up when they are as near.
+  """
+  step = max(drc.PIN_GRID, 1.0)
+
+  def wobbles(at):
+    return any(EPSILON < abs(row - (at + offset)) < drc.WIRE_MIN_JOG
+               for row, offset in rows)
+
+  if len(rows) < 2 or not wobbles(y):
+    return y
+  for count in range(1, int(4 * drc.WIRE_MIN_JOG / step) + 1):
+    for candidate in (y + count * step, y - count * step):
+      if not wobbles(candidate):
+        return candidate
+  return y
 
 
 def _stack(by_id, boxes, column, desired, gap_y, ports=frozenset()):

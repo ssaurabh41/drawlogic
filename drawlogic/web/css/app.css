@@ -505,8 +505,6 @@ select {
 .prow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .phalf { display: grid; grid-template-columns: 12px minmax(0, 1fr); align-items: center; gap: 4px; }
 .phalf > span { font-size: 11px; color: var(--ink-3); }
-.phalf .pstep { grid-template-columns: minmax(0, 1fr) 20px 20px; gap: 2px; }
-.phalf .pstep-btn { font-size: 12px; }
 .psub { font-size: 11px; color: var(--ink-3); margin-bottom: -3px; }
 
 /* An arrowhead: the button showing the head now on that end, and its size. */
@@ -530,29 +528,32 @@ select {
 .headopt:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
 .headopt[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
 
-/* A number field with its own minus and plus buttons; see stepper() in
-   panels.js. The browser's tiny built-in arrows are hidden in favour of these. */
-.pstep {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 26px 26px;
-  gap: 3px;
-  align-items: stretch;
-}
-.pstep .pinput { -moz-appearance: textfield; appearance: textfield; }
+/* A number field with up and down arrows inside its right end; see stepper()
+   in panels.js. The browser's own arrows are hidden in favour of these, which
+   are always shown and each take half the field's height. */
+.pstep { position: relative; min-width: 0; }
+.pstep .pinput { height: 26px; padding-right: 22px; -moz-appearance: textfield; appearance: textfield; }
 .pstep .pinput::-webkit-outer-spin-button,
 .pstep .pinput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.pstep-btn {
-  font: 600 14px/1 var(--mono);
-  color: var(--ink-2);
-  background: var(--chrome-2);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 0;
-  cursor: pointer;
+.pspin {
+  position: absolute; top: 1px; right: 1px; bottom: 1px; width: 18px;
+  display: flex; flex-direction: column;
+  border-left: 1px solid var(--line);
+  border-radius: 0 3px 3px 0; overflow: hidden;
 }
-.pstep-btn:hover { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
-.pstep-btn:active { background: var(--accent); color: var(--accent-on); }
-.pstep-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pspin-btn {
+  flex: 1; min-height: 0; padding: 0; border: 0; margin: 0;
+  background: transparent; color: var(--ink-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.pspin-btn::before {
+  content: ""; border-left: 4px solid transparent; border-right: 4px solid transparent;
+}
+.pspin-btn.up::before { border-bottom: 5px solid currentColor; }
+.pspin-btn.down::before { border-top: 5px solid currentColor; }
+.pspin-btn.up { border-bottom: 1px solid var(--line-soft); }
+.pspin-btn:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.pspin-btn:active { background: var(--accent); color: var(--accent-on); }
 
 /* A row of exclusive choices drawn as joined buttons: arrowhead kind and size. */
 .seg { display: flex; flex-wrap: wrap; gap: 3px; }

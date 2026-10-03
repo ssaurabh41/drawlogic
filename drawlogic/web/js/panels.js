@@ -91,28 +91,54 @@ function pairRow(first, second) {
   return wrap;
 }
 
-// A number field with a minus and a plus button beside it.
+// A number field with up and down arrows inside its right end.
 //
-// The browser's own spinner is two arrows, each about 7px tall, stacked inside
-// the right end of the field and only drawn while the pointer is over it.
-// Reported as hard to hit with a mouse, which it is. These are full-height
-// buttons with a gap between them, outside the text, so a press on one cannot
-// land in the field or on the other. Each step commits like typing a value
-// and pressing Enter: one `change`, so one undo step.
+// The browser's own spinner is the right shape -- it takes no room beside the
+// field -- but each arrow is about 7px tall and drawn only while the pointer
+// is over the field, so it was hard to hit. These are the same two arrows,
+// always shown, each the full width of the strip and half the field's height,
+// and lit under the pointer. A minus and a plus beside the field were tried
+// first and took too much of a narrow panel.
+//
+// Holding an arrow repeats, as the browser's does. The value shown changes on
+// every step, but the drawing is changed once, on release: a press-and-hold is
+// one edit, so one undo step.
 function stepper(field) {
   const wrap = element("div", "pstep");
   wrap.appendChild(field);
-  for (const [sign, text, title] of [[-1, "\u2212", "decrease"], [1, "+", "increase"]]) {
-    const button = element("button", "pstep-btn", text);
+  const spin = element("div", "pspin");
+  for (const [sign, title] of [[1, "increase"], [-1, "decrease"]]) {
+    const button = element("button", sign > 0 ? "pspin-btn up" : "pspin-btn down");
     button.type = "button";
+    button.tabIndex = -1;
     button.title = title;
     button.setAttribute("aria-label", title);
-    // Keep focus where it was: taking it would blur the field, and a blur
-    // fires `change` on whatever was half typed there.
-    button.addEventListener("mousedown", (event) => event.preventDefault());
-    button.addEventListener("click", () => nudgeNumber(field, sign));
-    wrap.appendChild(button);
+    let timer = null;
+    let changed = false;
+    const finish = () => {
+      if (timer === null) return;
+      clearTimeout(timer);
+      timer = null;
+      if (changed) field.dispatchEvent(new Event("change"));
+      changed = false;
+    };
+    const tick = (delay) => {
+      changed = nudgeNumber(field, sign) || changed;
+      timer = setTimeout(() => tick(60), delay);
+    };
+    button.addEventListener("mousedown", (event) => {
+      // Keep focus where it was: taking it would blur the field, and a blur
+      // fires `change` on whatever was half typed there.
+      event.preventDefault();
+      if (event.button !== 0) return;
+      finish();
+      tick(400);
+    });
+    button.addEventListener("mouseup", finish);
+    button.addEventListener("mouseleave", finish);
+    spin.appendChild(button);
   }
+  wrap.appendChild(spin);
   return wrap;
 }
 
@@ -120,19 +146,20 @@ function stepper(field) {
 // rather than with stepUp(), which throws on step="any" and, on an empty field,
 // starts from zero -- and an empty field here means "mixed", where there is no
 // single value to step from.
+// Returns whether the value changed; the caller decides when to commit it.
 function nudgeNumber(field, sign) {
-  if (field.value === "") return;
+  if (field.value === "") return false;
   const current = Number(field.value);
-  if (!Number.isFinite(current)) return;
+  if (!Number.isFinite(current)) return false;
   const step = Number(field.step) > 0 ? Number(field.step) : 1;
   let next = Math.round((current + sign * step) / step) * step;
   // A step of 0.1 adds float noise; the field shows what a person would type.
   next = Number(next.toFixed(6));
   if (field.min !== "" && next < Number(field.min)) next = Number(field.min);
   if (field.max !== "" && next > Number(field.max)) next = Number(field.max);
-  if (next === current) return;
+  if (next === current) return false;
   field.value = String(next);
-  field.dispatchEvent(new Event("change"));
+  return true;
 }
 
 function input(value, type = "text") {

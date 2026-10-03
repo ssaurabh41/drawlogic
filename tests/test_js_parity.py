@@ -468,6 +468,17 @@ class TestRouterParity(unittest.TestCase):
           [[i, _rounded(b)] for i, b in browser["routes"]],
           [[net["id"], _rounded(b)] for net, b in routes])
 
+  def test_a_crossover_kept_clear_of_a_pin_row_routes_the_same_in_both(self):
+    """No example crosses over a couple of units off a pin's row; the fixture
+    does, so it is what holds both routers to stepping a readable distance
+    away."""
+    path = os.path.join(ROOT, "tests", "fixtures", "crowded_port.dlg")
+    doc, registry, _ = open_example(path)
+    browser = _browser_result(path, registry)
+    self.assertEqual(
+      [[i, _rounded(b)] for i, b in browser["routes"]],
+      [[net["id"], _rounded(b)] for net, b in routing.route_all(doc, registry)])
+
   def test_every_example_dots_and_bridges_the_same(self):
     for name, path in self.examples():
       with self.subTest(example=name):

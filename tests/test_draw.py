@@ -1254,3 +1254,39 @@ class TestTextInsideCells(unittest.TestCase):
       self.registry.for_cell(cell), cell, 1, 1)
     self.assertEqual(placed[0][2], "enable gate")
     self.assertFalse(clipped)
+
+
+CROWDED_PORT = os.path.join(ROOT, "tests", "fixtures", "crowded_port.dlg")
+
+
+class TestNoWobbleBesideAPin(unittest.TestCase):
+  """A wire crossing over to another row never stops a few units off a pin's.
+
+  The fixture is alu_slice as auto-layout once left it: the cin port sat just
+  inside the keep-out band of the AND gate beside it, so the crossover row
+  could not be the port's own. The nearest clear one was 2.5 units away, and
+  the leg between them read as a wobble -- a wire-jog warning and a visible
+  kink at the port. Saved rather than laid out afresh, because layout now
+  arranges alu_slice differently and the case would quietly stop arising.
+  """
+
+  def setUp(self):
+    self.doc, self.registry, _ = open_example(CROWDED_PORT)
+
+  def test_the_wire_steps_a_readable_distance_or_not_at_all(self):
+    jogs = [str(v) for v in drc.check(self.doc, self.registry)
+            if v.rule == "wire-jog"]
+    self.assertEqual(jogs, [])
+
+  def test_the_fixture_really_does_crowd_the_port(self):
+    """Otherwise the test above passes on a drawing with nothing at stake:
+    the port's own row has to be blocked, so the wire must leave it."""
+    port = routing.endpoint_position(
+      self.doc, {"cell": "p_cin", "pin": "p"}, self.registry)
+    [first] = [branches[0] for net, branches
+               in routing.route_all(self.doc, self.registry)
+               if net["id"] == "n10"]
+    self.assertEqual(tuple(first[0]), tuple(port))
+    self.assertNotEqual(first[2][1], port[1],
+                        "the cin wire runs along the port's own row now, so "
+                        "no crossover row is being chosen")

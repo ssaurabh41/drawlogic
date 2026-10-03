@@ -47,6 +47,7 @@ CORRIDOR_TRIES = drc.CORRIDOR_TRIES
 # that only asks them not to be drawn on top of each other.
 WIRE_GAP = drc.WIRE_GAP
 TOUCHING = drc.TOUCHING
+WIRE_MIN_JOG = drc.WIRE_MIN_JOG
 # Corridors this far apart give any wire crossing both of them two bridges
 # with visible wire between, instead of one squiggle.
 HOP_GAP = drc.HOP_GAP
@@ -652,8 +653,20 @@ def _row_crossover(a, b, a_dir, b_dir, sheet, row_clear):
   The answer both when no column between the pins can be used and when every
   one of them is blocked: the wire leaves the pins' own rows, which is the
   only way past a block standing on one.
+
+  The row is never closer to either pin's row than WIRE_MIN_JOG, unless it
+  is that row. The search steps from the midpoint of the two pins, so when a
+  cell's keep-out stopped it just short of a pin's own row it took the row a
+  couple of units off it, and the leg down to it was a jog too short to read
+  as anything but a wobble. A row past that distance is a step that looks
+  meant.
   """
-  y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, row_clear,
+  def readable(y):
+    return (all(abs(y - pin) < EPSILON or abs(y - pin) >= WIRE_MIN_JOG
+                for pin in (a[1], b[1]))
+            and row_clear(y))
+
+  y = _pick_corridor((a[1] + b[1]) / 2.0, NEG_SPAN, POS_SPAN, readable,
                      lambda y, cross, gap:
                      sheet.free(True, y, a[0], b[0], cross, gap))
   xa = _leg_column(a, a_dir[0], y, sheet)

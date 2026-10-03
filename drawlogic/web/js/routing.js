@@ -28,6 +28,7 @@ let limits = {
   corridorTries: 18,
   wireGap: 18,
   touching: 0.5,
+  wireMinJog: 8,
   arrowToJunction: 12,
   pinGrid: 5,
   hopGap: 17,
@@ -464,8 +465,14 @@ function routeHH(a, b, aDir, bDir, sheet) {
 // Out of each pin and across on a shared row: the answer both when no column
 // between the pins can be used and when every one of them is blocked, since
 // leaving the pins' own rows is the only way past a block standing on one.
+// The row keeps WIRE_MIN_JOG from both pins' rows unless it is one of them, so
+// the leg down to it is never a wobble. Mirrors routing.py.
 function rowCrossover(a, b, aDir, bDir, sheet, rowClear) {
-  const y = pickCorridor((a[1] + b[1]) / 2, -Infinity, Infinity, rowClear,
+  const readable = (m) =>
+    [a[1], b[1]].every((pin) => Math.abs(m - pin) < EPSILON
+                                || Math.abs(m - pin) >= limits.wireMinJog)
+    && rowClear(m);
+  const y = pickCorridor((a[1] + b[1]) / 2, -Infinity, Infinity, readable,
     (m, cross, gap) => sheet.free(true, m, a[0], b[0], cross, gap));
   const xa = legColumn(a, aDir[0], y, sheet);
   const xb = legColumn(b, bDir[0], y, sheet);

@@ -8,7 +8,7 @@
     "background": "#ffffff",
     "grid": {
       "style": "dots",
-      "size": 10,
+      "size": 5,
       "color": "#b9c7cc"
     },
     "font": {

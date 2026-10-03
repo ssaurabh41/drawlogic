@@ -402,7 +402,7 @@ def _render_copies_badge(box, copies, out):
       ("class", "dl-copies"),
       ("x", fmt(left)), ("y", fmt(by - 9)),
       ("width", fmt(width)), ("height", "18"), ("rx", "9"),
-      ("fill", theme.COLORS["label"])]))
+      ("fill", theme.COLORS["badge"])]))
     out.append("<text %s>%s</text>" % (_attrs([
       ("x", fmt(left + width / 2.0)), ("y", fmt(by + 4)),
       ("text-anchor", "middle"),

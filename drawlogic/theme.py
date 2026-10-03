@@ -33,6 +33,9 @@ COLORS = {
   "junction": INK,
   "label": INK,
   "pin_label": "#5b6b74",
+  # The "x4" count on a stacked cell or shape: grey, so it reads as a note
+  # about the drawing rather than as more of it. White on it is 5.6:1.
+  "badge": "#5b6b74",
   "net_label": "#0d7490",
   "title": INK,
   "grid": "#b9c7cc",

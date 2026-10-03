@@ -348,7 +348,7 @@ function copiesBadge(box, copies, into) {
     const left = bx + bw - width + 4;
     into.appendChild(el("rect", {
       class: "dl-copies", x: geometry.fmt(left), y: geometry.fmt(by - 9),
-      width: geometry.fmt(width), height: 18, rx: 9, fill: theme.colors.label,
+      width: geometry.fmt(width), height: 18, rx: 9, fill: theme.colors.badge,
     }));
     const text = el("text", {
       x: geometry.fmt(left + width / 2), y: geometry.fmt(by + 4),

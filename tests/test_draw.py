@@ -1629,6 +1629,9 @@ class TestWritingAndCopiesOnShapes(unittest.TestCase):
     svg = render_svg.render(self.drawing(copies=4))
     self.assertEqual(svg.count('class="dl-stack"'), 1)
     self.assertIn(">×4</text>", svg)
+    # Grey, not ink: a note about the drawing rather than more of it.
+    self.assertRegex(svg, r'class="dl-copies"[^>]*fill="%s"' % theme.COLORS["badge"])
+    self.assertNotEqual(theme.COLORS["badge"], theme.COLORS["label"])
 
   def test_an_unfilled_shape_hides_its_copy_behind_it(self):
     # Without the mask the copy's outline shows through the shape it is

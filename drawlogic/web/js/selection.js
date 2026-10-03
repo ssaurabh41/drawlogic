@@ -10,6 +10,7 @@
 // Cells and shapes are both selectable, so this works in item ids rather than
 // cell ids. Selecting one member of a group selects the whole group.
 
+import * as geometry from "./geometry.js";
 import * as model from "./model.js";
 import { overlayLayer } from "./render.js";
 
@@ -100,8 +101,6 @@ export class Selection {
     return model.boundsOfIds(this.store.doc, this.ids);
   }
 }
-
-const PORT_TYPES = new Set(["port_in", "port_out", "port_inout"]);
 
 export function handlePoints(x, y, w, h) {
   return {
@@ -235,11 +234,12 @@ export function drawHandles(svg, selection, zoom, options = {}) {
 
   const box = selection.bounds();
   if (!box || options.hideHandles) return layer;
-  // Nobody resizes a port; they move it. Its box is so small that the grips
-  // covered most of it, and a press meant to drag it grabbed a corner.
+  // Nobody resizes a port or a tie cell; they move it. Its box is so small
+  // that the grips covered most of it, and a press meant to drag it grabbed a
+  // corner.
   const items = selection.items();
-  const onlyPorts = items.length > 0
-    && items.every((item) => PORT_TYPES.has(item.type));
+  const onlyFixed = items.length > 0
+    && items.every((item) => geometry.FIXED_SIZE_TYPES.has(item.type));
 
   const pad = 5 / zoom;
   const x = box[0] - pad;
@@ -252,7 +252,7 @@ export function drawHandles(svg, selection, zoom, options = {}) {
     "stroke-width": 1 / zoom,
     "stroke-dasharray": `${3 / zoom} ${2.5 / zoom}`,
   }));
-  if (onlyPorts) return layer;
+  if (onlyFixed) return layer;
 
   // Two rectangles per grip. The visible one is small enough not to hide the
   // corner it sits on; the transparent one behind it is twice the size,

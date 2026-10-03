@@ -244,6 +244,14 @@ export function cellTextLines(cell) {
   return lines;
 }
 
+// Cells you move but never resize: ports, and the tie cells that stand for a
+// constant 0 or 1. Each is small and mostly outline, so resize grips would
+// cover most of it and a press meant to drag it would catch a corner instead;
+// the canvas gives them a grab pad rather than grips. One list, so the pad and
+// the grips cannot disagree about which cells these are.
+export const FIXED_SIZE_TYPES = new Set(
+  ["port_in", "port_out", "port_inout", "tie0", "tie1"]);
+
 export function cellCopies(cell) {
   const value = cell.copies;
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;

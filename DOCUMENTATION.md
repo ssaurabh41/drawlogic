@@ -500,10 +500,10 @@ exported file looks the same whichever is picked.
 Selecting one member of a group selects all of it, so a group drags and
 resizes as a single object.
 
-A port has no resize handles: ports are moved, never resized, and on
-something that small the handles covered most of it. A press anywhere on or
-just beside a port picks it up. Its size can still be typed in the
-properties panel.
+Ports and the tie cells (`tie0`, `tie1`) have no resize handles: they are
+moved, never resized, and on something that small the handles covered most
+of it. A press anywhere on or just beside one picks it up. Its size can
+still be typed in the properties panel.
 
 ### Autoshapes
 

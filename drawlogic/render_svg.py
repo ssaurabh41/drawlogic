@@ -286,13 +286,42 @@ def fit_cell_text(symbol, cell, symbol_scale=1.0, font_scale=1.0):
   return grew
 
 
+# The draw-op roles that make up a symbol's outline, as against its pin stubs,
+# decoration and labels. A copy drawn behind a cell is these and nothing else.
+STACK_ROLES = ("body", "bubble", "port_in", "port_out", "port_inout")
+
+
 def _render_stack(symbol, cell, symbol_scale, out):
-  """The outline behind a cell that stands for several copies."""
+  """The outline behind a cell that stands for several copies.
+
+  It is the symbol's own body, offset: a gate behind a gate, a flop's box
+  behind a flop's box. It was the cell's bounding box once, which is the body
+  only for a plain block; anything with pin stubs got a rectangle reaching out
+  to their ends, and a gate got a rectangle behind a curve. A symbol with no
+  body to copy -- a tie cell is a label and a stub -- keeps the rectangle.
+  """
   if not cell_copies(cell):
     return
-  x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
   style = cell.get("style") or {}
   offset = theme.CELL_TEXT["stack"]
+  body = [op for op in symbol.draw
+          if op["op"] != "text" and op.get("role", "body") in STACK_ROLES]
+  if body:
+    matrix = symbol.matrix_for(cell, symbol_scale)
+    factor = matrix.scale_factor()
+    for step in (1,):
+      out.append('<g %s>' % _attrs([
+        ("class", "dl-stack"),
+        ("transform", "translate(%s %s) %s" % (
+          fmt(offset * step), fmt(offset * step), matrix.to_svg()))]))
+      for op in body:
+        element = _op_element(op, _role_paint(op.get("role", "body"), style,
+                                              factor, 1.0))
+        if element:
+          out.append("  " + element)
+      out.append("</g>")
+    return
+  x, y, w, h = _cell_bbox(symbol, cell, symbol_scale)
   for step in (1,):
     out.append("<rect %s />" % _attrs([
       ("class", "dl-stack"),

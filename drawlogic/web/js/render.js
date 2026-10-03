@@ -150,6 +150,10 @@ function freePinLabel(symbol, cell, pinName, scale) {
   return [geometry.matrixFor(symbol, cell, scale).apply(local[0], local[1]), anchor];
 }
 
+// The draw-op roles that make up a symbol's outline. Mirrors STACK_ROLES in
+// render_svg.py.
+const STACK_ROLES = new Set(["body", "bubble", "port_in", "port_out", "port_inout"]);
+
 function renderCell(symbol, cell, fontScale, scale, into) {
   const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
@@ -163,12 +167,26 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   into.appendChild(outer);
   into = outer;
 
-  // A cell standing for several copies: one outline behind it. Mirrors
-  // _render_stack in render_svg.py.
+  // A cell standing for several copies: its own body drawn again behind it,
+  // or a rectangle when it has no body to copy. Mirrors _render_stack in
+  // render_svg.py.
   if (geometry.cellCopies(cell)) {
-    const [bx, by, bw, bh] = geometry.cellBounds(symbol, cell, scale);
     const offset = geometry.cellTextMetrics().stack;
-    for (const step of [1]) {
+    const body = symbol.draw.filter((op) => op.op !== "text"
+                                    && STACK_ROLES.has(op.role || "body"));
+    for (const step of body.length ? [1] : []) {
+      const behind = el("g", {
+        class: "dl-stack",
+        transform: `translate(${geometry.fmt(offset * step)} ${geometry.fmt(offset * step)}) ${matrix.toSvg()}`,
+      });
+      for (const op of body) {
+        const node = opElement(op, rolePaint(op.role || "body", style, factor, 1));
+        if (node) behind.appendChild(node);
+      }
+      into.appendChild(behind);
+    }
+    const [bx, by, bw, bh] = geometry.cellBounds(symbol, cell, scale);
+    for (const step of body.length ? [] : [1]) {
       into.appendChild(el("rect", {
         class: "dl-stack",
         x: geometry.fmt(bx + offset * step), y: geometry.fmt(by + offset * step),

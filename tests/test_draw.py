@@ -1239,6 +1239,30 @@ class TestTextInsideCells(unittest.TestCase):
     one = render_svg.render(self.block(copies=1), registry=self.registry)
     self.assertNotIn("dl-stack", one)
 
+  def test_a_copy_is_the_symbols_own_body_not_its_bounding_box(self):
+    """Reported: a stacked gate or flop showed a big rectangle behind it,
+    reaching out to the ends of its pin stubs."""
+    for type_id, shape in (("and2", "path"), ("dff", "rect"),
+                           ("iocell", "rect")):
+      with self.subTest(symbol=type_id):
+        doc = new_document("one", 400, 300)
+        doc.cells.append({"id": "c", "type": type_id, "x": 100, "y": 100,
+                          "copies": 2})
+        doc.normalize()
+        svg = render_svg.render(doc, registry=self.registry)
+        [inner] = re.findall(r'<g class="dl-stack" transform="[^"]+">(.*?)</g>',
+                             svg, re.S)
+        drawn = re.findall(r"<(\w+) ", inner)
+        self.assertEqual(drawn, [shape], "the copy should be the body alone")
+
+  def test_a_symbol_with_no_body_still_gets_a_rectangle(self):
+    doc = new_document("tie", 400, 300)
+    doc.cells.append({"id": "t", "type": "tie0", "x": 100, "y": 100,
+                      "copies": 2})
+    doc.normalize()
+    svg = render_svg.render(doc, registry=self.registry)
+    self.assertIn('<rect class="dl-stack"', svg)
+
   def test_a_cell_without_either_draws_as_before(self):
     plain = render_svg.render(self.block(), registry=self.registry)
     self.assertNotIn("dl-stack", plain)

@@ -244,6 +244,13 @@ def _block_diagram_drawing():
     {"id": "dma", "type": "block6", "x": 600, "y": 260, "rotate": 90,
      "text": ["DMA", "8 channels"], "copies": 2},
     {"id": "g", "type": "and2", "x": 300, "y": 330, "text": ["en"]},
+    # Replicated cells that are not plain blocks: each copies its own body,
+    # and the tie cell, having none, falls back to a rectangle.
+    {"id": "g2", "type": "and2", "x": 120, "y": 380, "copies": 2},
+    {"id": "ff", "type": "dff", "x": 220, "y": 380, "copies": 3,
+     "mirror": True},
+    {"id": "io", "type": "iocell", "x": 420, "y": 300, "copies": 2},
+    {"id": "t0", "type": "tie0", "x": 120, "y": 460, "copies": 2},
   ])
   doc.nets.append({"id": "n1", "from": {"cell": "cpu", "pin": "out1"},
                    "to": [{"cell": "ddr", "pin": "in1"}]})
@@ -262,6 +269,13 @@ def _exported_stacks(svg):
   return sorted([c, x, y, w, h] for c, x, y, w, h in re.findall(
     r'<rect class="(dl-stack|dl-copies)" x="([^"]+)" y="([^"]+)" '
     r'width="([^"]+)" height="([^"]+)"', svg))
+
+
+def _exported_stack_bodies(svg):
+  return sorted([transform, re.findall(r"<(\w+) ", inner)]
+                for transform, inner in re.findall(
+                  r'<g class="dl-stack" transform="([^"]+)">(.*?)</g>', svg,
+                  re.S))
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -284,8 +298,14 @@ class TestCellTextAgrees(unittest.TestCase):
     doc = _block_diagram_drawing()
     browser = _browser_render(doc, self.registry)
     exported = render_svg.render(doc, registry=self.registry)
-    self.assertEqual(len(browser["stacks"]), 4)
+    # The tie cell has no body to copy and falls back to a rectangle; each of
+    # the six replicated cells has a badge.
+    self.assertEqual(len(browser["stacks"]), 7)
     self.assertEqual(browser["stacks"], _exported_stacks(exported))
+    # The two blocks, the gate, the flip-flop and the IO cell copy their own
+    # bodies.
+    self.assertEqual(len(browser["stackBodies"]), 5)
+    self.assertEqual(browser["stackBodies"], _exported_stack_bodies(exported))
 
   def test_both_fit_the_box_the_same_way(self):
     """The editor grows a box as text is typed; doc.py does it on load. The

@@ -619,7 +619,10 @@ does not fit is cut short with an ellipsis, which the `cell-text-clipped`
 check reports.
 
 **Copies** says how many of the cell there are -- four cores, eight lanes.
-Two or more draws an outline behind the cell and a `×N` badge on its corner.
+Two or more draws a copy of the cell's body behind it -- a gate's curve
+behind a gate, a flop's box behind a flop, without the pin stubs -- and a
+`×N` badge on its corner. A cell with no body to copy, such as a tie cell,
+gets a plain rectangle.
 It is still one cell with one set of pins: wires, layout and the checks treat
 it like any other.
 
@@ -802,7 +805,7 @@ gains nothing from it has no such key at all.
 | `label` | instance name, drawn above the cell -- or beside its top-left corner when a pin comes in at the top, so that pin's wire does not run through it |
 | `text` | lines written inside the cell, e.g. `["CPU cluster", "4 cores", "1 MB L2"]`; left-aligned from the top |
 | `textFit` | `false` keeps the box its size and cuts text that does not fit; left out, the box grows to hold the text |
-| `copies` | 2 or more draws the cell with one outline behind it and a `×N` badge; still one cell |
+| `copies` | 2 or more draws a copy of the cell's body behind it (a gate behind a gate, a box behind a flop) and a `×N` badge; still one cell |
 | `pins` | per-pin names, e.g. `{"in1": "wptr"}`; see below |
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |

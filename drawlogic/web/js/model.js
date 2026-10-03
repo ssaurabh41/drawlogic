@@ -211,7 +211,7 @@ function labelFor(doc, type) {
 }
 
 export function gridStep(doc) {
-  return Number((doc.canvas.grid || {}).size) || 10;
+  return Number((doc.canvas.grid || {}).size) || 5;
 }
 
 export function snap(value, step) {
@@ -220,7 +220,7 @@ export function snap(value, step) {
 
 // The step a wire is dragged on, which is not the step a cell is dropped on.
 // Pins land on multiples of drc.PIN_GRID, so a wire dragged on the drawing's
-// own grid -- 10 by default -- could never meet a pin sitting at a multiple of
+// own grid -- 10 in many drawings -- could never meet a pin sitting at a multiple of
 // 5 that is not a multiple of 10, which is where a port's connector always is.
 // It stopped short every time and the near-miss was drawn as a kink. A finer
 // grid than that is honoured as it stands: the rule is a ceiling, not a step
@@ -254,7 +254,7 @@ export function blankDocument(title) {
     canvas: {
       width: size.sheetW,
       height: size.sheetH,
-      grid: { style: "blank", size: 10 },
+      grid: { style: "blank", size: 5 },
       font: { family: "IBM Plex Sans", scale: 1 },
       symbolScale: 1,
       arrows: true,
@@ -807,7 +807,8 @@ function pinDir(doc, endpoint) {
 // Wiring a second load onto a pin that already drives one extends that net
 // rather than making another. That is what a net is: one driver, many loads.
 // How near a dropped cell's pin has to land to join something. Cells snap to
-// the cell grid (10) while pins sit on the pin grid (5), so a drop can land a
+// the drawing's grid -- 5 by default, 10 in many drawings -- while pins sit on
+// the pin grid (5), so on a 10 grid a drop can land a
 // pin up to 5 from the one it was aimed at; just over that reaches it, and
 // stays well short of the next pin along a side.
 const JOIN_REACH = 6;

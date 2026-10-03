@@ -281,7 +281,7 @@ export class SelectTool {
   applySheetResize(point, keepAspect) {
     const { store } = this.ctx;
     const [w0, h0] = this.startSheet;
-    const step = model.gridStep(store.doc) || 10;
+    const step = model.gridStep(store.doc) || 5;
     const minimum = 50;
     let width = this.sheetHandle === "s" ? w0 : point[0];
     let height = this.sheetHandle === "e" ? h0 : point[1];

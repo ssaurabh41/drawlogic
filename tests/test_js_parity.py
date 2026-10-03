@@ -299,6 +299,34 @@ def _exported_shape_lines(svg):
   return sorted(re.findall(r'<polyline points="([^"]+)"', svg))
 
 
+class TestTheGridDefaultsAgree(unittest.TestCase):
+  """A new drawing snaps to the pin grid, in the file and in the editor alike.
+
+  The step a drag snaps to is the drawing's grid. On the pin grid, a cell
+  dragged anywhere keeps every pin where a wire can meet it; on a coarser
+  one only some positions do. doc.py's default is what a file without a grid
+  of its own gets, and model.js holds two more -- a new drawing's, and the
+  fallback for one with no size -- that have to say the same.
+  """
+
+  def test_the_file_default_is_the_pin_grid(self):
+    from drawlogic import doc as doc_module
+    self.assertEqual(doc_module.DEFAULT_CANVAS["grid"]["size"], drc.PIN_GRID)
+
+  def test_the_editor_says_the_same(self):
+    from drawlogic import doc as doc_module
+    want = doc_module.DEFAULT_CANVAS["grid"]["size"]
+    with open(os.path.join(ROOT, "drawlogic", "web", "js", "model.js")) as f:
+      source = f.read()
+    fallback = re.search(r"\(doc\.canvas\.grid \|\| \{\}\)\.size\) \|\| (\d+)",
+                         source)
+    fresh = re.search(r'grid: \{ style: "blank", size: (\d+) \}', source)
+    self.assertIsNotNone(fallback, "gridStep's fallback is gone from model.js")
+    self.assertIsNotNone(fresh, "a new drawing's grid is gone from model.js")
+    self.assertEqual(float(fallback.group(1)), want)
+    self.assertEqual(float(fresh.group(1)), want)
+
+
 class TestThePanelOffersEveryHead(unittest.TestCase):
   """The properties panel lists the heads itself; a head added to the theme
   and forgotten there could be drawn but never chosen."""

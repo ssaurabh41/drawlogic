@@ -573,8 +573,10 @@ auto layout with two or more cells selected arranges only those, alignment
 guides help while dragging (hold `Alt` to drag without them), and unsaved
 work is kept for recovery after a crash.
 
-A new drawing is 1200 x 700 on a blank sheet with a grid step of 10; change
-the grid for that drawing with **Sheet > Grid** in the toolbar.
+A new drawing is 1200 x 700 on a blank sheet with a grid step of 5 -- the
+step every pin sits on, so a cell dragged anywhere keeps its pins where a
+wire can meet them. Change the grid for that drawing with **Sheet > Grid** in
+the toolbar; a drawing that already has a grid of its own keeps it.
 
 ### Auto-connect
 

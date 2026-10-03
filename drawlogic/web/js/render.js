@@ -88,7 +88,7 @@ function opElement(op, paint) {
 }
 
 function gridPattern(grid) {
-  const size = Number(grid.size) || 10;
+  const size = Number(grid.size) || 5;
   const color = grid.color || theme.colors.grid;
   const style = grid.style || "dots";
   if (style === "blank") return null;

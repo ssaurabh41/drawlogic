@@ -67,7 +67,7 @@ DEFAULT_CANVAS = {
   "background": theme.PAPER,
   # A blank sheet: the grid is there to place by, and a new drawing reads
   # cleaner without dots until someone asks for them.
-  "grid": {"style": "blank", "size": 10, "color": theme.COLORS["grid"]},
+  "grid": {"style": "blank", "size": 5, "color": theme.COLORS["grid"]},
   "font": {"family": "IBM Plex Sans", "scale": 1.0},
   "symbolScale": 1.0,
   "arrows": True,

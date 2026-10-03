@@ -495,6 +495,30 @@ select {
   font-variant-numeric: tabular-nums;
 }
 .pval { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A number field with its own minus and plus buttons; see stepper() in
+   panels.js. The browser's tiny built-in arrows are hidden in favour of these. */
+.pstep {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px 26px;
+  gap: 3px;
+  align-items: stretch;
+}
+.pstep .pinput { -moz-appearance: textfield; appearance: textfield; }
+.pstep .pinput::-webkit-outer-spin-button,
+.pstep .pinput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pstep-btn {
+  font: 600 14px/1 var(--mono);
+  color: var(--ink-2);
+  background: var(--chrome-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+}
+.pstep-btn:hover { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+.pstep-btn:active { background: var(--accent); color: var(--accent-on); }
+.pstep-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .pval.unconnected { color: var(--warm-ink); }
 
 /* A pin row carries its name field above what the pin is wired to. */

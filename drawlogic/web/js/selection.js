@@ -163,13 +163,17 @@ export function drawHandles(svg, selection, zoom, options = {}) {
 
   // Where a cell being placed will land: its outline, and the pin it has
   // snapped to ringed, so the join can be judged before letting go.
+  // A cell being moved is its own outline already, and has the selection box
+  // round it, so a move passes no box: only the ring.
   if (options.ghost) {
-    const [gx, gy, gw, gh] = options.ghost.box;
-    layer.appendChild(el("rect", {
-      class: "dl-ghost", x: gx, y: gy, width: gw, height: gh,
-      "stroke-width": 1.2 / zoom,
-      "stroke-dasharray": `${4 / zoom} ${3 / zoom}`,
-    }));
+    if (options.ghost.box) {
+      const [gx, gy, gw, gh] = options.ghost.box;
+      layer.appendChild(el("rect", {
+        class: "dl-ghost", x: gx, y: gy, width: gw, height: gh,
+        "stroke-width": 1.2 / zoom,
+        "stroke-dasharray": `${4 / zoom} ${3 / zoom}`,
+      }));
+    }
     if (options.ghost.target) {
       const [tx, ty] = options.ghost.target;
       layer.appendChild(el("circle", {

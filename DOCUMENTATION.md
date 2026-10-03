@@ -501,6 +501,10 @@ exported file looks the same whichever is picked.
 Selecting one member of a group selects all of it, so a group drags and
 resizes as a single object.
 
+Each section of the properties panel folds: click its title. What is folded
+is remembered in this browser, and **Pins** starts folded -- a long list most
+edits never need.
+
 Ports and the tie cells (`tie0`, `tie1`) have no resize handles: they are
 moved, never resized, and on something that small the handles covered most
 of it. A press anywhere on or just beside one picks it up. The properties

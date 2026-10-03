@@ -59,6 +59,87 @@ function alignIcon(key, value) {
   return svg;
 }
 
+// ---- folding the properties panel ----
+
+// Which sections are folded, by name, kept per browser like the palette's.
+// Stored as name -> folded rather than a list of the folded ones, so a
+// section folded by default -- Pins -- stays open once someone opens it.
+const PANEL_FOLDED_KEY = "drawlogic.panelFolded";
+const FOLDED_BY_DEFAULT = { pins: true };
+
+function panelFolded() {
+  try {
+    return { ...FOLDED_BY_DEFAULT,
+             ...JSON.parse(window.localStorage.getItem(PANEL_FOLDED_KEY) || "{}") };
+  } catch (error) {
+    return { ...FOLDED_BY_DEFAULT };
+  }
+}
+
+function savePanelFolded(folded) {
+  try {
+    window.localStorage.setItem(PANEL_FOLDED_KEY, JSON.stringify(folded));
+  } catch (error) {
+    // Private browsing: folding still works, it just is not remembered.
+  }
+}
+
+// A section's name for remembering it: its title, except "3 selected", whose
+// number changes with every selection while the section stays the same one.
+function sectionKey(title) {
+  const text = title.trim().toLowerCase();
+  return /^\d+ selected$/.test(text) ? "selection" : text;
+}
+
+// Turn each section title in the panel into a header that folds what follows
+// it, up to the next title. Done after the panel is drawn, over whatever it
+// drew, so every kind of selection folds the same way without each one being
+// written to.
+function foldSections(root) {
+  const folded = panelFolded();
+  const titles = [...root.children].filter((n) => n.classList.contains("ptitle"));
+  for (const title of titles) {
+    const key = sectionKey(title.textContent);
+    const body = element("div", "psec");
+    while (title.nextSibling && !(title.nextSibling.classList
+                                  && title.nextSibling.classList.contains("ptitle"))) {
+      body.appendChild(title.nextSibling);
+    }
+    title.after(body);
+    if (!body.childNodes.length) continue;
+    title.classList.add("pfold");
+    title.tabIndex = 0;
+    title.setAttribute("role", "button");
+    const show = (open) => {
+      title.setAttribute("aria-expanded", String(open));
+      body.hidden = !open;
+    };
+    show(!folded[key]);
+    const toggle = () => {
+      const open = body.hidden;
+      show(open);
+      const now = panelFolded();
+      now[key] = !open;
+      savePanelFolded(now);
+    };
+    // On the press, not the click: a press here takes focus from whatever
+    // field had it, its change redraws the panel, and the header the click
+    // would have landed on is gone by the time the button comes up. The press
+    // also keeps focus where it was, so nothing half typed is committed.
+    title.addEventListener("mousedown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      toggle();
+    });
+    title.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle();
+      }
+    });
+  }
+}
+
 // One option in a row of exclusive choices.
 function segButton(content, title, pressed) {
   const button = element("button", "seg-btn");
@@ -110,20 +191,6 @@ function row(label, control) {
   wrap.appendChild(element("span", null, label));
   const isNumber = control.tagName === "INPUT" && control.type === "number";
   wrap.appendChild(isNumber ? stepper(control) : control);
-  return wrap;
-}
-
-// Two labelled number fields side by side, each with its own steppers.
-function pairRow(first, second) {
-  const wrap = element("div", "prow2");
-  for (const pair of [first, second]) {
-    if (!pair) continue;
-    const [label, field] = pair;
-    const half = element("label", "phalf");
-    half.appendChild(element("span", null, label));
-    half.appendChild(stepper(field));
-    wrap.appendChild(half);
-  }
   return wrap;
 }
 
@@ -565,6 +632,11 @@ export class Inspector {
   }
 
   render() {
+    this.renderBody();
+    foldSections(this.root);
+  }
+
+  renderBody() {
     const root = this.root;
     root.textContent = "";
     if (!this.store.doc) return;
@@ -654,11 +726,7 @@ export class Inspector {
     }
   }
 
-  // Position and size two to a row -- X beside Y, W beside H -- as a slide
-  // editor sets them out: they are read and changed as pairs, and one per
-  // row made the panel twice as long for no more information.
   renderGeometry(item, keys) {
-    const fields = [];
     for (const [key, label] of keys) {
       if (item[key] === undefined) continue;
       const field = input(Math.round(item[key]), "number");
@@ -670,10 +738,7 @@ export class Inspector {
           target[key] = (key === "w" || key === "h") ? Math.max(4, number) : number;
         }
       }, "edit");
-      fields.push([label, field]);
-    }
-    for (let i = 0; i < fields.length; i += 2) {
-      this.root.appendChild(pairRow(fields[i], fields[i + 1]));
+      this.root.appendChild(row(label, field));
     }
   }
 
@@ -702,7 +767,7 @@ export class Inspector {
     const fixed = geometry.FIXED_SIZE_TYPES.has(cell.type);
     root.appendChild(element("div", "ptitle", "Geometry"));
     this.renderGeometry(cell, fixed ? [["x", "X"], ["y", "Y"]]
-      : [["x", "X"], ["y", "Y"], ["w", "W"], ["h", "H"]]);
+      : [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"]]);
 
     const rotation = document.createElement("select");
     rotation.className = "pinput";
@@ -868,7 +933,7 @@ export class Inspector {
     if (shape.kind === "line" || shape.kind === "polyline") this.renderHeads(shape);
 
     root.appendChild(element("div", "ptitle", "Geometry"));
-    this.renderGeometry(shape, [["x", "X"], ["y", "Y"], ["w", "W"], ["h", "H"]]);
+    this.renderGeometry(shape, [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"]]);
     if (shape.points) {
       root.appendChild(row("Points", element("div", "pval",
                                              `${shape.points.length} points`)));
@@ -1144,18 +1209,15 @@ export class Inspector {
     this.bind(title, (d, value) => { d.title = value || "untitled"; }, "title");
     root.appendChild(row("Title", title));
 
-    const sheet = [];
-    for (const [key, label] of [["width", "W"], ["height", "H"]]) {
+    for (const [key, label] of [["width", "Sheet W"], ["height", "Sheet H"]]) {
       const field = input(doc.canvas[key], "number");
       this.bind(field, (d, value) => {
         const number = numberFrom(value);
         if (!Number.isFinite(number) || number < 50) return false;
         d.canvas[key] = number;
       }, "sheet");
-      sheet.push([label, field]);
+      root.appendChild(row(label, field));
     }
-    root.appendChild(element("div", "psub", "Sheet size"));
-    root.appendChild(pairRow(sheet[0], sheet[1]));
 
     const step = input(model.gridStep(doc), "number");
     step.min = "1";

@@ -264,8 +264,7 @@ export class SelectTool {
       this.snapped = snapped;
 
       this.ctx.drawOverlay(snapped
-        ? { ghost: { box: snapped.box, target: snapped.wire[1] },
-            wirePreview: snapped.wire }
+        ? { ghost: { target: snapped.wire[1] }, wirePreview: snapped.wire }
         : { guides: lines });
       return true;
     }

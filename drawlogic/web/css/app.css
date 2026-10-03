@@ -476,6 +476,20 @@ select {
 }
 #properties-body .ptitle:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
 
+/* A section header folds what follows it; see foldSections() in panels.js. */
+.psec { display: flex; flex-direction: column; gap: 7px; }
+.psec[hidden] { display: none; }
+.ptitle.pfold { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
+.ptitle.pfold::before {
+  content: ""; width: 0; height: 0; flex: none;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+  transition: transform 0.12s;
+}
+.ptitle.pfold[aria-expanded="true"]::before { transform: rotate(90deg); }
+.ptitle.pfold:hover { color: var(--ink); }
+.ptitle.pfold:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .prow {
   display: grid;
   grid-template-columns: 62px minmax(0, 1fr);
@@ -483,6 +497,9 @@ select {
   gap: 8px;
 }
 .prow > span { font-size: 11px; color: var(--ink-3); }
+/* A checkbox starts where the fields above it start. Left to the grid, it was
+   stretched across the column and the browser drew it in the middle. */
+.prow > .pcheck { justify-self: start; margin: 0; }
 
 .pval, .pinput {
   font-family: var(--mono);
@@ -500,12 +517,6 @@ select {
 /* A value you can read but not change is drawn as text, not as a box: a box
    says "type here", and typing there did nothing. */
 .pval { background: none; border-color: transparent; padding-left: 0; color: var(--ink-2); }
-
-/* Two labelled number fields side by side: X | Y, W | H. */
-.prow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.phalf { display: grid; grid-template-columns: 12px minmax(0, 1fr); align-items: center; gap: 4px; }
-.phalf > span { font-size: 11px; color: var(--ink-3); }
-.psub { font-size: 11px; color: var(--ink-3); margin-bottom: -3px; }
 
 /* An arrowhead: the button showing the head now on that end, and its size. */
 .headrow { display: flex; align-items: center; gap: 6px; }

@@ -15,7 +15,7 @@ reference, and under Tests, what is and is not covered.
 ## Commands
 
 ```bash
-python3 tests/run.py                       # everything, in parallel (~540 tests, ~17s); one line when green
+python3 tests/run.py                       # everything, in parallel (~545 tests, ~17s); one line when green
 python3 tests/run.py test_layout           # only modules whose name contains this
 python3 -m unittest discover -s tests      # everything, serially (~50s) -- what CI runs
 python3 -m unittest tests.test_drc         # one file
@@ -27,6 +27,7 @@ python3 -m drawlogic validate examples/dff_slice.dlg   # references + DRCs, exit
 python3 -m drawlogic export examples/dff_slice.dlg -o out.svg
 python3 -m drawlogic serve examples/dff_slice.dlg      # browser editor
 
+python3 tools/pack_repo.py                 # whole repo as one pasteable text file; tools/unpack_repo.py rebuilds it
 python3 -m unittest tests.test_js_parity   # routing.js/render.js vs the Python originals; needs node, skips silently without it
 ```
 

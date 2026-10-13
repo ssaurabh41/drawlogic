@@ -138,6 +138,27 @@ time, run `verify.ps1` before anything else, because a mixed copy fails in
 ways that look like bugs. See
 [Checking the files themselves](#checking-the-files-themselves).
 
+Where cloning is not possible but pasting text is, the whole repository goes
+across as one file. On a machine that has it:
+
+```bash
+python3 tools/pack_repo.py                    # -> drawlogic_bundle.txt
+python3 tools/pack_repo.py --split 400000     # or several parts, ~400 KB each
+```
+
+Copy the bundle and `tools/unpack_repo.py` across, then:
+
+```bash
+python3 unpack_repo.py drawlogic_bundle.txt -d drawlogic
+python3 unpack_repo.py "drawlogic_bundle.part*.txt" -d drawlogic   # parts
+```
+
+Every file between its `DLBUNDLE BEGIN`/`END` markers carries its line count
+and SHA-256, so a paste that dropped a line, changed a character or stopped
+short is reported by file name and nothing damaged is written. `--check`
+verifies without writing. Windows line endings picked up on the way are
+forgiven. Then run `drawlogic doctor` in the rebuilt folder as usual.
+
 Every command is discoverable from the tool itself:
 
 ```bash

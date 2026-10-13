@@ -194,7 +194,9 @@ class TestDoctor(unittest.TestCase):
       documented = handle.read()
     counted = [line for line in output.splitlines()
                if any(char.isdigit() for char in line)
-               and not line.startswith(("drawlogic ", "python "))]
+               # Version, interpreter and install path are this machine's,
+               # not the project's: a folder named "user1" is not a count.
+               and not line.startswith(("drawlogic ", "python ", "here "))]
     self.assertTrue(counted, output)
     for line in counted:
       # assertIn would print the whole of DOCUMENTATION.md on a failure.

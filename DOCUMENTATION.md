@@ -1791,7 +1791,7 @@ drawlogic/
 tests/            unittest, a golden-file regression suite, a JS parity check
   js/             node-side runners: the editor checks, and dumps of what
                   routing.js and render.js produce for parity to compare
-examples/         worked schematics, including a CDC FIFO
+examples/         worked schematics, including a CDC FIFO and a GPU block diagram
 manifest.txt      a hash of every file above; generated, never hand-edited
 .github/          one CI workflow: the suite on the oldest supported Python
 sample.txt        a plain file to edit when trying verify.ps1 out by hand

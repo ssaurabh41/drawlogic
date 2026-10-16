@@ -1,0 +1,1303 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "gpu_top",
+  "canvas": {
+    "width": 2340,
+    "height": 990,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "u_clk",
+      "type": "block",
+      "x": 220,
+      "y": 170,
+      "w": 220,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Clock, Reset & Power",
+        "PLLs \u00b7 DVFS \u00b7 power gating"
+      ],
+      "pins": {
+        "in1": "refclk",
+        "in2": "rst_n",
+        "out1": "pclk",
+        "out2": "gclk"
+      },
+      "style": {
+        "fill": "#f6f3e4"
+      }
+    },
+    {
+      "id": "u_host",
+      "type": "block",
+      "x": 220,
+      "y": 290,
+      "w": 220,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "PCIe Gen5 x16",
+        "Host Interface",
+        "BAR \u00b7 MSI-X \u00b7 IOMMU"
+      ],
+      "pins": {
+        "in1": "rx",
+        "in2": "refclk",
+        "out1": "cmd",
+        "out2": "dma"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "u_nvl",
+      "type": "block",
+      "x": 220,
+      "y": 480,
+      "w": 220,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "NVLink",
+        "18 links \u00b7 900 GB/s"
+      ],
+      "pins": {
+        "in1": "rx",
+        "in2": "egress",
+        "out1": "ingress",
+        "out2": "tx"
+      },
+      "style": {
+        "fill": "#f0ecf7"
+      }
+    },
+    {
+      "id": "u_fe",
+      "type": "block",
+      "x": 500,
+      "y": 210,
+      "w": 200,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Front End",
+        "push-buffer fetch",
+        "command processor"
+      ],
+      "pins": {
+        "in1": "clk",
+        "in2": "cmd",
+        "out1": "work",
+        "out2": "copy"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "u_ce",
+      "type": "block",
+      "x": 780,
+      "y": 290,
+      "w": 200,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Copy Engine",
+        "async DMA"
+      ],
+      "copies": 4,
+      "pins": {
+        "in1": "copy",
+        "in2": "dma",
+        "out1": "done",
+        "out2": "mem"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "u_gte",
+      "type": "block",
+      "x": 1060,
+      "y": 185,
+      "w": 200,
+      "h": 180,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "GigaThread Engine",
+        "",
+        "grid / CTA scheduler",
+        "graphics work",
+        "distributor",
+        "context switch"
+      ],
+      "pins": {
+        "in1": "work",
+        "in2": "sync",
+        "out1": "cta",
+        "out2": "prim"
+      },
+      "style": {
+        "fill": "#e8f2f6"
+      }
+    },
+    {
+      "id": "u_gpc",
+      "type": "block",
+      "x": 1340,
+      "y": 185,
+      "w": 300,
+      "h": 180,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Graphics Processing Cluster",
+        "",
+        "Raster Engine",
+        "6 TPC x 2 SM = 12 SM",
+        "1,536 CUDA cores",
+        "48 Tensor Cores \u00b7 12 RT Cores"
+      ],
+      "copies": 8,
+      "pins": {
+        "in1": "cta",
+        "in2": "prim",
+        "out1": "ld/st",
+        "out2": "pixel"
+      },
+      "style": {
+        "fill": "#eaf3e6"
+      }
+    },
+    {
+      "id": "u_xbar",
+      "type": "block8",
+      "x": 1720,
+      "y": 170,
+      "w": 120,
+      "h": 400,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Crossbar",
+        "",
+        "on-chip",
+        "network"
+      ],
+      "pins": {
+        "in1": "",
+        "in2": "",
+        "in3": "",
+        "in4": "",
+        "out1": "",
+        "out2": "",
+        "out3": "",
+        "out4": ""
+      },
+      "style": {
+        "fill": "#f0ecf7"
+      }
+    },
+    {
+      "id": "u_disp",
+      "type": "block",
+      "x": 1920,
+      "y": 170,
+      "w": 220,
+      "h": 90,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Display & Media",
+        "4 heads \u00b7 NVENC \u00b7 NVDEC"
+      ],
+      "pins": {
+        "in1": "pclk",
+        "in2": "fetch",
+        "out1": "dp",
+        "out2": "hdmi"
+      },
+      "style": {
+        "fill": "#f6f3e4"
+      }
+    },
+    {
+      "id": "u_mp",
+      "type": "block",
+      "x": 1920,
+      "y": 295,
+      "w": 220,
+      "h": 180,
+      "rotate": 0,
+      "mirror": false,
+      "label": "",
+      "text": [
+        "Memory Partition",
+        "",
+        "L2 slice  4 MB",
+        "ROP x 16",
+        "HBM3 controller",
+        "ECC \u00b7 compression"
+      ],
+      "copies": 12,
+      "pins": {
+        "in1": "req",
+        "in2": "pixel",
+        "out1": "dq",
+        "out2": "ca"
+      },
+      "style": {
+        "fill": "#f7efe6"
+      }
+    },
+    {
+      "id": "p_refclk",
+      "type": "port_in",
+      "x": 100,
+      "y": 190,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "refclk",
+      "style": {}
+    },
+    {
+      "id": "p_rstn",
+      "type": "port_in",
+      "x": 100,
+      "y": 230,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rst_n",
+      "style": {}
+    },
+    {
+      "id": "p_pcie",
+      "type": "port_in",
+      "x": 100,
+      "y": 310,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "pcie_rx[15:0]",
+      "style": {}
+    },
+    {
+      "id": "p_pcieclk",
+      "type": "port_in",
+      "x": 100,
+      "y": 350,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "pcie_refclk",
+      "style": {}
+    },
+    {
+      "id": "p_nvlrx",
+      "type": "port_in",
+      "x": 100,
+      "y": 500,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "nvlink_rx[17:0]",
+      "style": {}
+    },
+    {
+      "id": "p_dp",
+      "type": "port_out",
+      "x": 2240,
+      "y": 190,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "dp_out[3:0]",
+      "style": {}
+    },
+    {
+      "id": "p_hdmi",
+      "type": "port_out",
+      "x": 2240,
+      "y": 230,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "hdmi_out",
+      "style": {}
+    },
+    {
+      "id": "p_dq",
+      "type": "port_out",
+      "x": 2240,
+      "y": 340,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "hbm_dq[1023:0]",
+      "style": {}
+    },
+    {
+      "id": "p_ca",
+      "type": "port_out",
+      "x": 2240,
+      "y": 420,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "hbm_ca[63:0]",
+      "style": {}
+    },
+    {
+      "id": "p_nvltx",
+      "type": "port_out",
+      "x": 2240,
+      "y": 590,
+      "w": 20,
+      "h": 10,
+      "rotate": 0,
+      "mirror": false,
+      "label": "nvlink_tx[17:0]",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_refclk",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_refclk",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_clk",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_rstn",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_rstn",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_clk",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_pcie",
+      "name": "pcie_rx[15:0]",
+      "width": 16,
+      "from": {
+        "cell": "p_pcie",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_host",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_pcieclk",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "p_pcieclk",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_host",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvlrx",
+      "name": "nvlink_rx[17:0]",
+      "width": 18,
+      "from": {
+        "cell": "p_nvlrx",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_nvl",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_pclk",
+      "name": "pclk",
+      "label": "pclk",
+      "width": 1,
+      "from": {
+        "cell": "u_clk",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_disp",
+          "pin": "in1",
+          "waypoints": [
+            [
+              460,
+              195
+            ],
+            [
+              460,
+              150
+            ],
+            [
+              1880,
+              150
+            ],
+            [
+              1880,
+              195
+            ]
+          ]
+        }
+      ],
+      "style": {
+        "dash": "dashed"
+      }
+    },
+    {
+      "id": "n_gclk",
+      "name": "gclk",
+      "width": 1,
+      "from": {
+        "cell": "u_clk",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_fe",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {
+        "dash": "dashed"
+      }
+    },
+    {
+      "id": "n_cmd",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_host",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_fe",
+          "pin": "in2",
+          "waypoints": [
+            [
+              480,
+              315
+            ],
+            [
+              480,
+              275
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dma",
+      "name": null,
+      "label": "dma",
+      "width": 1,
+      "from": {
+        "cell": "u_host",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_ce",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_work",
+      "name": null,
+      "label": "work",
+      "width": 1,
+      "from": {
+        "cell": "u_fe",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_gte",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_copy",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_fe",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_ce",
+          "pin": "in1",
+          "waypoints": [
+            [
+              740,
+              275
+            ],
+            [
+              740,
+              315
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_done",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_ce",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_gte",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_cemem",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_ce",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "in3",
+          "waypoints": [
+            [
+              1020,
+              355
+            ],
+            [
+              1020,
+              425
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_cta",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_gte",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_gpc",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_prim",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_gte",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_gpc",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ldst",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_gpc",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_pix",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_gpc",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvlin",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_nvl",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "in4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_fetch",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_disp",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_req",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_mp",
+          "pin": "in1",
+          "waypoints": [
+            [
+              1890,
+              315
+            ],
+            [
+              1890,
+              345
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_rop",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "out3"
+      },
+      "to": [
+        {
+          "cell": "u_mp",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_egress",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "out4"
+      },
+      "to": [
+        {
+          "cell": "u_nvl",
+          "pin": "in2",
+          "waypoints": [
+            [
+              1870,
+              505
+            ],
+            [
+              1870,
+              625
+            ],
+            [
+              180,
+              625
+            ],
+            [
+              180,
+              545
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvltx",
+      "name": "nvlink_tx[17:0]",
+      "width": 18,
+      "from": {
+        "cell": "u_nvl",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "p_nvltx",
+          "pin": "p",
+          "waypoints": [
+            [
+              470,
+              545
+            ],
+            [
+              470,
+              595
+            ]
+          ]
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dp",
+      "name": "dp_out[3:0]",
+      "width": 4,
+      "from": {
+        "cell": "u_disp",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "p_dp",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_hdmi",
+      "name": null,
+      "width": 1,
+      "from": {
+        "cell": "u_disp",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "p_hdmi",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dq",
+      "name": "hbm_dq[1023:0]",
+      "width": 1024,
+      "from": {
+        "cell": "u_mp",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "p_dq",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ca",
+      "name": "hbm_ca[63:0]",
+      "width": 64,
+      "from": {
+        "cell": "u_mp",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "p_ca",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [
+    {
+      "id": "t_title",
+      "kind": "text",
+      "x": 160,
+      "y": 60,
+      "text": "GPU top level",
+      "rotate": 0,
+      "style": {
+        "fontSize": 22,
+        "fill": "#0d7490",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "t_sub",
+      "kind": "text",
+      "x": 160,
+      "y": 88,
+      "text": "8 GPCs \u00b7 96 SMs \u00b7 12 HBM3 memory partitions behind one crossbar; copies (xN) stand for identical instances",
+      "rotate": 0,
+      "style": {
+        "fontSize": 13,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "r_die",
+      "kind": "rect",
+      "x": 160,
+      "y": 125,
+      "w": 2040,
+      "h": 525,
+      "rotate": 0,
+      "style": {
+        "fill": "none",
+        "stroke": "#9fb1b8",
+        "strokeWidth": 1.2,
+        "dash": "8 5"
+      }
+    },
+    {
+      "id": "t_die",
+      "kind": "text",
+      "x": 172,
+      "y": 642,
+      "text": "GPU die",
+      "rotate": 0,
+      "style": {
+        "fontSize": 12,
+        "fill": "#5b6b74",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "r_gpc",
+      "kind": "rect",
+      "x": 160,
+      "y": 700,
+      "w": 900,
+      "h": 255,
+      "rotate": 0,
+      "style": {
+        "fill": "#f7fbf5",
+        "stroke": "#8fae84",
+        "strokeWidth": 1.2,
+        "dash": "6 4"
+      }
+    },
+    {
+      "id": "t_gpc",
+      "kind": "text",
+      "x": 180,
+      "y": 728,
+      "text": "Inside one GPC  (x8)",
+      "rotate": 0,
+      "style": {
+        "fontSize": 15,
+        "fill": "#4f7a43",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "r_rast",
+      "kind": "rect",
+      "x": 190,
+      "y": 755,
+      "w": 220,
+      "h": 90,
+      "text": [
+        "Raster Engine",
+        "triangle setup",
+        "rasterizer \u00b7 Z-cull"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_tpc",
+      "kind": "rect",
+      "x": 480,
+      "y": 745,
+      "w": 260,
+      "h": 110,
+      "text": [
+        "Texture Processing Cluster",
+        "PolyMorph Engine",
+        "(vertex fetch \u00b7 tessellation)",
+        "SM  x 2"
+      ],
+      "copies": 6,
+      "rotate": 0,
+      "style": {
+        "fill": "#eaf3e6",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_mmu",
+      "kind": "rect",
+      "x": 810,
+      "y": 755,
+      "w": 220,
+      "h": 90,
+      "text": [
+        "GPC MMU",
+        "L1.5 TLB \u00b7 crossbar port"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "l_rt",
+      "kind": "line",
+      "points": [
+        [
+          410,
+          800
+        ],
+        [
+          480,
+          800
+        ]
+      ],
+      "rotate": 0,
+      "style": {
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.4,
+        "headEnd": "triangle"
+      }
+    },
+    {
+      "id": "l_tm",
+      "kind": "line",
+      "points": [
+        [
+          746,
+          800
+        ],
+        [
+          810,
+          800
+        ]
+      ],
+      "rotate": 0,
+      "style": {
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.4,
+        "headEnd": "triangle"
+      }
+    },
+    {
+      "id": "r_gpcnote",
+      "kind": "rect",
+      "x": 190,
+      "y": 880,
+      "w": 840,
+      "h": 50,
+      "text": [
+        "work arrives from the GigaThread Engine; loads, stores and finished pixels",
+        "leave through the crossbar to the L2 slices and ROPs in the memory partitions"
+      ],
+      "textAlign": "left",
+      "rotate": 0,
+      "style": {
+        "fill": "none",
+        "stroke": "none"
+      }
+    },
+    {
+      "id": "r_sm",
+      "kind": "rect",
+      "x": 1120,
+      "y": 700,
+      "w": 1080,
+      "h": 255,
+      "rotate": 0,
+      "style": {
+        "fill": "#f7fbf5",
+        "stroke": "#8fae84",
+        "strokeWidth": 1.2,
+        "dash": "6 4"
+      }
+    },
+    {
+      "id": "t_sm",
+      "kind": "text",
+      "x": 1140,
+      "y": 728,
+      "text": "Inside one SM  (2 per TPC, 96 in all)",
+      "rotate": 0,
+      "style": {
+        "fontSize": 15,
+        "fill": "#4f7a43",
+        "anchor": "start"
+      }
+    },
+    {
+      "id": "r_sub0",
+      "kind": "rect",
+      "x": 1150,
+      "y": 745,
+      "w": 240,
+      "h": 115,
+      "text": [
+        "SM sub-partition 0",
+        "L0 I-cache \u00b7 warp scheduler",
+        "register file  64 KB",
+        "16 FP32 + 16 FP32/INT32",
+        "Tensor Core \u00b7 4 SFU \u00b7 LD/ST"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#eaf3e6",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_sub1",
+      "kind": "rect",
+      "x": 1410,
+      "y": 745,
+      "w": 240,
+      "h": 115,
+      "text": [
+        "SM sub-partition 1",
+        "L0 I-cache \u00b7 warp scheduler",
+        "register file  64 KB",
+        "16 FP32 + 16 FP32/INT32",
+        "Tensor Core \u00b7 4 SFU \u00b7 LD/ST"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#eaf3e6",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_sub2",
+      "kind": "rect",
+      "x": 1670,
+      "y": 745,
+      "w": 240,
+      "h": 115,
+      "text": [
+        "SM sub-partition 2",
+        "L0 I-cache \u00b7 warp scheduler",
+        "register file  64 KB",
+        "16 FP32 + 16 FP32/INT32",
+        "Tensor Core \u00b7 4 SFU \u00b7 LD/ST"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#eaf3e6",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_sub3",
+      "kind": "rect",
+      "x": 1930,
+      "y": 745,
+      "w": 240,
+      "h": 115,
+      "text": [
+        "SM sub-partition 3",
+        "L0 I-cache \u00b7 warp scheduler",
+        "register file  64 KB",
+        "16 FP32 + 16 FP32/INT32",
+        "Tensor Core \u00b7 4 SFU \u00b7 LD/ST"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#eaf3e6",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_l1",
+      "kind": "rect",
+      "x": 1150,
+      "y": 880,
+      "w": 760,
+      "h": 55,
+      "text": [
+        "L1 data cache / shared memory  256 KB",
+        "128 KB L1 instruction cache \u00b7 4 texture units"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    },
+    {
+      "id": "r_rt",
+      "kind": "rect",
+      "x": 1930,
+      "y": 880,
+      "w": 240,
+      "h": 55,
+      "text": [
+        "RT Core",
+        "BVH traversal \u00b7 ray-triangle"
+      ],
+      "rotate": 0,
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#1f2d33",
+        "strokeWidth": 1.2
+      }
+    }
+  ],
+  "groups": []
+}

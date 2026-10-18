@@ -158,6 +158,8 @@ and SHA-256, so a paste that dropped a line, changed a character or stopped
 short is reported by file name and nothing damaged is written. `--check`
 verifies without writing. Windows line endings picked up on the way are
 forgiven. Then run `drawlogic doctor` in the rebuilt folder as usual.
+The packer skips any file named `drawlogic_bundle*.txt`, so a bundle committed
+to the repository is never packed inside the next one.
 
 Every command is discoverable from the tool itself:
 

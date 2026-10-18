@@ -100,6 +100,8 @@ def main():
     path = os.path.join(root, rel)
     if os.path.abspath(path) == output or not os.path.isfile(path):
       continue
+    if fnmatch.fnmatch(os.path.basename(rel), "drawlogic_bundle*.txt"):
+      continue  # a committed bundle must not be packed inside the next one
     if any(fnmatch.fnmatch(rel, pattern) for pattern in args.exclude):
       continue
     text = read_text(path)

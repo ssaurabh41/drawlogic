@@ -58,6 +58,20 @@ class TestBundle(unittest.TestCase):
       checked += 1
     self.assertEqual(checked, 5)
 
+  def test_a_committed_bundle_is_not_packed_inside_the_next_one(self):
+    root = os.path.join(self.tmp.name, "tree")
+    os.makedirs(root)
+    for name in ("keep.txt", "drawlogic_bundle.txt", "drawlogic_bundle.part001.txt"):
+      with open(os.path.join(root, name), "w", encoding="utf-8") as handle:
+        handle.write("x\n")
+    out = os.path.join(self.tmp.name, "other.txt")
+    result = run(PACK, "--root", root, "-o", out)
+    self.assertEqual(result.returncode, 0, result.stdout)
+    with open(out, encoding="utf-8") as handle:
+      packed = handle.read()
+    self.assertIn("path=keep.txt", packed)
+    self.assertNotIn("drawlogic_bundle", packed)
+
   def test_windows_line_endings_from_a_paste_are_forgiven(self):
     result = self.unpack(self.text.replace("\n", "\r\n"), "--check")
     self.assertEqual(result.returncode, 0, result.stdout)

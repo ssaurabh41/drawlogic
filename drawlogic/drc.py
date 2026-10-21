@@ -107,6 +107,11 @@ CELL_GAP_Y = 52.0
 # Closer than this and two parts read as one.
 CELL_MIN_GAP = 24.0
 
+# Room between the things a container packs in a row, a column or a grid --
+# SMs in a TPC, TPCs in a GPC. Tighter than CELL_GAP_X: packed blocks are a
+# picture of how many there are, not a circuit with wires running between.
+CONTAINER_GAP = 30.0
+
 # How far a wire must run straight out of an IO port before it may turn. A
 # port is the edge of the sheet, and the eye reads it as a label with a wire
 # leaving it -- so a wire that turns the moment it clears the connector reads
@@ -205,6 +210,7 @@ def as_data():
     "cellGapX": CELL_GAP_X,
     "cellGapY": CELL_GAP_Y,
     "cellMinGap": CELL_MIN_GAP,
+    "containerGap": CONTAINER_GAP,
     "pinGrid": PIN_GRID,
     "portStub": PORT_STUB,
     "portGap": PORT_GAP,

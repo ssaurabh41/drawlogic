@@ -1045,6 +1045,7 @@ most one group.
 | `x`, `y`, `w`, `h` | the box, on the sheet |
 | `padding` | room kept round the contents by Fit to contents; 20 |
 | `headerHeight` | depth of the band the title sits in; 32, and 0 for no band or title |
+| `layout` | how Auto layout arranges what it holds: `{"mode": "grid", "columns": 2, "gap": 30}`; `mode` is `flow`, `row`, `column` or `grid`, `direction` `tb` turns flow top to bottom. Left out, flow left to right; see [Laying out a drawing with containers](#laying-out-a-drawing-with-containers) |
 | `style` | `fill`, `stroke`, `strokeWidth`, `headerFill` (`none` for no band), `titleFill` |
 
 Cells, shapes and containers say which container holds them with `parentId`,
@@ -1374,6 +1375,56 @@ it was, so applying it would take your edit with it -- which it used to do,
 recoverable only by noticing and pressing undo. On a large drawing the round
 trip is a couple of seconds, which is long enough to type something into.
 Press Auto layout again once you have stopped.
+
+### Laying out a drawing with containers
+
+A drawing with containers is laid out the way it is built: from the inside
+out. The innermost containers are arranged first and their boundaries fitted
+round what they hold, header and padding included; each is then one
+rectangle among its neighbours when the container round it is arranged, and
+so on up to the sheet. A GPC is laid out as its TPCs, each TPC as its SMs,
+and moving a TPC moves its SMs with it -- nothing ever leaves the container
+it is in. The real wires are routed once everything is placed, and they
+still name the real pins: the stand-ins used along the way are thrown away.
+
+How each container arranges what it holds is its **Layout** in the
+properties panel:
+
+| Arrange | What it does |
+|---|---|
+| **Flow** (the default) | the layered layout above, on that one level: the cells the container holds directly, and each container inside it as a single block with a pin wherever a wire crosses its edge. A wire running from inside one block to inside another ranks the two blocks; a wire staying inside one block, or leaving the level, has no say. **Direction** is left to right, or top to bottom -- the same columns, laid out as rows |
+| **Row**, **Column** | packed one after another, top-aligned or left-aligned, in the order they read now |
+| **Grid** | packed line by line, **Columns** wide, or as square as it can be with that left empty |
+
+**Gap** is the room between what it holds; left empty, it is the usual for
+the arrangement (`CONTAINER_GAP`, 30, for packing; the cell gaps for flow).
+Row, column and grid take their order from where things already are --
+across, down, line by line -- so laying out twice changes nothing, and
+dragging one SM ahead of another and laying out again is how you reorder
+them.
+
+**Auto layout** lays out the whole drawing. **Layout contents** (in the
+panel, or the Container menu) lays out one container's contents, every level
+inside it, and leaves everything outside it alone, its own top left corner
+included; the container may grow past its neighbours, and an Auto layout
+afterwards puts that right. In a drawing with containers, selected cells are
+not laid out on their own, as they are in a flat drawing: arranged without
+their containers, they would be pulled out of the boxes they sit in.
+
+A pinned cell never moves, and neither does any container holding one --
+its contents are still arranged round the pin -- and the message after the
+layout names those containers, so a container that did not move is not a
+puzzle. Cells keep the way they face. Shapes a container holds keep their
+place relative to what it holds; shapes on the sheet itself, such as a page
+title or a legend, stay where they are. All of it is one undo step, and the
+Cancel button and the protection against a drawing edited while it was
+being laid out work as for any layout.
+
+`drawlogic layout FILE` does the same as Auto layout.
+
+The router does not know about containers yet: a wire may run along a
+header band, or through the narrow gap between two packed blocks. Moving a
+container's padding up gives it more room.
 
 ### Tidy up
 
@@ -1980,7 +2031,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers |
-| `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export |
+| `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over) |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |

@@ -24,7 +24,9 @@ could not do for you. Four passes:
 
 Only cells move. Shapes -- bands, captions, dividers -- are left where they
 are, because there is no way to know which cell one belongs to; expect to
-nudge them after a layout.
+nudge them after a layout. A drawing with containers is the exception on
+both counts: it is laid out one container at a time, innermost first, and a
+shape a container holds goes with it -- see the containers section at the end.
 
 Usage:
 
@@ -37,11 +39,12 @@ Usage:
 import json
 import math
 
+from . import containers
 from . import drc
 from . import routing
 from .doc import Document, loads_of, repeated_ids
 from .geometry import corners
-from .symbols import default_registry
+from .symbols import Symbol, default_registry
 
 # Room between columns, and between cells stacked in one column. The numbers
 # themselves are drawing rules, so they live in drc.py with the rest.
@@ -89,26 +92,32 @@ class Result(object):
 
 
 def arrange(doc, registry=None, gap_x=GAP_X, gap_y=GAP_Y, margin=MARGIN,
-            only=None):
+            only=None, container=None, turn=True):
   """Lay the drawing out left to right. Modifies `doc` and returns a Result.
 
   `only` names the cells to arrange, and a cell whose `pinned` is true is
   never moved. With either, the chosen cells are laid out as a group of their
   own -- see _arrange_part -- and everything else stays exactly where it is.
+
+  A drawing with containers is laid out level by level instead, innermost
+  first -- see _arrange_nested -- and `container` names one to lay out the
+  contents of, leaving everything outside it where it is.
   """
   registry = registry or default_registry()
   repeated = repeated_ids(doc)
   if repeated:
     raise ValueError("ids must be unique to lay a drawing out: %s is used "
                      "more than once" % ", ".join(repeated))
+  if container is not None or (doc.containers and only is None):
+    return _arrange_nested(doc, registry, gap_x, gap_y, margin, container)
   chosen = set(c.get("id") for c in doc.cells
                if (only is None or c.get("id") in only) and not c.get("pinned"))
   if len(chosen) < len(doc.cells):
-    return _arrange_part(doc, registry, chosen, gap_x, gap_y, margin)
-  return _arrange_all(doc, registry, gap_x, gap_y, margin)
+    return _arrange_part(doc, registry, chosen, gap_x, gap_y, margin, turn)
+  return _arrange_all(doc, registry, gap_x, gap_y, margin, turn)
 
 
-def _arrange_part(doc, registry, chosen, gap_x, gap_y, margin):
+def _arrange_part(doc, registry, chosen, gap_x, gap_y, margin, turn=True):
   """Lay out some cells and leave the rest alone.
 
   The chosen cells, and the wires wholly between them, are laid out as a
@@ -143,7 +152,7 @@ def _arrange_part(doc, registry, chosen, gap_x, gap_y, margin):
                    "title": doc.title, "canvas": canvas,
                    "cells": moving, "nets": inner, "shapes": [],
                    "groups": []}, doc.path)
-  result = _arrange_all(part, registry, gap_x, gap_y, margin)
+  result = _arrange_all(part, registry, gap_x, gap_y, margin, turn)
 
   now = _extent(registry, doc, moving)
   dx, dy = was[0] - now[0], was[1] - now[1]
@@ -180,7 +189,7 @@ def _near(box, dx, dy, other, gap=drc.CELL_MIN_GAP):
               or other[1] + other[3] + gap <= box[1] + dy)
 
 
-def _arrange_all(doc, registry, gap_x, gap_y, margin):
+def _arrange_all(doc, registry, gap_x, gap_y, margin, turn=True):
   cells = [c for c in doc.cells if registry.for_cell(c) is not None]
   if not cells:
     return Result(0, 0, 0)
@@ -191,7 +200,10 @@ def _arrange_all(doc, registry, gap_x, gap_y, margin):
   gap_x = max(gap_x, drc.CELL_MIN_GAP)
   gap_y = max(gap_y, drc.CELL_MIN_GAP)
 
-  _face_forward(cells)
+  # `turn` is off inside a container: there a cell keeps the way it faces,
+  # which was chosen by whoever drew the block, and is only moved.
+  if turn:
+    _face_forward(cells)
   _forget_waypoints(doc)
   # The search below routes the drawing dozens of times to compare
   # arrangements, and it has to do that the same way every time: with the flag
@@ -244,7 +256,7 @@ def _arrange_all(doc, registry, gap_x, gap_y, margin):
   _normalise(doc, registry, cells, margin, top_at)
   _choose_forking(doc, registry)
   order = _refine(doc, registry, cells, edges, ranks, best[1],
-                  gap_x, gap_y, margin, best[2], top_at)
+                  gap_x, gap_y, margin, best[2], top_at, turn)
   _level_ports(doc, registry, cells, margin, top_at)
   _fit(doc, registry, margin)
   # Onto the grid first, because moving a cell changes which way its wires
@@ -382,7 +394,7 @@ REFINE_SWEEPS = 4
 
 
 def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
-            settle=True, top_at=None):
+            settle=True, top_at=None, turn=True):
   """Swap neighbours within a column while that makes the drawing better.
 
   Ordering by median neighbour position settles quickly and reads well, but it
@@ -460,7 +472,7 @@ def _refine(doc, registry, cells, edges, ranks, order, gap_x, gap_y, margin,
   # A turned gate changes what suits the cells either side of it, so those
   # columns get their swaps again -- only those: the rest of the drawing
   # has not changed, and sweeping it again doubled the time for nothing.
-  turned = turns()
+  turned = turns() if turn else set()
   if turned:
     swaps(sorted(set(c for rank in turned for c in (rank - 1, rank, rank + 1)
                      if 0 <= c < len(state["order"]))), sweeps=1)
@@ -1513,3 +1525,403 @@ def _fit(doc, registry, margin):
 def _size_sheet(doc, box, margin):
   doc.canvas["width"] = int(box[0] + box[2] + margin)
   doc.canvas["height"] = int(box[1] + box[3] + margin)
+
+
+# ---- containers ----
+#
+# A drawing with containers is laid out the way it is built: from the inside
+# out. Each container's own contents are arranged first and its boundary
+# fitted round them; it is then one rectangle among its siblings when the
+# container round it is arranged, and so on up to the sheet. A GPC is laid out
+# as its TPCs, a TPC as its SMs, and moving a TPC moves its SMs with it.
+#
+# How a container arranges what it holds is its `layout`:
+#
+#   "flow"   the layered layout above, run on a stand-in drawing of that one
+#            level: the cells it holds directly, and each container inside it
+#            as a single block with a pin wherever a wire crosses its edge.
+#            Left to right by default; "direction": "tb" puts the columns
+#            the layered layout finds into rows instead.
+#   "row", "column", "grid"
+#            packed in the order they already read in, `gap` apart; a grid
+#            is `columns` wide, or as square as it can be.
+#
+# The stand-in drawing is thrown away. Nothing in it is saved, and the real
+# wires never stop naming the real pins: once everything is placed they are
+# routed from scratch, as every layout routes them.
+#
+# Pinned things stay. A pinned cell is never moved, and a container holding
+# one is not moved either -- its contents are still arranged round the pin --
+# and the layout says so, since otherwise it looks like a container ignored.
+# Shapes a container holds keep their place relative to its contents; shapes
+# on the sheet itself -- a page title, a legend -- are left where they are.
+# Cells keep the way they face: nobody asked for a turned SM.
+
+LAYOUT_MODES = ("flow", "row", "column", "grid")
+
+
+def layout_of(box):
+  """(mode, direction, gap or None, columns or None) for a container."""
+  spec = box.get("layout") if isinstance(box.get("layout"), dict) else {}
+  mode = spec.get("mode") if spec.get("mode") in LAYOUT_MODES else "flow"
+  direction = "tb" if spec.get("direction") == "tb" else "lr"
+  gap = spec.get("gap")
+  gap = float(gap) if (isinstance(gap, (int, float)) and not isinstance(gap, bool)
+                       and gap >= 0) else None
+  columns = spec.get("columns")
+  columns = int(columns) if (isinstance(columns, (int, float))
+                             and not isinstance(columns, bool) and columns >= 1) else None
+  return mode, direction, gap, columns
+
+
+class NestedResult(object):
+  """What a layout of a drawing with containers did."""
+
+  def __init__(self):
+    self.containers = 0
+    self.cells = 0
+    self.feedback = 0
+    self.held = []
+
+  def __str__(self):
+    parts = ["%d cell%s in %d container%s"
+             % (self.cells, "" if self.cells == 1 else "s",
+                self.containers, "" if self.containers == 1 else "s")]
+    if self.feedback:
+      parts.append("%d feedback wire%s"
+                   % (self.feedback, "" if self.feedback == 1 else "s"))
+    text = ", ".join(parts)
+    if self.held:
+      text += "; %s stayed put: %s a pinned cell" % (
+        ", ".join(self.held), "it holds" if len(self.held) == 1 else "they hold")
+    return text
+
+
+def _arrange_nested(doc, registry, gap_x, gap_y, margin, only=None):
+  """Lay out a drawing with containers, or one container's contents.
+
+  `only` is a container id: then that container and what is inside it are
+  arranged and nothing outside it moves -- its own top left corner included,
+  so it stays where it sits among its neighbours.
+  """
+  boxes = containers.by_id(doc)
+  if only is not None and only not in boxes:
+    raise ValueError("no container %r to lay out" % only)
+  result = NestedResult()
+  inside = containers.descendants(doc, {only}) if only is not None else None
+  pinned = set(c.get("id") for c in doc.cells if c.get("pinned"))
+
+  # Innermost first: the paint order puts a container before what it holds,
+  # so backwards puts everything it holds before it.
+  for box in reversed(containers.paint_order(doc)):
+    if inside is not None and box.get("id") not in inside:
+      continue
+    _arrange_level(doc, registry, box, gap_x, gap_y, margin, pinned, result)
+    result.containers += 1
+
+  if only is None:
+    _arrange_level(doc, registry, None, gap_x, gap_y, margin, pinned, result)
+    for net in doc.nets:
+      for load in loads_of(net):
+        load["waypoints"] = []
+    needed = doc.content_bbox(registry)
+    if needed is not None:
+      doc.canvas["width"] = max(doc.canvas.get("width", 0),
+                                int(needed[0] + needed[2] + margin))
+      doc.canvas["height"] = max(doc.canvas.get("height", 0),
+                                 int(needed[1] + needed[3] + margin))
+  else:
+    for net in doc.nets:
+      ends = [net.get("from")] + loads_of(net)
+      if any(isinstance(end, dict) and end.get("cell") in inside for end in ends):
+        for load in loads_of(net):
+          load["waypoints"] = []
+  result.cells = len([c for c in doc.cells if inside is None or c.get("id") in inside])
+  return result
+
+
+def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
+  """Arrange what one container (or, for None, the sheet) holds directly."""
+  owner_id = owner.get("id") if owner is not None else None
+  boxes = containers.by_id(doc)
+
+  def held_by_owner(item):
+    parent = item.get("parentId")
+    if owner is None:
+      return parent is None or parent not in boxes
+    return parent == owner_id
+
+  nodes = []
+  for cell in doc.cells:
+    if held_by_owner(cell) and registry.for_cell(cell) is not None:
+      nodes.append(("cell", cell))
+  for box in doc.containers:
+    if box is not owner and held_by_owner(box):
+      nodes.append(("container", box))
+  if not nodes:
+    return
+
+  fixed = set()
+  for kind, item in nodes:
+    if kind == "cell" and item.get("pinned"):
+      fixed.add(item["id"])
+    elif kind == "container" and containers.descendants(doc, {item["id"]}) & pinned:
+      fixed.add(item["id"])
+      result.held.append(item.get("title") or item["id"])
+
+  before = {item["id"]: containers.item_box(doc, registry, kind, item)
+            for kind, item in nodes}
+  if owner is None:
+    origin = None
+  else:
+    pad = containers.padding(owner)
+    origin = (float(owner["x"]) + pad,
+              float(owner["y"]) + containers.header(owner) + pad)
+
+  mode, direction, gap, columns = (layout_of(owner) if owner is not None
+                                   else ("flow", "lr", None, None))
+  if mode == "flow":
+    after = _flow_level(doc, registry, nodes, fixed, origin, direction,
+                        gap if gap is not None else gap_x,
+                        gap if gap is not None else gap_y, margin, result)
+  else:
+    after = _pack_level(nodes, before, fixed, origin, mode, columns,
+                        gap if gap is not None else drc.CONTAINER_GAP)
+
+  for kind, item in nodes:
+    old, new = before[item["id"]], after.get(item["id"])
+    if new is None:
+      continue
+    dx, dy = round(new[0] - old[0], 6), round(new[1] - old[1], 6)
+    if dx or dy:
+      containers.move(doc, {item["id"]}, dx, dy)
+
+  # Notes held by this container keep their place relative to its contents.
+  if owner is not None:
+    was = _corner(before.values())
+    now = _corner(after.values())
+    if was is not None and now is not None and was != now:
+      notes = set(s.get("id") for s in doc.shapes if s.get("parentId") == owner_id)
+      if notes:
+        containers.move(doc, notes, now[0] - was[0], now[1] - was[1])
+    containers.fit(doc, registry, owner)
+
+
+def _corner(boxes):
+  boxes = [b for b in boxes if b is not None]
+  if not boxes:
+    return None
+  return (min(b[0] for b in boxes), min(b[1] for b in boxes))
+
+
+def _pack_level(nodes, before, fixed, origin, mode, columns, gap):
+  """Row, column or grid: in the order they read now, `gap` apart.
+
+  The order is taken from where things already are -- across for a row,
+  down for a column, line by line for a grid -- so packing a second time
+  changes nothing, and dragging one SM ahead of another and laying out again
+  is how the order is changed.
+  """
+  movable = [(kind, item) for kind, item in nodes if item["id"] not in fixed]
+  if not movable:
+    return {}
+  if origin is None:
+    origin = _corner([before[item["id"]] for _kind, item in movable])
+
+  def reading(entry):
+    x, y = (round(v, 3) for v in before[entry[1]["id"]][:2])
+    return ((x, y) if mode == "row" else (y, x)) + (entry[1]["id"],)
+
+  movable.sort(key=reading)
+  sizes = [before[item["id"]][2:] for _kind, item in movable]
+  count = len(movable)
+  if mode == "row":
+    per_row = count
+  elif mode == "column":
+    per_row = 1
+  else:
+    per_row = columns or int(math.ceil(math.sqrt(count)))
+  widths = [0.0] * per_row
+  heights = [0.0] * int(math.ceil(count / float(per_row)))
+  for index, (w, h) in enumerate(sizes):
+    widths[index % per_row] = max(widths[index % per_row], w)
+    heights[index // per_row] = max(heights[index // per_row], h)
+
+  placed = {}
+  for index, (_kind, item) in enumerate(movable):
+    column, line = index % per_row, index // per_row
+    x = origin[0] + sum(widths[:column]) + gap * column
+    y = origin[1] + sum(heights[:line]) + gap * line
+    if mode == "row":
+      x = origin[0] + sum(w for w, _h in sizes[:index]) + gap * index
+    elif mode == "column":
+      y = origin[1] + sum(h for _w, h in sizes[:index]) + gap * index
+    placed[item["id"]] = (x, y) + tuple(sizes[index])
+
+  # Clear of anything pinned: the packed group moves down, whole, until it
+  # touches nothing that stayed.
+  stays = [before[item["id"]] for _kind, item in nodes if item["id"] in fixed]
+  step = max(drc.PIN_GRID, 1.0)
+  dy = 0.0
+  for _attempt in range(4000):
+    if not any(_near(box, 0, dy, other, gap) for box in placed.values() for other in stays):
+      break
+    dy += step
+  return {key: (b[0], b[1] + dy, b[2], b[3]) for key, b in placed.items()}
+
+
+def _flow_level(doc, registry, nodes, fixed, origin, direction, gap_x, gap_y,
+                margin, result):
+  """The layered layout, run on a stand-in drawing of one level.
+
+  Each container among `nodes` becomes a block its own size with a pin on its
+  edge wherever a wire crosses into it, placed on the side the pin inside
+  faces; each cell is itself. A wire is kept if it joins two different nodes
+  at this level, and dropped if it stays inside one or leaves the level
+  altogether -- it says nothing about how this level should be arranged.
+
+  Returns {id: (x, y, w, h)} for where each node's box goes.
+  """
+  scale = doc.symbol_scale
+  stand_ins = registry.copy()
+  node_of = {}
+  for kind, item in nodes:
+    if kind == "cell":
+      node_of[item["id"]] = item["id"]
+    else:
+      for inner in containers.descendants(doc, {item["id"]}):
+        node_of.setdefault(inner, item["id"])
+  sizes = {item["id"]: containers.item_box(doc, registry, kind, item)
+           for kind, item in nodes}
+  kinds = {item["id"]: kind for kind, item in nodes}
+
+  pins = {item["id"]: [] for kind, item in nodes if kind == "container"}
+  pin_names = {}
+
+  def stand_in_pin(node, end):
+    key = (end["cell"], end.get("pin"))
+    if key in pin_names:
+      return pin_names[key]
+    at = routing.endpoint_position(doc, end, registry)
+    faces = routing.endpoint_direction(doc, end, registry) or (1.0, 0.0)
+    cell = doc.cell(end["cell"])
+    symbol = registry.for_cell(cell)
+    pin = symbol.pin(end.get("pin")) if symbol is not None else None
+    x, y, w, h = sizes[node]
+    rx = min(max((at[0] if at else x) - x, 0.0), w)
+    ry = min(max((at[1] if at else y) - y, 0.0), h)
+    if faces[0] < 0:
+      rx = 0.0
+    elif faces[0] > 0:
+      rx = w
+    elif faces[1] < 0:
+      ry = 0.0
+    else:
+      ry = h
+    name = "p%d" % (len(pins[node]) + 1)
+    pins[node].append({"name": name, "x": rx / scale, "y": ry / scale,
+                       "dir": (pin or {}).get("dir", "inout"), "width": 0})
+    pin_names[key] = name
+    return name
+
+  nets = []
+  for net in doc.nets:
+    mapped = []
+    for end in [net.get("from")] + loads_of(net):
+      if not isinstance(end, dict) or end.get("cell") not in node_of:
+        mapped.append(None)
+        continue
+      node = node_of[end["cell"]]
+      mapped.append({"cell": node, "pin": end.get("pin") if kinds[node] == "cell"
+                     else stand_in_pin(node, end)})
+    driver = mapped[0]
+    if driver is None:
+      continue
+    loads = [dict(load, waypoints=[]) for load in mapped[1:]
+             if load is not None and load["cell"] != driver["cell"]]
+    if loads:
+      nets.append({"id": net.get("id"), "from": driver, "to": loads})
+
+  cells = []
+  for kind, item in nodes:
+    if kind == "cell":
+      copy = json.loads(json.dumps(item))
+      copy.pop("parentId", None)
+    else:
+      x, y, w, h = sizes[item["id"]]
+      cw, ch = w / scale, h / scale
+      type_id = "__container__:%s" % item["id"]
+      stand_ins.add(Symbol(type_id, {
+        "name": item.get("title") or item["id"], "category": "containers",
+        "size": [cw, ch], "pins": pins[item["id"]],
+        "draw": [{"op": "rect", "x": 0, "y": 0, "w": cw, "h": ch, "role": "body"}],
+      }), listed=False)
+      copy = {"id": item["id"], "type": type_id, "w": cw, "h": ch,
+              "x": x - cw * (1 - scale) / 2.0, "y": y - ch * (1 - scale) / 2.0,
+              "rotate": 0, "mirror": False, "style": {}}
+    if item["id"] in fixed:
+      copy["pinned"] = True
+    else:
+      copy.pop("pinned", None)
+    cells.append(copy)
+
+  canvas = json.loads(json.dumps(doc.canvas))
+  canvas.pop("forkLate", None)
+  # On the sheet itself the notes at the top are headings the drawing has to
+  # stay under, as in any layout; inside a container there are none.
+  notes = ([json.loads(json.dumps(s)) for s in doc.shapes
+            if not s.get("parentId")] if origin is None else [])
+  part = Document({"format": doc.data.get("format"),
+                   "version": doc.data.get("version"), "title": doc.title,
+                   "canvas": canvas, "cells": cells, "nets": nets,
+                   "shapes": notes, "groups": []}, doc.path)
+
+  if direction == "tb" and not fixed:
+    _rows_of_ranks(part, stand_ins, gap_x, gap_y)
+  elif fixed:
+    found = arrange(part, stand_ins, gap_x, gap_y, margin, turn=False)
+    result.feedback += getattr(found, "feedback", 0)
+  else:
+    found = _arrange_all(part, stand_ins, gap_x, gap_y, margin, turn=False)
+    result.feedback += found.feedback
+
+  placed = {cell["id"]: containers.item_box(part, stand_ins, "cell", cell)
+            for cell in part.cells}
+  if origin is not None and not fixed:
+    corner = _corner(placed.values())
+    dx, dy = origin[0] - corner[0], origin[1] - corner[1]
+    placed = {key: (b[0] + dx, b[1] + dy, b[2], b[3]) for key, b in placed.items()}
+  if origin is None:
+    for key in ("width", "height", "forkLate"):
+      if key in part.canvas:
+        doc.canvas[key] = part.canvas[key]
+      elif key == "forkLate":
+        doc.canvas.pop(key, None)
+  return placed
+
+
+def _rows_of_ranks(part, registry, gap_x, gap_y):
+  """Flow top to bottom: the layered layout's columns, laid out as rows.
+
+  The ranking and ordering are the layered layout's own, so what drives what
+  still reads in order; each rank becomes a row, centred on the widest.
+  """
+  cells = part.cells
+  edges, _feedback = _edges(part, registry, cells)
+  ranks = _ranks(part, registry, cells, edges)
+  order = _order(cells, edges, ranks)
+  by_id = {cell["id"]: cell for cell in cells}
+  rows = []
+  for column in order:
+    boxes = [(by_id[i], _box(registry, part, by_id[i])) for i in column]
+    width = sum(b[2] for _c, b in boxes) + gap_x * max(0, len(boxes) - 1)
+    rows.append((boxes, width, max(b[3] for _c, b in boxes)))
+  widest = max(width for _boxes, width, _h in rows)
+  y = 0.0
+  for boxes, width, height in rows:
+    x = (widest - width) / 2.0
+    for cell, box in boxes:
+      cell["x"] += x - box[0]
+      cell["y"] += y - box[1]
+      x += box[2] + gap_x
+    y += height + gap_y

@@ -1125,6 +1125,35 @@ export function removeFromContainer(doc, ids) {
   return moved > 0 && moved;
 }
 
+// How a container arranges its contents when it is laid out: `mode` is flow,
+// row, column or grid, `direction` lr or tb (flow only), `gap` a distance and
+// `columns` a count (grid only). The default -- flow, left to right, the
+// usual gap, as square as it can be -- is left out of the file rather than
+// written into it, and an empty `layout` goes altogether.
+export const LAYOUT_MODES = ["flow", "row", "column", "grid"];
+
+export function setContainerLayout(doc, id, key, value) {
+  const box = containerById(doc, id);
+  if (!box) return false;
+  const layout = { ...(box.layout || {}) };
+  if (key === "mode") {
+    if (!LAYOUT_MODES.includes(value)) return false;
+    if (value === "flow") delete layout.mode;
+    else layout.mode = value;
+  } else if (key === "direction") {
+    if (value === "tb") layout.direction = "tb";
+    else delete layout.direction;
+  } else if (key === "gap" || key === "columns") {
+    const number = Number(value);
+    if (String(value).trim() === "") delete layout[key];
+    else if (!Number.isFinite(number) || number < (key === "columns" ? 1 : 0)) return false;
+    else layout[key] = key === "columns" ? Math.trunc(number) : number;
+  } else return false;
+  if (Object.keys(layout).length) box.layout = layout;
+  else delete box.layout;
+  return true;
+}
+
 // Ungroup container: the boundary goes and what it held stays where it is.
 export function ungroupContainers(doc, ids) {
   const boxes = new Set([...ids].filter((id) => containerById(doc, id)));

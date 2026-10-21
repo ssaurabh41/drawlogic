@@ -444,12 +444,17 @@ class Handler(BaseHTTPRequestHandler):
     if only is not None and not (isinstance(only, list)
                                  and all(isinstance(i, str) for i in only)):
       return self._fail(422, "options.only must be a list of cell ids")
+    # Lay out one container's contents, leaving the rest of the drawing alone.
+    container = options.get("container")
+    if container is not None and not isinstance(container, str):
+      return self._fail(422, "options.container must be a container id")
     try:
       result = layout.arrange(
         document, registry,
         gap_x=float(options.get("gapX", layout.GAP_X)),
         gap_y=float(options.get("gapY", layout.GAP_Y)),
-        only=set(only) if only is not None else None)
+        only=set(only) if only is not None else None,
+        container=container)
     except (TypeError, ValueError) as exc:
       return self._fail(422, "cannot lay out: %s" % exc)
 

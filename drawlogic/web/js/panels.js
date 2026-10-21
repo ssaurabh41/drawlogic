@@ -834,6 +834,8 @@ export class Inspector {
     }
     root.appendChild(row("", actions));
 
+    this.renderContainerLayout(box);
+
     root.appendChild(element("div", "ptitle", "Appearance"));
     const style = box.style || {};
     for (const [key, label] of [["fill", "Fill"], ["headerFill", "Header"],
@@ -841,6 +843,69 @@ export class Inspector {
       root.appendChild(row(label, this.colourControl(key, style[key], defaults[key],
                                                      key === "headerFill")));
     }
+  }
+
+  // How the container arranges what it holds when it is laid out. Only what
+  // the chosen arrangement uses is shown: a direction for flow, a column
+  // count for a grid.
+  renderContainerLayout(box) {
+    const root = this.root;
+    const spec = box.layout || {};
+    const mode = model.LAYOUT_MODES.includes(spec.mode) ? spec.mode : "flow";
+    root.appendChild(element("div", "ptitle", "Layout"));
+
+    const set = (key, value, label) => {
+      let accepted = false;
+      this.store.mutate(label, (doc) => {
+        accepted = model.setContainerLayout(doc, box.id, key, value);
+        return accepted;
+      });
+      if (!accepted) this.onRefuse(`"${value}" is not a usable value`);
+      this.onChange();
+      this.render();
+    };
+    const select = (options, current, key, label) => {
+      const field = document.createElement("select");
+      field.className = "pinput";
+      for (const [value, text] of options) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = text;
+        field.appendChild(option);
+      }
+      field.value = current;
+      field.addEventListener("change", () => set(key, field.value, label));
+      return field;
+    };
+
+    root.appendChild(row("Arrange", select(
+      [["flow", "Flow (by wiring)"], ["row", "Row"], ["column", "Column"], ["grid", "Grid"]],
+      mode, "mode", "layout")));
+    if (mode === "flow") {
+      root.appendChild(row("Direction", select(
+        [["lr", "Left to right"], ["tb", "Top to bottom"]],
+        spec.direction === "tb" ? "tb" : "lr", "direction", "layout direction")));
+    }
+    const gap = input(spec.gap ?? "", "number");
+    gap.min = "0";
+    gap.placeholder = "auto";
+    gap.title = "room between what it holds; empty for the usual";
+    gap.addEventListener("change", () => set("gap", gap.value, "layout gap"));
+    root.appendChild(row("Gap", gap));
+    if (mode === "grid") {
+      const columns = input(spec.columns ?? "", "number");
+      columns.min = "1";
+      columns.step = "1";
+      columns.placeholder = "auto";
+      columns.title = "how many across; empty for as square as it can be";
+      columns.addEventListener("change", () => set("columns", columns.value, "grid columns"));
+      root.appendChild(row("Columns", columns));
+    }
+    const go = element("button", "linkish", "Layout contents");
+    go.type = "button";
+    go.title = "arrange what this container holds, innermost first; nothing outside it moves";
+    go.addEventListener("click", () => this.onCommand && this.onCommand("container-layout"));
+    root.appendChild(row("", go));
   }
 
   renderCell(cell) {

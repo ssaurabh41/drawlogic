@@ -58,7 +58,7 @@ SHAPE_KEYS = ["id", "parentId", "kind", "x", "y", "w", "h", "points", "text", "t
               "textVAlign", "copies", "rotate", "z", "style"]
 GROUP_KEYS = ["id", "label", "members"]
 CONTAINER_KEYS = ["id", "parentId", "title", "x", "y", "w", "h", "padding",
-                  "headerHeight", "style"]
+                  "headerHeight", "layout", "style"]
 
 SHAPE_KINDS = ("rect", "ellipse", "line", "polygon", "polyline", "text")
 
@@ -687,6 +687,8 @@ class Document(object):
         for key in ("w", "h"):
           _number(box, key, "%s.%s" % (where, key), positive=True)
         _object(box, "style", "%s.style" % where)
+        if "layout" in box:
+          _object(box, "layout", "%s.layout" % where)
     return self
 
   # ---- geometry ----
@@ -1017,6 +1019,16 @@ def _containment_issues(doc):
         else:
           issues.append(Issue("error", where,
                               "parent container %r does not exist" % parent))
+
+  # How a container arranges its contents. An unknown arrangement is laid
+  # out as flow, so it is worth a warning rather than an error.
+  for box in doc.containers:
+    spec = box.get("layout") or {}
+    mode = spec.get("mode", "flow")
+    if mode not in ("flow", "row", "column", "grid"):
+      issues.append(Issue("warning", "container %s" % box.get("id"),
+                          "unknown layout %r is laid out as flow (expected "
+                          "flow, row, column or grid)" % (mode,)))
 
   reported = set()
   for box in doc.containers:

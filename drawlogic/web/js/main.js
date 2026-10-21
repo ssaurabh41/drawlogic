@@ -899,7 +899,7 @@ function runCommand(command) {
     front: () => apply("z-order", (d, ids) => model.bringToFront(d, ids),
                        "brought to front"),
     back: () => apply("z-order", (d, ids) => model.sendToBack(d, ids), "sent to back"),
-    layout: autoLayout,
+    layout: () => autoLayout(),
     tidy: () => {
       if (!selection.size) {
         say("select the cells to tidy", "bad");
@@ -969,6 +969,14 @@ function runCommand(command) {
       else say("nothing selected is in a container", "warn");
     },
     "container-move": moveIntoContainerAsked,
+    "container-layout": () => {
+      const boxes = selection.items().filter(model.isContainer);
+      if (boxes.length !== 1) {
+        say("select one container to lay out its contents", "bad");
+        return;
+      }
+      autoLayout(boxes[0].id);
+    },
   };
 
   if (command.startsWith("align-")) {
@@ -1557,7 +1565,7 @@ async function copyPng() {
 // -- see server._layout -- so there is one implementation of it, the same way
 // there is one renderer. A layout is not a gesture, so the round trip costs
 // nothing, and the answer lands as a single undo step.
-async function autoLayout() {
+async function autoLayout(containerId = null) {
   if (!store.doc) return;
   if (!store.doc.cells.length) {
     say("nothing to lay out", "bad");
@@ -1567,10 +1575,18 @@ async function autoLayout() {
   // the button is the one people press twice when nothing appears to happen.
   // Two or more cells selected: lay out just those, leaving the rest where
   // it is. One selected is almost always an accident, not a request.
+  //
+  // In a drawing with containers the parts are the containers: a selection
+  // of loose cells would be pulled out of whatever boxes they sit in, so the
+  // button lays out the whole drawing, and Layout contents one container.
+  const nested = (store.doc.containers || []).length > 0;
   const chosen = store.doc.cells.filter((c) => selection.has(c.id)).map((c) => c.id);
-  const only = chosen.length >= 2 ? chosen : null;
-  const done = busy(only ? `laying out ${only.length} selected cells...`
-                         : "laying out...");
+  const only = !nested && !containerId && chosen.length >= 2 ? chosen : null;
+  const box = containerId ? model.containerById(store.doc, containerId) : null;
+  const partial = Boolean(only || box);
+  const done = busy(box ? `laying out ${box.title || box.id}...`
+                    : only ? `laying out ${only.length} selected cells...`
+                      : "laying out...");
   const button = document.querySelector('[data-command="layout"]');
   if (button) button.disabled = true;
   // A large drawing can take a while, and waiting was the only option. The
@@ -1599,7 +1615,7 @@ async function autoLayout() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ doc: store.doc, source: asked.path,
-                             options: only ? { only } : {} }),
+                             options: box ? { container: box.id } : only ? { only } : {} }),
       signal: layoutAbort.signal,
     });
     if (!store.matches(asked, { edits: false })) return;
@@ -1609,7 +1625,7 @@ async function autoLayout() {
       say("edited while laying out -- layout dropped, press it again", "bad");
       return;
     }
-    store.mutate(only ? "lay out selection" : "auto layout", (doc) => {
+    store.mutate(box ? "lay out container" : only ? "lay out selection" : "auto layout", (doc) => {
       // Replacing the contents rather than the object keeps every other
       // reference to the document valid.
       for (const key of Object.keys(doc)) delete doc[key];
@@ -1617,13 +1633,17 @@ async function autoLayout() {
     });
     // A partial layout keeps its cells selected and the view where it was:
     // the point was to tidy one part of a drawing you are looking at.
-    if (!only) selection.clear();
+    if (!partial) selection.clear();
     syncControls();
     redraw();
     inspector.render();
-    if (!only) viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
-    const stranded = result.shapes && !only
-      ? `; ${result.shapes} shape(s) stayed put and may need nudging` : "";
+    if (!partial) viewport.fit(store.doc.canvas.width, store.doc.canvas.height);
+    // In a drawing with containers, notes inside one move with it; only
+    // the ones on the sheet itself stay where they were.
+    const loose = nested ? (store.doc.shapes || []).filter((sh) => sh.parentId === undefined).length
+      : result.shapes;
+    const stranded = loose && !partial
+      ? `; ${loose} shape(s) on the sheet stayed put and may need nudging` : "";
     say(`${result.note}${stranded}`, "good");
   } catch (error) {
     if (error.name === "AbortError") say("layout cancelled; nothing changed", "warn");

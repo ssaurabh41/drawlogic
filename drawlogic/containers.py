@@ -111,6 +111,21 @@ def paint_order(doc):
   return order
 
 
+def move(doc, ids, dx, dy):
+  """Move `ids`, and everything inside any of them, by (dx, dy) -- each once."""
+  moving = descendants(doc, ids)
+  for _kind, item in _owned(doc):
+    if item.get("id") not in moving:
+      continue
+    if isinstance(item.get("points"), list):
+      item["points"] = [[p[0] + dx, p[1] + dy] for p in item["points"]]
+    if "x" in item:
+      item["x"] = round(item["x"] + dx, 6)
+    if "y" in item:
+      item["y"] = round(item["y"] + dy, 6)
+  return moving
+
+
 def item_box(doc, registry, kind, item):
   """(x, y, w, h) of a cell's body, a shape or a container, or None."""
   if kind == "container":
@@ -161,7 +176,10 @@ def fit(doc, registry, box):
   need = needed_box(doc, registry, box)
   if need is None:
     return False
-  box["x"], box["y"], box["w"], box["h"] = need
+  # Rounded, as layout rounds what it places: a box refitted round the same
+  # contents must come out the same to the last digit, or laying a drawing
+  # out twice writes 449.9999999999998 where the first wrote 450.
+  box["x"], box["y"], box["w"], box["h"] = (round(v, 6) for v in need)
   return True
 
 

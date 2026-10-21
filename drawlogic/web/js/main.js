@@ -181,7 +181,7 @@ const context = {
   say,
   setTool: (name) => setTool(name),
   editText: (id, fresh) => editTextInPlace(id, fresh),
-  renameContainer: (id) => renameContainer(id),
+  renameContainer: (id, fresh) => renameContainer(id, fresh),
 };
 
 function setTool(name) {
@@ -567,12 +567,18 @@ function onDoubleClick(event) {
 }
 
 // Edit a container's title over its header band.
-function renameContainer(id) {
+// `fresh` is a container just drawn: drawing it opened a gesture, and naming
+// it closes that gesture, so the two are one undo step.
+function renameContainer(id, fresh = false) {
   const box = model.containerById(store.doc, id);
-  if (!box) return;
+  if (!box) {
+    if (fresh) store.endGesture();
+    return;
+  }
   const depth = render.containerHeader(box);
   renameInPlace({ kind: "container", id,
-                  box: [box.x + 6, box.y + Math.max(0, depth / 2 - 10), box.x + box.w - 6, box.y + depth] });
+                  box: [box.x + 6, box.y + Math.max(0, depth / 2 - 10), box.x + box.w - 6, box.y + depth] },
+                fresh ? () => store.endGesture() : null);
 }
 
 // ---- format painter ----
@@ -628,7 +634,7 @@ function startPainter() {
 // keeps it, Esc leaves it as it was. The same edit the properties panel makes,
 // so it is one undo step. On a wire this is its label, which is what is drawn
 // there; the net's name is edited in the panel.
-function renameInPlace({ kind, id, box }) {
+function renameInPlace({ kind, id, box }, onDone = null) {
   const doc = store.doc;
   const current = kind === "cell"
     ? (doc.cells.find((c) => c.id === id) || {}).label
@@ -649,11 +655,13 @@ function renameInPlace({ kind, id, box }) {
     finished = true;
     const value = field.value.trim();
     field.remove();
-    if (!keep || value === (current || "")) return;
-    store.mutate("rename", (d) => {
-      if (kind === "cell" || kind === "container") model.setLabel(d, id, value);
-      else model.setNetLabel(d, id, value);
-    });
+    if (keep && value !== (current || "")) {
+      store.mutate("rename", (d) => {
+        if (kind === "cell" || kind === "container") model.setLabel(d, id, value);
+        else model.setNetLabel(d, id, value);
+      });
+    }
+    if (onDone) onDone();
     redraw();
     inspector.render();
   };
@@ -735,13 +743,17 @@ function editTextInPlace(id, fresh) {
     hide.remove();
     const before = single ? (shape.text || "") : geometry.cellTextLines(shape).join("\n");
     if (fresh && (!keep || !value)) {
-      store.mutate("text", (d) => model.deleteItems(d, new Set([id])));
+      // Made and left empty: as if it had never been, nothing to undo.
+      store.cancelGesture();
       selection.set([]);
-    } else if (keep && value !== before) {
-      store.mutate("text", (d) => {
-        if (single) model.setLabel(d, id, value);
-        else model.setCellText(d, id, value);
-      });
+    } else {
+      if (keep && value !== before) {
+        store.mutate("text", (d) => {
+          if (single) model.setLabel(d, id, value);
+          else model.setCellText(d, id, value);
+        });
+      }
+      if (fresh) store.endGesture();
     }
     redraw();
     inspector.render();

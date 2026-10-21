@@ -541,7 +541,8 @@ and copies -- and shows only its position, name and pins.
 them: **Lines** -- line, arrow, double arrow -- and **Basic shapes** -- box,
 ellipse, polygon, text. `L`, `B`, `P` and `T` pick line, box, polygon and text
 without opening it. Text is typed straight onto the canvas where you click --
-`Enter` keeps it, `Esc` or leaving it empty takes it away -- and
+`Enter` keeps it, `Esc` or leaving it empty takes it away, leaving nothing
+to undo; placing and typing are one undo step -- and
 double-clicking any shape edits its writing the same way, where it is drawn.
 In a box, `Enter` starts a new line and `Ctrl+Enter` or a click elsewhere
 keeps the lines. Lines, box, ellipse and text are drag-or-click. Polygon is
@@ -597,7 +598,8 @@ it. Cells do not take one: a shadow under a gate is not schematic.
 A container is a titled boundary round part of a drawing -- "GPC 0" holding
 its TPCs, each TPC holding its SMs -- that moves what it holds with it. Draw
 one with **Shapes > Container**, type its title where it appears, and put
-things in it. Containers nest to any depth.
+things in it -- drawing it and naming it are one step to undo. Containers
+nest to any depth.
 
 What a container holds is decided by you, never by where things happen to
 sit. Three ways put something in one:

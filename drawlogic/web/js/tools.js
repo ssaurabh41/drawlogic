@@ -837,6 +837,9 @@ export class ShapeTool {
     if (this.kind === "text") {
       // Typed where it goes, as in a slide editor, rather than into the
       // browser's own prompt box. Left empty, the shape is taken away again.
+      // Making it and typing into it are one gesture, so one undo takes back
+      // both -- and one left empty leaves nothing behind to undo.
+      store.beginGesture("text");
       const shape = store.mutate("text", (doc) => {
         const made = model.addShape(doc, "text", { x: at[0], y: at[1] });
         made.text = "";
@@ -847,6 +850,8 @@ export class ShapeTool {
       if (shape) {
         selection.set([shape.id]);
         this.ctx.editText(shape.id, true);
+      } else {
+        store.endGesture();
       }
       return;
     }
@@ -906,15 +911,20 @@ export class ShapeTool {
       ? constrainShape(this.kind, a, this.raw) : (this.raw || this.preview);
 
     if (this.kind === "container") {
+      // Drawn and named as one gesture: one undo takes back both.
+      store.beginGesture("container");
       const box = store.mutate("container", (doc) => model.addContainer(doc, {
         x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]),
         w: Math.abs(b[0] - a[0]), h: Math.abs(b[1] - a[1]),
       }));
       this.reset();
       this.ctx.setTool("select");
-      if (box) {
+      if (box && this.ctx.renameContainer) {
         selection.set([box.id]);
-        if (this.ctx.renameContainer) this.ctx.renameContainer(box.id);
+        this.ctx.renameContainer(box.id, true);
+      } else {
+        if (box) selection.set([box.id]);
+        store.endGesture();
       }
       return true;
     }

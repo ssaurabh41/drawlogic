@@ -36,7 +36,7 @@ everything; components live in `components/` beside the drawing; a new GPU
 example (`gpu_arch.dlg`) rather than reworking `gpu_top.dlg`; the
 Move-into picker is a tree dialog.
 
-Assumptions made and reported (not yet confirmed or reversed):
+Behaviour the owner confirmed afterwards (each was first an assumption):
 
 - A new item made wholly inside a container (palette drop, shape or
   container drawn) belongs to the innermost one; dragging never reparents.
@@ -46,6 +46,9 @@ Assumptions made and reported (not yet confirmed or reversed):
 - Layout contents grows a container but does not push its neighbours.
 - Choosing a named style drops the item's own settings of exactly what the
   style sets; Save as style does the same.
+- Drawing a container and naming it is one undo step; so is placing a text
+  box and typing in it, and one left empty leaves nothing to undo
+  (Store.cancelGesture).
 
 Open items from it:
 
@@ -97,7 +100,6 @@ avoided and is drawn as a bridge.
 - **Generic blocks have fixed pin counts** (`block` 2/2, `block6` 3/3,
   `block8` 4/4) and an unused pin warns. A block whose pin count you choose
   would make block diagrams much easier. Proposed, not started.
-- Creating a text box and cancelling it leaves two undo steps.
 - soc_top and spi_master still have DRC warnings (spacing, hops).
 - The xN badge can overlap a flop's Q stub.
 - Possible: unit tests for the newest editor features, shadow presets, a test

@@ -43,7 +43,7 @@ const EXPECTED = [
   ["auto-connect on drop", 5],
   ["placing onto a pin", 6],
   ["placing onto a wire end", 3],
-  ["undo through a gesture", 5],
+  ["undo through a gesture", 8],
   ["duplicating a group", 6],
   ["stale answers", 8],
   ["drawing a shape with Shift", 7],
@@ -616,6 +616,26 @@ section("undo through a gesture");
   check("each holding what was there before it",
         store._undo[store._undo.length - 1].doc.n === 10,
         `${store._undo[store._undo.length - 1].doc.n}`);
+
+  // Made and named as one gesture -- a container drawn, then titled -- is
+  // one undo step; made and abandoned -- a text box left empty -- leaves
+  // nothing at all behind, not even a dirty mark.
+  const made = new model.Store();
+  made.load({ cells: [], nets: [], shapes: [], groups: [] }, "b.dlg");
+  made.beginGesture("container");
+  made.mutate("container", (d) => { d.containers = [{ id: "k1", title: "Container 1" }]; });
+  made.mutate("rename", (d) => { d.containers[0].title = "GPC 0"; });
+  made.endGesture();
+  check("drawing and naming a container undo as one step",
+        made._undo.length === 1 && made.undo() && !(made.doc.containers || []).length);
+  const empty = new model.Store();
+  empty.load({ cells: [], nets: [], shapes: [], groups: [] }, "c.dlg");
+  empty.beginGesture("text");
+  empty.mutate("text", (d) => { d.shapes.push({ id: "s1", kind: "text", text: "" }); });
+  empty.cancelGesture();
+  check("a text box made and left empty leaves nothing to undo",
+        empty._undo.length === 0 && empty.doc.shapes.length === 0, `${empty._undo.length}`);
+  check("and does not mark the drawing unsaved", empty.dirty === false);
 }
 
 // ---- duplicating a group ----

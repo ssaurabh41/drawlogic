@@ -112,6 +112,21 @@ export class Store {
   beginGesture(label) {
     this._gesture = label;
     this._gestureOpen = false;
+    this._gestureDirty = this.dirty;
+  }
+
+  // Take back everything done since the gesture began, as if it had never
+  // been: nothing left to undo for it, nothing to redo. For a thing made and
+  // then abandoned in the same breath -- a text box left empty.
+  cancelGesture() {
+    if (this._gesture !== null && this._gesture !== undefined && this._gestureOpen) {
+      const entry = this._undo.pop();
+      this.doc = entry.doc;
+      this.dirty = this._gestureDirty;
+      this.generation += 1;
+      this.emit("undo");
+    }
+    this.endGesture();
   }
 
   endGesture() {

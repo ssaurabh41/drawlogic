@@ -970,6 +970,16 @@ function runCommand(command) {
     },
     "container-move": moveIntoContainerAsked,
     "style-save": saveStyleAsked,
+    "component-create": createComponentAsked,
+    "component-insert": insertComponentAsked,
+    "component-repeat": repeatAsked,
+    "component-edit": () => {
+      const [cell] = selection.items();
+      if (cell && cell.ref) drillInto(cell);
+      else say("select an instance of a component to edit its definition", "bad");
+    },
+    "component-independent": makeIndependentAsked,
+    "component-refresh": () => refreshComponents({ announce: true }),
     "style-edit": () => {
       const refs = new Set(selection.items().map((item) => item.styleRef).filter(Boolean));
       if (refs.size === 1) editNamedStyle([...refs][0]);
@@ -1160,6 +1170,382 @@ function pickContainer(ids, allowed) {
     dialog.showModal();
     (search.hidden ? list.querySelector(".pick-row.active") || list : search).focus();
   });
+}
+
+// ---- linked components ----
+
+// A form with OK and Cancel. `build(body)` fills it and returns a function
+// reading the answer, or a string saying what is wrong with it. Resolves to
+// the answer, or null when cancelled.
+function formDialog(title, note, okLabel, build) {
+  const dialog = ui.formDialog;
+  dialog.querySelector(".form-title").textContent = title;
+  dialog.querySelector(".form-note").textContent = note || "";
+  const body = dialog.querySelector(".form-body");
+  body.textContent = "";
+  const read = build(body);
+  const ok = dialog.querySelector(".form-ok");
+  const cancel = dialog.querySelector(".form-cancel");
+  ok.textContent = okLabel;
+  return new Promise((resolve) => {
+    let answer = null;
+    const onOk = () => {
+      const value = read();
+      if (typeof value === "string") {
+        say(value, "bad");
+        return;
+      }
+      answer = value;
+      dialog.close();
+    };
+    const onCancel = () => dialog.close();
+    const onKey = (event) => {
+      if (event.key === "Enter" && event.target.tagName === "INPUT") {
+        event.preventDefault();
+        onOk();
+      }
+    };
+    ok.addEventListener("click", onOk);
+    cancel.addEventListener("click", onCancel);
+    dialog.addEventListener("keydown", onKey);
+    dialog.addEventListener("close", () => {
+      ok.removeEventListener("click", onOk);
+      cancel.removeEventListener("click", onCancel);
+      dialog.removeEventListener("keydown", onKey);
+      resolve(answer);
+    }, { once: true });
+    dialog.showModal();
+    const first = body.querySelector("input");
+    if (first) first.focus();
+  });
+}
+
+function formRow(body, label, field, after = null) {
+  const node = document.createElement("label");
+  node.textContent = label;
+  body.append(node, field, after || document.createElement("span"));
+}
+
+function formInput(value, type = "text") {
+  const field = document.createElement("input");
+  field.type = type;
+  field.value = value;
+  return field;
+}
+
+// An answer from the server that replaces the drawing, applied as one undo
+// step if it is still about the drawing as it was asked about -- the same
+// rule a layout answer follows.
+function applyAnswer(asked, result, label) {
+  if (!store.matches(asked)) {
+    say("edited while that was being done -- nothing changed here, do it again", "bad");
+    return false;
+  }
+  store.mutate(label, (doc) => {
+    for (const key of Object.keys(doc)) delete doc[key];
+    Object.assign(doc, result.doc);
+  });
+  useSheets(result.sheets);
+  if (result.path && ![...ui.fileSelect.options].some((o) => o.value === result.path)) {
+    const option = document.createElement("option");
+    option.value = result.path;
+    option.textContent = result.path;
+    ui.fileSelect.appendChild(option);
+  }
+  return true;
+}
+
+// The block symbols the drawing in front needs, kept with its tab too.
+function useSheets(data) {
+  geometry.setSheets(data);
+  const tab = findTab(store.path);
+  if (tab) tab.sheets = data;
+}
+
+// Create linked component from selection: name it, review the ports the
+// server found -- one per wire crossing the selection's edge, named from the
+// wire -- and the selection becomes one instance of a new drawing kept in
+// components/ beside this one.
+async function createComponentAsked() {
+  if (!selection.size) {
+    say("select what the component should contain first", "bad");
+    return;
+  }
+  if (!store.path) {
+    say("save this drawing first: a component is kept beside it", "bad");
+    return;
+  }
+  const raw = window.prompt("Name for the component (e.g. SM):", "");
+  const name = (raw || "").trim();
+  if (!name) return;
+  const ids = [...selection.ids];
+  const asked = store.stamp();
+  let plan;
+  try {
+    plan = await api("/api/component", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "plan", doc: store.doc, source: asked.path, ids, name }),
+    });
+  } catch (error) {
+    say(error.message, "bad");
+    return;
+  }
+  if (plan.problems.length) {
+    say(`cannot make a component of that: ${plan.problems.join("; ")}`, "bad");
+    return;
+  }
+  const fields = new Map();
+  const names = await formDialog(
+    `Create component "${name}"`,
+    `Kept in ${plan.path}${plan.exists ? " -- which already exists and will be replaced" : ""}. `
+    + (plan.ports.length
+      ? "Each wire crossing the edge of the selection becomes a port. Name them:"
+      : "Nothing is wired across the edge of the selection, so it has no ports."),
+    plan.exists ? "Replace and create" : "Create",
+    (body) => {
+      for (const port of plan.ports) {
+        const field = formInput(port.name);
+        const badge = document.createElement("span");
+        badge.className = `dir ${port.dir}`;
+        badge.textContent = port.dir === "in" ? "in" : "out";
+        badge.title = port.width > 1 ? `${port.width} bits` : "1 bit";
+        formRow(body, port.width > 1 ? `[${port.width}]` : "", field, badge);
+        fields.set(port.key, field);
+      }
+      return () => {
+        const chosen = {};
+        const seen = new Set();
+        for (const [key, field] of fields) {
+          const value = field.value.trim();
+          if (!value) return "every port needs a name";
+          if (seen.has(value)) return `two ports cannot both be called "${value}"`;
+          seen.add(value);
+          chosen[key] = value;
+        }
+        return chosen;
+      };
+    });
+  if (!names) return;
+  const done = busy(`making component ${name}...`);
+  try {
+    const result = await api("/api/component", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create", doc: store.doc, source: asked.path, ids, name,
+                             names, overwrite: plan.exists }),
+    });
+    if (!applyAnswer(asked, result, "create component")) return;
+    selection.set(result.instance ? [result.instance] : []);
+    redraw();
+    inspector.render();
+    say(`${result.note}; this drawing now has one instance of it`, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  } finally {
+    done();
+  }
+}
+
+// Insert component: any drawing in the served folder, components/ beside
+// this drawing first, placed in the middle of the view as an instance.
+async function insertComponentAsked() {
+  if (!store.path) {
+    say("save this drawing first: a component is named relative to it", "bad");
+    return;
+  }
+  let listing;
+  try {
+    listing = await api("/api/files");
+  } catch (error) {
+    say(error.message, "bad");
+    return;
+  }
+  const here = store.path.split("/").slice(0, -1).join("/");
+  const near = `${here ? `${here}/` : ""}components/`;
+  const files = listing.files.filter((f) => f !== store.path)
+    .sort((a, b) => (b.startsWith(near) - a.startsWith(near)) || a.localeCompare(b));
+  if (!files.length) {
+    say("there is no other drawing to insert", "warn");
+    return;
+  }
+  const picked = await choose("Insert component",
+                              "Every drawing in the folder can be placed as a block; its ports become the pins.",
+                              files.map((f) => ({ label: f, value: f })));
+  if (!picked) return;
+  const ref = model.relativeRef(store.path, picked);
+  const stem = picked.split("/").pop().replace(/\.dlg$/, "");
+  const rect = ui.canvas.getBoundingClientRect();
+  const at = viewport.toDoc(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  const asked = store.stamp();
+  const probe = JSON.parse(JSON.stringify(store.doc));
+  probe.cells.push({ id: "__probe", type: "sheet", ref, x: 0, y: 0 });
+  try {
+    const result = await api("/api/resolve", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc: probe, source: asked.path }),
+    });
+    if (!store.matches(asked)) return;
+    useSheets(result.sheets);
+    const symbol = geometry.get(`sheet:${ref}`);
+    if (!symbol) {
+      say(`cannot use ${picked} as a component`, "bad");
+      return;
+    }
+    const cell = store.mutate("insert component", (doc) => {
+      const made = model.placeCell(doc, `sheet:${ref}`, at, false).cell;
+      if (!made) return false;
+      made.type = "sheet";
+      made.ref = ref;
+      made.label = stem.toUpperCase();
+      return made;
+    });
+    if (cell) selection.set([cell.id]);
+    redraw();
+    inspector.render();
+    say(`placed ${picked}; Component > Repeat... places more`, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
+// Repeat: the selected item copied into a grid, linked copies of an
+// instance, named in sequence.
+async function repeatAsked() {
+  const items = selection.items();
+  if (items.length !== 1) {
+    say("select the one item to repeat", "bad");
+    return;
+  }
+  const [item] = items;
+  const current = item.label || item.title || "";
+  const match = /^(.*?)(\d+)$/.exec(current);
+  const fields = {};
+  const answer = await formDialog(
+    "Repeat",
+    item.ref ? "Each copy is linked to the same definition: editing it changes them all."
+      : "Copies of the selected item, in a grid.",
+    "Repeat",
+    (body) => {
+      fields.rows = formInput("2", "number");
+      fields.columns = formInput("4", "number");
+      fields.gapX = formInput("30", "number");
+      // Down, room for the name above each copy as well as the gap.
+      fields.gapY = formInput("40", "number");
+      fields.prefix = formInput(match ? match[1] : (current ? `${current} ` : ""));
+      fields.start = formInput(match ? match[2] : "0", "number");
+      formRow(body, "Rows", fields.rows);
+      formRow(body, "Columns", fields.columns);
+      formRow(body, "Gap across", fields.gapX);
+      formRow(body, "Gap down", fields.gapY);
+      formRow(body, "Name prefix", fields.prefix);
+      formRow(body, "Starting index", fields.start);
+      return () => {
+        const value = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.value]));
+        const count2 = Number(value.rows) * Number(value.columns);
+        if (!(Number(value.rows) >= 1 && Number(value.columns) >= 1)) return "rows and columns start at 1";
+        if (count2 > 400) return "that is more than 400 copies";
+        return value;
+      };
+    });
+  if (!answer) return;
+  const added = store.mutate("repeat", (doc) => model.repeatItems(doc, item.id, answer));
+  if (!added) {
+    say("could not repeat that", "bad");
+    return;
+  }
+  selection.set([item.id, ...added]);
+  redraw();
+  inspector.render();
+  say(`${added.length + 1} ${added.length ? "copies" : "copy"} in ${answer.rows} x ${answer.columns}`
+      + (item.ref ? ", all linked to the same definition" : ""), "good");
+}
+
+// Make independent: this instance gets a copy of the definition of its own,
+// and stops changing when the original does. The other instances do not.
+async function makeIndependentAsked() {
+  const [cell] = selection.items();
+  if (!cell || !cell.ref || selection.size !== 1) {
+    say("select one instance of a component", "bad");
+    return;
+  }
+  const asked = store.stamp();
+  try {
+    const result = await api("/api/component", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "copy", doc: store.doc, source: asked.path, cell: cell.id }),
+    });
+    if (!applyAnswer(asked, result, "make independent")) return;
+    redraw();
+    inspector.render();
+    say(result.note, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
+// Read every component this drawing uses again, and redraw its instances
+// with their pins as the definitions now have them. Wires naming a pin that
+// is gone are reported, never moved to another one.
+async function refreshComponents({ announce = false } = {}) {
+  if (!store.doc || !store.path) return;
+  const asked = store.stamp();
+  try {
+    const result = await api("/api/resolve", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc: store.doc, source: asked.path }),
+    });
+    if (!store.matches(asked, { edits: false })) return;
+    useSheets(result.sheets);
+    redraw();
+    inspector.render();
+    reportInterface(announce ? "components refreshed" : null);
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
+function reportInterface(fine) {
+  const lost = model.interfaceProblems(store.doc);
+  if (lost.length) {
+    const first = lost.slice(0, 3).map((p) => `${p.label}.${p.pin}`).join(", ");
+    say(`unresolved interface: ${count(lost.length, "wire")} name${lost.length === 1 ? "s" : ""} `
+        + `a pin the component no longer has (${first}${lost.length > 3 ? ", ..." : ""}); `
+        + "reconnect or delete them", "bad");
+  } else if (fine) {
+    say(fine, "good");
+  }
+}
+
+// After a drawing is saved, every open drawing using it as a component is
+// read again, so its instances show the definition as it now is.
+async function refreshUsersOf(path) {
+  const users = openTabs.filter((tab) => tab.path !== path
+    && (tab.path === store.path ? store.doc : tab.doc)
+    && (tab.path === store.path ? store.doc : tab.doc).cells
+      .some((c) => c.ref && refPath(tab.path, c.ref) === path));
+  let lost = 0;
+  for (const tab of users) {
+    const doc = tab.path === store.path ? store.doc : tab.doc;
+    try {
+      const result = await api("/api/resolve", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc, source: tab.path }),
+      });
+      tab.sheets = result.sheets;
+      if (tab.path === store.path) useSheets(result.sheets);
+      lost += model.interfaceProblems(doc, result.sheets).length;
+    } catch (error) {
+      // The next open or refresh will try again.
+    }
+  }
+  if (users.length) {
+    const where = users.map((t) => t.path).join(", ");
+    if (lost) {
+      say(`component updated; in ${where}, ${count(lost, "wire")} now name${lost === 1 ? "s" : ""} `
+          + "a pin it no longer has -- reconnect or delete them", "bad");
+    } else {
+      say(`component updated: ${where} redrawn with it`, "good");
+    }
+  }
 }
 
 // ---- named styles ----
@@ -1391,6 +1777,7 @@ async function save() {
     }
     refreshStatus();
     say(`saved ${sending.path}`, "good");
+    await refreshUsersOf(sending.path);
   } catch (error) {
     say(error.message, "bad");
   }
@@ -2222,6 +2609,7 @@ function bindControls() {
         const needs = item.getAttribute("data-needs");
         if (needs === "container") item.disabled = !chosen.some(model.isContainer);
         if (needs === "inside") item.disabled = !chosen.some((i) => i.parentId !== undefined);
+        if (needs === "instance") item.disabled = !(chosen.length === 1 && chosen[0].ref);
         if (needs === "containers") {
           item.disabled = !chosen.length
             || (!model.containerChoices(store.doc, selection.ids).length
@@ -2444,6 +2832,7 @@ async function start() {
     choiceDialog: $("choice-dialog"),
     containerDialog: $("container-dialog"),
     styleDialog: $("style-dialog"),
+    formDialog: $("form-dialog"),
     tabs: $("tabs"),
     btnPrefs: $("btn-prefs"),
     btnPainter: $("btn-painter"),

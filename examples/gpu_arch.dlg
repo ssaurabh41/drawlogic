@@ -1,0 +1,623 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "GPU architecture -- containers, styles and linked SMs",
+  "canvas": {
+    "width": 1833,
+    "height": 982,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "sm0",
+      "parentId": "gpc0_tpc0",
+      "type": "sheet",
+      "x": 576.74,
+      "y": 298.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 0",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm1",
+      "parentId": "gpc0_tpc0",
+      "type": "sheet",
+      "x": 576.74,
+      "y": 398.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 1",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm2",
+      "parentId": "gpc0_tpc1",
+      "type": "sheet",
+      "x": 796.74,
+      "y": 298.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 2",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm3",
+      "parentId": "gpc0_tpc1",
+      "type": "sheet",
+      "x": 796.74,
+      "y": 398.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 3",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm4",
+      "parentId": "gpc1_tpc0",
+      "type": "sheet",
+      "x": 576.74,
+      "y": 642.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 4",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm5",
+      "parentId": "gpc1_tpc0",
+      "type": "sheet",
+      "x": 576.74,
+      "y": 742.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 5",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm6",
+      "parentId": "gpc1_tpc1",
+      "type": "sheet",
+      "x": 796.74,
+      "y": 642.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 6",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "sm7",
+      "parentId": "gpc1_tpc1",
+      "type": "sheet",
+      "x": 796.74,
+      "y": 742.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 7",
+      "style": {},
+      "ref": "components/sm.dlg",
+      "styleRef": "sm"
+    },
+    {
+      "id": "host",
+      "parentId": "die",
+      "type": "block6",
+      "x": 246.74,
+      "y": 309.0,
+      "w": 160.0,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "GigaThread",
+      "text": [
+        "work distribution"
+      ],
+      "style": {
+        "fill": "#eef1f3"
+      }
+    },
+    {
+      "id": "l2",
+      "parentId": "mem",
+      "type": "block8",
+      "x": 1136.74,
+      "y": 307.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L2 cache",
+      "text": [
+        "48 MB",
+        "2 partitions"
+      ],
+      "style": {},
+      "styleRef": "memory"
+    },
+    {
+      "id": "mc0",
+      "parentId": "mem",
+      "type": "block",
+      "x": 1426.74,
+      "y": 308.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "MC 0",
+      "text": [
+        "HBM3 PHY"
+      ],
+      "style": {},
+      "styleRef": "memory"
+    },
+    {
+      "id": "mc1",
+      "parentId": "mem",
+      "type": "block",
+      "x": 1426.74,
+      "y": 450.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "MC 1",
+      "text": [
+        "HBM3 PHY"
+      ],
+      "style": {},
+      "styleRef": "memory"
+    },
+    {
+      "id": "pcie",
+      "type": "port_in",
+      "x": 96.74,
+      "y": 328.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "PCIe",
+      "style": {}
+    },
+    {
+      "id": "hbm0",
+      "type": "port_out",
+      "x": 1716.74,
+      "y": 328.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "HBM0",
+      "style": {}
+    },
+    {
+      "id": "hbm1",
+      "type": "port_out",
+      "x": 1716.74,
+      "y": 470.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "HBM1",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_pcie",
+      "width": 1,
+      "from": {
+        "cell": "pcie",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "host",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_w0",
+      "name": "work0",
+      "width": 1,
+      "from": {
+        "cell": "host",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "sm0",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_w1",
+      "name": "work1",
+      "width": 1,
+      "from": {
+        "cell": "host",
+        "pin": "out3"
+      },
+      "to": [
+        {
+          "cell": "sm4",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_c0",
+      "width": 1,
+      "from": {
+        "cell": "sm0",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "sm2",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_c1",
+      "width": 1,
+      "from": {
+        "cell": "sm4",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "sm6",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_m0",
+      "width": 1,
+      "from": {
+        "cell": "sm2",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "l2",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_m1",
+      "width": 1,
+      "from": {
+        "cell": "sm6",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "l2",
+          "pin": "in4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_mc0",
+      "width": 1,
+      "from": {
+        "cell": "l2",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "mc0",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_mc1",
+      "width": 1,
+      "from": {
+        "cell": "l2",
+        "pin": "out4"
+      },
+      "to": [
+        {
+          "cell": "mc1",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_h0",
+      "width": 1,
+      "from": {
+        "cell": "mc0",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "hbm0",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_h1",
+      "width": 1,
+      "from": {
+        "cell": "mc1",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "hbm1",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "containers": [
+    {
+      "id": "die",
+      "title": "GPU die",
+      "x": 226.74,
+      "y": 90.0,
+      "w": 1380.0,
+      "h": 802.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#5b6b74",
+        "headerFill": "#1f2a33",
+        "titleFill": "#ffffff"
+      }
+    },
+    {
+      "id": "gpcs",
+      "parentId": "die",
+      "title": "Graphics processing clusters",
+      "x": 516.74,
+      "y": 142.0,
+      "w": 490.0,
+      "h": 730.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#d5dde2",
+        "headerFill": "none",
+        "titleFill": "#5b6b74"
+      }
+    },
+    {
+      "id": "mem",
+      "parentId": "die",
+      "title": "Memory subsystem",
+      "x": 1116.74,
+      "y": 255.0,
+      "w": 470.0,
+      "h": 305.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "style": {
+        "fill": "#eef4fb",
+        "stroke": "#9db7d6",
+        "headerFill": "#2f6db3",
+        "titleFill": "#ffffff"
+      }
+    },
+    {
+      "id": "gpc0",
+      "parentId": "gpcs",
+      "title": "GPC 0",
+      "x": 536.74,
+      "y": 194.0,
+      "w": 450.0,
+      "h": 314.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "gpc",
+      "style": {}
+    },
+    {
+      "id": "gpc0_tpc0",
+      "parentId": "gpc0",
+      "title": "TPC 0",
+      "x": 556.74,
+      "y": 246.0,
+      "w": 190.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    },
+    {
+      "id": "gpc0_tpc1",
+      "parentId": "gpc0",
+      "title": "TPC 1",
+      "x": 776.74,
+      "y": 246.0,
+      "w": 190.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    },
+    {
+      "id": "gpc1",
+      "parentId": "gpcs",
+      "title": "GPC 1",
+      "x": 536.74,
+      "y": 538.0,
+      "w": 450.0,
+      "h": 314.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "gpc",
+      "style": {}
+    },
+    {
+      "id": "gpc1_tpc0",
+      "parentId": "gpc1",
+      "title": "TPC 0",
+      "x": 556.74,
+      "y": 590.0,
+      "w": 190.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    },
+    {
+      "id": "gpc1_tpc1",
+      "parentId": "gpc1",
+      "title": "TPC 1",
+      "x": 776.74,
+      "y": 590.0,
+      "w": 190.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    }
+  ],
+  "styles": {
+    "gpc": {
+      "style": {
+        "fill": "#f6faf0",
+        "stroke": "#a9c47e",
+        "headerFill": "#76b900",
+        "titleFill": "#ffffff"
+      }
+    },
+    "memory": {
+      "style": {
+        "fill": "#dde9f7",
+        "stroke": "#2f6db3"
+      },
+      "headingStyle": {
+        "fontSize": 14,
+        "fill": "#123a66"
+      },
+      "textStyle": {
+        "fill": "#4a5e74"
+      }
+    },
+    "sm": {
+      "style": {
+        "fill": "#e6f2d3",
+        "stroke": "#6b8f2a"
+      },
+      "headingStyle": {
+        "fill": "#24400b"
+      }
+    },
+    "tpc": {
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#c5d8a6",
+        "headerFill": "#e3f0cf",
+        "titleFill": "#2f4a0e"
+      }
+    }
+  }
+}

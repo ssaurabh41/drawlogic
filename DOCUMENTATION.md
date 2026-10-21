@@ -367,7 +367,7 @@ ok    lay it out
 ok    render to SVG
 39 built-in symbols
 ok     15 browser modules, 0 import mismatches
-ok     38 files against manifest.txt, 0 differ
+ok     39 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -1312,6 +1312,69 @@ different files in different folders. Each open drawing therefore resolves
 into its own copy of the symbol library, and the shared library is never
 touched.
 
+### Linked components
+
+A linked component is this mechanism used for the repeated parts of an
+architecture diagram: an SM defined once, placed sixteen times. The
+definition is an ordinary drawing, kept in `components/` beside the drawing
+using it, and each placed copy is an instance -- a cell whose `ref` names
+it. There is no second format: a component is a drawing, and anything said
+above about references holds for it. Everything is in the **Component**
+menu.
+
+**Create linked component from selection...** asks for a name, then shows
+the ports it will have: one for every wire crossing the edge of the
+selection, an input where the wire's driver is outside and an output where
+it is inside, each named from the wire's name, its label, or the pin inside,
+for you to rename. Confirmed, the selection -- cells, shapes, containers and
+the wires among them -- is copied into `components/<name>.dlg` with those
+ports, and replaced by one instance in the same place and the same
+container, with every wire from outside reattached to the instance's pin of
+the same name. Names are matched by wire, never by their order in the list,
+so nothing can be attached to the wrong port. A wire with a loose end across
+the edge cannot be represented, and is explained before anything changes.
+The drawing has to have been saved, since the component is kept beside it;
+the definition is written when you confirm, and undo takes the drawing back
+to before (leaving the new file, which is harmless).
+
+**Insert component...** places any drawing in the folder as an instance,
+those in `components/` first. **Repeat...** copies the selected item into a
+grid -- rows, columns, the gap across and down, and names in sequence from
+a prefix and a starting index, so 2 rows by 4 from "SM " and 0 give SM 0 to
+SM 7. Copies of an instance are instances of the same definition; each has
+an id of its own and sits in the same container.
+
+**Edit component definition** opens the definition in a tab of its own.
+Saving it there reads it again into every open drawing using it, so their
+instances show its pins as they now are, and says "component updated".
+After editing a definition some other way, **Refresh components** does the
+same. A port that is renamed or removed leaves any wire still naming it
+exactly as it was, reported as an unresolved interface -- in the message
+then, and by Check and `drawlogic validate` -- and never attached to some
+other pin instead.
+
+**Make independent** gives one instance a copy of the definition of its own,
+`components/<name>_2.dlg`, and points that instance alone at it: it stops
+following the original, and the others carry on as they were. Nothing is
+flattened into the drawing.
+
+What each instance keeps for itself, and what it takes from its definition:
+
+| The instance's own | From the definition |
+|---|---|
+| id, label, position, parent container, rotation, size | its pins: the definition's ports |
+| colours, named style, heading and text written on it | its title |
+
+An instance is drawn as a block with its pins and title; showing the
+definition's contents inside it is not done yet.
+
+Two examples use all of it together. `examples/arch_mini.dlg` is two
+clusters, each holding two cores, the cores linked instances of
+`components/core.dlg` with a shared named style and wires running across
+every container's edge. `examples/gpu_arch.dlg` is a GPU die: two GPCs of two
+TPCs of two linked SMs (`components/sm.dlg`), laid out as a column of rows of
+columns, with the memory subsystem beside them in a style of its own.
+
 ---
 
 ### Help while you drag
@@ -1974,6 +2037,7 @@ drawlogic/
   sheets.py       hierarchy: a block built from another drawing's ports
   containers.py   titled boundaries that own part of a drawing
   styles.py       named styles: theme, then style, then the item's own
+  components.py   a selection made into a drawing of its own, placed as instances
   hdl.py          Verilog to drawings, one per module
   rtl.py          behavioural Verilog lowered to gates and flip-flops
   yosys.py        the same through Yosys, when it is installed
@@ -2001,7 +2065,8 @@ drawlogic/
 tests/            unittest, a golden-file regression suite, a JS parity check
   js/             node-side runners: the editor checks, and dumps of what
                   routing.js and render.js produce for parity to compare
-examples/         worked schematics, including a CDC FIFO and a GPU block diagram
+examples/         worked schematics, including a CDC FIFO and a GPU block diagram;
+  components/     the definitions arch_mini.dlg and gpu_arch.dlg place as linked instances
 manifest.txt      a hash of every file above; generated, never hand-edited
 .github/          one CI workflow: the suite on the oldest supported Python
 sample.txt        a plain file to edit when trying verify.ps1 out by hand
@@ -2091,7 +2156,8 @@ python3 -m unittest tests.test_regression
 | `tests/test_cli.py` | the commands, including validate and doctor |
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
-| `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers |
+| `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers, headings and named styles, Repeat |
+| `tests/test_components.py` | linked components: ports from the wires crossing a selection, named by wire; the instance rewired by name; definition edits reaching every instance; lost pins reported; making one independent, through the editor's server |
 | `tests/test_styles.py` | headings and text styles, named styles and overrides, fitting and clipping with a heading, and every line set the same in the editor as in an export |
 | `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over) |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |

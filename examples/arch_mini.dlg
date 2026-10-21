@@ -1,0 +1,306 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "Two clusters of linked cores",
+  "canvas": {
+    "width": 1459,
+    "height": 394,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "u_a0",
+      "parentId": "cl_a_c0",
+      "type": "sheet",
+      "x": 262.555,
+      "y": 194.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "A0",
+      "style": {},
+      "ref": "components/core.dlg",
+      "styleRef": "core"
+    },
+    {
+      "id": "u_a1",
+      "parentId": "cl_a_c1",
+      "type": "sheet",
+      "x": 482.555,
+      "y": 194.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "A1",
+      "style": {},
+      "ref": "components/core.dlg",
+      "styleRef": "core"
+    },
+    {
+      "id": "u_b0",
+      "parentId": "cl_b_c0",
+      "type": "sheet",
+      "x": 822.555,
+      "y": 194.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "B0",
+      "style": {},
+      "ref": "components/core.dlg",
+      "styleRef": "core"
+    },
+    {
+      "id": "u_b1",
+      "parentId": "cl_b_c1",
+      "type": "sheet",
+      "x": 1042.555,
+      "y": 194.0,
+      "w": 150.0,
+      "h": 70.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "B1",
+      "style": {},
+      "ref": "components/core.dlg",
+      "styleRef": "core"
+    },
+    {
+      "id": "p_in",
+      "type": "port_in",
+      "x": 92.555,
+      "y": 224.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "req",
+      "style": {}
+    },
+    {
+      "id": "p_out",
+      "type": "port_out",
+      "x": 1342.555,
+      "y": 224.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "resp",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_in",
+      "width": 1,
+      "from": {
+        "cell": "p_in",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_a0",
+          "pin": "req",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_a",
+      "name": "a_link",
+      "width": 1,
+      "from": {
+        "cell": "u_a0",
+        "pin": "resp"
+      },
+      "to": [
+        {
+          "cell": "u_a1",
+          "pin": "req",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ab",
+      "name": "cross",
+      "width": 1,
+      "from": {
+        "cell": "u_a1",
+        "pin": "resp"
+      },
+      "to": [
+        {
+          "cell": "u_b0",
+          "pin": "req",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_b",
+      "name": "b_link",
+      "width": 1,
+      "from": {
+        "cell": "u_b0",
+        "pin": "resp"
+      },
+      "to": [
+        {
+          "cell": "u_b1",
+          "pin": "req",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_out",
+      "width": 1,
+      "from": {
+        "cell": "u_b1",
+        "pin": "resp"
+      },
+      "to": [
+        {
+          "cell": "p_out",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "containers": [
+    {
+      "id": "cl_a",
+      "title": "Cluster A",
+      "x": 222.555,
+      "y": 90.0,
+      "w": 450.0,
+      "h": 214.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "cluster",
+      "style": {}
+    },
+    {
+      "id": "cl_a_c0",
+      "parentId": "cl_a",
+      "title": "Core 0",
+      "x": 242.555,
+      "y": 142.0,
+      "w": 190.0,
+      "h": 142.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    },
+    {
+      "id": "cl_a_c1",
+      "parentId": "cl_a",
+      "title": "Core 1",
+      "x": 462.555,
+      "y": 142.0,
+      "w": 190.0,
+      "h": 142.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    },
+    {
+      "id": "cl_b",
+      "title": "Cluster B",
+      "x": 782.555,
+      "y": 90.0,
+      "w": 450.0,
+      "h": 214.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "cluster",
+      "style": {}
+    },
+    {
+      "id": "cl_b_c0",
+      "parentId": "cl_b",
+      "title": "Core 0",
+      "x": 802.555,
+      "y": 142.0,
+      "w": 190.0,
+      "h": 142.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    },
+    {
+      "id": "cl_b_c1",
+      "parentId": "cl_b",
+      "title": "Core 1",
+      "x": 1022.555,
+      "y": 142.0,
+      "w": 190.0,
+      "h": 142.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    }
+  ],
+  "styles": {
+    "cluster": {
+      "style": {
+        "fill": "#f6faf0",
+        "stroke": "#a9c47e",
+        "headerFill": "#76b900",
+        "titleFill": "#ffffff"
+      }
+    },
+    "core": {
+      "style": {
+        "fill": "#e6f2d3",
+        "stroke": "#6b8f2a"
+      },
+      "headingStyle": {
+        "fill": "#24400b"
+      }
+    },
+    "slot": {
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#c5d8a6",
+        "headerFill": "#e3f0cf",
+        "titleFill": "#2f4a0e"
+      }
+    }
+  }
+}

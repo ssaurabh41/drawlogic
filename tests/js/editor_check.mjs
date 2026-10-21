@@ -51,6 +51,7 @@ const EXPECTED = [
   ["stacking and writing on shapes", 8],
   ["containers", 27],
   ["headings and named styles", 11],
+  ["linked components", 9],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -1005,6 +1006,56 @@ section("headings and named styles");
         && geometry.effectiveStyle(doc.styles, doc.cells[2]).style.fill === "#000001");
   check("and a style that is not there cannot be named",
         model.setStyleRef(doc, new Set(["sm1"]), "nope") === false && doc.cells[1].styleRef === "compute");
+}
+
+section("linked components");
+//
+// Repeat makes linked copies with ids of their own and names in sequence; a
+// pin a definition no longer has is reported, not swapped; refs are written
+// relative to the drawing using them.
+{
+  geometry.setSheets({ "sheet:components/sm.dlg": {
+    name: "SM", category: "sheets", size: [150, 70],
+    pins: [{ name: "in", x: 0, y: 35, dir: "in", width: 0 },
+           { name: "out", x: 150, y: 35, dir: "out", width: 0 }],
+    draw: [{ op: "rect", x: 10, y: 0, w: 130, h: 70, role: "body" }] } });
+  const doc = {
+    canvas: { width: 1600, height: 900, symbolScale: 1, grid: { size: 5 } },
+    cells: [{ id: "u1", parentId: "tpc", type: "sheet", ref: "components/sm.dlg", label: "SM 0",
+              x: 100, y: 100, w: 150, h: 70, rotate: 0, mirror: false, style: {} },
+            { id: "drv", type: "inv", x: 0, y: 300, w: 40, h: 30, rotate: 0, mirror: false }],
+    nets: [{ id: "n1", from: { cell: "drv", pin: "y" }, to: [{ cell: "u1", pin: "in" }] }],
+    shapes: [], groups: [],
+    containers: [{ id: "tpc", title: "TPC", x: 60, y: 40, w: 300, h: 200, padding: 20,
+                   headerHeight: 32, style: {} }],
+  };
+  const added = model.repeatItems(doc, "u1", { rows: 2, columns: 4, gapX: 20, gapY: 30,
+                                               prefix: "SM ", start: 0 });
+  const all = doc.cells.filter((c) => c.ref === "components/sm.dlg");
+  check("repeat makes rows x columns instances in all", added.length === 7 && all.length === 8,
+        `${added.length} ${all.length}`);
+  check("every one with an id of its own", new Set(all.map((c) => c.id)).size === 8);
+  check("named in sequence from the start index",
+        JSON.stringify(all.map((c) => c.label)) === JSON.stringify(
+          ["SM 0", "SM 1", "SM 2", "SM 3", "SM 4", "SM 5", "SM 6", "SM 7"]),
+        JSON.stringify(all.map((c) => c.label)));
+  check("all linked to the one definition, in the same container",
+        all.every((c) => c.ref === "components/sm.dlg" && c.parentId === "tpc"));
+  const last = all[all.length - 1];
+  check("laid out on the grid asked for", last.x === 100 + 3 * 170 && last.y === 100 + 100,
+        `${last.x},${last.y}`);
+  check("a repeat of nonsense does nothing",
+        model.repeatItems(doc, "u1", { rows: 0, columns: 2 }) === null);
+  check("a pin still there is not reported", model.interfaceProblems(doc).length === 0);
+  doc.nets[0].to[0].pin = "gone";
+  const lost = model.interfaceProblems(doc);
+  check("a wire naming a pin the definition lost is reported and left as it is",
+        lost.length === 1 && lost[0].pin === "gone" && doc.nets[0].to[0].pin === "gone");
+  check("refs are relative to the drawing using them",
+        model.relativeRef("lanes/top.dlg", "lanes/components/sm.dlg") === "components/sm.dlg"
+        && model.relativeRef("lanes/top.dlg", "other/x.dlg") === "../other/x.dlg"
+        && model.relativeRef("top.dlg", "components/sm.dlg") === "components/sm.dlg");
+  geometry.setSheets({});
 }
 
 // Every area has to have run, and to have run the number of checks it says.

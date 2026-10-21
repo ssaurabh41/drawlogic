@@ -89,7 +89,12 @@ pins and shapes), `symbols.py` (registry, pin resolution), `doc.py` (.dlg
 load/save/normalise/validate, bus naming), `drc.py`, `layout.py`,
 `routing.py`, `sheets.py` (hierarchy — a block backed by another drawing's
 ports), `containers.py` (titled boundaries owning cells/shapes/containers
-through `parentId`; coordinates stay absolute, painted beneath everything),
+through `parentId`; coordinates stay absolute, painted beneath everything;
+layout.py lays them out innermost first), `styles.py` (named styles: theme,
+then `styleRef`, then the item's own; merged at draw time, never written
+back -- mirrored by `geometry.effectiveStyle`), `components.py` (a selection
+made into a `components/<name>.dlg` drawing and replaced by a `ref` instance,
+ports named by wire id),
 `authoring.py` (turn a drawing of shapes+ports into a symbol),
 `render_svg.py`, `theme.py` (colours/weights/fonts, served to JS so it's
 never restated), `cli.py`, `server.py` (stdlib HTTP server, no framework).

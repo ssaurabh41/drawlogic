@@ -37,6 +37,7 @@ escape it.
 
 import json
 import os
+import posixpath
 import re
 import sys
 import threading
@@ -50,6 +51,7 @@ from . import drc
 from . import hdl
 from . import theme
 from . import authoring
+from . import components
 from . import layout
 from . import sheets
 from .doc import Document, DocumentError, write_file
@@ -374,7 +376,149 @@ class Handler(BaseHTTPRequestHandler):
       return self._save_symbol(payload)
     if route == "/api/import":
       return self._import(payload)
+    if route == "/api/resolve":
+      return self._resolve(payload)
+    if route == "/api/component":
+      return self._component(payload)
     return self._fail(404, "no such endpoint")
+
+  # ---- linked components ----
+
+  def _opened(self, payload):
+    """(document, registry, problems, error) for the drawing in a request,
+    references resolved against where it is saved."""
+    try:
+      document = Document.from_data(payload.get("doc") or {})
+    except (DocumentError, TypeError, ValueError) as exc:
+      return None, None, None, (422, "document is not valid: %s" % exc)
+    registry = self.registry.copy()
+    problems = []
+    source = payload.get("source")
+    if source:
+      resolved = _safe_join(self.root, source)
+      if resolved is None:
+        return None, None, None, (400, "source is outside the served directory")
+      document.path = resolved
+      problems = sheets.resolve(document, registry, confine=self.root)
+    return document, registry, problems, None
+
+  def _sheet_data(self, registry):
+    return {type_id: data for type_id, data in registry.as_data().items()
+            if type_id.startswith("sheet:")}
+
+  def _beside(self, source, ref):
+    """The served path of `ref`, read relative to the drawing at `source`."""
+    joined = posixpath.normpath(posixpath.join(posixpath.dirname(source), ref))
+    if joined.startswith("../") or joined == "..":
+      return None, None
+    return joined, _safe_join(self.root, joined)
+
+  def _resolve(self, payload):
+    """The block symbols a drawing's references need, read fresh from disk.
+
+    Asked after a component is placed, made, copied or edited: an instance's
+    pins are its definition's ports as they are now, so the editor asks
+    again rather than keeping what it was told when the drawing opened.
+    """
+    document, registry, problems, error = self._opened(payload)
+    if error:
+      return self._fail(*error)
+    return self._send_json({"sheets": self._sheet_data(registry),
+                            "problems": [_issue_data(p) for p in problems]})
+
+  def _component(self, payload):
+    """Make a component from a selection, or copy one for an instance.
+
+    "plan" says what a selection would become -- its ports, suggested names,
+    the file it would be written to -- and anything stopping it, writing
+    nothing. "create" writes the definition beside the drawing, under
+    components/, and hands back the drawing with the selection replaced by
+    an instance. "copy" gives one instance a definition of its own: the file
+    is copied and that instance alone is pointed at the copy.
+
+    Nothing here writes the drawing itself: it comes back to the editor,
+    which applies it as one step that undo takes back. A definition file
+    already written stays, harmless, if that step is undone.
+    """
+    action = payload.get("action")
+    source = payload.get("source")
+    if not source:
+      return self._fail(400, "save this drawing first: a component is kept "
+                             "beside the drawing that uses it")
+    document, registry, _problems, error = self._opened(payload)
+    if error:
+      return self._fail(*error)
+
+    if action in ("plan", "create"):
+      ids = payload.get("ids")
+      if not (isinstance(ids, list) and all(isinstance(i, str) for i in ids)):
+        return self._fail(422, "ids must be a list of item ids")
+      name = str(payload.get("name") or "").strip()
+      ref = components.ref_for(name or "component")
+      relative, target = self._beside(source, ref)
+      if target is None:
+        return self._fail(400, "the component would be outside the served directory")
+      if action == "plan":
+        found = components.plan(document, registry, set(ids))
+        found.update({"ref": ref, "path": relative,
+                      "exists": os.path.exists(target)})
+        return self._send_json(found)
+      if os.path.exists(target) and not payload.get("overwrite"):
+        return self._fail(409, "%s already exists" % relative)
+      names = payload.get("names") or {}
+      if not isinstance(names, dict):
+        return self._fail(422, "names must map a wire id to a port name")
+      try:
+        child, ref, instance = components.extract(document, registry, set(ids), name,
+                                                  names=names)
+      except components.ComponentError as exc:
+        return self._fail(422, str(exc))
+      return self._write_and_answer(document, child, target, relative,
+                                    "made component %s" % relative, instance)
+
+    if action == "copy":
+      cell_id = payload.get("cell")
+      cell = document.cell(cell_id) if isinstance(cell_id, str) else None
+      if cell is None or not cell.get("ref"):
+        return self._fail(422, "copy needs an instance of a component")
+      # A name no instance uses and no file has: sm_2.dlg, sm_3.dlg, ...
+      existing = set(c.get("ref") for c in document.cells if c.get("ref"))
+      while True:
+        new_ref = components.independent_ref(cell["ref"], existing)
+        _relative, path = self._beside(source, new_ref)
+        if path is None or not os.path.exists(path):
+          break
+        existing.add(new_ref)
+      _old, original = self._beside(source, cell["ref"])
+      relative, target = self._beside(source, new_ref)
+      if original is None or target is None or not os.path.isfile(original):
+        return self._fail(422, "cannot read %s to copy it" % cell["ref"])
+      try:
+        child = Document.load(original)
+      except (DocumentError, OSError, ValueError) as exc:
+        return self._fail(422, "cannot read %s: %s" % (cell["ref"], exc))
+      child.data["title"] = "%s (%s)" % (child.title, cell.get("label") or cell_id)
+      cell["ref"] = new_ref
+      return self._write_and_answer(document, child, target, relative,
+                                    "%s now has its own copy, %s"
+                                    % (cell.get("label") or cell_id, relative), cell_id)
+
+    return self._fail(400, "unknown component action %r" % (action,))
+
+  def _write_and_answer(self, document, child, target, relative, note, instance):
+    try:
+      folder = os.path.dirname(target)
+      if folder and not os.path.isdir(folder):
+        os.makedirs(folder)
+      write_file(target, child.dumps())
+    except OSError as exc:
+      return self._fail(500, "cannot write: %s" % exc)
+    registry = self.registry.copy()
+    sheets.resolve(document, registry, confine=self.root)
+    document.normalize(registry)
+    return self._send_json({"doc": document.ordered(), "path": relative,
+                            "sheets": self._sheet_data(registry), "note": note,
+                            "instance": instance})
 
   def _save(self, payload):
     relative = self._param("path") or payload.get("path")

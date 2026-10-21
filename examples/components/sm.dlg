@@ -1,0 +1,248 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "SM",
+  "canvas": {
+    "width": 1363,
+    "height": 443,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "pi_warps",
+      "type": "port_in",
+      "x": 100.925,
+      "y": 110.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "warps",
+      "style": {}
+    },
+    {
+      "id": "po_mem",
+      "type": "port_out",
+      "x": 1250.925,
+      "y": 110.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "mem",
+      "style": {}
+    },
+    {
+      "id": "sched",
+      "type": "block",
+      "x": 230.925,
+      "y": 90.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Warp scheduler",
+      "text": [
+        "4 x 32 threads"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    },
+    {
+      "id": "dispatch",
+      "type": "block",
+      "x": 480.925,
+      "y": 90.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Dispatch",
+      "text": [
+        "2 per clock"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    },
+    {
+      "id": "fp32",
+      "type": "block6",
+      "x": 730.925,
+      "y": 91.0,
+      "w": 160.0,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "FP32 / INT32",
+      "text": [
+        "128 lanes"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    },
+    {
+      "id": "tensor",
+      "type": "block",
+      "x": 740.925,
+      "y": 263.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Tensor cores",
+      "text": [
+        "4 per SM"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    },
+    {
+      "id": "l1",
+      "type": "block",
+      "x": 1000.925,
+      "y": 90.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L1 / shared",
+      "text": [
+        "256 KB"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "width": 1,
+      "from": {
+        "cell": "pi_warps",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "sched",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "width": 1,
+      "from": {
+        "cell": "sched",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "dispatch",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "width": 1,
+      "from": {
+        "cell": "dispatch",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "fp32",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "tensor",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "width": 1,
+      "from": {
+        "cell": "fp32",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "l1",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n5",
+      "width": 1,
+      "from": {
+        "cell": "tensor",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "l1",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n6",
+      "width": 1,
+      "from": {
+        "cell": "l1",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "po_mem",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "styles": {
+    "stage": {
+      "style": {
+        "fill": "#f3f6f8",
+        "stroke": "#5b6b74"
+      },
+      "headingStyle": {
+        "fontSize": 13
+      },
+      "textStyle": {
+        "fontSize": 10.5,
+        "fill": "#52656f"
+      }
+    }
+  }
+}

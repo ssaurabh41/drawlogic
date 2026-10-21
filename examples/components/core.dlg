@@ -1,0 +1,164 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "Core",
+  "canvas": {
+    "width": 841,
+    "height": 275,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "pi_req",
+      "type": "port_in",
+      "x": 95.0,
+      "y": 110.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "req",
+      "style": {}
+    },
+    {
+      "id": "po_resp",
+      "type": "port_out",
+      "x": 725.0,
+      "y": 110.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "resp",
+      "style": {}
+    },
+    {
+      "id": "fetch",
+      "type": "block",
+      "x": 225.0,
+      "y": 90.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Fetch",
+      "text": [
+        "decode"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    },
+    {
+      "id": "exec",
+      "type": "block",
+      "x": 475.0,
+      "y": 90.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Execute",
+      "text": [
+        "ALU, LSU"
+      ],
+      "style": {},
+      "styleRef": "stage"
+    }
+  ],
+  "nets": [
+    {
+      "id": "n1",
+      "width": 1,
+      "from": {
+        "cell": "pi_req",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "fetch",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n2",
+      "width": 1,
+      "from": {
+        "cell": "fetch",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "exec",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n3",
+      "width": 1,
+      "from": {
+        "cell": "exec",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "po_resp",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n4",
+      "label": "redirect",
+      "width": 1,
+      "from": {
+        "cell": "exec",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "fetch",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "styles": {
+    "stage": {
+      "style": {
+        "fill": "#f3f6f8",
+        "stroke": "#5b6b74"
+      },
+      "headingStyle": {
+        "fontSize": 13
+      },
+      "textStyle": {
+        "fontSize": 10.5,
+        "fill": "#52656f"
+      }
+    }
+  }
+}

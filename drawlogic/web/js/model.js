@@ -1288,6 +1288,94 @@ export function ungroupContainers(doc, ids) {
   return boxes.size;
 }
 
+// ---- linked components ----
+//
+// A component is a drawing of its own; each instance is a cell whose `ref`
+// names it (see components.py). The server makes and copies definitions;
+// these are the parts that are only an edit of the drawing in front of you.
+
+// Repeat: the selected item copied into a grid, `rows` by `columns`, the
+// original first, each copy with an id of its own and the next name in the
+// sequence -- "SM 0" to "SM 7". A copy of an instance names the same
+// definition, so the copies stay linked. Copies go in the same container as
+// the original, and a container is copied with what it holds.
+export function repeatItems(doc, id, { rows = 1, columns = 1, gapX = 30, gapY = 30,
+                                      prefix = "", start = 0 } = {}) {
+  const item = itemById(doc, id);
+  const box = itemBounds(doc, item);
+  rows = Math.trunc(Number(rows));
+  columns = Math.trunc(Number(columns));
+  gapX = Number(gapX);
+  gapY = Number(gapY);
+  start = Math.trunc(Number(start));
+  if (!item || !box || !(rows >= 1) || !(columns >= 1) || rows * columns > 400
+      || !Number.isFinite(gapX) || !Number.isFinite(gapY) || !Number.isFinite(start)) return null;
+  const name = (target, index) => {
+    if (!prefix) return;
+    const text = `${prefix}${index}`;
+    if (isContainer(target)) target.title = text;
+    else if (isShape(target)) target.text = text;
+    else target.label = text;
+  };
+  name(item, start);
+  const clip = copyItems(doc, new Set([id]));
+  const added = [];
+  let index = start;
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      if (row === 0 && column === 0) continue;
+      index += 1;
+      const ids = pasteItems(doc, clip, column * (box[2] + gapX), row * (box[3] + gapY));
+      const fresh = new Set(ids);
+      const outer = ids.map((i) => itemById(doc, i)).find((c) => c && !fresh.has(c.parentId));
+      if (outer) {
+        if (item.parentId !== undefined && containerById(doc, item.parentId)) {
+          outer.parentId = item.parentId;
+        }
+        if (prefix) name(outer, index);
+        else if (!isShape(outer) && !isContainer(outer)) outer.label = item.label;
+        added.push(outer.id);
+      }
+    }
+  }
+  return added;
+}
+
+// Wires that name a pin their cell does not have -- what is left when a
+// component's port is renamed or taken away. They are never moved to another
+// pin: they are reported, so the drawing says what it used to mean until
+// someone decides. [{net, cell, pin, label}, ...]
+//
+// `sheets` is the block symbols to judge by, for a drawing not in front; the
+// ones in use now by default.
+export function interfaceProblems(doc, sheets = null) {
+  const found = [];
+  for (const net of doc.nets) {
+    for (const end of [net.from, ...routing.loadsOf(net)]) {
+      if (!end || end.cell === undefined) continue;
+      const cell = doc.cells.find((c) => c.id === end.cell);
+      const symbol = !cell ? null
+        : sheets && cell.ref ? sheets[`sheet:${cell.ref}`] || null : geometry.forCell(cell);
+      if (!cell || !symbol || !cell.ref) continue;
+      if (!symbol.pins.some((pin) => pin.name === end.pin)) {
+        found.push({ net: net.id, cell: cell.id, pin: end.pin, label: cell.label || cell.id });
+      }
+    }
+  }
+  return found;
+}
+
+// The ref a drawing at `fromPath` uses to name the drawing at `target`, both
+// relative to the served folder: "components/sm.dlg" beside it, "../x.dlg"
+// one up.
+export function relativeRef(fromPath, target) {
+  const from = (fromPath || "").split("/").slice(0, -1);
+  const to = target.split("/");
+  let shared = 0;
+  while (shared < from.length && shared < to.length - 1 && from[shared] === to[shared]) shared += 1;
+  return [...from.slice(shared).map(() => ".."), ...to.slice(shared)].join("/");
+}
+
 // ---- nets ----
 
 function sameEnd(a, b) {

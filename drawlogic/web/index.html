@@ -211,6 +211,22 @@
     </div>
   </div>
 
+  <!-- Linked components: part of a drawing defined once, as a drawing of
+       its own, and placed as many times as it is needed. -->
+  <div class="menu">
+    <button id="menu-component-button" class="tool menu-button" type="button"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="menu-component">Component<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    <div id="menu-component" class="menu-panel" role="menu" aria-labelledby="menu-component-button" hidden>
+      <button class="menu-item" type="button" role="menuitem" data-command="component-create" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-symbol"/></svg><span>Create linked component from selection&hellip;</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="component-insert"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-rect"/></svg><span>Insert component&hellip;</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="component-repeat" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-h"/></svg><span>Repeat&hellip;</span></button>
+      <div class="menu-sep" role="separator"></div>
+      <button class="menu-item" type="button" role="menuitem" data-command="component-edit" data-needs="instance"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg><span>Edit component definition</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="component-independent" data-needs="instance"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg><span>Make independent</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="component-refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rotate"/></svg><span>Refresh components</span></button>
+    </div>
+  </div>
+
   <div class="tgroup view">
     <label class="field slider">
       <span>Zoom</span>
@@ -333,6 +349,16 @@
   <p class="choice-message style-note"></p>
   <div class="style-form"></div>
   <div class="style-buttons"><button type="button" class="style-cancel">Cancel</button><button type="button" class="style-save primary">Save style</button></div>
+</dialog>
+
+<!-- A form with OK and Cancel, filled by formDialog() in js/main.js:
+     reviewing a component's ports, the Repeat grid. -->
+<dialog id="form-dialog" class="shortcuts form-dialog" aria-labelledby="form-title">
+  <h2 id="form-title" class="form-title"></h2>
+  <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Cancel" title="Cancel (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>
+  <p class="choice-message form-note"></p>
+  <div class="form-body"></div>
+  <div class="style-buttons"><button type="button" class="form-cancel">Cancel</button><button type="button" class="form-ok primary">OK</button></div>
 </dialog>
 
 <dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">

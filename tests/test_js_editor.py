@@ -56,6 +56,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "stacking and writing on shapes",
     "containers",
     "headings and named styles",
+    "linked components",
   )
 
   def test_alignment_and_tidy(self):

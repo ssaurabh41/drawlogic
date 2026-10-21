@@ -989,35 +989,164 @@ function runCommand(command) {
   if (handler) handler();
 }
 
-// Move into container...: the containers the selection could go into, each
-// indented under the one holding it, and the sheet itself to take it out of
-// every one.
+// Move into container...: a tree of the containers the selection can go into,
+// with the sheet itself at the top for taking it out of every one. Each row
+// shows the container's header colour and how much it holds; the one the
+// selection is already in is marked and cannot be chosen. The row under the
+// pointer or the keyboard is outlined on the canvas, so the choice is made
+// looking at the drawing rather than at a list of names.
 async function moveIntoContainerAsked() {
   if (!selection.size) {
     say("select what to move into a container first", "bad");
     return;
   }
-  const allowed = new Set(model.containerChoices(store.doc, selection.ids).map((box) => box.id));
-  if (!allowed.size) {
+  const ids = new Set(selection.ids);
+  const allowed = new Set(model.containerChoices(store.doc, ids).map((box) => box.id));
+  if (!allowed.size && model.sharedContainer(store.doc, ids) === null) {
     say("there is no container to move that into", "warn");
     return;
   }
-  const options = render.containerPaintOrder(store.doc)
-    .filter((box) => allowed.has(box.id))
-    .map((box) => ({ label: box.title || box.id, value: box.id,
-                     indent: model.containerAncestors(store.doc, box.id).length }));
-  const target = await choose("Move into container",
-                              `${count(selection.size, "item")} selected`, options);
-  if (!target) return;
-  const ids = new Set(selection.ids);
+  const target = await pickContainer(ids, allowed);
+  if (target === undefined) return;
   const moved = store.mutate("move into container",
                              (doc) => model.moveIntoContainer(doc, ids, target));
   redraw();
   inspector.render();
-  if (moved) {
-    const box = model.containerById(store.doc, target);
-    say(`moved ${count(moved, "item")} into ${box.title || box.id}`);
+  if (!moved) return;
+  const box = target === null ? null : model.containerById(store.doc, target);
+  say(box ? `moved ${count(moved, "item")} into ${box.title || box.id}`
+          : `moved ${count(moved, "item")} out onto the sheet`);
+}
+
+// The picker itself. Resolves to a container id, null for the sheet, or
+// undefined when closed without a choice.
+function pickContainer(ids, allowed) {
+  const doc = store.doc;
+  const dialog = ui.containerDialog;
+  const list = dialog.querySelector(".pick-list");
+  const search = dialog.querySelector(".pick-search");
+  const n = [...ids].length;
+  dialog.querySelector(".pick-title").textContent = `Move ${count(n, "item")} into\u2026`;
+  const current = model.sharedContainer(doc, ids);
+  const defaults = model.containerDefaults();
+  const title = (box) => box.title || box.id;
+
+  // Every allowed container, in tree order, with its depth and whether it is
+  // the last of its siblings -- which is what the guide lines need.
+  const rows = [{ id: null, label: "Sheet", note: "no container", depth: 0,
+                  path: "", swatch: null }];
+  for (const box of render.containerPaintOrder(doc)) {
+    if (!allowed.has(box.id)) continue;
+    const trail = model.containerAncestors(doc, box.id).reverse();
+    const held = model.withContents(doc, [box.id]).size - 1;
+    rows.push({
+      id: box.id, label: title(box), depth: trail.length + 1,
+      path: trail.map(title).join(" \u203a "),
+      note: `${held} item${held === 1 ? "" : "s"}`,
+      swatch: (box.style || {}).headerFill || defaults.headerFill,
+    });
   }
+
+  return new Promise((resolve) => {
+    let answer;
+    let active = -1;
+    let shown = [];
+
+    const outline = (row) => {
+      const box = row && row.id !== null ? model.containerById(doc, row.id) : null;
+      drawOverlay(box ? { target: [box.x, box.y, box.w, box.h] } : {});
+    };
+    const usable = (row) => row.id !== current;
+    const focus = (index) => {
+      active = index;
+      list.querySelectorAll(".pick-row").forEach((node, i) => {
+        node.classList.toggle("active", i === index);
+        if (i === index) node.scrollIntoView({ block: "nearest" });
+      });
+      outline(shown[index]);
+    };
+    const choose = (row) => {
+      if (!row || !usable(row)) return;
+      answer = row.id;
+      dialog.close();
+    };
+
+    const fill = () => {
+      const query = search.value.trim().toLowerCase();
+      // Searching flattens the tree: matches only, each with where it is.
+      shown = query ? rows.filter((row) => row.label.toLowerCase().includes(query)) : rows;
+      list.textContent = "";
+      shown.forEach((row, index) => {
+        const node = document.createElement("button");
+        node.type = "button";
+        node.className = "pick-row";
+        node.setAttribute("role", "option");
+        if (!usable(row)) {
+          node.classList.add("current");
+          node.setAttribute("aria-disabled", "true");
+        }
+        const depth = query ? 0 : row.depth;
+        node.style.setProperty("--depth", depth);
+        if (depth > 0) node.classList.add("nested");
+        const swatch = document.createElement("span");
+        swatch.className = row.swatch ? "pick-swatch" : "pick-swatch sheet";
+        if (row.swatch && row.swatch !== "none") swatch.style.background = row.swatch;
+        const name = document.createElement("span");
+        name.className = "pick-name";
+        name.textContent = row.label;
+        if (query && row.path) {
+          const where = document.createElement("span");
+          where.className = "pick-path";
+          where.textContent = row.path;
+          name.appendChild(where);
+        }
+        const note = document.createElement("span");
+        note.className = "pick-note";
+        note.textContent = usable(row) ? row.note : "current";
+        node.append(swatch, name, note);
+        node.addEventListener("mouseenter", () => focus(index));
+        node.addEventListener("click", () => choose(row));
+        list.appendChild(node);
+      });
+      if (!shown.length) {
+        const empty = document.createElement("p");
+        empty.className = "pick-empty";
+        empty.textContent = "No container by that name";
+        list.appendChild(empty);
+      }
+      const first = shown.findIndex((row) => usable(row) && row.id !== null);
+      focus(first >= 0 ? first : shown.findIndex(usable));
+    };
+
+    const step = (by) => {
+      if (!shown.length) return;
+      let index = active;
+      for (let tries = 0; tries < shown.length; tries += 1) {
+        index = (index + by + shown.length) % shown.length;
+        if (usable(shown[index])) break;
+      }
+      focus(index);
+    };
+    const onKey = (event) => {
+      if (event.key === "ArrowDown") { event.preventDefault(); step(1); }
+      else if (event.key === "ArrowUp") { event.preventDefault(); step(-1); }
+      else if (event.key === "Enter") { event.preventDefault(); choose(shown[active]); }
+    };
+
+    search.value = "";
+    // A search box is only worth its room when there is something to search.
+    search.hidden = rows.length <= 8;
+    search.oninput = fill;
+    dialog.addEventListener("keydown", onKey);
+    dialog.addEventListener("close", () => {
+      dialog.removeEventListener("keydown", onKey);
+      drawOverlay({});
+      resolve(answer);
+    }, { once: true });
+    fill();
+    dialog.showModal();
+    (search.hidden ? list.querySelector(".pick-row.active") || list : search).focus();
+  });
 }
 
 // ---- files ----
@@ -1918,7 +2047,8 @@ function bindControls() {
         if (needs === "inside") item.disabled = !chosen.some((i) => i.parentId !== undefined);
         if (needs === "containers") {
           item.disabled = !chosen.length
-            || !model.containerChoices(store.doc, selection.ids).length;
+            || (!model.containerChoices(store.doc, selection.ids).length
+                && model.sharedContainer(store.doc, selection.ids) === null);
         }
       }
     },
@@ -2135,6 +2265,7 @@ async function start() {
     shortcuts: $("shortcuts"),
     prefsDialog: $("prefs-dialog"),
     choiceDialog: $("choice-dialog"),
+    containerDialog: $("container-dialog"),
     tabs: $("tabs"),
     btnPrefs: $("btn-prefs"),
     btnPainter: $("btn-painter"),

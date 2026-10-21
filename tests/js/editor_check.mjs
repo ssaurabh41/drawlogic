@@ -49,7 +49,7 @@ const EXPECTED = [
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
-  ["containers", 25],
+  ["containers", 27],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -908,6 +908,13 @@ section("containers");
         && model.itemById(loose, "out").parentId === "tpc");
   model.removeFromContainer(loose, new Set(["out"]));
   check("removing takes it out one level", model.itemById(loose, "out").parentId === "gpc");
+  check("the picker knows where a selection already is",
+        model.sharedContainer(loose, new Set(["out", "c"])) === "gpc"
+        && model.sharedContainer(loose, new Set(["out", "a"])) === undefined);
+  check("moving to the sheet takes it out of every container, and counts only what moved",
+        model.moveIntoContainer(loose, new Set(["out", "c"]), null) === 2
+        && model.itemById(loose, "out").parentId === undefined
+        && model.moveIntoContainer(loose, new Set(["out"]), null) === false);
   const made = model.containerFromSelection(loose, new Set(["a", "b"]), "Pair");
   check("a container made from a selection holds it, inside what held it",
         model.itemById(loose, "a").parentId === made.id && made.parentId === "tpc",

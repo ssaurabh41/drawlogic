@@ -315,6 +315,16 @@
   <div class="choice-options"></div>
 </dialog>
 
+<!-- Move into container: a tree of containers, filled by pickContainer() in
+     js/main.js. -->
+<dialog id="container-dialog" class="shortcuts pick" aria-labelledby="pick-title">
+  <h2 id="pick-title" class="pick-title">Move into</h2>
+  <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Cancel" title="Cancel (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>
+  <input class="pick-search" type="search" placeholder="Search containers" aria-label="Search containers">
+  <div class="pick-list" role="listbox" aria-labelledby="pick-title" tabindex="-1"></div>
+  <p class="pick-foot"><kbd>&uarr;</kbd><kbd>&darr;</kbd> choose &middot; <kbd>Enter</kbd> move &middot; <kbd>Esc</kbd> cancel</p>
+</dialog>
+
 <dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">
   <h2 id="shortcuts-title">Keyboard shortcuts</h2>
   <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>

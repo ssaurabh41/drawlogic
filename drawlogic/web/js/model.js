@@ -1082,16 +1082,33 @@ export function containerChoices(doc, ids) {
 }
 
 // Move into container: refused (false) for a container inside the selection.
+// A null container is the sheet itself: out of every container at once.
+// Only what actually changes owner is counted.
 export function moveIntoContainer(doc, ids, containerId) {
-  if (!containerChoices(doc, ids).some((box) => box.id === containerId)) return false;
+  if (containerId !== null
+      && !containerChoices(doc, ids).some((box) => box.id === containerId)) return false;
   let moved = 0;
   for (const id of ids) {
     const item = itemById(doc, id);
     if (!item || containerAncestors(doc, id).some((box) => ids.has(box.id))) continue;
-    item.parentId = containerId;
+    if ((item.parentId === undefined ? null : item.parentId) === containerId) continue;
+    if (containerId === null) delete item.parentId;
+    else item.parentId = containerId;
     moved += 1;
   }
   return moved > 0 && moved;
+}
+
+// Where the outermost of `ids` now are: one container's id, null for the
+// sheet, or undefined when they are in different places.
+export function sharedContainer(doc, ids) {
+  const places = new Set();
+  for (const id of ids) {
+    const item = itemById(doc, id);
+    if (!item || containerAncestors(doc, id).some((box) => ids.has(box.id))) continue;
+    places.add(item.parentId === undefined ? null : item.parentId);
+  }
+  return places.size === 1 ? [...places][0] : undefined;
 }
 
 // Remove from container: out one level, into whatever held the container.

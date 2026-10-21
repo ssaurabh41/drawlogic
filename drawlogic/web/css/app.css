@@ -1085,6 +1085,65 @@ select {
 
 /* choose(): a question and a column of answers. */
 .pactions { display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* Move into container: a tree of containers. Each level of nesting draws a
+   guide line down its left, so the shape of the drawing reads at a glance. */
+.dl-drop-target { fill: rgb(13 116 144 / 0.08); stroke: var(--accent); pointer-events: none; }
+/* Docked at the right, over the properties panel, with the drawing left in
+   view and barely dimmed: the outline of the container being offered is the
+   point, and a centred dialog sat on top of it. */
+.pick {
+  width: 380px; max-width: calc(100vw - 32px); padding-bottom: 14px;
+  margin: 0; inset: 96px 16px auto auto;
+}
+.pick::backdrop { background: rgb(0 0 0 / 0.06); }
+.pick-title { padding-right: 32px; }
+.pick-search {
+  width: 100%; box-sizing: border-box; margin: 2px 0 10px; padding: 7px 10px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--paper);
+  color: var(--ink); font: inherit;
+}
+.pick-search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.pick-list {
+  display: flex; flex-direction: column; gap: 2px; max-height: 52vh; overflow: auto;
+  padding: 4px; border: 1px solid var(--line-soft); border-radius: 8px; background: var(--paper);
+}
+.pick-list:focus { outline: none; }
+.pick-row {
+  --depth: 0;
+  display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
+  padding: 7px 10px 7px calc(10px + var(--depth) * 18px);
+  border: 0; border-radius: 6px; background: transparent; color: var(--ink);
+  font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+}
+.pick-row.nested {
+  background-image: repeating-linear-gradient(to right, transparent 0 8px,
+                    var(--line) 8px 9px, transparent 9px 18px);
+  background-size: calc(var(--depth) * 18px) 100%;
+  background-position: 10px 0;
+  background-repeat: no-repeat;
+}
+.pick-row.active { background-color: var(--accent-soft); }
+.pick-row.current { cursor: default; color: var(--ink-3); }
+.pick-row.current.active { background-color: var(--sunken); }
+.pick-swatch {
+  flex: none; width: 14px; height: 10px; border-radius: 3px;
+  border: 1px solid rgb(0 0 0 / 0.18); background: var(--paper);
+}
+.pick-swatch.sheet { border-style: dashed; border-color: var(--ink-3); }
+.pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.pick-path { display: block; font-weight: 400; font-size: 11.5px; color: var(--ink-3); }
+.pick-note { flex: none; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.pick-row.current .pick-note {
+  padding: 1px 6px; border-radius: 9px; background: var(--sunken); font-family: inherit;
+}
+.pick-empty { margin: 10px; color: var(--ink-3); font-size: 13px; }
+.pick-foot { margin: 10px 2px 0; color: var(--ink-3); font-size: 12px; }
+.pick-foot kbd {
+  display: inline-block; min-width: 16px; padding: 0 4px; margin-right: 2px; text-align: center;
+  border: 1px solid var(--line); border-radius: 4px; background: var(--chrome);
+  font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+}
 .choice { min-width: 300px; max-width: 420px; }
 .choice-message { margin: 0 0 12px; color: var(--ink-2); font-size: 13px; }
 .choice-options { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }

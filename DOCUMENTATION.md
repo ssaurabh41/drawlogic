@@ -607,8 +607,15 @@ sit. Three ways put something in one:
   That is the only moment where something sits decides what holds it.
 - **Container > Create container from selection** draws a new container
   round what is selected, fitted to it, inside whatever held all of it.
-- **Container > Move into container...** lists the containers the selection
-  can go into, indented by nesting.
+- **Container > Move into container...** opens a picker docked at the right
+  of the window: the containers the selection can go into as a tree, each
+  with its header colour and how much it holds, and **Sheet** at the top to
+  take the selection out of every container. The one it is already in is
+  marked *current*. Whichever row is under the pointer or the arrow keys is
+  outlined on the drawing, so you choose by looking at the drawing rather
+  than at a list of names; `Enter` moves, `Esc` cancels, and with more than
+  a handful of containers a search box narrows the list to matches, each
+  shown with where it sits.
 
 **Remove from container** takes the selection out one level. Dragging a cell
 out of a container's box leaves it in the container -- the box just no longer

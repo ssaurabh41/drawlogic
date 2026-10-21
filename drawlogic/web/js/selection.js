@@ -134,6 +134,15 @@ export function drawHandles(svg, selection, zoom, options = {}) {
                      "stroke-width": 1 / zoom }));
   }
 
+  // The container a picker is offering, outlined where it is on the sheet.
+  if (options.target) {
+    const [x, y, w, h] = options.target;
+    const pad = 4 / zoom;
+    layer.appendChild(el("rect", { class: "dl-drop-target", x: x - pad, y: y - pad,
+                                   width: w + 2 * pad, height: h + 2 * pad,
+                                   rx: 8 / zoom, "stroke-width": 3 / zoom }));
+  }
+
   // Alignment guides: why the thing you are dragging just jumped into line.
   for (const guide of options.guides || []) {
     const horizontal = guide.axis === "y";

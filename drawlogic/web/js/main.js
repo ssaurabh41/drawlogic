@@ -48,7 +48,7 @@ async function api(url, options) {
 // one question -- which is why it lives out here rather than inside either.
 function onSomething(event) {
   return Boolean(event.target.closest(
-    ".dl-cell, .dl-shape, .dl-net, .dl-hit, [data-handle], [data-sheet-handle]"));
+    ".dl-cell, .dl-shape, .dl-container, .dl-net, .dl-hit, [data-handle], [data-sheet-handle]"));
 }
 
 let toastTimer = null;
@@ -181,6 +181,7 @@ const context = {
   say,
   setTool: (name) => setTool(name),
   editText: (id, fresh) => editTextInPlace(id, fresh),
+  renameContainer: (id) => renameContainer(id),
 };
 
 function setTool(name) {
@@ -363,7 +364,7 @@ function apply(label, change, note) {
   if (note) say(note);
 }
 
-function deleteSelection() {
+async function deleteSelection({ contents = false } = {}) {
   if (selection.net !== null) {
     const ids = new Set([selection.net]);
     store.mutate("delete wire", (doc) => model.deleteItems(doc, ids));
@@ -374,7 +375,25 @@ function deleteSelection() {
     return;
   }
   if (!selection.size) return;
-  const ids = new Set(selection.ids);
+  let ids = new Set(selection.ids);
+  // A container that holds things asks first: the boundary alone, or the
+  // boundary and everything in it. Never decided for you either way.
+  // Cut takes a container's contents with it, as the copy it made did.
+  if (contents) ids = model.withContents(store.doc, ids);
+  const holding = [...ids].filter((id) => model.containerById(store.doc, id)
+    && [...model.withContents(store.doc, [id])].some((inner) => !ids.has(inner)));
+  if (holding.length) {
+    const inside = [...model.withContents(store.doc, holding)].filter((id) => !ids.has(id)).length;
+    const box = model.containerById(store.doc, holding[0]);
+    const what = holding.length === 1 ? `"${box.title || box.id}"` : `${holding.length} containers`;
+    const answer = await choose(
+      "Delete container",
+      `${what} ${holding.length === 1 ? "holds" : "hold"} ${inside} item${inside === 1 ? "" : "s"}.`,
+      [{ label: "Delete container and contents", value: "all", danger: true },
+       { label: "Keep contents", value: "keep" }]);
+    if (!answer) return;
+    if (answer === "all") ids = model.withContents(store.doc, ids);
+  }
   store.mutate("delete", (doc) => model.deleteItems(doc, ids));
   selection.clear();
   redraw();
@@ -382,12 +401,41 @@ function deleteSelection() {
   say(`deleted ${ids.size} item(s)`);
 }
 
+// A small dialog asking which of a few things to do. Resolves to the chosen
+// option's value, or null when it was closed without one.
+function choose(title, message, options) {
+  const dialog = ui.choiceDialog;
+  dialog.querySelector(".choice-title").textContent = title;
+  dialog.querySelector(".choice-message").textContent = message || "";
+  const list = dialog.querySelector(".choice-options");
+  list.textContent = "";
+  return new Promise((resolve) => {
+    let answer = null;
+    for (const option of options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `choice-option${option.danger ? " danger" : ""}`;
+      button.textContent = option.label;
+      if (option.indent) button.style.paddingLeft = `${12 + option.indent * 16}px`;
+      button.addEventListener("click", () => {
+        answer = option.value;
+        dialog.close();
+      });
+      list.appendChild(button);
+    }
+    dialog.addEventListener("close", () => resolve(answer), { once: true });
+    dialog.showModal();
+    const first = list.querySelector("button");
+    if (first) first.focus();
+  });
+}
+
 function copySelection(cut) {
   if (!selection.size) return;
   clipboard = model.copyItems(store.doc, selection.ids);
   const count = clipboard.cells.length + clipboard.shapes.length;
   say(`${cut ? "cut" : "copied"} ${count} item(s)`);
-  if (cut) deleteSelection();
+  if (cut) deleteSelection({ contents: true });
 }
 
 function paste(offset) {
@@ -501,6 +549,13 @@ function onDoubleClick(event) {
     }
   }
 
+  // Double-clicking a container's header renames it, where its title is.
+  const boxNode = activeTool === "select" ? event.target.closest(".dl-container") : null;
+  if (boxNode && store.doc) {
+    renameContainer(boxNode.getAttribute("data-id"));
+    return true;
+  }
+
   // Double-clicking a block that stands for another drawing opens it, the way
   // double-clicking a folder opens it.
   const node = event.target.closest(".dl-cell");
@@ -509,6 +564,15 @@ function onDoubleClick(event) {
   if (!cell || !cell.ref) return false;
   drillInto(cell);
   return true;
+}
+
+// Edit a container's title over its header band.
+function renameContainer(id) {
+  const box = model.containerById(store.doc, id);
+  if (!box) return;
+  const depth = render.containerHeader(box);
+  renameInPlace({ kind: "container", id,
+                  box: [box.x + 6, box.y + Math.max(0, depth / 2 - 10), box.x + box.w - 6, box.y + depth] });
 }
 
 // ---- format painter ----
@@ -568,7 +632,8 @@ function renameInPlace({ kind, id, box }) {
   const doc = store.doc;
   const current = kind === "cell"
     ? (doc.cells.find((c) => c.id === id) || {}).label
-    : (doc.nets.find((n) => n.id === id) || {}).label;
+    : kind === "container" ? (model.containerById(doc, id) || {}).title
+      : (doc.nets.find((n) => n.id === id) || {}).label;
   const rect = ui.canvas.getBoundingClientRect();
   const field = document.createElement("input");
   field.className = "rename-in-place";
@@ -586,7 +651,7 @@ function renameInPlace({ kind, id, box }) {
     field.remove();
     if (!keep || value === (current || "")) return;
     store.mutate("rename", (d) => {
-      if (kind === "cell") model.setLabel(d, id, value);
+      if (kind === "cell" || kind === "container") model.setLabel(d, id, value);
       else model.setNetLabel(d, id, value);
     });
     redraw();
@@ -851,6 +916,59 @@ function runCommand(command) {
         : "nothing to line up -- those cells already sit square");
     },
     delete: deleteSelection,
+    "container-create": () => {
+      if (!selection.size) {
+        say("select what the container should hold first", "bad");
+        return;
+      }
+      const box = store.mutate("container", (doc) => model.containerFromSelection(doc, selection.ids));
+      if (!box) return;
+      selection.set([box.id]);
+      redraw();
+      inspector.render();
+      renameContainer(box.id);
+    },
+    "container-fit": () => {
+      const boxes = selection.items().filter(model.isContainer);
+      if (!boxes.length) {
+        say("select a container to fit", "bad");
+        return;
+      }
+      let fitted = 0;
+      store.mutate("fit container", (doc) => {
+        // Inner ones first, so an outer one fits round its children's new size.
+        const order = boxes.slice().sort((a, b) => model.containerAncestors(doc, b.id).length
+                                                    - model.containerAncestors(doc, a.id).length);
+        for (const box of order) if (model.fitContainer(doc, box.id)) fitted += 1;
+        if (!fitted) return false;
+      });
+      redraw();
+      inspector.render();
+      say(fitted ? `fitted ${count(fitted, "container")} to contents`
+                 : "an empty container has nothing to fit to", fitted ? undefined : "warn");
+    },
+    "container-ungroup": () => {
+      const n = selection.items().filter(model.isContainer).length;
+      if (!n) {
+        say("select a container to ungroup", "bad");
+        return;
+      }
+      const ids = new Set(selection.ids);
+      store.mutate("ungroup container", (doc) => model.ungroupContainers(doc, ids));
+      selection.set([...ids].filter((id) => model.itemById(store.doc, id)));
+      redraw();
+      inspector.render();
+      say(`removed ${count(n, "container")}; what ${n === 1 ? "it" : "they"} held stays`);
+    },
+    "container-remove": () => {
+      const moved = store.mutate("remove from container",
+                                 (doc) => model.removeFromContainer(doc, selection.ids));
+      redraw();
+      inspector.render();
+      if (moved) say(`moved ${count(moved, "item")} out of ${moved === 1 ? "its" : "their"} container`);
+      else say("nothing selected is in a container", "warn");
+    },
+    "container-move": moveIntoContainerAsked,
   };
 
   if (command.startsWith("align-")) {
@@ -869,6 +987,37 @@ function runCommand(command) {
   }
   const handler = commands[command];
   if (handler) handler();
+}
+
+// Move into container...: the containers the selection could go into, each
+// indented under the one holding it, and the sheet itself to take it out of
+// every one.
+async function moveIntoContainerAsked() {
+  if (!selection.size) {
+    say("select what to move into a container first", "bad");
+    return;
+  }
+  const allowed = new Set(model.containerChoices(store.doc, selection.ids).map((box) => box.id));
+  if (!allowed.size) {
+    say("there is no container to move that into", "warn");
+    return;
+  }
+  const options = render.containerPaintOrder(store.doc)
+    .filter((box) => allowed.has(box.id))
+    .map((box) => ({ label: box.title || box.id, value: box.id,
+                     indent: model.containerAncestors(store.doc, box.id).length }));
+  const target = await choose("Move into container",
+                              `${count(selection.size, "item")} selected`, options);
+  if (!target) return;
+  const ids = new Set(selection.ids);
+  const moved = store.mutate("move into container",
+                             (doc) => model.moveIntoContainer(doc, ids, target));
+  redraw();
+  inspector.render();
+  if (moved) {
+    const box = model.containerById(store.doc, target);
+    say(`moved ${count(moved, "item")} into ${box.title || box.id}`);
+  }
 }
 
 // ---- files ----
@@ -1761,6 +1910,17 @@ function bindControls() {
       for (const item of panel.querySelectorAll("[data-min]")) {
         item.disabled = selection.size < Number(item.getAttribute("data-min"));
       }
+      // The container commands that need a container, or something in one.
+      const chosen = selection.items();
+      for (const item of panel.querySelectorAll("[data-needs]")) {
+        const needs = item.getAttribute("data-needs");
+        if (needs === "container") item.disabled = !chosen.some(model.isContainer);
+        if (needs === "inside") item.disabled = !chosen.some((i) => i.parentId !== undefined);
+        if (needs === "containers") {
+          item.disabled = !chosen.length
+            || !model.containerChoices(store.doc, selection.ids).length;
+        }
+      }
     },
   });
 
@@ -1974,6 +2134,7 @@ async function start() {
     btnFit: $("btn-fit"),
     shortcuts: $("shortcuts"),
     prefsDialog: $("prefs-dialog"),
+    choiceDialog: $("choice-dialog"),
     tabs: $("tabs"),
     btnPrefs: $("btn-prefs"),
     btnPainter: $("btn-painter"),
@@ -2022,6 +2183,7 @@ async function start() {
   inspector = new Inspector($("properties-body"), store, selection, () => redraw(),
                             (message) => say(message, "bad"));
   inspector.onOpenRef = (cell) => drillInto(cell);
+  inspector.onCommand = (command) => runCommand(command);
   selection.subscribe(() => refreshStatus());
   // Anything that changes the drawing makes the last check stale, and a stale
   // clean bill is worse than none: it says the thing just broken is fine.
@@ -2048,6 +2210,7 @@ async function start() {
       api("/api/drc"),
     ]);
     render.setTheme(theme);
+    model.setContainerDefaults(theme.container);
     routing.setLimits(drcLimits);
     geometry.setLibrary(library);
     rebuildPalette();

@@ -49,6 +49,7 @@ export class SelectTool {
     this.origin = null;
     this.handle = null;
     this.startBoxes = null;
+    this.startWires = new Map();
     this.startBounds = null;
     this.marquee = null;
     this.duplicated = false;
@@ -84,7 +85,9 @@ export class SelectTool {
       }[this.handle] || "crosshair";
     }
     if (target && target.closest && target.closest(".dl-net, .dl-hit")) return "crosshair";
-    if (!target || !target.closest || !target.closest(".dl-cell, .dl-shape")) return "default";
+    if (!target || !target.closest || !target.closest(".dl-cell, .dl-shape, .dl-container")) {
+      return "default";
+    }
     // grab/grabbing rather than move: the hand shape says "you can pick this
     // up" before the drag and "you are holding it" during, which is the pair
     // every other canvas tool uses.
@@ -123,7 +126,7 @@ export class SelectTool {
       return;
     }
 
-    const node = event.target.closest(".dl-cell, .dl-shape");
+    const node = event.target.closest(".dl-cell, .dl-shape, .dl-container");
     if (node) {
       const id = node.getAttribute("data-id");
       // Ctrl means two things on an item: add it to the selection, and
@@ -143,10 +146,7 @@ export class SelectTool {
       }
 
       this.mode = "move";
-      this.startBoxes = new Map([...selection.ids].map((id2) => {
-        const item = model.itemById(store.doc, id2);
-        return [id2, JSON.parse(JSON.stringify(item))];
-      }));
+      this.carry(selection.ids);
       // Ctrl-drag duplicates, the way it does in a slide editor. Shift holds
       // the drag to a straight line -- across or down, whichever the pointer
       // has gone further -- and the two together duplicate along that line.
@@ -234,12 +234,22 @@ export class SelectTool {
             if (start.x !== undefined) item.x = start.x + fx;
             if (start.y !== undefined) item.y = start.y + fy;
           }
+          for (const [netId, bends] of this.startWires) {
+            const net = doc.nets.find((n) => n.id === netId);
+            if (!net) continue;
+            routing.loadsOf(net).forEach((load, i) => {
+              load.waypoints = (bends[i] || []).map((p) => [p[0] + fx, p[1] + fy]);
+            });
+          }
         };
         shift(sdx, sdy);
         if (!helping) return;
         // Asked of the drawing as it now stands, so the answer is a nudge
         // from where the cell actually is rather than from where it started.
-        const fix = guides.suggest(doc, selection.ids, SNAP_PIXELS / this.ctx.zoom());
+        // Everything being carried moves, so none of it is lined up with the
+        // rest of it.
+        const fix = guides.suggest(doc, new Set(this.startBoxes.keys()),
+                                   SNAP_PIXELS / this.ctx.zoom());
         // An alignment pull may not break the straight line it is held to.
         const fixX = straight && !across ? 0 : fix.dx;
         const fixY = straight && across ? 0 : fix.dy;
@@ -285,6 +295,23 @@ export class SelectTool {
     return false;
   }
 
+  // What a move picks up: the selection, everything inside any container in
+  // it -- each once, however many of its containers are selected too -- and
+  // the bends of the wires running wholly among what a container carries.
+  carry(ids) {
+    const { store } = this.ctx;
+    const moving = model.withContents(store.doc, ids);
+    this.startBoxes = new Map([...moving].map((id) => {
+      const item = model.itemById(store.doc, id);
+      return [id, JSON.parse(JSON.stringify(item))];
+    }));
+    const boxes = [...ids].some((id) => model.isContainer(model.itemById(store.doc, id)));
+    this.startWires = new Map(boxes
+      ? model.innerNets(store.doc, moving).map((net) => [
+        net.id, routing.loadsOf(net).map((load) => JSON.parse(JSON.stringify(load.waypoints || [])))])
+      : []);
+  }
+
   // Whether a resize may change the shape as well as the size. A gate drawn
   // stretched looks wrong, so gates keep their proportions unless Alt is held.
   // A block is a box whose shape says nothing -- it is sized to fit what is
@@ -295,7 +322,7 @@ export class SelectTool {
     const blocks = items.length > 0 && items.every((item) => {
       // An autoshape is drawn to whatever shape it is wanted, as in a slide
       // editor: free, and Shift keeps its proportions.
-      if (model.isShape(item)) return true;
+      if (model.isShape(item) || model.isContainer(item)) return true;
       const symbol = geometry.forCell(item);
       return Boolean(symbol) && BLOCK_CATEGORIES.has(symbol.category);
     });
@@ -338,11 +365,14 @@ export class SelectTool {
     const added = store.mutate(this.gestureLabel,
                                (doc) => model.pasteItems(doc, clip, 0, 0));
     if (added) {
-      selection.set(added);
-      this.startBoxes = new Map(added.map((id) => {
+      // The copy of a container comes with copies of what it holds, all of
+      // them in `added`; only the outermost are selected, as the originals were.
+      const copied = new Set(added);
+      selection.set(added.filter((id) => {
         const item = model.itemById(store.doc, id);
-        return [id, JSON.parse(JSON.stringify(item))];
+        return !(item && copied.has(item.parentId));
       }));
+      this.carry(new Set(selection.ids));
     }
     this.duplicated = true;
   }
@@ -416,8 +446,11 @@ export class SelectTool {
         item.y = fixed[1] + (start.y - fixed[1]) * scaleY;
         if (start.w !== undefined) item.w = Math.max(4, start.w * scaleX);
         if (start.h !== undefined) item.h = Math.max(4, start.h * scaleY);
+        // A container's boundary moves and what it holds does not -- and it
+        // cannot be pulled in past what it holds.
+        if (model.isContainer(item)) model.keepContentsInside(doc, item);
         // A box holding text cannot be squeezed smaller than the text.
-        if (!model.isShape(item)) model.fitCell(doc, item);
+        else if (!model.isShape(item)) model.fitCell(doc, item);
       }
     });
   }
@@ -759,7 +792,7 @@ export const SHAPE_PRESETS = {
 export function constrainShape(kind, from, to) {
   const dx = to[0] - from[0];
   const dy = to[1] - from[1];
-  if (kind === "rect" || kind === "ellipse") {
+  if (kind === "rect" || kind === "ellipse" || kind === "container") {
     const side = Math.max(Math.abs(dx), Math.abs(dy));
     return [from[0] + (dx < 0 ? -side : side), from[1] + (dy < 0 ? -side : side)];
   }
@@ -807,6 +840,7 @@ export class ShapeTool {
       const shape = store.mutate("text", (doc) => {
         const made = model.addShape(doc, "text", { x: at[0], y: at[1] });
         made.text = "";
+        model.adoptNew(doc, made.id);
         return made;
       });
       this.ctx.setTool("select");
@@ -871,18 +905,35 @@ export class ShapeTool {
     const b = event.shiftKey && this.raw
       ? constrainShape(this.kind, a, this.raw) : (this.raw || this.preview);
 
+    if (this.kind === "container") {
+      const box = store.mutate("container", (doc) => model.addContainer(doc, {
+        x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]),
+        w: Math.abs(b[0] - a[0]), h: Math.abs(b[1] - a[1]),
+      }));
+      this.reset();
+      this.ctx.setTool("select");
+      if (box) {
+        selection.set([box.id]);
+        if (this.ctx.renameContainer) this.ctx.renameContainer(box.id);
+      }
+      return true;
+    }
+
     const shape = store.mutate("shape", (doc) => {
       if (this.kind === "line") {
         const made = model.addShape(doc, "line", { x: a[0], y: a[1], w: 0, h: 0,
                                                    points: [a, b] });
         if (this.preset) Object.assign(made.style, SHAPE_PRESETS[this.preset].style);
+        model.adoptNew(doc, made.id);
         return made;
       }
-      return model.addShape(doc, this.kind, {
+      const made = model.addShape(doc, this.kind, {
         x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]),
         w: Math.max(4, Math.abs(b[0] - a[0])),
         h: Math.max(4, Math.abs(b[1] - a[1])),
       });
+      model.adoptNew(doc, made.id);
+      return made;
     });
 
     this.reset();
@@ -897,9 +948,12 @@ export class ShapeTool {
       return false;
     }
     const points = this.polygon;
-    const shape = this.ctx.store.mutate("shape", (doc) =>
-      model.addShape(doc, "polygon", { x: points[0][0], y: points[0][1],
-                                       w: 0, h: 0, points }));
+    const shape = this.ctx.store.mutate("shape", (doc) => {
+      const made = model.addShape(doc, "polygon", { x: points[0][0], y: points[0][1],
+                                                    w: 0, h: 0, points });
+      model.adoptNew(doc, made.id);
+      return made;
+    });
     this.reset();
     if (shape) this.ctx.selection.set([shape.id]);
     this.ctx.setTool("select");

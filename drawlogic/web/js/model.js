@@ -191,6 +191,7 @@ function uniqueId(doc, prefix) {
     ...doc.nets.map((n) => n.id),
     ...(doc.shapes || []).map((s) => s.id),
     ...(doc.groups || []).map((g) => g.id),
+    ...(doc.containers || []).map((b) => b.id),
   ]);
   let n = 1;
   while (used.has(`${prefix}${n}`)) n += 1;
@@ -236,10 +237,11 @@ export function symbolScale(doc) {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-// Cells and shapes are both selectable, movable and resizable, so most of the
-// editor treats them as one kind of thing: an item with a bounding box.
+// Cells, shapes and containers are all selectable, movable and resizable, so
+// most of the editor treats them as one kind of thing: an item with a
+// bounding box.
 export function items(doc) {
-  return [...doc.cells, ...(doc.shapes || [])];
+  return [...doc.cells, ...(doc.shapes || []), ...(doc.containers || [])];
 }
 
 // A fresh drawing, in the shape doc.py normalises to. The sheet size comes
@@ -270,6 +272,7 @@ export function blankDocument(title) {
 export function itemById(doc, id) {
   return doc.cells.find((c) => c.id === id)
     || (doc.shapes || []).find((s) => s.id === id)
+    || (doc.containers || []).find((b) => b.id === id)
     || null;
 }
 
@@ -277,8 +280,14 @@ export function isShape(item) {
   return item && item.kind !== undefined;
 }
 
+// A cell has a type and a shape a kind; a container has neither.
+export function isContainer(item) {
+  return Boolean(item) && item.kind === undefined && item.type === undefined;
+}
+
 export function itemBounds(doc, item) {
   if (!item) return null;
+  if (isContainer(item)) return [item.x, item.y, item.w, item.h];
   if (isShape(item)) {
     if (item.points && item.points.length) {
       return geometry.boundsOf(item.points);
@@ -321,8 +330,12 @@ export function addCell(doc, type, x, y) {
   return cell;
 }
 
+// A container moves with everything inside it, each thing once however many
+// of its containers were also asked to move -- and so do the bends of the
+// wires that run wholly among them, so what it holds arrives as it was.
 export function moveItems(doc, ids, dx, dy) {
-  for (const id of ids) {
+  const moving = withContents(doc, ids);
+  for (const id of moving) {
     const item = itemById(doc, id);
     if (!item) continue;
     if (item.points) {
@@ -330,6 +343,13 @@ export function moveItems(doc, ids, dx, dy) {
     }
     if (item.x !== undefined) item.x += dx;
     if (item.y !== undefined) item.y += dy;
+  }
+  if ([...ids].some((id) => isContainer(itemById(doc, id)))) {
+    for (const net of innerNets(doc, moving)) {
+      for (const load of routing.loadsOf(net)) {
+        load.waypoints = (load.waypoints || []).map((p) => [p[0] + dx, p[1] + dy]);
+      }
+    }
   }
 }
 
@@ -356,7 +376,31 @@ export function flipCells(doc, ids, vertical) {
 
 // Deleting a cell has to take its wires with it, or the document is left with
 // nets pointing at something that no longer exists.
+//
+// A container taken away leaves what it held to the container round it, or
+// to the sheet: what is deleted is exactly what was asked for, and nothing
+// is left naming a parent that has gone. Taking the contents too is the
+// caller's choice, made by passing them (see withContents).
 export function deleteItems(doc, ids) {
+  if ((doc.containers || []).some((box) => ids.has(box.id))) {
+    const parents = new Map((doc.containers || []).map((box) => [box.id, box.parentId]));
+    const survivor = (id) => {
+      const seen = new Set();
+      while (id !== undefined && ids.has(id) && !seen.has(id)) {
+        seen.add(id);
+        id = parents.get(id);
+      }
+      return id;
+    };
+    for (const item of items(doc)) {
+      if (ids.has(item.id) || item.parentId === undefined || !ids.has(item.parentId)) continue;
+      const parent = survivor(item.parentId);
+      if (parent === undefined || ids.has(parent)) delete item.parentId;
+      else item.parentId = parent;
+    }
+    doc.containers = doc.containers.filter((box) => !ids.has(box.id));
+    if (!doc.containers.length) delete doc.containers;
+  }
   doc.cells = doc.cells.filter((cell) => !ids.has(cell.id));
   doc.shapes = (doc.shapes || []).filter((shape) => !ids.has(shape.id));
   doc.nets = doc.nets.filter((net) => {
@@ -402,7 +446,8 @@ export function setPinLabel(doc, cellId, pinName, label) {
 export function setLabel(doc, id, label) {
   const item = itemById(doc, id);
   if (!item) return;
-  if (isShape(item)) item.text = label;
+  if (isContainer(item)) item.title = label || "";
+  else if (isShape(item)) item.text = label;
   else item.label = label || null;
 }
 
@@ -679,8 +724,11 @@ export function distribute(doc, ids, axis) {
 // ---- clipboard ----
 
 export function copyItems(doc, ids) {
+  // A container is copied with what it holds.
+  ids = withContents(doc, ids);
   const cells = doc.cells.filter((c) => ids.has(c.id));
   const shapes = (doc.shapes || []).filter((s) => ids.has(s.id));
+  const containers = (doc.containers || []).filter((b) => ids.has(b.id));
   // Wires between two copied cells travel with them; a wire with one end
   // outside the selection would have nothing to attach to.
   const inside = (endpoint) =>
@@ -698,12 +746,27 @@ export function copyItems(doc, ids) {
     .filter((group) => group.members.length > 1
                        && group.members.every((m) => ids.has(m)));
 
-  return JSON.parse(JSON.stringify({ cells, shapes, nets, groups }));
+  return JSON.parse(JSON.stringify({ cells, shapes, nets, groups, containers }));
 }
 
 export function pasteItems(doc, clip, dx, dy) {
   const remap = new Map();
   const added = [];
+
+  // Containers first, so the things they hold can be pointed at the copies.
+  // A copy of something whose container was not copied stays in that same
+  // container, as long as it is still there: duplicating an SM inside a GPC
+  // gives another SM in that GPC.
+  for (const source of clip.containers || []) {
+    const box = JSON.parse(JSON.stringify(source));
+    box.id = uniqueId(doc, "k");
+    remap.set(source.id, box.id);
+    box.x += dx;
+    box.y += dy;
+    doc.containers = doc.containers || [];
+    doc.containers.push(box);
+    added.push(box.id);
+  }
 
   for (const source of clip.cells || []) {
     const cell = JSON.parse(JSON.stringify(source));
@@ -745,6 +808,14 @@ export function pasteItems(doc, clip, dx, dy) {
     doc.nets.push(net);
   }
 
+  const kept = new Set((doc.containers || []).map((box) => box.id));
+  for (const id of added) {
+    const item = itemById(doc, id);
+    if (!item || item.parentId === undefined) continue;
+    if (remap.has(item.parentId)) item.parentId = remap.get(item.parentId);
+    else if (!kept.has(item.parentId)) delete item.parentId;
+  }
+
   for (const source of clip.groups || []) {
     // Every member was remapped above, or the group would not have been
     // copied. Anything that somehow was not is dropped rather than left
@@ -765,6 +836,9 @@ export function pasteItems(doc, clip, dx, dy) {
 // ---- groups ----
 
 export function groupItems(doc, ids) {
+  // A group is of cells and shapes. A container is already a way of keeping
+  // things together, and the two are kept apart rather than mixed.
+  ids = new Set([...ids].filter((id) => !isContainer(itemById(doc, id))));
   if (ids.size < 2) return null;
   doc.groups = doc.groups || [];
   // A cell belongs to at most one group, so grouping absorbs any existing
@@ -799,6 +873,247 @@ export function expandGroups(doc, ids) {
     if (group) group.members.forEach((m) => out.add(m));
   }
   return out;
+}
+
+// ---- containers ----
+//
+// A container owns whatever names it as `parentId` -- cells, shapes and other
+// containers -- and nothing else: sitting inside its box is not enough, so a
+// drag never changes what anything belongs to. Coordinates stay absolute, as
+// in containers.py; moving a container moves each thing inside it.
+
+export function containerById(doc, id) {
+  return (doc.containers || []).find((box) => box.id === id) || null;
+}
+
+// `ids` and everything inside any of them, at any depth. A loop in the file
+// (which the checker reports) ends the walk rather than hanging it.
+export function withContents(doc, ids) {
+  const found = new Set(ids);
+  let frontier = [...found];
+  const all = items(doc);
+  while (frontier.length) {
+    const parents = new Set(frontier);
+    frontier = [];
+    for (const item of all) {
+      if (parents.has(item.parentId) && !found.has(item.id)) {
+        found.add(item.id);
+        frontier.push(item.id);
+      }
+    }
+  }
+  return found;
+}
+
+// Wires with every end on something in `ids`: the ones that travel with it.
+export function innerNets(doc, ids) {
+  const inside = (end) => end && end.cell !== undefined && ids.has(end.cell);
+  return doc.nets.filter((net) => inside(net.from) && routing.loadsOf(net).every(inside));
+}
+
+// The containers holding `id`, innermost first.
+export function containerAncestors(doc, id) {
+  const out = [];
+  let item = itemById(doc, id);
+  const seen = new Set();
+  while (item && item.parentId !== undefined && !seen.has(item.parentId)) {
+    seen.add(item.parentId);
+    const parent = containerById(doc, item.parentId);
+    if (!parent) break;
+    out.push(parent);
+    item = parent;
+  }
+  return out;
+}
+
+function containerPadding(box) {
+  const value = Number(box.padding);
+  return Number.isFinite(value) ? Math.max(0, value) : CONTAINER_DEFAULTS.padding;
+}
+
+function containerHeaderDepth(box) {
+  const value = Number(box.headerHeight);
+  return Number.isFinite(value) ? Math.max(0, value) : CONTAINER_DEFAULTS.header;
+}
+
+// What a container is given when it is made: theme.CONTAINER's padding and
+// header, which /api/theme sends -- these are only the fallback until it has.
+const CONTAINER_DEFAULTS = { padding: 20, header: 32 };
+
+export function setContainerDefaults(data) {
+  if (!data) return;
+  Object.assign(CONTAINER_DEFAULTS, data);
+}
+
+// The theme's container colours and sizes, for the panel to show as defaults.
+export function containerDefaults() {
+  return { ...CONTAINER_DEFAULTS };
+}
+
+// The smallest box that still holds a container's contents with its padding
+// round them and its header above, or null when it holds nothing. Mirrors
+// containers.needed_box.
+export function containerNeeds(doc, box) {
+  const ids = items(doc).filter((item) => item.parentId === box.id).map((item) => item.id);
+  const inner = ids.length ? boundsOfIds(doc, ids) : null;
+  if (!inner) return null;
+  const pad = containerPadding(box);
+  const top = inner[1] - pad - containerHeaderDepth(box);
+  return [inner[0] - pad, top, inner[2] + 2 * pad, inner[1] + inner[3] + pad - top];
+}
+
+// Fit to contents: the box hugs what it holds, with its padding and header.
+export function fitContainer(doc, id) {
+  const box = containerById(doc, id);
+  if (!box) return false;
+  const need = containerNeeds(doc, box);
+  if (!need) return false;
+  [box.x, box.y, box.w, box.h] = need;
+  return true;
+}
+
+// Grow a container's box, as little as it takes, until it holds its contents:
+// a container is never left smaller than what is in it.
+export function keepContentsInside(doc, box) {
+  const need = containerNeeds(doc, box);
+  if (!need) return;
+  const right = Math.max(box.x + box.w, need[0] + need[2]);
+  const bottom = Math.max(box.y + box.h, need[1] + need[3]);
+  box.x = Math.min(box.x, need[0]);
+  box.y = Math.min(box.y, need[1]);
+  box.w = right - box.x;
+  box.h = bottom - box.y;
+}
+
+// The deepest container whose box wholly holds `bounds`, other than any in
+// `exclude`, or null. Asked once, when something is made -- drawn, dropped
+// from the palette -- so a cell put down inside "GPC 0" belongs to it. Never
+// asked during a drag.
+export function containerAround(doc, bounds, exclude = new Set()) {
+  if (!bounds) return null;
+  let best = null;
+  let bestDepth = -1;
+  for (const box of doc.containers || []) {
+    if (exclude.has(box.id)) continue;
+    if (bounds[0] < box.x || bounds[1] < box.y
+        || bounds[0] + bounds[2] > box.x + box.w
+        || bounds[1] + bounds[3] > box.y + box.h) continue;
+    const depth = containerAncestors(doc, box.id).length;
+    if (depth > bestDepth) {
+      best = box;
+      bestDepth = depth;
+    }
+  }
+  return best;
+}
+
+// Put a newly made item in the container it was made inside, if any.
+export function adoptNew(doc, id) {
+  const item = itemById(doc, id);
+  if (!item) return null;
+  const around = containerAround(doc, itemBounds(doc, item), new Set([id]));
+  if (around) item.parentId = around.id;
+  else delete item.parentId;
+  return around;
+}
+
+function nextContainerTitle(doc) {
+  const used = new Set((doc.containers || []).map((box) => box.title));
+  let n = 1;
+  while (used.has(`Container ${n}`)) n += 1;
+  return `Container ${n}`;
+}
+
+export function addContainer(doc, box, title = null) {
+  const container = {
+    id: uniqueId(doc, "k"),
+    title: title || nextContainerTitle(doc),
+    x: box.x,
+    y: box.y,
+    w: Math.max(40, box.w),
+    h: Math.max(containerHeaderDepth({}) + 20, box.h),
+    padding: CONTAINER_DEFAULTS.padding,
+    headerHeight: CONTAINER_DEFAULTS.header,
+    style: {},
+  };
+  doc.containers = doc.containers || [];
+  doc.containers.push(container);
+  adoptNew(doc, container.id);
+  return container;
+}
+
+// The innermost container holding every one of `ids`, or null for the sheet.
+function commonContainer(doc, ids) {
+  const chains = [...ids].map((id) => containerAncestors(doc, id).map((box) => box.id));
+  if (!chains.length) return null;
+  for (const candidate of chains[0]) {
+    if (chains.every((chain) => chain.includes(candidate)) && !ids.has(candidate)) {
+      return containerById(doc, candidate);
+    }
+  }
+  return null;
+}
+
+// Create container from selection: a new container round the selection,
+// fitted to it, inside whatever container held all of it.
+export function containerFromSelection(doc, ids, title = null) {
+  const chosen = new Set([...ids].filter((id) => itemById(doc, id)));
+  if (!chosen.size) return null;
+  const outer = commonContainer(doc, chosen);
+  const container = addContainer(doc, { x: 0, y: 0, w: 40, h: 40 }, title);
+  if (outer) container.parentId = outer.id;
+  else delete container.parentId;
+  // Only the outermost of what was chosen moves in: something inside a
+  // chosen container stays inside that one.
+  for (const id of chosen) {
+    const item = itemById(doc, id);
+    if (containerAncestors(doc, id).some((box) => chosen.has(box.id))) continue;
+    item.parentId = container.id;
+  }
+  fitContainer(doc, container.id);
+  return container;
+}
+
+// The containers `ids` could be moved into: not one of them, and not inside
+// one of them, which would make a container hold itself.
+export function containerChoices(doc, ids) {
+  const blocked = withContents(doc, ids);
+  return (doc.containers || []).filter((box) => !blocked.has(box.id));
+}
+
+// Move into container: refused (false) for a container inside the selection.
+export function moveIntoContainer(doc, ids, containerId) {
+  if (!containerChoices(doc, ids).some((box) => box.id === containerId)) return false;
+  let moved = 0;
+  for (const id of ids) {
+    const item = itemById(doc, id);
+    if (!item || containerAncestors(doc, id).some((box) => ids.has(box.id))) continue;
+    item.parentId = containerId;
+    moved += 1;
+  }
+  return moved > 0 && moved;
+}
+
+// Remove from container: out one level, into whatever held the container.
+export function removeFromContainer(doc, ids) {
+  let moved = 0;
+  for (const id of ids) {
+    const item = itemById(doc, id);
+    if (!item || item.parentId === undefined) continue;
+    const parent = containerById(doc, item.parentId);
+    if (parent && parent.parentId !== undefined) item.parentId = parent.parentId;
+    else delete item.parentId;
+    moved += 1;
+  }
+  return moved > 0 && moved;
+}
+
+// Ungroup container: the boundary goes and what it held stays where it is.
+export function ungroupContainers(doc, ids) {
+  const boxes = new Set([...ids].filter((id) => containerById(doc, id)));
+  if (!boxes.size) return false;
+  deleteItems(doc, boxes);
+  return boxes.size;
 }
 
 // ---- nets ----
@@ -1008,6 +1323,7 @@ export function placeCell(doc, type, point, connect = true) {
     }
   }
   if (connect) joined.push(...autoConnect(doc, [cell.id]));
+  adoptNew(doc, cell.id);
   return { cell, joined };
 }
 

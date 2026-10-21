@@ -41,21 +41,24 @@ from .symbols import default_registry
 FORMAT = "drawlogic"
 VERSION = 2
 
-DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups"]
+DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups",
+            "containers"]
 CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
                "arrows", "hops", "forkLate"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
-CELL_KEYS = ["id", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
+CELL_KEYS = ["id", "parentId", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
              "text", "textFit", "textAlign", "textVAlign", "copies", "pins", "style", "image", "ref",
              "pinned", "z"]
 NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 # A load is a point that may also say which way the wire to it should go.
 LOAD_KEYS = POINT_KEYS + ["waypoints"]
-SHAPE_KEYS = ["id", "kind", "x", "y", "w", "h", "points", "text", "textAlign",
+SHAPE_KEYS = ["id", "parentId", "kind", "x", "y", "w", "h", "points", "text", "textAlign",
               "textVAlign", "copies", "rotate", "z", "style"]
 GROUP_KEYS = ["id", "label", "members"]
+CONTAINER_KEYS = ["id", "parentId", "title", "x", "y", "w", "h", "padding",
+                  "headerHeight", "style"]
 
 SHAPE_KINDS = ("rect", "ellipse", "line", "polygon", "polyline", "text")
 
@@ -526,6 +529,12 @@ class Document(object):
     out["nets"] = nets
     out["shapes"] = [_ordered(s, SHAPE_KEYS) for s in self.shapes]
     out["groups"] = [_ordered(g, GROUP_KEYS) for g in self.groups]
+    # Written only by a drawing that has some, so every file from before
+    # containers existed saves exactly as it did.
+    if self.containers:
+      out["containers"] = [_ordered(c, CONTAINER_KEYS) for c in self.containers]
+    else:
+      out.pop("containers", None)
     return out
 
   # ---- accessors ----
@@ -553,6 +562,10 @@ class Document(object):
   @property
   def groups(self):
     return self.data.setdefault("groups", [])
+
+  @property
+  def containers(self):
+    return self.data.setdefault("containers", [])
 
   @property
   def symbol_scale(self):
@@ -657,6 +670,23 @@ class Document(object):
         shape["text"] = [str(line) for line in shape["text"]]
 
     _list_of_objects(data, "groups")
+
+    if "containers" in data:
+      for box in _list_of_objects(data, "containers"):
+        box.setdefault("x", 0)
+        box.setdefault("y", 0)
+        box.setdefault("w", 200)
+        box.setdefault("h", 120)
+        box.setdefault("padding", theme.CONTAINER["padding"])
+        box.setdefault("headerHeight", theme.CONTAINER["header"])
+        box.setdefault("style", {})
+        _text_field(box, "title")
+        where = "container %s" % box.get("id")
+        for key in ("x", "y", "padding", "headerHeight"):
+          _number(box, key, "%s.%s" % (where, key))
+        for key in ("w", "h"):
+          _number(box, key, "%s.%s" % (where, key), positive=True)
+        _object(box, "style", "%s.style" % where)
     return self
 
   # ---- geometry ----
@@ -724,6 +754,10 @@ class Document(object):
                                written[2] - written[0],
                                written[3] - written[1]))
 
+    for container in self.containers:
+      box = union_bbox(box, (float(container["x"]), float(container["y"]),
+                             float(container["w"]), float(container["h"])))
+
     for shape in self.shapes:
       # A text shape has an anchor and no size, so measuring it by x/y/w/h
       # gave a box of nothing and a cropped export cut the writing off. What
@@ -776,7 +810,8 @@ class Document(object):
                           % (grid_style, ", ".join(theme.GRID_STYLES))))
 
     for name, items in (("cell", self.cells), ("net", self.nets),
-                        ("shape", self.shapes), ("group", self.groups)):
+                        ("shape", self.shapes), ("group", self.groups),
+                        ("container", self.containers)):
       seen = set()
       for item in items:
         item_id = item.get("id")
@@ -935,7 +970,71 @@ class Document(object):
         else:
           grouped[member] = group.get("id")
 
+    issues.extend(_containment_issues(self))
     return issues
+
+
+def _containment_issues(doc):
+  """What is wrong with which container holds what.
+
+  A container is chosen by `parentId`, never by where things happen to sit,
+  so the faults are all about that field: a parent that is missing or is not
+  a container, an id two kinds of thing answer to -- which would leave
+  "parentId": "u1" meaning whichever was found first -- and a loop, where
+  following parents never reaches the sheet.
+  """
+  issues = []
+  kinds = {}
+  for name, items in (("cell", doc.cells), ("shape", doc.shapes),
+                      ("container", doc.containers)):
+    for item in items:
+      item_id = item.get("id")
+      if not item_id:
+        continue
+      if item_id in kinds and kinds[item_id] != name:
+        issues.append(Issue("error", "%s %s" % (name, item_id),
+                            "id is also used by a %s" % kinds[item_id]))
+      kinds.setdefault(item_id, name)
+
+  boxes = {}
+  for box in doc.containers:
+    boxes.setdefault(box.get("id"), box)
+  for name, items in (("cell", doc.cells), ("shape", doc.shapes),
+                      ("container", doc.containers)):
+    for item in items:
+      if "parentId" not in item or item.get("parentId") is None:
+        continue
+      where = "%s %s" % (name, item.get("id"))
+      parent = item.get("parentId")
+      if not isinstance(parent, str):
+        issues.append(Issue("error", where,
+                            "parentId must name one container, not %r" % (parent,)))
+      elif parent not in boxes:
+        if parent in kinds:
+          issues.append(Issue("error", where,
+                              "parent %r is a %s, not a container"
+                              % (parent, kinds[parent])))
+        else:
+          issues.append(Issue("error", where,
+                              "parent container %r does not exist" % parent))
+
+  reported = set()
+  for box in doc.containers:
+    trail = [box.get("id")]
+    at = box
+    while isinstance(at.get("parentId"), str) and at.get("parentId") in boxes:
+      parent = at["parentId"]
+      if parent in trail:
+        loop = trail[trail.index(parent):] + [parent]
+        if not reported.intersection(loop):
+          issues.append(Issue("error", "container %s" % parent,
+                              "containers hold each other in a loop (%s)"
+                              % " -> ".join(loop)))
+          reported.update(loop)
+        break
+      trail.append(parent)
+      at = boxes[parent]
+  return issues
 
 
 def load(path):

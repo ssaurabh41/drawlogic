@@ -678,13 +678,19 @@ export class Inspector {
       if (model.groupOf(this.store.doc, items[0].id)) {
         root.appendChild(element("p", "note", "Grouped. Ctrl+Shift+G ungroups."));
       }
+      this.renderInside(items);
       this.renderShared(items);
-      this.renderAppearance(items);
+      if (!items.some(model.isContainer)) this.renderAppearance(items);
       this.renderDocument();
       return;
     }
 
     const item = items[0];
+    if (model.isContainer(item)) {
+      this.renderContainer(item);
+      this.renderDocument();
+      return;
+    }
     if (model.isShape(item)) this.renderShape(item);
     else this.renderCell(item);
     this.renderAppearance(items);
@@ -734,7 +740,12 @@ export class Inspector {
         if (!Number.isFinite(number)) return false;
         for (const id of this.selection.ids) {
           const target = model.itemById(doc, id);
-          if (target && target[key] !== undefined) target[key] = number;
+          if (!target || target[key] === undefined) continue;
+          // A container takes what it holds with it.
+          if (model.isContainer(target)) {
+            model.moveItems(doc, new Set([id]), key === "x" ? number - target.x : 0,
+                            key === "y" ? number - target.y : 0);
+          } else target[key] = number;
         }
       }, "edit");
       this.root.appendChild(row(label, field));
@@ -757,6 +768,81 @@ export class Inspector {
     }
   }
 
+  // Which container the selection is in, when it is in one. Moving it in or
+  // out is in the Container menu; this only says where it is.
+  renderInside(items) {
+    const doc = this.store.doc;
+    const parents = new Set(items.map((item) => item.parentId));
+    if (parents.size !== 1 || [...parents][0] === undefined) return;
+    const box = model.containerById(doc, [...parents][0]);
+    if (!box) return;
+    const trail = [box, ...model.containerAncestors(doc, box.id)]
+      .reverse().map((b) => b.title || b.id).join(" \u203a ");
+    this.root.appendChild(row("Inside", element("div", "pval", trail)));
+  }
+
+  // A container: its title, where it is, how much room it keeps round what
+  // it holds, and its colours. Its size can be made larger freely but never
+  // smaller than what it holds.
+  renderContainer(box) {
+    const root = this.root;
+    const doc = this.store.doc;
+    const defaults = model.containerDefaults();
+    root.appendChild(element("div", "ptitle", "Container"));
+
+    const title = input(box.title || "");
+    this.bind(title, (d, value) => model.setLabel(d, box.id, value), "rename");
+    root.appendChild(row("Title", title));
+
+    const held = doc ? [...model.withContents(doc, [box.id])].length - 1 : 0;
+    root.appendChild(row("Holds", element("div", "pval",
+                                          `${held} item${held === 1 ? "" : "s"}`)));
+    this.renderInside([box]);
+
+    root.appendChild(element("div", "ptitle", "Geometry"));
+    for (const [key, label] of [["x", "X"], ["y", "Y"], ["w", "Width"], ["h", "Height"],
+                                ["padding", "Padding"], ["headerHeight", "Header"]]) {
+      const field = input(Math.round(Number(box[key]) || 0), "number");
+      this.bind(field, (d, value) => {
+        const number = numberFrom(value);
+        if (!Number.isFinite(number)) return false;
+        const target = model.containerById(d, box.id);
+        if (!target) return false;
+        if (key === "x" || key === "y") {
+          model.moveItems(d, new Set([box.id]), key === "x" ? number - target.x : 0,
+                          key === "y" ? number - target.y : 0);
+          return true;
+        }
+        if (number < (key === "w" || key === "h" ? 4 : 0)) return false;
+        target[key] = number;
+        model.keepContentsInside(d, target);
+        return true;
+      }, "edit");
+      root.appendChild(row(label, field));
+    }
+
+    const actions = element("div", "pactions");
+    for (const [label, command, title2] of [
+      ["Fit to contents", "container-fit", "shrink or grow the box to hug what it holds"],
+      ["Ungroup", "container-ungroup", "remove the container and keep what it holds"],
+    ]) {
+      const button = element("button", "linkish", label);
+      button.type = "button";
+      button.title = title2;
+      button.addEventListener("click", () => this.onCommand && this.onCommand(command));
+      actions.appendChild(button);
+    }
+    root.appendChild(row("", actions));
+
+    root.appendChild(element("div", "ptitle", "Appearance"));
+    const style = box.style || {};
+    for (const [key, label] of [["fill", "Fill"], ["headerFill", "Header"],
+                                ["stroke", "Line"], ["titleFill", "Title"]]) {
+      root.appendChild(row(label, this.colourControl(key, style[key], defaults[key],
+                                                     key === "headerFill")));
+    }
+  }
+
   renderCell(cell) {
     const root = this.root;
     root.appendChild(element("div", "ptitle", "Cell"));
@@ -776,6 +862,7 @@ export class Inspector {
     const name = input(cell.label || "");
     this.bind(name, (doc, value) => model.setLabel(doc, cell.id, value), "rename");
     root.appendChild(row("Name", name));
+    this.renderInside([cell]);
 
     // A port or a tie cell is moved, never resized, and holds no text: the
     // fields for those would only be things that do nothing.
@@ -949,6 +1036,7 @@ export class Inspector {
     const root = this.root;
     root.appendChild(element("div", "ptitle", "Shape"));
     root.appendChild(row("Kind", element("div", "pval", shape.kind)));
+    this.renderInside([shape]);
 
     if (shape.kind === "text") {
       const text = input(shape.text || "");

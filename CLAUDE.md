@@ -88,7 +88,9 @@ green — a check nothing exercises is a check that can silently rot.
 pins and shapes), `symbols.py` (registry, pin resolution), `doc.py` (.dlg
 load/save/normalise/validate, bus naming), `drc.py`, `layout.py`,
 `routing.py`, `sheets.py` (hierarchy — a block backed by another drawing's
-ports), `authoring.py` (turn a drawing of shapes+ports into a symbol),
+ports), `containers.py` (titled boundaries owning cells/shapes/containers
+through `parentId`; coordinates stay absolute, painted beneath everything),
+`authoring.py` (turn a drawing of shapes+ports into a symbol),
 `render_svg.py`, `theme.py` (colours/weights/fonts, served to JS so it's
 never restated), `cli.py`, `server.py` (stdlib HTTP server, no framework).
 `web/js/` mirrors this for the editor: `model.js` owns document state and

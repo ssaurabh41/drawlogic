@@ -146,6 +146,13 @@ console.log(JSON.stringify({
   // A copy drawn as the symbol's own body: where it sits, and what it draws.
   stackBodies: all.filter((n) => n.tag === "g" && n.attrs.class === "dl-stack")
     .map((n) => [n.attrs.transform, (n.children || []).map((c) => c.tag)]).sort(),
+  // Containers: every mark of each, in paint order, with what it draws.
+  // The invisible targets the canvas adds are not marks and are left out.
+  containers: all.filter((n) => /^dl-container-(body|header|edge|title)$/.test(n.attrs.class || ""))
+    .map((n) => [n.attrs.class, n.tag, n.attrs.x ?? null, n.attrs.y ?? null,
+                 n.attrs.width ?? null, n.attrs.height ?? null, n.attrs.d ?? null,
+                 n.attrs.fill ?? null, n.attrs.stroke ?? null,
+                 n.attrs["font-size"] ?? null, n._text ?? null]),
   wires: all.filter((n) => n.tag === "path" && (n.attrs.class || "") === "dl-net")
     .map((n) => [n.attrs["data-id"], n.attrs.d]).sort(),
 }));

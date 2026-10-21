@@ -99,6 +99,7 @@
     <g id="i-shape-rect"><rect x="2.5" y="4" width="11" height="8" rx=".5"/></g>
     <g id="i-shape-polygon"><path d="M8 2.5l5.5 4-2 6.5h-7l-2-6.5z"/></g>
     <g id="i-shape-text"><path d="M3.5 3.5h9M8 3.5v10M6 13.5h4"/></g>
+    <g id="i-shape-container"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12"/><rect x="4.5" y="8" width="3" height="3"/><rect x="9" y="8" width="3" height="3"/></g>
     <g id="i-undo"><path d="M6 3.5 2.5 7 6 10.5"/><path d="M2.8 7h7a3.5 3.5 0 0 1 0 7H8"/></g>
     <g id="i-redo"><path d="M10 3.5 13.5 7 10 10.5"/><path d="M13.2 7h-7a3.5 3.5 0 0 0 0 7H8"/></g>
     <g id="i-save"><path d="M3 2.5h8l2.5 2.5v8.5h-11z"/><path d="M5.5 2.5v3.5h5V2.5"/><path d="M5 13.5V9.5h6v4"/></g>
@@ -143,6 +144,10 @@
           <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="polygon" title="Polygon (P): click points, double-click to close"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-polygon"/></svg><span>Polygon</span></button>
           <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="text" title="Text (T)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-text"/></svg><span>Text</span></button>
         </div>
+        <div class="gal-head" role="presentation">Structure</div>
+        <div class="gal-grid" role="presentation">
+          <button class="menu-item gal-tile" type="button" role="menuitem" data-tool="shape" data-shape="container" title="Container: a titled boundary that holds cells, shapes and other containers, and moves them with it"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-container"/></svg><span>Container</span></button>
+        </div>
       </div>
     </div>
     <button id="btn-painter" class="tool icon" type="button" aria-pressed="false" aria-label="Format painter"
@@ -186,6 +191,22 @@
       <div class="menu-sep" role="separator"></div>
       <button class="menu-item" type="button" role="menuitem" data-command="distribute-h" data-min="3"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-h"/></svg><span>Distribute across</span></button>
       <button class="menu-item" type="button" role="menuitem" data-command="distribute-v" data-min="3"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dist-v"/></svg><span>Distribute down</span></button>
+    </div>
+  </div>
+
+  <!-- Containers: titled boundaries that hold part of the drawing. Each
+       command names what it needs, and is greyed when the menu opens if the
+       selection cannot use it (data-needs). -->
+  <div class="menu">
+    <button id="menu-container-button" class="tool menu-button" type="button"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="menu-container">Container<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    <div id="menu-container" class="menu-panel" role="menu" aria-labelledby="menu-container-button" hidden>
+      <button class="menu-item" type="button" role="menuitem" data-command="container-create" data-min="1"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-container"/></svg><span>Create container from selection</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="container-move" data-needs="containers"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-group"/></svg><span>Move into container&hellip;</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="container-remove" data-needs="inside"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg><span>Remove from container</span></button>
+      <div class="menu-sep" role="separator"></div>
+      <button class="menu-item" type="button" role="menuitem" data-command="container-fit" data-needs="container"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-shape-rect"/></svg><span>Fit to contents</span></button>
+      <button class="menu-item" type="button" role="menuitem" data-command="container-ungroup" data-needs="container"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-ungroup"/></svg><span>Ungroup container</span></button>
     </div>
   </div>
 
@@ -284,6 +305,14 @@
   <!-- Filled from js/prefs.js. Kept in this browser, not in the drawing. -->
   <div id="prefs-body"></div>
   <p class="shortcuts-foot">Saved in this browser as you change them. Close, or press <kbd>Esc</kbd>.</p>
+</dialog>
+
+<!-- A question with a few answers, filled in by choose() in js/main.js. -->
+<dialog id="choice-dialog" class="shortcuts choice" aria-labelledby="choice-title">
+  <h2 id="choice-title" class="choice-title"></h2>
+  <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Cancel" title="Cancel (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>
+  <p class="choice-message"></p>
+  <div class="choice-options"></div>
 </dialog>
 
 <dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">

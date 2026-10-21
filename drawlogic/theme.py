@@ -73,6 +73,8 @@ FONT_SIZES = {
   "shape_text": 14.0,
   # Lines written inside a cell -- what a block in a block diagram is for.
   "cell_text": 11.5,
+  # The title in a container's header band.
+  "container_title": 13.0,
 }
 
 # Air above and below the sheet title, which sits in a band along the top.
@@ -154,6 +156,19 @@ SHAPE_SHADOW = {"dx": 3.0, "dy": 3.0, "blur": 2.0, "opacity": 0.35,
                 "color": INK}
 
 
+# A container: a titled boundary round part of a drawing -- a GPC holding its
+# SMs, an SoC holding its subsystems. Pale, so what it holds stays the
+# subject. `padding` is the air kept between its edge and what is inside when
+# it is fitted to its contents, `header` the depth of the band its title sits
+# in, `titleInset` how far in from the left the title starts and `char` one
+# character's width as a fraction of the font size, for cutting a long title
+# short.
+CONTAINER = {"fill": "#f6f8fa", "stroke": "#a9b6bf", "headerFill": "#e4eaee",
+             "titleFill": INK, "radius": 6.0, "width": 1.2,
+             "padding": 20, "header": 32, "titleInset": 10.0,
+             "char": 0.62}
+
+
 def as_data():
   """Everything the browser needs to draw as the exporter does.
 
@@ -180,4 +195,5 @@ def as_data():
     "titlePad": TITLE_PAD,
     "gridStyles": list(GRID_STYLES),
     "shapeShadow": SHAPE_SHADOW,
+    "container": CONTAINER,
   }

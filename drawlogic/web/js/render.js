@@ -1098,6 +1098,126 @@ function shapeHit(shape, into, open) {
   }
 }
 
+// ---- containers ----
+//
+// Mirrors the drawing half of containers.py and _render_containers in
+// render_svg.py, line for line: the canvas and an export paint the same marks.
+
+function containerPadding(box) {
+  const value = Number(box.padding);
+  return Number.isFinite(value) ? Math.max(0, value) : theme.container.padding;
+}
+
+export function containerHeader(box) {
+  const value = Number(box.headerHeight);
+  return Number.isFinite(value) ? Math.max(0, value) : theme.container.header;
+}
+
+// Containers in the order they are painted: each before what it holds, depth
+// first from the ones nobody holds. One caught in a loop is painted last,
+// once, rather than not at all.
+export function containerPaintOrder(doc) {
+  const all = doc.containers || [];
+  const ids = new Set(all.map((box) => box.id));
+  const order = [];
+  const seen = new Set();
+  const visit = (box) => {
+    if (seen.has(box)) return;
+    seen.add(box);
+    order.push(box);
+    for (const other of all) {
+      if (other.parentId === box.id && other !== box) visit(other);
+    }
+  };
+  for (const box of all) if (!ids.has(box.parentId)) visit(box);
+  for (const box of all) visit(box);
+  return order;
+}
+
+function containerStyle(box) {
+  const style = box.style || {};
+  const base = theme.container;
+  return {
+    fill: style.fill || base.fill,
+    stroke: style.stroke || base.stroke,
+    headerFill: style.headerFill || base.headerFill,
+    titleFill: style.titleFill || base.titleFill,
+    strokeWidth: Number(style.strokeWidth || base.width),
+  };
+}
+
+function containerHeaderPath(box) {
+  const x = Number(box.x);
+  const y = Number(box.y);
+  const w = Number(box.w);
+  const depth = Math.min(containerHeader(box), Number(box.h));
+  const r = Math.min(theme.container.radius, w / 2, depth);
+  const f = (v) => geometry.fmt(v);
+  return `M${f(x)} ${f(y + depth)} V${f(y + r)} A${f(r)} ${f(r)} 0 0 1 ${f(x + r)} ${f(y)} `
+    + `H${f(x + w - r)} A${f(r)} ${f(r)} 0 0 1 ${f(x + w)} ${f(y + r)} V${f(y + depth)} Z`;
+}
+
+// [x, baseline, text, size] for a container's title, or null: centred down
+// the header band, cut short where the box is too narrow.
+export function containerTitleLayout(box, fontScale = 1) {
+  const title = box.title;
+  if (typeof title !== "string" || !title.trim() || containerHeader(box) <= 0) return null;
+  const size = theme.fontSizes.container_title * fontScale;
+  const inset = theme.container.titleInset;
+  const room = Math.trunc(Math.max(0, Number(box.w) - 2 * inset)
+                          / (size * theme.container.char) + 1e-6);
+  const text = title.length <= room ? title
+    : (room > 0 ? `${title.slice(0, Math.max(0, room - 1)).trimEnd()}\u2026` : "");
+  const depth = Math.min(containerHeader(box), Number(box.h));
+  return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, size];
+}
+
+// Each container is three marks -- body fill, header band, outline over both
+// -- and, on the canvas only, two invisible targets: the header band and the
+// edge, which are what select a container. Its inside lets a click through,
+// so a box can be dragged round what it holds.
+function renderContainers(doc, fontScale, into) {
+  const layer = el("g", { class: "dl-containers" });
+  for (const box of containerPaintOrder(doc)) {
+    const paint = containerStyle(box);
+    const group = el("g", { class: "dl-container", "data-id": box.id });
+    const x = geometry.fmt(box.x);
+    const y = geometry.fmt(box.y);
+    const w = geometry.fmt(box.w);
+    const h = geometry.fmt(box.h);
+    const radius = geometry.fmt(theme.container.radius);
+    group.appendChild(el("rect", { class: "dl-container-body", x, y, width: w, height: h,
+                                   rx: radius, fill: paint.fill, stroke: "none" }));
+    if (containerHeader(box) > 0 && paint.headerFill !== "none") {
+      group.appendChild(el("path", { class: "dl-container-header",
+                                     d: containerHeaderPath(box), fill: paint.headerFill }));
+    }
+    group.appendChild(el("rect", { class: "dl-container-edge", x, y, width: w, height: h,
+                                   rx: radius, fill: "none", stroke: paint.stroke,
+                                   "stroke-width": geometry.fmt(paint.strokeWidth) }));
+    const title = containerTitleLayout(box, fontScale);
+    if (title) {
+      const [tx, ty, text, size] = title;
+      const node = el("text", {
+        class: "dl-container-title", x: geometry.fmt(tx), y: geometry.fmt(ty),
+        "font-family": theme.fontSans, "font-size": geometry.fmt(size, 2),
+        "font-weight": "600", fill: paint.titleFill,
+      });
+      node.textContent = text;
+      group.appendChild(node);
+    }
+    const depth = Math.min(containerHeader(box), Number(box.h));
+    group.appendChild(el("rect", { class: "dl-container-hit dl-container-grab", x, y,
+                                   width: w, height: geometry.fmt(Math.max(depth, 8)),
+                                   fill: "transparent" }));
+    group.appendChild(el("rect", { class: "dl-container-hit dl-container-rim", x, y,
+                                   width: w, height: h, fill: "none",
+                                   stroke: "transparent", "stroke-width": 10 }));
+    layer.appendChild(group);
+  }
+  into.appendChild(layer);
+}
+
 // Shapes and cells in the order they are painted, and the index in it the
 // wires are painted before. Mirrors draw_order in render_svg.py: lowest z
 // first, a shape before a cell at the same z, then the file's own order; the
@@ -1166,6 +1286,9 @@ export function render(svg, doc) {
       fill: "url(#dl-grid)",
     }));
   }
+
+  // Beneath everything: a container is the background of what it holds.
+  if ((doc.containers || []).length) renderContainers(doc, fontScale, content);
 
   // Shapes and cells in one stacking order, the wires among them; see
   // drawOrder. Consecutive shapes share a group, as consecutive cells do.

@@ -24,6 +24,7 @@ width/height attributes, so output stays vector-perfect at any size.
 """
 
 import math
+from . import containers
 from . import routing
 from . import drc
 from . import theme
@@ -1548,6 +1549,46 @@ def _render_shape_body(shape, style, font_scale, out):
       esc(shape.get("text", ""))))
 
 
+def _render_containers(doc, font_scale, out):
+  """Every container, outer before inner, beneath everything else.
+
+  Three marks each: the body's fill, the header band, then the outline over
+  both, so the band does not paint over the edge it sits against.
+  """
+  out.append('<g class="dl-containers">')
+  for box in containers.paint_order(doc):
+    paint = containers.style_of(box)
+    x, y, w, h = (fmt(box[k]) for k in ("x", "y", "w", "h"))
+    radius = fmt(theme.CONTAINER["radius"])
+    out.append('<g %s>' % _attrs([("class", "dl-container"),
+                                  ("data-id", box.get("id"))]))
+    out.append("<rect %s />" % _attrs([
+      ("class", "dl-container-body"), ("x", x), ("y", y),
+      ("width", w), ("height", h), ("rx", radius),
+      ("fill", paint["fill"]), ("stroke", "none")]))
+    if containers.header(box) > 0 and paint["headerFill"] != "none":
+      out.append("<path %s />" % _attrs([
+        ("class", "dl-container-header"), ("d", containers.header_path(box)),
+        ("fill", paint["headerFill"])]))
+    out.append("<rect %s />" % _attrs([
+      ("class", "dl-container-edge"), ("x", x), ("y", y),
+      ("width", w), ("height", h), ("rx", radius),
+      ("fill", "none"), ("stroke", paint["stroke"]),
+      ("stroke-width", fmt(paint["strokeWidth"]))]))
+    title = containers.title_layout(box, font_scale)
+    if title is not None:
+      tx, ty, text, size = title
+      out.append("<text %s>%s</text>" % (_attrs([
+        ("class", "dl-container-title"),
+        ("x", fmt(tx)), ("y", fmt(ty)),
+        ("font-family", theme.FONT_SANS),
+        ("font-size", fmt(size, 2)),
+        ("font-weight", "600"),
+        ("fill", paint["titleFill"])]), esc(text)))
+    out.append("</g>")
+  out.append("</g>")
+
+
 def draw_order(cells, shapes):
   """Shapes and cells in the order they are painted, and where the wires go.
 
@@ -1656,6 +1697,11 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
       ("x", fmt(view[0])), ("y", fmt(view[1])),
       ("width", fmt(view[2])), ("height", fmt(view[3])),
       ("fill", "url(#dl-grid)")]))
+
+  # Beneath everything: a container is the background of what it holds.
+  # Nothing is written for a drawing without any, so those export as before.
+  if doc.containers:
+    _render_containers(doc, font_scale, out)
 
   show_arrows = canvas.get("arrows", True) if arrows is None else arrows
   show_hops = canvas.get("hops", True) if hops is None else hops

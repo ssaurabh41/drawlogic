@@ -367,7 +367,7 @@ ok    lay it out
 ok    render to SVG
 39 built-in symbols
 ok     15 browser modules, 0 import mismatches
-ok     36 files against manifest.txt, 0 differ
+ok     37 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -591,6 +591,58 @@ and to the right, a slide editor's default outer shadow -- one tick for a
 whole selection. It is `"shadow": true` in the shape's style, drawn the same
 on the canvas and in an exported file, and a cropped export leaves room for
 it. Cells do not take one: a shadow under a gate is not schematic.
+
+### Containers
+
+A container is a titled boundary round part of a drawing -- "GPC 0" holding
+its TPCs, each TPC holding its SMs -- that moves what it holds with it. Draw
+one with **Shapes > Container**, type its title where it appears, and put
+things in it. Containers nest to any depth.
+
+What a container holds is decided by you, never by where things happen to
+sit. Three ways put something in one:
+
+- **Make it there.** A cell dropped from the palette, or a shape or container
+  drawn, wholly inside a container belongs to the innermost one round it.
+  That is the only moment where something sits decides what holds it.
+- **Container > Create container from selection** draws a new container
+  round what is selected, fitted to it, inside whatever held all of it.
+- **Container > Move into container...** lists the containers the selection
+  can go into, indented by nesting.
+
+**Remove from container** takes the selection out one level. Dragging a cell
+out of a container's box leaves it in the container -- the box just no longer
+reaches round it until it is moved or fitted -- so nothing changes owner by
+accident. The properties panel says where an item is, as **Inside**:
+"GPC 0 > TPC 0".
+
+A container is picked up by its header band or its edge; a press inside it
+goes through to the sheet, so a marquee can be dragged round what it holds,
+and a click on something inside selects that thing. Dragging a container
+moves everything in it, every level down, by the same amount -- each thing
+once, however many of its containers are selected too -- and the bends of
+wires that run wholly among what it holds go with them. A wire leaving the
+container keeps its pins, as every wire does, and is rerouted. Double-click
+the header to rename it.
+
+Resizing a container moves its boundary only; nothing inside is scaled or
+moved, and it cannot be pulled in past what it holds. **Fit to contents**
+(in the menu and the properties panel) makes it hug its contents, keeping its
+padding round them and its header above. Moving things around inside never
+grows the container by itself.
+
+**Ungroup container** takes the boundary away and leaves what it held where
+it is, now in the container that held the container. Deleting a container
+that holds anything asks whether to **Delete container and contents** or
+**Keep contents**. Copying a container copies everything in it.
+
+Containers and groups are different things and are kept apart: a group
+(`Ctrl+G`) is a set of cells and shapes selected and moved as one, with no
+boundary of its own, and never includes a container.
+
+Containers are painted beneath everything else, outer before inner, so they
+are the background of what they hold. Fill, header, line and title colours,
+padding and header depth are in the properties panel.
 
 ### Arrange
 
@@ -901,6 +953,7 @@ gains nothing from it has no such key at all.
 | `ref` | path to another drawing this cell stands for; see Hierarchy |
 | `pinned` | `true` keeps auto layout from moving it; left out otherwise |
 | `z` | stacking order among cells and shapes, lowest painted first; left out, 0 |
+| `parentId` | the id of the container holding it; left out, it is on the sheet itself |
 
 ### nets
 
@@ -957,12 +1010,47 @@ kinds use `x`, `y`, `w`, `h`; line-like kinds use `points`; `text` uses `x`,
 `y` and `text`. Any other kind may carry `text` as lines written in it, with
 `textAlign` and `textVAlign` as a cell has them; `rect`, `ellipse` and
 `polygon` may carry `copies`. `z` places a shape in the stacking order, as
-for a cell; left out, a shape is behind the cells.
+for a cell; left out, a shape is behind the cells. `parentId` names the
+container holding it, as for a cell.
 
 ### groups
 
 `{ "id": "g1", "label": null, "members": ["u1", "u2"] }`. A cell belongs to at
 most one group.
+
+### containers
+
+```json
+"containers": [
+  { "id": "gpc0", "title": "GPC 0", "x": 100, "y": 200, "w": 700, "h": 500,
+    "padding": 20, "headerHeight": 32,
+    "style": { "fill": "#f5f8ef", "stroke": "#adc18e", "headerFill": "#76b900",
+               "titleFill": "#ffffff" } },
+  { "id": "tpc0", "parentId": "gpc0", "title": "TPC 0", ... }
+]
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | unique among cells, shapes and containers together |
+| `parentId` | the container holding this one; left out, it is on the sheet |
+| `title` | written in the header band, cut short with an ellipsis if the box is narrower |
+| `x`, `y`, `w`, `h` | the box, on the sheet |
+| `padding` | room kept round the contents by Fit to contents; 20 |
+| `headerHeight` | depth of the band the title sits in; 32, and 0 for no band or title |
+| `style` | `fill`, `stroke`, `strokeWidth`, `headerFill` (`none` for no band), `titleFill` |
+
+Cells, shapes and containers say which container holds them with `parentId`,
+and that field is the whole of it: overlapping a container does not put
+anything in it. Coordinates stay absolute -- a cell in a container has the
+same `x` and `y` it would have on the bare sheet -- so everything that reads a
+position reads it as before; moving a container moves each thing in it.
+
+`drawlogic validate` reports a `parentId` naming nothing, naming something
+that is not a container, or naming more than one thing; containers holding
+each other in a loop; and an id shared by two kinds of thing, which would
+leave a `parentId` ambiguous. A drawing with no containers has no
+`containers` key, so files from before they existed save unchanged.
 
 ---
 
@@ -1766,6 +1854,7 @@ drawlogic/
   layout.py       arranging a drawing from what it is wired to
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
+  containers.py   titled boundaries that own part of a drawing
   hdl.py          Verilog to drawings, one per module
   rtl.py          behavioural Verilog lowered to gates and flip-flops
   yosys.py        the same through Yosys, when it is installed
@@ -1883,7 +1972,8 @@ python3 -m unittest tests.test_regression
 | `tests/test_cli.py` | the commands, including validate and doctor |
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
-| `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo |
+| `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers |
+| `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |

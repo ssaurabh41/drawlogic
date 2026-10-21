@@ -27,7 +27,8 @@ import * as geometry from "../../drawlogic/web/js/geometry.js";
 import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
-import { constrainShape } from "../../drawlogic/web/js/tools.js";
+import { Selection } from "../../drawlogic/web/js/selection.js";
+import { SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -48,6 +49,7 @@ const EXPECTED = [
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
+  ["containers", 25],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -808,6 +810,140 @@ section("stacking and writing on shapes");
   model.setCopies(doc, line.id, "4");
   check("a line says what it was told but stands for no copies",
         geometry.shapeCopies(line) === 0 && geometry.shapeCopies(box) === 3);
+}
+
+section("containers");
+//
+// A container owns what names it as parentId, at any depth. Moving it moves
+// all of that once, with the bends of the wires running among it; resizing
+// it moves none of it; and nothing about a drag changes what owns what.
+{
+  const nested = () => ({
+    canvas: { width: 1200, height: 800, symbolScale: 1, grid: { size: 5 } },
+    cells: [
+      { id: "a", parentId: "tpc", type: "and2", x: 140, y: 160, w: 60, h: 40, rotate: 0, mirror: false },
+      { id: "b", parentId: "tpc", type: "inv", x: 260, y: 160, w: 40, h: 30, rotate: 0, mirror: false },
+      { id: "c", parentId: "gpc", type: "inv", x: 420, y: 300, w: 40, h: 30, rotate: 0, mirror: false },
+      { id: "out", type: "inv", x: 800, y: 300, w: 40, h: 30, rotate: 0, mirror: false },
+    ],
+    nets: [
+      { id: "inner", from: { cell: "a", pin: "y" },
+        to: [{ cell: "b", pin: "a", waypoints: [[230, 180]] }] },
+      { id: "across", from: { cell: "c", pin: "y" },
+        to: [{ cell: "out", pin: "a", waypoints: [[600, 315]] }] },
+    ],
+    shapes: [{ id: "note", parentId: "gpc", kind: "text", x: 120, y: 380, text: "SMs", style: {} }],
+    groups: [],
+    containers: [
+      { id: "gpc", title: "GPC 0", x: 100, y: 80, w: 420, h: 340, padding: 20, headerHeight: 32, style: {} },
+      { id: "tpc", parentId: "gpc", title: "TPC 0", x: 120, y: 120, w: 220, h: 100, padding: 20, headerHeight: 32, style: {} },
+    ],
+  });
+
+  // The real select tool, pressed on the outer container's header and
+  // dragged, with the inner container selected too: everything inside moves
+  // once, not once per container round it.
+  const store = new model.Store();
+  store.load(nested(), "c.dlg");
+  const selection = new Selection(store);
+  const tool = new SelectTool({ store, selection, zoom: () => 1, drawOverlay() {},
+                                say() {}, setTool() {} });
+  selection.set(["gpc", "tpc"]);
+  const on = (id) => ({ closest: (what) => (what.includes(".dl-container")
+    ? { getAttribute: () => id } : null) });
+  tool.onPointerDown({ target: on("gpc"), ctrlKey: false, metaKey: false }, [110, 90]);
+  tool.onPointerMove({ shiftKey: false, altKey: true }, [160, 130]);
+  tool.onPointerUp({ ctrlKey: false, metaKey: false });
+  const doc = store.doc;
+  const at = (id) => model.itemById(doc, id);
+  check("dragging a container moves it", at("gpc").x === 150 && at("gpc").y === 120,
+        JSON.stringify([at("gpc").x, at("gpc").y]));
+  check("and what it holds two levels down, by the same amount, once",
+        at("a").x === 190 && at("a").y === 200 && at("tpc").x === 170,
+        JSON.stringify([at("a").x, at("a").y, at("tpc").x]));
+  check("a shape it holds moves too", at("note").x === 170 && at("note").y === 420);
+  check("something outside it stays", at("out").x === 800 && at("out").y === 300);
+  const inner = doc.nets.find((n) => n.id === "inner").to[0].waypoints[0];
+  const across = doc.nets.find((n) => n.id === "across").to[0].waypoints[0];
+  check("a wire wholly inside keeps its shape, bends and all",
+        inner[0] === 280 && inner[1] === 220, JSON.stringify(inner));
+  check("a wire leaving it is left to the router", across[0] === 600 && across[1] === 315,
+        JSON.stringify(across));
+  check("no drag changed what owns what",
+        at("a").parentId === "tpc" && at("tpc").parentId === "gpc" && at("out").parentId === undefined);
+  check("the whole drag undoes as one step", store._undo.length === 1, `${store._undo.length}`);
+  store.undo();
+  check("which puts everything back where it was",
+        model.itemById(store.doc, "gpc").x === 100 && model.itemById(store.doc, "a").x === 140
+        && store.doc.nets[0].to[0].waypoints[0][0] === 230);
+
+  // Moving by command goes through moveItems, which must not move a cell
+  // twice when both it and its container are asked to move.
+  const twice = nested();
+  model.moveItems(twice, new Set(["gpc", "tpc", "a"]), 10, 0);
+  check("moveItems moves each thing once however many of its containers move",
+        model.itemById(twice, "a").x === 150, `${model.itemById(twice, "a").x}`);
+
+  // Fit and resize.
+  const sized = nested();
+  model.fitContainer(sized, "tpc");
+  const tpc = model.containerById(sized, "tpc");
+  check("fitting hugs the contents with padding round them and the header above",
+        tpc.x === 120 && tpc.y === 108 && tpc.w === 200 && tpc.h === 112,
+        JSON.stringify([tpc.x, tpc.y, tpc.w, tpc.h]));
+  const before = JSON.stringify(sized.cells);
+  tpc.w = 50;
+  tpc.h = 20;
+  model.keepContentsInside(sized, tpc);
+  check("a container cannot be made smaller than what it holds",
+        tpc.w === 200 && tpc.h === 112, JSON.stringify([tpc.w, tpc.h]));
+  check("and resizing it moves nothing inside", JSON.stringify(sized.cells) === before);
+
+  // The commands.
+  const loose = nested();
+  check("a container cannot be moved into itself or into something it holds",
+        model.moveIntoContainer(loose, new Set(["gpc"]), "tpc") === false
+        && model.itemById(loose, "gpc").parentId === undefined);
+  check("anything else can", model.moveIntoContainer(loose, new Set(["out"]), "tpc") === 1
+        && model.itemById(loose, "out").parentId === "tpc");
+  model.removeFromContainer(loose, new Set(["out"]));
+  check("removing takes it out one level", model.itemById(loose, "out").parentId === "gpc");
+  const made = model.containerFromSelection(loose, new Set(["a", "b"]), "Pair");
+  check("a container made from a selection holds it, inside what held it",
+        model.itemById(loose, "a").parentId === made.id && made.parentId === "tpc",
+        JSON.stringify([model.itemById(loose, "a").parentId, made.parentId]));
+
+  const ungrouped = nested();
+  model.ungroupContainers(ungrouped, new Set(["tpc"]));
+  check("ungrouping a container keeps what it held, given to the one round it",
+        model.itemById(ungrouped, "a").parentId === "gpc" && !model.containerById(ungrouped, "tpc"));
+  const gone = nested();
+  model.deleteItems(gone, model.withContents(gone, ["gpc"]));
+  check("deleting with contents takes every level, and the wires on them",
+        gone.cells.map((c) => c.id).join() === "out" && !gone.containers
+        && gone.nets.length === 0, JSON.stringify(gone.cells.map((c) => c.id)));
+
+  // Copies of a container are a copy of everything in it, pointed at each other.
+  const copied = nested();
+  const added = model.pasteItems(copied, model.copyItems(copied, new Set(["tpc"])), 0, 300);
+  const copyBox = copied.containers.find((b) => added.includes(b.id) && b.title === "TPC 0");
+  const copyA = copied.cells.find((c) => added.includes(c.id) && c.type === "and2");
+  check("a pasted container comes with copies of what it held, inside it",
+        copyBox && copyA && copyA.parentId === copyBox.id);
+  check("and sits where the original did, in the same outer container",
+        copyBox.parentId === "gpc");
+  check("the wire between the copies comes along", copied.nets.length === 3);
+
+  // Groups and containers are kept apart; a cell placed inside a container
+  // belongs to it, which is the only time where a thing sits decides that.
+  const grouped = nested();
+  const group = model.groupItems(grouped, new Set(["gpc", "a", "b"]));
+  check("a group never takes a container in", group && !group.members.includes("gpc"));
+  const placed = model.placeCell(grouped, "inv", [180, 270], false).cell;
+  check("a cell placed inside a container belongs to the innermost round it",
+        placed.parentId === "gpc", `${placed.parentId}`);
+  check("and one placed on bare sheet to none",
+        model.placeCell(grouped, "inv", [900, 600], false).cell.parentId === undefined);
 }
 
 // Every area has to have run, and to have run the number of checks it says.

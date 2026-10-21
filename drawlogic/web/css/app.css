@@ -732,6 +732,11 @@ select {
 .dl-shape.dl-pass > .dl-shape-hit { pointer-events: stroke; }
 /* Its writing stays clickable, so it can still be double-clicked to edit. */
 .dl-shape.dl-pass > .dl-shape-text { pointer-events: all; }
+/* A container is picked up by its header band or its edge; a press inside it
+   goes through to the sheet, so a box can be dragged round what it holds. */
+.dl-container * { pointer-events: none; }
+.dl-container > .dl-container-grab { pointer-events: all; }
+.dl-container > .dl-container-rim { pointer-events: stroke; }
 .dl-net { pointer-events: none; }
 /* The wide invisible stroke under each wire is what the pointer catches; a
    1.6-unit line is far too thin to grab, and dragging one is a real gesture. */
@@ -1077,6 +1082,18 @@ select {
 }
 .shortcuts th { white-space: nowrap; font-family: var(--mono); color: var(--accent-ink); font-weight: 600; }
 .shortcuts-foot { margin: 10px 0 0; color: var(--ink-2); font-size: 12px; }
+
+/* choose(): a question and a column of answers. */
+.pactions { display: flex; gap: 14px; flex-wrap: wrap; }
+.choice { min-width: 300px; max-width: 420px; }
+.choice-message { margin: 0 0 12px; color: var(--ink-2); font-size: 13px; }
+.choice-options { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }
+.choice-option {
+  text-align: left; padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--chrome); color: var(--ink); font: inherit; cursor: pointer;
+}
+.choice-option:hover, .choice-option:focus-visible { border-color: var(--accent); outline: none; }
+.choice-option.danger { color: var(--danger); }
 
 /* Preferences: one row per switch. */
 .prefs { width: min(560px, calc(100vw - 32px)); }

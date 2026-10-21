@@ -224,7 +224,8 @@ export function cellLabelBox(symbol, cell, scale, size, textToCell, textToWire) 
 // Mirrors cell_text_lines, cell_copies, cell_text_needs, cell_text_layout and
 // fit_cell_text in render_svg.py. The sizes come from the theme the server
 // sends; these defaults are theme.py's, for when this runs on its own.
-let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 0.03, stackMin: 3 };
+let cellText = { size: 11.5, pad: 8, step: 1.3, char: 0.62, stack: 0.03, stackMin: 3,
+                 headingGap: 3, bold: 1.08 };
 
 export function setCellTextMetrics(sizes, metrics) {
   cellText = { ...cellText, ...(metrics || {}) };
@@ -297,48 +298,173 @@ export function cellTextLayout(symbol, cell, scale = 1, fontScale = 1) {
 // cellTextLayout for any box [x, y, w, h] and any item carrying text and its
 // alignment -- a cell, or a shape. Mirrors text_layout_in in render_svg.py.
 export function textLayoutIn(box, item, fontScale = 1) {
-  const lines = cellTextLines(item);
-  if (!lines.length) return [[], false];
+  const [placed, clipped] = textBlockIn(box, item, fontScale);
+  return [placed.map(([x, y, text]) => [x, y, text]), clipped];
+}
+
+// ---- headings, body text and how each is set ----
+//
+// Mirrors the section of the same name in render_svg.py, line for line: a
+// heading above the lines of text, each set as its headingStyle or textStyle
+// says, and with neither the lines land exactly where they always did.
+
+// The theme's text colour, faces and heading size, from /api/theme; these
+// defaults are theme.py's, for when this runs on its own.
+let textTheme = {
+  label: "#16202b", headingSize: 13,
+  fontSans: "'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif",
+  stacks: {},
+};
+
+// The sizes a heading and the text are set at when nothing says otherwise.
+export function textDefaults() {
+  return { text: cellText.size, heading: textTheme.headingSize, step: cellText.step };
+}
+
+export function setTextTheme(data) {
+  if (!data) return;
+  textTheme = {
+    label: (data.colors && data.colors.label) || textTheme.label,
+    headingSize: (data.fontSizes && data.fontSizes.cell_heading) || textTheme.headingSize,
+    fontSans: data.fontSans || textTheme.fontSans,
+    stacks: data.fontStacks || textTheme.stacks,
+  };
+}
+
+// The look an item is drawn with: its named style, if it names one that is
+// there, under its own overrides. Mirrors effective in styles.py.
+export const STYLE_PARTS = ["style", "headingStyle", "textStyle"];
+
+export function effectiveStyle(named, item) {
+  const ref = item && item.styleRef;
+  const base = typeof ref === "string" && named && typeof named === "object"
+    && named[ref] && typeof named[ref] === "object" ? named[ref] : null;
+  if (!base) return item;
+  const out = { ...item };
+  for (const part of STYLE_PARTS) {
+    const shared = base[part];
+    const own = item[part];
+    if (shared && typeof shared === "object" && Object.keys(shared).length) {
+      out[part] = { ...shared, ...(own && typeof own === "object" ? own : {}) };
+    }
+  }
+  return out;
+}
+
+export function headingLines(item) {
+  return cellTextLines({ text: item.heading });
+}
+
+export function fontFamily(name) {
+  if (typeof name !== "string" || !name.trim()) return textTheme.fontSans;
+  const stack = textTheme.stacks[name.trim().toLowerCase()];
+  if (stack) return stack;
+  const clean = [...name].filter((ch) => !"'\\\";<>{}".includes(ch)).join("").trim();
+  return clean ? `'${clean}',${textTheme.fontSans}` : textTheme.fontSans;
+}
+
+export function positive(value, fallback) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return value > 0 && value < 1000 ? value : fallback;
+}
+
+export function weight(value, fallback) {
+  if (value === "bold") return 700;
+  if (value === "normal") return 400;
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return value >= 100 && value <= 900 ? Math.trunc(value) : fallback;
+}
+
+// Every line written in a box, heading first: [[text, paint], ...].
+export function textRuns(item, fontScale = 1) {
+  const runs = [];
+  for (const [heading, lines, spec, size, bold] of [
+    [true, headingLines(item), item.headingStyle, textTheme.headingSize, 600],
+    [false, cellTextLines(item), item.textStyle, cellText.size, null]]) {
+    if (!lines.length) continue;
+    const s = spec && typeof spec === "object" ? spec : {};
+    const paint = {
+      size: positive(s.fontSize, size) * fontScale,
+      weight: weight(s.fontWeight, bold),
+      fill: typeof s.fill === "string" && s.fill ? s.fill : textTheme.label,
+      family: fontFamily(s.fontFamily),
+      step: positive(s.lineHeight, cellText.step),
+      heading,
+    };
+    for (const line of lines) runs.push([line, paint]);
+  }
+  return runs;
+}
+
+function charOf(paint) {
+  const bold = paint.weight !== null && paint.weight >= 600;
+  return paint.size * cellText.char * (bold ? cellText.bold : 1);
+}
+
+function advance(before, after) {
+  let gap = before.size === after.size
+    ? after.size * after.step
+    : (before.size * 0.2 + after.size * 0.8) * after.step;
+  if (before.heading && !after.heading) gap += cellText.headingGap;
+  return gap;
+}
+
+export function textNeeds(item, fontScale = 1) {
+  const runs = textRuns(item, fontScale);
+  if (!runs.length) return [0, 0];
+  const pad = cellText.pad;
+  const widest = Math.max(...runs.map(([line, paint]) => line.length * charOf(paint)));
+  let block = runs[0][1].size * 0.8 + runs[runs.length - 1][1].size * 0.2;
+  for (let i = 1; i < runs.length; i += 1) block += advance(runs[i - 1][1], runs[i][1]);
+  return [2 * pad + widest, 2 * pad + block];
+}
+
+// [[x, baseline, text, paint], ...] and whether anything had to be cut.
+// Mirrors text_block_in.
+export function textBlockIn(box, item, fontScale = 1) {
+  const runs = textRuns(item, fontScale);
+  if (!runs.length) return [[], false];
   const [x, y, w, h] = box;
-  const [size, pad, step, char] = textSizes(fontScale);
-  const room = Math.max(0, Math.trunc((w - 2 * pad) / char + 1e-6));
+  const pad = cellText.pad;
   const [across, down] = cellTextAlign(item);
   const at = { left: x + pad, center: x + w / 2, right: x + w - pad }[across];
-  const placed = [];
+  const room = (paint) => Math.max(0, Math.trunc((w - 2 * pad) / charOf(paint) + 1e-6));
+  let placed = [];
   let clipped = false;
-  for (let index = 0; index < lines.length; index += 1) {
-    let line = lines[index];
-    const baseline = y + pad + size * 0.8 + index * step;
-    if (baseline + size * 0.2 > y + h - pad + 1e-6) {
+  let baseline = y + pad + runs[0][1].size * 0.8;
+  for (let index = 0; index < runs.length; index += 1) {
+    let [line, paint] = runs[index];
+    if (index) baseline += advance(runs[index - 1][1], paint);
+    if (baseline + paint.size * 0.2 > y + h - pad + 1e-6) {
       clipped = true;
       if (placed.length) {
-        const last = placed[placed.length - 1];
-        placed[placed.length - 1] = [last[0], last[1], ellipsis(last[2], room, true)];
+        const [lx, ly, last, lastPaint] = placed[placed.length - 1];
+        placed[placed.length - 1] = [lx, ly, ellipsis(last, room(lastPaint), true), lastPaint];
       }
       break;
     }
-    if (line.length > room) {
+    if (line.length > room(paint)) {
       clipped = true;
-      line = ellipsis(line, room);
+      line = ellipsis(line, room(paint));
     }
-    placed.push([at, baseline, line]);
+    placed.push([at, baseline, line, paint]);
   }
   if (placed.length && !clipped && down !== "top") {
-    // Mirrors cell_text_layout in render_svg.py.
-    const block = size + (placed.length - 1) * step;
+    const block = runs[0][1].size * 0.8 + (placed[placed.length - 1][1] - placed[0][1])
+      + placed[placed.length - 1][3].size * 0.2;
     const spare = Math.max(0, h - 2 * pad - block);
     const drop = down === "bottom" ? spare : spare / 2;
-    return [placed.map(([px, py, text]) => [px, py + drop, text]), clipped];
+    placed = placed.map(([px, py, text, paint]) => [px, py + drop, text, paint]);
   }
   return [placed, clipped];
 }
 
 // Grow a cell until its text fits, unless fitting is off. Only ever grows.
-export function fitCellText(symbol, cell, scale = 1, fontScale = 1) {
+export function fitCellText(symbol, cell, scale = 1, fontScale = 1, named = null) {
   if (cell.textFit === false) return false;
-  const lines = cellTextLines(cell);
-  if (!lines.length) return false;
-  const [needW, needH] = cellTextNeeds(lines, fontScale);
+  const look = effectiveStyle(named, cell);
+  if (!textRuns(look, fontScale).length) return false;
+  const [needW, needH] = textNeeds(look, fontScale);
   const [, , w, h] = cellBounds(symbol, cell, scale);
   const turned = ((Number(cell.rotate) || 0) % 180 + 180) % 180 === 90;
   let grew = false;
@@ -509,17 +635,26 @@ export function shapeStackOffset(shape) {
 // shape_text_layout: in the box, in the box an ellipse's curve leaves room
 // for, or centred just above a line's middle.
 export function shapeTextLayout(shape, fontScale = 1) {
+  return shapeTextBlock(shape, fontScale).map(([x, y, text]) => [x, y, text]);
+}
+
+// shapeTextLayout with how each line is set. Mirrors shape_text_block.
+export function shapeTextBlock(shape, fontScale = 1) {
   if (!SHAPE_TEXT_KINDS.includes(shape.kind)) return [];
   let box = shapeBox(shape);
   if (!box) return [];
-  if (shape.kind === "line" || shape.kind === "polyline") return lineCaption(shape, fontScale)[0];
+  if (shape.kind === "line" || shape.kind === "polyline") {
+    const plain = textRuns({ text: shape.text }, fontScale);
+    const paint = plain.length ? plain[0][1] : null;
+    return lineCaption(shape, fontScale)[0].map(([x, y, text]) => [x, y, text, paint]);
+  }
   if (shape.kind === "ellipse") {
     const [x, y, w, h] = box;
     const iw = w / Math.SQRT2;
     const ih = h / Math.SQRT2;
     box = [x + (w - iw) / 2, y + (h - ih) / 2, iw, ih];
   }
-  return textLayoutIn(box, shape, fontScale)[0];
+  return textBlockIn(box, shape, fontScale)[0];
 }
 
 // How far the copy behind a replicated cell sits, right and down: a share of

@@ -55,6 +55,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "carrying a placed cell to a pin",
     "stacking and writing on shapes",
     "containers",
+    "headings and named styles",
   )
 
   def test_alignment_and_tidy(self):

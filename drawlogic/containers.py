@@ -212,19 +212,27 @@ def header_path(box):
 
 
 def title_layout(box, font_scale=1.0):
-  """(x, baseline, text, size) for a container's title, or None.
+  """(x, baseline, text, paint) for a container's title, or None.
 
   Centred down the header band and cut short with an ellipsis where the box
-  is too narrow, by the same character estimate cell text uses.
+  is too narrow, by the same character estimate cell text uses. `paint` is
+  the title's size, weight, fill and font family: the container's
+  `headingStyle` over the theme, the title colour in its style between them.
   """
   title = box.get("title")
   if not isinstance(title, str) or not title.strip() or header(box) <= 0:
     return None
-  size = theme.FONT_SIZES["container_title"] * font_scale
+  spec = box.get("headingStyle") if isinstance(box.get("headingStyle"), dict) else {}
+  from .render_svg import _positive, _weight, font_family
+  size = _positive(spec.get("fontSize"), theme.FONT_SIZES["container_title"]) * font_scale
+  fill = spec.get("fill")
+  paint = {"size": size, "weight": _weight(spec.get("fontWeight"), 600),
+           "fill": fill if isinstance(fill, str) and fill else style_of(box)["titleFill"],
+           "family": font_family(spec.get("fontFamily"))}
   inset = theme.CONTAINER["titleInset"]
   room = int(max(0.0, float(box["w"]) - 2 * inset) / (size * theme.CONTAINER["char"]) + 1e-6)
   text = title if len(title) <= room else (
     title[:max(0, room - 1)].rstrip() + "\u2026" if room > 0 else "")
   depth = min(header(box), float(box["h"]))
   return (float(box["x"]) + inset, float(box["y"]) + depth / 2.0 + size * 0.35,
-          text, size)
+          text, paint)

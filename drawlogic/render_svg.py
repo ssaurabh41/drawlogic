@@ -26,6 +26,7 @@ width/height attributes, so output stays vector-perfect at any size.
 import math
 from . import containers
 from . import routing
+from . import styles
 from . import drc
 from . import theme
 from .geometry import Buckets, corners, fmt, hop_radii, label_lines, line_head
@@ -254,35 +255,162 @@ def cell_text_layout(symbol, cell, symbol_scale=1.0, font_scale=1.0):
 def text_layout_in(box, item, font_scale=1.0):
   """cell_text_layout for any box (x, y, w, h) and any item carrying text and
   its alignment -- a cell, or a shape with writing in it."""
-  lines = cell_text_lines(item)
-  if not lines:
+  placed, clipped = text_block_in(box, item, font_scale)
+  return [(x, y, text) for x, y, text, _paint in placed], clipped
+
+
+# ---- headings, body text and how each is set ----
+#
+# What is written in a box is a heading -- `heading`, drawn bold above --
+# and the lines of `text` under it, each set as its own `headingStyle` or
+# `textStyle` says: fontSize, fontWeight, fill, fontFamily, lineHeight. With
+# none of those the lines come out exactly where they always did: the block
+# below is the old one-size layout generalised to lines of different sizes,
+# and it reduces to it when every line is the same.
+#
+# Mirrored line for line by textRuns, textBlockIn and textNeeds in
+# web/js/geometry.js.
+
+def heading_lines(item):
+  """The heading written above a box's text, as lines; [] when it has none."""
+  return cell_text_lines({"text": item.get("heading")})
+
+
+def font_family(name):
+  """The font-family to set a text style's `fontFamily` in, with fallbacks."""
+  if not isinstance(name, str) or not name.strip():
+    return theme.FONT_SANS
+  stack = theme.FONT_STACKS.get(name.strip().lower())
+  if stack:
+    return stack
+  clean = "".join(ch for ch in name if ch not in "'\\\";<>{}").strip()
+  return "'%s',%s" % (clean, theme.FONT_SANS) if clean else theme.FONT_SANS
+
+
+def _positive(value, fallback):
+  if isinstance(value, bool) or not isinstance(value, (int, float)):
+    return fallback
+  return float(value) if 0 < value < 1000 else fallback
+
+
+def _weight(value, fallback):
+  """A font weight as a number, or None for the regular weight unstated."""
+  if value == "bold":
+    return 700
+  if value == "normal":
+    return 400
+  if isinstance(value, bool) or not isinstance(value, (int, float)):
+    return fallback
+  return int(value) if 100 <= value <= 900 else fallback
+
+
+def text_runs(item, font_scale=1.0):
+  """Every line written in a box, heading first: [(text, paint), ...].
+
+  `paint` is the line's size on the sheet, weight (None: regular, unstated),
+  fill, font family, line spacing as a multiple of the size, and whether it
+  is part of the heading.
+  """
+  runs = []
+  for heading, lines, spec, size, weight in (
+      (True, heading_lines(item), item.get("headingStyle"),
+       theme.FONT_SIZES["cell_heading"], 600),
+      (False, cell_text_lines(item), item.get("textStyle"),
+       theme.FONT_SIZES["cell_text"], None)):
+    if not lines:
+      continue
+    spec = spec if isinstance(spec, dict) else {}
+    fill = spec.get("fill")
+    paint = {"size": _positive(spec.get("fontSize"), size) * font_scale,
+             "weight": _weight(spec.get("fontWeight"), weight),
+             "fill": fill if isinstance(fill, str) and fill else theme.COLORS["label"],
+             "family": font_family(spec.get("fontFamily")),
+             "step": _positive(spec.get("lineHeight"), theme.CELL_TEXT["step"]),
+             "heading": heading}
+    runs.extend((line, paint) for line in lines)
+  return runs
+
+
+def _char(paint):
+  """One character's width on the sheet in this paint, bold being wider."""
+  bold = paint["weight"] is not None and paint["weight"] >= 600
+  return paint["size"] * theme.CELL_TEXT["char"] * (theme.CELL_TEXT["bold"] if bold else 1.0)
+
+
+def _advance(before, after):
+  """Baseline to baseline from a line set in `before` to one in `after`.
+
+  Between two lines the same size, the size times the line spacing -- the
+  old step exactly. Between sizes, the descent of the one above and the
+  ascent of the one below, spaced the same way; and a heading gets a little
+  more air under it than a line does.
+  """
+  if before["size"] == after["size"]:
+    gap = after["size"] * after["step"]
+  else:
+    gap = (before["size"] * 0.2 + after["size"] * 0.8) * after["step"]
+  if before["heading"] and not after["heading"]:
+    gap += theme.CELL_TEXT["headingGap"]
+  return gap
+
+
+def text_needs(item, font_scale=1.0):
+  """The (width, height) a box needs on the sheet to hold its writing."""
+  runs = text_runs(item, font_scale)
+  if not runs:
+    return 0.0, 0.0
+  pad = theme.CELL_TEXT["pad"]
+  widest = max(len(line) * _char(paint) for line, paint in runs)
+  block = runs[0][1]["size"] * 0.8 + runs[-1][1]["size"] * 0.2
+  for (_a, before), (_b, after) in zip(runs, runs[1:]):
+    block += _advance(before, after)
+  return (2 * pad + widest, 2 * pad + block)
+
+
+def text_block_in(box, item, font_scale=1.0):
+  """Where each line in a box goes, and how it is set.
+
+  Returns ([(x, baseline, text, paint), ...], clipped). Placed as
+  cell_text_layout describes: aligned as textAlign and textVAlign say, a line
+  too wide ending in an ellipsis, lines that do not fit dropped with an
+  ellipsis on the last one shown.
+  """
+  runs = text_runs(item, font_scale)
+  if not runs:
     return [], False
   x, y, w, h = box
-  size, pad, step, char = _cell_text_metrics(font_scale)
-  room = max(0, int((w - 2 * pad) / char + 1e-6))
+  pad = theme.CELL_TEXT["pad"]
   across, down = cell_text_align(item)
   at = {"left": x + pad, "center": x + w / 2.0, "right": x + w - pad}[across]
+
+  def room(paint):
+    return max(0, int((w - 2 * pad) / _char(paint) + 1e-6))
+
   placed = []
   clipped = False
-  for index, line in enumerate(lines):
-    baseline = y + pad + size * 0.8 + index * step
-    if baseline + size * 0.2 > y + h - pad + 1e-6:
+  baseline = y + pad + runs[0][1]["size"] * 0.8
+  for index, (line, paint) in enumerate(runs):
+    if index:
+      baseline += _advance(runs[index - 1][1], paint)
+    if baseline + paint["size"] * 0.2 > y + h - pad + 1e-6:
       clipped = True
       if placed:
-        last_x, last_y, last = placed[-1]
-        placed[-1] = (last_x, last_y, _ellipsis(last, room, force=True))
+        last_x, last_y, last, last_paint = placed[-1]
+        placed[-1] = (last_x, last_y, _ellipsis(last, room(last_paint), force=True),
+                      last_paint)
       break
-    if len(line) > room:
+    if len(line) > room(paint):
       clipped = True
-      line = _ellipsis(line, room)
-    placed.append((at, baseline, line))
+      line = _ellipsis(line, room(paint))
+    placed.append((at, baseline, line, paint))
   if placed and not clipped and down != "top":
     # What is left over below the block: all of it moved above for the
     # bottom, half of it for the middle.
-    block = size + (len(placed) - 1) * step
+    block = runs[0][1]["size"] * 0.8 + (placed[-1][1] - placed[0][1]) \
+      + placed[-1][3]["size"] * 0.2
     spare = max(0.0, h - 2 * pad - block)
     drop = spare if down == "bottom" else spare / 2.0
-    placed = [(px, py + drop, text) for px, py, text in placed]
+    placed = [(px, py + drop, text, paint) for px, py, text, paint in placed]
   return placed, clipped
 
 
@@ -295,18 +423,19 @@ def _ellipsis(line, room, force=False):
   return line[:max(0, min(len(line), room - 1))].rstrip() + "\u2026"
 
 
-def fit_cell_text(symbol, cell, symbol_scale=1.0, font_scale=1.0):
+def fit_cell_text(symbol, cell, symbol_scale=1.0, font_scale=1.0, named=None):
   """Grow a cell until its text fits, unless fitting is switched off.
 
   Only ever grows: a box someone made bigger on purpose stays that size, and
   one with no text keeps the size its symbol gave it. Returns True if it grew.
+  `named` is the drawing's named styles, which may set the text's size.
   """
   if cell.get("textFit") is False:
     return False
-  lines = cell_text_lines(cell)
-  if not lines:
+  look = styles.effective(named, cell)
+  if not text_runs(look, font_scale):
     return False
-  need_w, need_h = cell_text_needs(lines, font_scale)
+  need_w, need_h = text_needs(look, font_scale)
   _x, _y, w, h = _cell_bbox(symbol, cell, symbol_scale)
   turned = int(cell.get("rotate", 0) or 0) % 180 == 90
   grew = False
@@ -374,19 +503,26 @@ def _render_stack(symbol, cell, symbol_scale, out):
       ("stroke-width", fmt(style.get("strokeWidth", theme.WIDTHS["stroke"]), 3))]))
 
 
+def _written_line(css, x, y, anchor, line, paint, out):
+  """One line of writing in a box, set as its paint says."""
+  out.append("<text %s>%s</text>" % (_attrs([
+    ("class", css),
+    ("x", fmt(x)), ("y", fmt(y)),
+    ("text-anchor", anchor),
+    ("font-family", paint["family"]),
+    ("font-size", fmt(paint["size"], 2)),
+    ("font-weight", str(paint["weight"]) if paint["weight"] is not None else None),
+    ("fill", paint["fill"])]), esc(line)))
+
+
 def _render_cell_text(symbol, cell, symbol_scale, font_scale, out):
   """The lines written inside a cell, and the count badge of a replicated one."""
-  size = theme.FONT_SIZES["cell_text"] * font_scale
-  placed, _clipped = cell_text_layout(symbol, cell, symbol_scale, font_scale)
+  placed, _clipped = text_block_in(_cell_bbox(symbol, cell, symbol_scale), cell,
+                                   font_scale)
   anchor = TEXT_ANCHOR[cell_text_align(cell)[0]]
-  for x, y, line in placed:
-    out.append("<text %s>%s</text>" % (_attrs([
-      ("class", "dl-cell-text"),
-      ("x", fmt(x)), ("y", fmt(y)),
-      ("text-anchor", anchor),
-      ("font-family", theme.FONT_SANS),
-      ("font-size", fmt(size, 2)),
-      ("fill", theme.COLORS["label"])]), esc(line)))
+  for x, y, line, paint in placed:
+    _written_line("dl-cell-heading" if paint["heading"] else "dl-cell-text",
+                  x, y, anchor, line, paint, out)
   copies = cell_copies(cell)
   if copies:
     _render_copies_badge(_cell_bbox(symbol, cell, symbol_scale), copies, out)
@@ -1424,6 +1560,15 @@ def shape_text_layout(shape, font_scale=1.0):
   corners of the writing stay inside it. Beside a line's middle, never cut: a
   caption has no box to fit (see _line_caption).
   """
+  return [(x, y, text) for x, y, text, _paint in shape_text_block(shape, font_scale)]
+
+
+def shape_text_block(shape, font_scale=1.0):
+  """shape_text_layout with how each line is set: [(x, y, text, paint), ...].
+
+  A box, an ellipse or a polygon sets its heading and text as a cell does; a
+  line's caption is always the plain size.
+  """
   kind = shape.get("kind")
   if kind not in SHAPE_TEXT_KINDS:
     return []
@@ -1431,12 +1576,14 @@ def shape_text_layout(shape, font_scale=1.0):
   if box is None:
     return []
   if kind in ("line", "polyline"):
-    return _line_caption(shape, font_scale)[0]
+    plain = text_runs({"text": shape.get("text")}, font_scale)
+    paint = plain[0][1] if plain else None
+    return [(x, y, text, paint) for x, y, text in _line_caption(shape, font_scale)[0]]
   if kind == "ellipse":
     x, y, w, h = box
     inner_w, inner_h = w / math.sqrt(2), h / math.sqrt(2)
     box = (x + (w - inner_w) / 2.0, y + (h - inner_h) / 2.0, inner_w, inner_h)
-  return text_layout_in(box, shape, font_scale)[0]
+  return text_block_in(box, shape, font_scale)[0]
 
 
 def _render_shape(shape, font_scale, out):
@@ -1489,21 +1636,15 @@ def _render_shape_stack(shape, style, font_scale, out):
 
 def _render_shape_text(shape, font_scale, out):
   """The writing in a shape, and the count badge of one standing for copies."""
-  placed = shape_text_layout(shape, font_scale)
+  placed = shape_text_block(shape, font_scale)
   if placed:
-    size = theme.FONT_SIZES["cell_text"] * font_scale
     if shape.get("kind") in ("line", "polyline"):
       anchor = _line_caption(shape, font_scale)[1]
     else:
       anchor = TEXT_ANCHOR[cell_text_align(shape)[0]]
-    for x, y, line in placed:
-      out.append("<text %s>%s</text>" % (_attrs([
-        ("class", "dl-shape-text"),
-        ("x", fmt(x)), ("y", fmt(y)),
-        ("text-anchor", anchor),
-        ("font-family", theme.FONT_SANS),
-        ("font-size", fmt(size, 2)),
-        ("fill", theme.COLORS["label"])]), esc(line)))
+    for x, y, line, paint in placed:
+      _written_line("dl-shape-heading" if paint["heading"] else "dl-shape-text",
+                    x, y, anchor, line, paint, out)
   _render_copies_badge(shape_box(shape) or (0, 0, 0, 0), shape_copies(shape), out)
 
 
@@ -1556,7 +1697,9 @@ def _render_containers(doc, font_scale, out):
   both, so the band does not paint over the edge it sits against.
   """
   out.append('<g class="dl-containers">')
+  named = doc.data.get("styles")
   for box in containers.paint_order(doc):
+    box = styles.effective(named, box)
     paint = containers.style_of(box)
     x, y, w, h = (fmt(box[k]) for k in ("x", "y", "w", "h"))
     radius = fmt(theme.CONTAINER["radius"])
@@ -1577,14 +1720,14 @@ def _render_containers(doc, font_scale, out):
       ("stroke-width", fmt(paint["strokeWidth"]))]))
     title = containers.title_layout(box, font_scale)
     if title is not None:
-      tx, ty, text, size = title
+      tx, ty, text, written = title
       out.append("<text %s>%s</text>" % (_attrs([
         ("class", "dl-container-title"),
         ("x", fmt(tx)), ("y", fmt(ty)),
-        ("font-family", theme.FONT_SANS),
-        ("font-size", fmt(size, 2)),
-        ("font-weight", "600"),
-        ("fill", paint["titleFill"])]), esc(text)))
+        ("font-family", written["family"]),
+        ("font-size", fmt(written["size"], 2)),
+        ("font-weight", str(written["weight"]) if written["weight"] is not None else None),
+        ("fill", written["fill"])]), esc(text)))
     out.append("</g>")
   out.append("</g>")
 
@@ -1682,7 +1825,8 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
 
   grid_defs = _grid_defs(canvas.get("grid") or {}) if show_grid else ""
   shadow_defs = (shadow_filter(view)
-                 if any((s.get("style") or {}).get("shadow") for s in doc.shapes)
+                 if any((styles.effective(doc.data.get("styles"), s).get("style") or {})
+                        .get("shadow") for s in doc.shapes)
                  else "")
   if grid_defs or shadow_defs:
     out.append("<defs>%s%s</defs>" % (grid_defs, shadow_defs))
@@ -1728,6 +1872,8 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
       run = kind
       if kind is not None:
         out.append('<g class="dl-%ss">' % kind)
+    # Drawn as it looks: its named style, if any, under its own overrides.
+    item = styles.effective(doc.data.get("styles"), item)
     if kind == "shape":
       _render_shape(item, font_scale, out)
     elif kind == "cell":

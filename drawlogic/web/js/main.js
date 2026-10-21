@@ -969,6 +969,11 @@ function runCommand(command) {
       else say("nothing selected is in a container", "warn");
     },
     "container-move": moveIntoContainerAsked,
+    "style-save": saveStyleAsked,
+    "style-edit": () => {
+      const refs = new Set(selection.items().map((item) => item.styleRef).filter(Boolean));
+      if (refs.size === 1) editNamedStyle([...refs][0]);
+    },
     "container-layout": () => {
       const boxes = selection.items().filter(model.isContainer);
       if (boxes.length !== 1) {
@@ -1155,6 +1160,158 @@ function pickContainer(ids, allowed) {
     dialog.showModal();
     (search.hidden ? list.querySelector(".pick-row.active") || list : search).focus();
   });
+}
+
+// ---- named styles ----
+
+// Save selection's style: the first selected item's look, named, and every
+// selected item pointed at it.
+function saveStyleAsked() {
+  const items = selection.items();
+  if (!items.length) {
+    say("select the item whose look to keep first", "bad");
+    return;
+  }
+  const raw = window.prompt("Name for this style (e.g. compute, memory, io):",
+                            items[0].styleRef || "");
+  const name = (raw || "").trim();
+  if (!name) return;
+  if ((store.doc.styles || {})[name] && name !== items[0].styleRef
+      && !window.confirm(`There is already a style called "${name}". Replace it?`)) return;
+  const ids = new Set(selection.ids);
+  store.mutate("save style", (doc) => model.saveNamedStyle(doc, name, items[0].id, ids));
+  redraw();
+  inspector.render();
+  say(`saved style "${name}"; ${count(ids.size, "item")} now use${ids.size === 1 ? "s" : ""} it`);
+}
+
+// Edit named style: every setting a named style can make, each blank for
+// "not set" -- the theme's then, or the item's own. Saving it is one step,
+// and changes every item using the style.
+function editNamedStyle(name) {
+  const doc = store.doc;
+  const spec = JSON.parse(JSON.stringify((doc.styles || {})[name] || {}));
+  const dialog = ui.styleDialog;
+  const users = model.items(doc).filter((item) => item.styleRef === name).length;
+  dialog.querySelector(".style-title").textContent = `Edit style "${name}"`;
+  dialog.querySelector(".style-note").textContent =
+    `Used by ${count(users, "item")}. A blank field is not set by the style: the theme's, or what an item sets itself, is used.`;
+  const form = dialog.querySelector(".style-form");
+  form.textContent = "";
+  const fields = [];
+
+  const head = (text) => {
+    const h = document.createElement("div");
+    h.className = "sf-head";
+    h.textContent = text;
+    form.appendChild(h);
+  };
+  const label = (text) => {
+    const node = document.createElement("label");
+    node.textContent = text;
+    form.appendChild(node);
+  };
+  const colour = (part, key) => {
+    const wrap = document.createElement("div");
+    wrap.className = "sf-colour";
+    const text = document.createElement("input");
+    text.type = "text";
+    text.placeholder = "not set";
+    text.value = (spec[part] || {})[key] || "";
+    const swatch = document.createElement("input");
+    swatch.type = "color";
+    swatch.value = /^#[0-9a-f]{6}$/i.test(text.value) ? text.value : "#ffffff";
+    swatch.addEventListener("input", () => { text.value = swatch.value; });
+    text.addEventListener("input", () => {
+      if (/^#[0-9a-f]{6}$/i.test(text.value)) swatch.value = text.value;
+    });
+    wrap.append(text, swatch);
+    form.appendChild(wrap);
+    fields.push([part, key, () => text.value.trim()]);
+  };
+  const number = (part, key, placeholder) => {
+    const field = document.createElement("input");
+    field.type = "number";
+    field.step = "0.5";
+    field.min = "0";
+    field.placeholder = placeholder;
+    const value = (spec[part] || {})[key];
+    field.value = value === undefined ? "" : value;
+    form.appendChild(field);
+    fields.push([part, key, () => (field.value === "" ? "" : Number(field.value))]);
+  };
+  const weight = (part) => {
+    const field = document.createElement("select");
+    for (const [value, text] of [["", "not set"], ["400", "Regular"], ["600", "Bold"]]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = text;
+      field.appendChild(option);
+    }
+    const now = (spec[part] || {}).fontWeight;
+    field.value = now === undefined ? "" : (Number(now) >= 600 ? "600" : "400");
+    form.appendChild(field);
+    fields.push([part, "fontWeight", () => (field.value === "" ? "" : Number(field.value))]);
+  };
+  const blank = () => form.appendChild(document.createElement("span"));
+
+  head("Shape");
+  label("Fill, line, weight");
+  colour("style", "fill");
+  colour("style", "stroke");
+  number("style", "strokeWidth", "weight");
+  label("Header, title");
+  colour("style", "headerFill");
+  colour("style", "titleFill");
+  blank();
+  head("Heading");
+  label("Size, weight, colour");
+  number("headingStyle", "fontSize", "size");
+  weight("headingStyle");
+  colour("headingStyle", "fill");
+  head("Text");
+  label("Size, weight, colour");
+  number("textStyle", "fontSize", "size");
+  weight("textStyle");
+  colour("textStyle", "fill");
+  label("Font, spacing");
+  const face = document.createElement("select");
+  for (const [value, text] of [["", "Sans (default)"], ["mono", "Mono"], ["serif", "Serif"]]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = text;
+    face.appendChild(option);
+  }
+  face.value = (spec.textStyle || {}).fontFamily || "";
+  form.appendChild(face);
+  fields.push(["textStyle", "fontFamily", () => face.value]);
+  number("textStyle", "lineHeight", "spacing");
+  blank();
+
+  const save = dialog.querySelector(".style-save");
+  const cancel = dialog.querySelector(".style-cancel");
+  const onSave = () => {
+    const next = { style: { ...(spec.style || {}) }, headingStyle: { ...(spec.headingStyle || {}) },
+                   textStyle: { ...(spec.textStyle || {}) } };
+    for (const [part, key, read] of fields) {
+      const value = read();
+      if (value === "" || Number.isNaN(value)) delete next[part][key];
+      else next[part][key] = value;
+    }
+    store.mutate("edit style", (d) => model.updateNamedStyle(d, name, next));
+    dialog.close();
+    redraw();
+    inspector.render();
+    say(`style "${name}" changed; ${count(users, "item")} redrawn`);
+  };
+  const onCancel = () => dialog.close();
+  save.addEventListener("click", onSave);
+  cancel.addEventListener("click", onCancel);
+  dialog.addEventListener("close", () => {
+    save.removeEventListener("click", onSave);
+    cancel.removeEventListener("click", onCancel);
+  }, { once: true });
+  dialog.showModal();
 }
 
 // ---- files ----
@@ -2286,6 +2443,7 @@ async function start() {
     prefsDialog: $("prefs-dialog"),
     choiceDialog: $("choice-dialog"),
     containerDialog: $("container-dialog"),
+    styleDialog: $("style-dialog"),
     tabs: $("tabs"),
     btnPrefs: $("btn-prefs"),
     btnPainter: $("btn-painter"),

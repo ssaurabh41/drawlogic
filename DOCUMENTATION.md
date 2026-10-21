@@ -367,7 +367,7 @@ ok    lay it out
 ok    render to SVG
 39 built-in symbols
 ok     15 browser modules, 0 import mismatches
-ok     37 files against manifest.txt, 0 differ
+ok     38 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
@@ -769,6 +769,42 @@ gets a plain rectangle.
 It is still one cell with one set of pins: wires, layout and the checks treat
 it like any other.
 
+
+### Headings, text styles and named styles
+
+A block's writing can have a **heading** above it -- "WARP SCHEDULER", set
+bold and a little larger -- instead of a separate text shape laid over the
+block and dragged with it by hand. The instance name (`label`) stays what it
+was: the name above the cell. Boxes, ellipses and polygons take a heading
+too.
+
+**Format** in the Text inside section chooses whether the controls under it
+set the heading or the text: **Size** (in points, before the drawing's text
+scale), **Regular / Bold** and **Colour**; under **Advanced**, the **Font**
+(sans, mono or serif, each with fallbacks for a machine without it) and the
+**Spacing** between lines. A blank size or spacing shows what is used now in
+grey. Alignment applies to heading and text as one block. The box grows to
+hold all of it, as it grows for text, by the same measure the checker uses,
+and with fit-to-text off what does not fit is cut short and reported as
+before. A container's **Title size** and **Title weight** set its title the
+same way.
+
+A **named style** keeps a look -- fill, line, line weight, header and title
+colours, and how the heading and the text are set -- under a name, in the
+drawing. **Style** in the Appearance section picks one for the selection,
+which then looks like it: anything the items set themselves that the style
+also sets is let go, and anything else they set is kept. **Save as
+style...** names the selected item's current look and points the selection
+at it. **Edit style...** changes a named style, and with it every item using
+it, in one undo step; a blank field there is one the style does not set.
+
+What an item looks like is worked out in three layers: the theme's defaults,
+then its named style, then what the item sets itself. Nothing is copied from
+the style into the items, which is what lets an edit to the style reach them
+-- and a colour set on one block by hand, after it took the style, stays on
+that block when the style changes. "reset" beside a setting takes the
+item's own value away, back to the style's.
+
 ### Resizing cells and the sheet
 
 A gate keeps its proportions when resized, since one drawn stretched looks
@@ -958,6 +994,9 @@ gains nothing from it has no such key at all.
 | `style` | `fill`, `stroke`, `strokeWidth` overrides |
 | `image` | data URI for a `custom` cell's picture; exported too |
 | `ref` | path to another drawing this cell stands for; see Hierarchy |
+| `heading` | a heading written above `text`, bold by default |
+| `headingStyle`, `textStyle` | how the heading and the text are set: `fontSize`, `fontWeight` (400, 600, ...), `fill`, `fontFamily` (`sans`, `mono`, `serif` or a face name), `lineHeight` (a multiple of the size); each left out uses the named style's, then the theme's |
+| `styleRef` | the name of one of the drawing's `styles`; see below |
 | `pinned` | `true` keeps auto layout from moving it; left out otherwise |
 | `z` | stacking order among cells and shapes, lowest painted first; left out, 0 |
 | `parentId` | the id of the container holding it; left out, it is on the sheet itself |
@@ -1018,7 +1057,8 @@ kinds use `x`, `y`, `w`, `h`; line-like kinds use `points`; `text` uses `x`,
 `textAlign` and `textVAlign` as a cell has them; `rect`, `ellipse` and
 `polygon` may carry `copies`. `z` places a shape in the stacking order, as
 for a cell; left out, a shape is behind the cells. `parentId` names the
-container holding it, as for a cell.
+container holding it, as for a cell. A box, an ellipse or a polygon may carry
+`heading`, `headingStyle` and `textStyle`, and any shape a `styleRef`.
 
 ### groups
 
@@ -1046,6 +1086,8 @@ most one group.
 | `padding` | room kept round the contents by Fit to contents; 20 |
 | `headerHeight` | depth of the band the title sits in; 32, and 0 for no band or title |
 | `layout` | how Auto layout arranges what it holds: `{"mode": "grid", "columns": 2, "gap": 30}`; `mode` is `flow`, `row`, `column` or `grid`, `direction` `tb` turns flow top to bottom. Left out, flow left to right; see [Laying out a drawing with containers](#laying-out-a-drawing-with-containers) |
+| `headingStyle` | how the title is set, as a cell's heading: `fontSize`, `fontWeight`, `fill`, `fontFamily` |
+| `styleRef` | the name of one of the drawing's `styles` |
 | `style` | `fill`, `stroke`, `strokeWidth`, `headerFill` (`none` for no band), `titleFill` |
 
 Cells, shapes and containers say which container holds them with `parentId`,
@@ -1053,6 +1095,24 @@ and that field is the whole of it: overlapping a container does not put
 anything in it. Coordinates stay absolute -- a cell in a container has the
 same `x` and `y` it would have on the bare sheet -- so everything that reads a
 position reads it as before; moving a container moves each thing in it.
+
+### styles
+
+```json
+"styles": {
+  "compute": {
+    "style": { "fill": "#d8edb4", "stroke": "#adc18e" },
+    "headingStyle": { "fontSize": 16, "fontWeight": 600 },
+    "textStyle": { "fontSize": 12, "fill": "#52656f", "lineHeight": 1.3 }
+  }
+}
+```
+
+Named looks any cell, shape or container can take with `"styleRef":
+"compute"`. Each part is merged under what the item sets itself and over the
+theme, when the drawing is drawn or measured -- never written into the items.
+A drawing with none has no `styles` key. A `styleRef` naming a style that is
+not there is a `validate` warning, and the item is drawn as if it named none.
 
 `drawlogic validate` reports a `parentId` naming nothing, naming something
 that is not a container, or naming more than one thing; containers holding
@@ -1913,6 +1973,7 @@ drawlogic/
   routing.py      orthogonal routing, corridors, junction dots
   sheets.py       hierarchy: a block built from another drawing's ports
   containers.py   titled boundaries that own part of a drawing
+  styles.py       named styles: theme, then style, then the item's own
   hdl.py          Verilog to drawings, one per module
   rtl.py          behavioural Verilog lowered to gates and flip-flops
   yosys.py        the same through Yosys, when it is installed
@@ -2031,6 +2092,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers |
+| `tests/test_styles.py` | headings and text styles, named styles and overrides, fitting and clipping with a heading, and every line set the same in the editor as in an export |
 | `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over) |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |

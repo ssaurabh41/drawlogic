@@ -458,7 +458,7 @@ export function fitCell(doc, cell) {
   const symbol = geometry.forCell(cell);
   if (!symbol) return false;
   const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
-  return geometry.fitCellText(symbol, cell, routing.symbolScale(doc), fontScale);
+  return geometry.fitCellText(symbol, cell, routing.symbolScale(doc), fontScale, doc.styles);
 }
 
 export function setCellText(doc, id, raw) {
@@ -471,6 +471,132 @@ export function setCellText(doc, id, raw) {
   if (lines.length) cell.text = lines;
   else delete cell.text;
   fitCell(doc, cell);
+}
+
+// The heading written above a box's text, "WARP SCHEDULER". Empty takes it
+// away. A cell grows to hold it, as it does for its text.
+export function setHeading(doc, id, raw) {
+  const item = itemById(doc, id);
+  if (!item || isContainer(item)) return false;
+  const value = String(raw || "").replace(/\r/g, "").trim();
+  if (value) item.heading = value;
+  else delete item.heading;
+  if (!isShape(item)) fitCell(doc, item);
+  return true;
+}
+
+// One setting of how a heading ("headingStyle") or the text ("textStyle") is
+// set: fontSize, fontWeight, fill, fontFamily or lineHeight. Null or empty
+// takes the setting away, back to the named style or the theme; an emptied
+// part goes altogether, so a block that never chose says nothing.
+export const TEXT_STYLE_KEYS = ["fontSize", "fontWeight", "fill", "fontFamily", "lineHeight"];
+
+export function setTextStyle(doc, ids, part, key, value) {
+  if (!["headingStyle", "textStyle"].includes(part) || !TEXT_STYLE_KEYS.includes(key)) return false;
+  let number = null;
+  if (["fontSize", "fontWeight", "lineHeight"].includes(key) && value !== null && value !== "") {
+    number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) return false;
+  }
+  for (const id of ids) {
+    const item = itemById(doc, id);
+    if (!item) continue;
+    const spec = { ...(item[part] || {}) };
+    if (value === null || value === "") delete spec[key];
+    else spec[key] = number !== null ? number : String(value);
+    if (Object.keys(spec).length) item[part] = spec;
+    else delete item[part];
+    if (!isShape(item) && !isContainer(item)) fitCell(doc, item);
+  }
+  return true;
+}
+
+// ---- named styles ----
+//
+// A drawing's own table of looks, `doc.styles`, which any cell, shape or
+// container can name in `styleRef`. What an item looks like is the theme,
+// then its named style, then what it sets itself (geometry.effectiveStyle,
+// as styles.py): nothing is copied into the items, so changing a named style
+// changes every item naming it, and what an item set by hand stays its own.
+
+export function styleNames(doc) {
+  return Object.keys(doc.styles || {}).sort();
+}
+
+// Point items at a named style, or at none (null). Choosing a style is
+// asking to look like it, so whatever an item set itself that the style also
+// sets is let go -- otherwise a block with a colour of its own would take the
+// style and show no change. What the style leaves alone stays the item's;
+// what is set by hand afterwards overrides the style, as ever. Cells grow if
+// the style sets their text bigger.
+export function setStyleRef(doc, ids, name) {
+  const spec = name === null ? null : (doc.styles || {})[name];
+  if (name !== null && !spec) return false;
+  for (const id of ids) {
+    const item = itemById(doc, id);
+    if (!item) continue;
+    if (name === null) delete item.styleRef;
+    else {
+      item.styleRef = name;
+      dropOverridden(item, spec);
+    }
+    if (!isShape(item) && !isContainer(item)) fitCell(doc, item);
+  }
+  return true;
+}
+
+// Let go of an item's own settings of whatever `spec` sets.
+function dropOverridden(item, spec) {
+  for (const part of geometry.STYLE_PARTS) {
+    if (!spec[part] || !item[part]) continue;
+    for (const field of Object.keys(spec[part])) delete item[part][field];
+    if (part !== "style" && !Object.keys(item[part]).length) delete item[part];
+  }
+}
+
+// Save selection's style: the look `fromId` has now -- its named style and
+// its own settings together -- becomes a named style, and every item in
+// `ids` is pointed at it with its own settings of those things cleared, so
+// that later edits to the style reach them. Colours, line weight and how
+// text is set; never sizes, positions or what is written.
+export function saveNamedStyle(doc, name, fromId, ids) {
+  const key = String(name || "").trim();
+  const source = itemById(doc, fromId);
+  if (!key || !source) return false;
+  const look = geometry.effectiveStyle(doc.styles, source);
+  const spec = {};
+  for (const part of geometry.STYLE_PARTS) {
+    const value = look[part];
+    if (value && typeof value === "object" && Object.keys(value).length) {
+      spec[part] = JSON.parse(JSON.stringify(value));
+    }
+  }
+  doc.styles = { ...(doc.styles || {}), [key]: spec };
+  for (const id of ids) {
+    const item = itemById(doc, id);
+    if (!item) continue;
+    item.styleRef = key;
+    dropOverridden(item, spec);
+    if (!isShape(item) && !isContainer(item)) fitCell(doc, item);
+  }
+  return key;
+}
+
+// Edit named style: replace what it sets. Every item naming it changes; the
+// cells among them grow if their text now needs more room.
+export function updateNamedStyle(doc, name, spec) {
+  if (!(doc.styles || {})[name]) return false;
+  const clean = {};
+  for (const part of geometry.STYLE_PARTS) {
+    const value = spec[part];
+    if (!value || typeof value !== "object") continue;
+    const kept = Object.fromEntries(Object.entries(value)
+      .filter(([, v]) => v !== null && v !== undefined && v !== ""));
+    if (Object.keys(kept).length) clean[part] = kept;
+  }
+  doc.styles = { ...doc.styles, [name]: clean };
+  for (const cell of doc.cells) if (cell.styleRef === name) fitCell(doc, cell);
+  return true;
 }
 
 export function setTextFit(doc, id, fit) {

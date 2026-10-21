@@ -21,6 +21,12 @@ the canvas and the exporter cannot drift apart on colours or weights.
 # drawing opened somewhere without Plex installed still lays out sensibly.
 FONT_SANS = "'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif"
 FONT_MONO = "'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace"
+FONT_SERIF = "'IBM Plex Serif',Georgia,'Times New Roman',serif"
+
+# The faces text inside a box may be set in, by the name a text style stores.
+# Any other name is used as asked, with the sans stack behind it in case the
+# machine opening the file does not have it.
+FONT_STACKS = {"sans": FONT_SANS, "mono": FONT_MONO, "serif": FONT_SERIF}
 
 PAPER = "#ffffff"
 INK = "#16202b"
@@ -73,6 +79,8 @@ FONT_SIZES = {
   "shape_text": 14.0,
   # Lines written inside a cell -- what a block in a block diagram is for.
   "cell_text": 11.5,
+  # A heading above them, "WARP SCHEDULER", drawn bold.
+  "cell_heading": 13.0,
   # The title in a container's header band.
   "container_title": 13.0,
 }
@@ -108,8 +116,12 @@ HOP_RADIUS = 5.0
 # -- a fixed distance looked deep behind a small gate and shallow behind a big
 # block -- but never less than `stackMin`, under which the two outlines run
 # into each other at the usual line weight.
+#
+# A heading sits above the lines with `headingGap` more air under it than
+# between two lines, and a bold line is reckoned `bold` times as wide as the
+# same line in the regular weight.
 CELL_TEXT = {"pad": 8.0, "step": 1.3, "char": 0.62, "stack": 0.03,
-             "stackMin": 3.0}
+             "stackMin": 3.0, "headingGap": 3.0, "bold": 1.08}
 GHOST_DASH = "4 3"
 
 # Arrowheads a drawn line can end in, PowerPoint's set, and how big each size
@@ -182,6 +194,7 @@ def as_data():
     "roleStyles": ROLE_STYLES,
     "fontSans": FONT_SANS,
     "fontMono": FONT_MONO,
+    "fontStacks": FONT_STACKS,
     "junctionRadius": JUNCTION_RADIUS,
     "arrowSize": ARROW_SIZE,
     "arrowSpacing": ARROW_SPACING,

@@ -837,12 +837,36 @@ export class Inspector {
     this.renderContainerLayout(box);
 
     root.appendChild(element("div", "ptitle", "Appearance"));
-    const style = box.style || {};
+    this.renderStyleRef([box]);
+    const look = geometry.effectiveStyle(doc.styles, box);
+    const style = look.style || {};
     for (const [key, label] of [["fill", "Fill"], ["headerFill", "Header"],
                                 ["stroke", "Line"], ["titleFill", "Title"]]) {
       root.appendChild(row(label, this.colourControl(key, style[key], defaults[key],
                                                      key === "headerFill")));
     }
+    // The title is the container's heading, set by its headingStyle.
+    const titleSpec = look.headingStyle || {};
+    const setTitle = (key, value, label) => {
+      this.store.mutate(label, (d) => model.setTextStyle(d, [box.id], "headingStyle", key, value));
+      this.onChange();
+      this.render();
+    };
+    const size = input((box.headingStyle || {}).fontSize ?? "", "number");
+    size.min = "4";
+    size.step = "0.5";
+    size.placeholder = String(titleSpec.fontSize ?? 13);
+    size.addEventListener("change", () => setTitle("fontSize", size.value, "title size"));
+    root.appendChild(row("Title size", size));
+    const heavy = geometry.weight(titleSpec.fontWeight, 600);
+    const weights = element("div", "seg");
+    for (const [value, label] of [[400, "Regular"], [600, "Bold"]]) {
+      const button = segButton(label, label.toLowerCase(),
+                               value === 600 ? heavy >= 600 : heavy < 600);
+      button.addEventListener("click", () => setTitle("fontWeight", value, "title weight"));
+      weights.appendChild(button);
+    }
+    root.appendChild(row("Title weight", weights));
   }
 
   // How the container arranges what it holds when it is laid out. Only what
@@ -1014,6 +1038,18 @@ export class Inspector {
     const root = this.root;
     root.appendChild(element("div", "ptitle", "Text inside"));
 
+    // A heading above the text -- "WARP SCHEDULER" -- set bold and larger,
+    // instead of a separate text shape laid over the block. A line's caption
+    // has no heading: it is one short note beside the line.
+    const line = cell.kind === "line" || cell.kind === "polyline";
+    if (!line) {
+      const heading = input(cell.heading || "");
+      heading.placeholder = "none";
+      this.bind(heading, (doc, value) => model.setHeading(doc, cell.id, value), "heading");
+      heading.addEventListener("change", () => this.render());
+      root.appendChild(row("Heading", heading));
+    }
+
     // A box for several lines. Enter is a new line here, so the edit is kept
     // when the box is left (or Ctrl+Enter), not on Enter as in other fields.
     const text = document.createElement("textarea");
@@ -1034,9 +1070,153 @@ export class Inspector {
     // The box may have grown to fit, so the size fields above are redrawn.
     text.addEventListener("change", () => this.render());
     root.appendChild(row("Text", text));
+    if (!line) this.renderTextFormat(cell);
     if (align) this.renderTextAlign(cell);
     if (fit) this.renderTextFit(cell);
     if (stacks) this.renderCopies(cell);
+  }
+
+  // How the heading or the text is set: which of the two these controls
+  // change, then its size, weight and colour, and under Advanced its face
+  // and line spacing. What is shown is what is drawn -- the named style's
+  // value where the block sets none of its own -- and "reset" takes the
+  // block's own setting away again.
+  renderTextFormat(item) {
+    const root = this.root;
+    const doc = this.store.doc;
+    const look = geometry.effectiveStyle(doc.styles, item);
+    const part = this.textTarget === "heading" ? "headingStyle" : "textStyle";
+    const spec = look[part] || {};
+    const own = item[part] || {};
+    const defaults = geometry.textDefaults();
+    const ids = [item.id];
+    const set = (key, value, label) => {
+      let accepted = false;
+      this.store.mutate(label, (d) => {
+        accepted = model.setTextStyle(d, ids, part, key, value);
+        return accepted;
+      });
+      if (!accepted) this.onRefuse(`"${value}" is not a usable value`);
+      this.onChange();
+      this.render();
+    };
+
+    const which = element("div", "seg");
+    which.setAttribute("role", "radiogroup");
+    which.setAttribute("aria-label", "format which text");
+    for (const [value, label] of [["heading", "Heading"], ["text", "Text"]]) {
+      const button = segButton(label, `format the ${label.toLowerCase()}`,
+                               (this.textTarget === "heading") === (value === "heading"));
+      button.addEventListener("click", () => {
+        this.textTarget = value;
+        this.render();
+      });
+      which.appendChild(button);
+    }
+    root.appendChild(row("Format", which));
+
+    const size = input(own.fontSize ?? "", "number");
+    size.min = "4";
+    size.step = "0.5";
+    size.placeholder = String(spec.fontSize ?? (part === "headingStyle" ? defaults.heading : defaults.text));
+    size.title = "size in points, before the drawing's text scale; empty for the style's";
+    size.addEventListener("change", () => set("fontSize", size.value, "font size"));
+    root.appendChild(row("Size", size));
+
+    const heavy = geometry.weight(spec.fontWeight, part === "headingStyle" ? 600 : null);
+    const weights = element("div", "seg");
+    weights.setAttribute("role", "radiogroup");
+    weights.setAttribute("aria-label", "weight");
+    for (const [value, label] of [[400, "Regular"], [600, "Bold"]]) {
+      const pressed = value === 600 ? heavy !== null && heavy >= 600 : heavy === null || heavy < 600;
+      const button = segButton(label, label.toLowerCase(), pressed);
+      button.addEventListener("click", () => set("fontWeight", value, "font weight"));
+      weights.appendChild(button);
+    }
+    root.appendChild(row("Weight", weights));
+
+    root.appendChild(row("Colour", this.colourControl(
+      "fill", own.fill, spec.fill || "#16202b", false,
+      (value) => set("fill", value, "text colour"))));
+
+    // Face and spacing: wanted now and then, so folded away until then.
+    const more = document.createElement("details");
+    more.className = "padvanced";
+    more.open = Boolean(this.textAdvanced);
+    more.addEventListener("toggle", () => { this.textAdvanced = more.open; });
+    const summary = document.createElement("summary");
+    summary.textContent = "Advanced";
+    more.appendChild(summary);
+    const face = document.createElement("select");
+    face.className = "pinput";
+    const current = typeof spec.fontFamily === "string" ? spec.fontFamily : "";
+    const faces = [["", "Sans (default)"], ["mono", "Mono"], ["serif", "Serif"]];
+    if (current && !faces.some(([v]) => v === current)) faces.push([current, current]);
+    for (const [value, label] of faces) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      face.appendChild(option);
+    }
+    face.value = current;
+    face.addEventListener("change", () => set("fontFamily", face.value || null, "font"));
+    more.appendChild(row("Font", face));
+    const spacing = input(own.lineHeight ?? "", "number");
+    spacing.min = "0.8";
+    spacing.step = "0.05";
+    spacing.placeholder = String(spec.lineHeight ?? defaults.step);
+    spacing.title = "baseline to baseline, as a multiple of the size";
+    spacing.addEventListener("change", () => set("lineHeight", spacing.value, "line spacing"));
+    more.appendChild(row("Spacing", spacing));
+    root.appendChild(more);
+  }
+
+  // Which named style the selection uses, and the two things to do with
+  // one: keep the selection's look as a named style, or change a named
+  // style -- which changes everything using it.
+  renderStyleRef(items) {
+    const root = this.root;
+    const doc = this.store.doc;
+    const names = model.styleNames(doc);
+    const refs = new Set(items.map((item) => item.styleRef || ""));
+    const pick = document.createElement("select");
+    pick.className = "pinput";
+    for (const [value, label] of [["", "None"], ...names.map((n) => [n, n])]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      pick.appendChild(option);
+    }
+    if (refs.size > 1) {
+      const mixed = document.createElement("option");
+      mixed.value = "__mixed";
+      mixed.textContent = "(mixed)";
+      mixed.disabled = true;
+      pick.appendChild(mixed);
+      pick.value = "__mixed";
+    } else {
+      pick.value = [...refs][0];
+    }
+    pick.addEventListener("change", () => {
+      this.store.mutate("style", (d) => model.setStyleRef(d, this.selection.ids, pick.value || null));
+      this.onChange();
+      this.render();
+    });
+    root.appendChild(row("Style", pick));
+    const actions = element("div", "pactions");
+    for (const [label, command, tip, usable] of [
+      ["Save as style\u2026", "style-save", "keep this look as a named style, and use it here", true],
+      ["Edit style\u2026", "style-edit", "change the named style, and everything using it",
+       refs.size === 1 && [...refs][0] !== ""],
+    ]) {
+      if (!usable) continue;
+      const button = element("button", "linkish", label);
+      button.type = "button";
+      button.title = tip;
+      button.addEventListener("click", () => this.onCommand && this.onCommand(command));
+      actions.appendChild(button);
+    }
+    root.appendChild(row("", actions));
   }
 
   renderTextFit(cell) {
@@ -1315,7 +1495,9 @@ export class Inspector {
   renderAppearance(items) {
     const root = this.root;
     root.appendChild(element("div", "ptitle", "Appearance"));
-    const first = items[0].style || {};
+    this.renderStyleRef(items);
+    // What is drawn: a named style's colours where the item sets none.
+    const first = geometry.effectiveStyle(this.store.doc.styles, items[0]).style || {};
 
     // A line has no inside, so a fill for it would do nothing.
     const open = items.every((item) => item.kind === "line" || item.kind === "polyline");
@@ -1363,7 +1545,7 @@ export class Inspector {
   // Clicking the swatch opens a grid to pick from, the way a slide editor
   // does. The native colour dialog is still there behind "Custom", because a
   // grid of two dozen colours is the fast path and not the only one.
-  colourControl(key, current, fallback, noFill = false) {
+  colourControl(key, current, fallback, noFill = false, onPick = null) {
     const wrap = element("div", "swatch");
     const shown = current || fallback;
 
@@ -1375,12 +1557,12 @@ export class Inspector {
     button.title = current ? named : `${named} (default)`;
     button.setAttribute("aria-label", `${key} colour`);
 
-    const apply = (value) => {
+    const apply = onPick || ((value) => {
       this.store.mutate("colour",
                         (doc) => model.setStyle(doc, this.selection.ids, key, value));
       this.onChange();
       this.render();
-    };
+    });
 
     button.addEventListener("click", (event) => {
       event.stopPropagation();

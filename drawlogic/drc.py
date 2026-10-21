@@ -962,11 +962,13 @@ def _check_cell_text(scene, report):
   # Imported here, as _Scene does: render_svg imports this module.
   from . import render_svg
   for placed in scene.cells:
+    from . import styles
     shown, clipped = render_svg.cell_text_layout(
-      placed.symbol, placed.cell, scene.doc.symbol_scale, scene.doc.font_scale)
+      placed.symbol, styles.effective(scene.doc.data.get("styles"), placed.cell),
+      scene.doc.symbol_scale, scene.doc.font_scale)
     if not clipped:
       continue
-    lines = render_svg.cell_text_lines(placed.cell)
+    lines = render_svg.text_runs(placed.cell)
     report.add(("cell-text-clipped", placed.id), 0, Violation(
       "cell-text-clipped", "warning", placed.name(),
       "the text inside is cut short (%d of %d lines shown in full); make the "

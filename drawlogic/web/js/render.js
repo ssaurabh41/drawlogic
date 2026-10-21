@@ -20,6 +20,7 @@ export function shapeTextSize(shape) {
 export function setTheme(data) {
   theme = data;
   geometry.setCellTextMetrics(data && data.fontSizes, data && data.cellText);
+  geometry.setTextTheme(data);
 }
 
 function el(name, attrs = {}) {
@@ -320,20 +321,25 @@ function renderCell(symbol, cell, fontScale, scale, into) {
 
 // The lines written inside a cell, and a replicated cell's count badge.
 // Mirrors _render_cell_text in render_svg.py.
+// One line of writing in a box, set as its paint says. Mirrors _written_line.
+function writtenLine(css, x, y, anchor, line, paint, into) {
+  const text = el("text", {
+    class: css,
+    x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": anchor,
+    "font-family": paint.family,
+    "font-size": geometry.fmt(paint.size, 2),
+    "font-weight": paint.weight !== null ? String(paint.weight) : null,
+    fill: paint.fill,
+  });
+  text.textContent = line;
+  into.appendChild(text);
+}
+
 function renderCellText(symbol, cell, scale, fontScale, into) {
-  const size = geometry.cellTextMetrics().size * fontScale;
-  const [placed] = geometry.cellTextLayout(symbol, cell, scale, fontScale);
+  const [placed] = geometry.textBlockIn(geometry.cellBounds(symbol, cell, scale), cell, fontScale);
   const anchor = geometry.TEXT_ANCHOR[geometry.cellTextAlign(cell)[0]];
-  for (const [x, y, line] of placed) {
-    const text = el("text", {
-      class: "dl-cell-text",
-      x: geometry.fmt(x), y: geometry.fmt(y), "text-anchor": anchor,
-      "font-family": theme.fontSans,
-      "font-size": geometry.fmt(size, 2),
-      fill: theme.colors.label,
-    });
-    text.textContent = line;
-    into.appendChild(text);
+  for (const [x, y, line, paint] of placed) {
+    writtenLine(paint.heading ? "dl-cell-heading" : "dl-cell-text", x, y, anchor, line, paint, into);
   }
   copiesBadge(geometry.cellBounds(symbol, cell, scale),
               geometry.cellCopies(cell), into);
@@ -1017,22 +1023,12 @@ function renderShapeStack(shape, style, fontScale, into) {
 
 // Mirrors _render_shape_text.
 function renderShapeText(shape, fontScale, into) {
-  const placed = geometry.shapeTextLayout(shape, fontScale);
-  const size = geometry.cellTextMetrics().size * fontScale;
+  const placed = geometry.shapeTextBlock(shape, fontScale);
   const anchor = shape.kind === "line" || shape.kind === "polyline"
     ? geometry.lineCaption(shape, fontScale)[1]
     : geometry.TEXT_ANCHOR[geometry.cellTextAlign(shape)[0]];
-  for (const [x, y, line] of placed) {
-    const text = el("text", {
-      class: "dl-shape-text",
-      x: geometry.fmt(x), y: geometry.fmt(y),
-      "text-anchor": anchor,
-      "font-family": theme.fontSans,
-      "font-size": geometry.fmt(size, 2),
-      fill: theme.colors.label,
-    });
-    text.textContent = line;
-    into.appendChild(text);
+  for (const [x, y, line, paint] of placed) {
+    writtenLine(paint.heading ? "dl-shape-heading" : "dl-shape-text", x, y, anchor, line, paint, into);
   }
   copiesBadge(geometry.shapeBox(shape) || [0, 0, 0, 0], geometry.shapeCopies(shape), into);
 }
@@ -1162,14 +1158,19 @@ function containerHeaderPath(box) {
 export function containerTitleLayout(box, fontScale = 1) {
   const title = box.title;
   if (typeof title !== "string" || !title.trim() || containerHeader(box) <= 0) return null;
-  const size = theme.fontSizes.container_title * fontScale;
+  const spec = box.headingStyle && typeof box.headingStyle === "object" ? box.headingStyle : {};
+  const size = geometry.positive(spec.fontSize, theme.fontSizes.container_title) * fontScale;
+  const paint = { size, weight: geometry.weight(spec.fontWeight, 600),
+                  fill: typeof spec.fill === "string" && spec.fill ? spec.fill
+                    : containerStyle(box).titleFill,
+                  family: geometry.fontFamily(spec.fontFamily) };
   const inset = theme.container.titleInset;
   const room = Math.trunc(Math.max(0, Number(box.w) - 2 * inset)
                           / (size * theme.container.char) + 1e-6);
   const text = title.length <= room ? title
     : (room > 0 ? `${title.slice(0, Math.max(0, room - 1)).trimEnd()}\u2026` : "");
   const depth = Math.min(containerHeader(box), Number(box.h));
-  return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, size];
+  return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, paint];
 }
 
 // Each container is three marks -- body fill, header band, outline over both
@@ -1178,7 +1179,8 @@ export function containerTitleLayout(box, fontScale = 1) {
 // so a box can be dragged round what it holds.
 function renderContainers(doc, fontScale, into) {
   const layer = el("g", { class: "dl-containers" });
-  for (const box of containerPaintOrder(doc)) {
+  for (const shown of containerPaintOrder(doc)) {
+    const box = geometry.effectiveStyle(doc.styles, shown);
     const paint = containerStyle(box);
     const group = el("g", { class: "dl-container", "data-id": box.id });
     const x = geometry.fmt(box.x);
@@ -1197,11 +1199,12 @@ function renderContainers(doc, fontScale, into) {
                                    "stroke-width": geometry.fmt(paint.strokeWidth) }));
     const title = containerTitleLayout(box, fontScale);
     if (title) {
-      const [tx, ty, text, size] = title;
+      const [tx, ty, text, written] = title;
       const node = el("text", {
         class: "dl-container-title", x: geometry.fmt(tx), y: geometry.fmt(ty),
-        "font-family": theme.fontSans, "font-size": geometry.fmt(size, 2),
-        "font-weight": "600", fill: paint.titleFill,
+        "font-family": written.family, "font-size": geometry.fmt(written.size, 2),
+        "font-weight": written.weight !== null ? String(written.weight) : null,
+        fill: written.fill,
       });
       node.textContent = text;
       group.appendChild(node);
@@ -1265,7 +1268,7 @@ export function render(svg, doc) {
   const pattern = gridPattern(canvas.grid || {});
   if (Array.isArray(pattern)) pattern.forEach((p) => defs.appendChild(p));
   else if (pattern) defs.appendChild(pattern);
-  if ((doc.shapes || []).some((s) => (s.style || {}).shadow)) {
+  if ((doc.shapes || []).some((s) => (geometry.effectiveStyle(doc.styles, s).style || {}).shadow)) {
     // The sheet and a margin round it: a shape dragged just off the page
     // keeps its shadow while it is there.
     const margin = 400;
@@ -1299,7 +1302,9 @@ export function render(svg, doc) {
   if (!(doc.shapes || []).length) content.appendChild(el("g", { class: "dl-shapes" }));
   // Whether a cell has been painted yet: a shape after one is over it.
   let overCells = false;
-  [...order, [null, null]].forEach(([kind, item], index) => {
+  [...order, [null, null]].forEach(([kind, own], index) => {
+    // Drawn as it looks: its named style, if any, under its own overrides.
+    const item = own ? geometry.effectiveStyle(doc.styles, own) : own;
     if (kind === "cell") overCells = true;
     if (kind !== run || index === wiresAt) {
       if (index === wiresAt) {

@@ -146,6 +146,18 @@ console.log(JSON.stringify({
   // A copy drawn as the symbol's own body: where it sits, and what it draws.
   stackBodies: all.filter((n) => n.tag === "g" && n.attrs.class === "dl-stack")
     .map((n) => [n.attrs.transform, (n.children || []).map((c) => c.tag)]).sort(),
+  // Every line written in a box, heading or text, with how it is set.
+  writing: all.filter((n) => n.tag === "text"
+                      && /^dl-(cell|shape)-(text|heading)$/.test(n.attrs.class || ""))
+    .map((n) => [n.attrs.class, n._text, n.attrs.x, n.attrs.y, n.attrs["text-anchor"],
+                 n.attrs["font-family"], n.attrs["font-size"], n.attrs["font-weight"] ?? null,
+                 n.attrs.fill]).sort(),
+  // The paint of each cell and shape body as drawn: a named style shows here.
+  bodies: all.filter((n) => ["dl-cell", "dl-shape"].includes((n.attrs.class || "").split(" ")[0]))
+    .map((n) => [n.attrs["data-id"], flatten(n).slice(1)
+      .filter((c) => ["rect", "path", "ellipse", "polygon"].includes(c.tag)
+              && c.attrs.fill !== "transparent" && !(c.attrs.class || "").includes("hit"))
+      .map((c) => [c.attrs.fill ?? null, c.attrs.stroke ?? null])[0] || null]).sort(),
   // Containers: every mark of each, in paint order, with what it draws.
   // The invisible targets the canvas adds are not marks and are left out.
   containers: all.filter((n) => /^dl-container-(body|header|edge|title)$/.test(n.attrs.class || ""))

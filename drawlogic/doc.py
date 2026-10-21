@@ -34,6 +34,7 @@ import shutil
 import uuid
 
 from . import drc
+from . import styles
 from . import theme
 from .geometry import corners, union_bbox
 from .symbols import default_registry
@@ -42,23 +43,26 @@ FORMAT = "drawlogic"
 VERSION = 2
 
 DOC_KEYS = ["format", "version", "title", "canvas", "cells", "nets", "shapes", "groups",
-            "containers"]
+            "containers", "styles"]
 CANVAS_KEYS = ["width", "height", "background", "grid", "font", "symbolScale",
                "arrows", "hops", "forkLate"]
 GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "parentId", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
-             "text", "textFit", "textAlign", "textVAlign", "copies", "pins", "style", "image", "ref",
-             "pinned", "z"]
+             "heading", "text", "headingStyle", "textStyle", "textFit", "textAlign", "textVAlign", "copies", "pins", "style", "image", "ref",
+             "pinned", "z", "styleRef"]
 NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 # A load is a point that may also say which way the wire to it should go.
 LOAD_KEYS = POINT_KEYS + ["waypoints"]
-SHAPE_KEYS = ["id", "parentId", "kind", "x", "y", "w", "h", "points", "text", "textAlign",
-              "textVAlign", "copies", "rotate", "z", "style"]
+SHAPE_KEYS = ["id", "parentId", "kind", "x", "y", "w", "h", "points", "heading", "text",
+              "headingStyle", "textStyle", "textAlign", "textVAlign", "copies",
+              "rotate", "z", "styleRef", "style"]
 GROUP_KEYS = ["id", "label", "members"]
 CONTAINER_KEYS = ["id", "parentId", "title", "x", "y", "w", "h", "padding",
-                  "headerHeight", "layout", "style"]
+                  "headerHeight", "layout", "headingStyle", "styleRef", "style"]
+# A named style holds the same three parts an item can override.
+STYLE_KEYS = ["style", "headingStyle", "textStyle"]
 
 SHAPE_KINDS = ("rect", "ellipse", "line", "polygon", "polyline", "text")
 
@@ -535,6 +539,12 @@ class Document(object):
       out["containers"] = [_ordered(c, CONTAINER_KEYS) for c in self.containers]
     else:
       out.pop("containers", None)
+    # Likewise the named styles: only a drawing that has some writes the key.
+    if self.styles:
+      out["styles"] = {name: _ordered(spec, STYLE_KEYS)
+                       for name, spec in sorted(self.styles.items())}
+    else:
+      out.pop("styles", None)
     return out
 
   # ---- accessors ----
@@ -566,6 +576,12 @@ class Document(object):
   @property
   def containers(self):
     return self.data.setdefault("containers", [])
+
+  @property
+  def styles(self):
+    """The named styles, {name: {style, headingStyle, textStyle}}."""
+    found = self.data.get("styles")
+    return found if isinstance(found, dict) else {}
 
   @property
   def symbol_scale(self):
@@ -624,6 +640,24 @@ class Document(object):
     for key, value in DEFAULT_CANVAS["font"].items():
       font.setdefault(key, value)
 
+    # Named styles first: fitting a cell's text below reads the size they set.
+    if "styles" in data:
+      named = _object(data, "styles")
+      for name in list(named):
+        _object(named, name, "styles.%s" % name)
+        for part in STYLE_KEYS:
+          if part in named[name]:
+            _object(named[name], part, "styles.%s.%s" % (name, part))
+
+    for item in (_list_of_objects(data, "cells") + _list_of_objects(data, "shapes")
+                 + (_list_of_objects(data, "containers") if "containers" in data else [])):
+      where = "%s.%%s" % item.get("id")
+      for part in ("headingStyle", "textStyle"):
+        if part in item:
+          _object(item, part, where % part)
+      if "heading" in item and not isinstance(item.get("heading"), list):
+        _text_field(item, "heading")
+
     for cell in _list_of_objects(data, "cells"):
       symbol = registry.for_cell(cell)
       if symbol is not None:
@@ -646,7 +680,7 @@ class Document(object):
       if symbol is not None and "w" in cell and "h" in cell:
         from . import render_svg
         render_svg.fit_cell_text(symbol, cell, self.symbol_scale,
-                                 self.font_scale)
+                                 self.font_scale, data.get("styles"))
 
     by_id = {cell.get("id"): cell for cell in _list_of_objects(data, "cells")}
     for net in _list_of_objects(data, "nets"):
@@ -793,7 +827,8 @@ class Document(object):
         x, y, w, h = render_svg.shape_box(shape)
         offset = render_svg.shape_stack_offset(shape)
         box = union_bbox(box, (x + offset, y + offset, w, h))
-      for x, y, _line in render_svg.shape_text_layout(shape, self.font_scale):
+      for x, y, _line in render_svg.shape_text_layout(
+          styles.effective(self.data.get("styles"), shape), self.font_scale):
         box = union_bbox(box, (x, y - theme.FONT_SIZES["cell_text"] * self.font_scale, 0, 0))
 
     return box
@@ -1019,6 +1054,17 @@ def _containment_issues(doc):
         else:
           issues.append(Issue("error", where,
                               "parent container %r does not exist" % parent))
+
+  # A named style that is not there: drawn as if none were named, which is
+  # what the reader sees, but almost certainly not what was meant.
+  for name, items in (("cell", doc.cells), ("shape", doc.shapes),
+                      ("container", doc.containers)):
+    for item in items:
+      ref = item.get("styleRef")
+      if ref is not None and ref not in doc.styles:
+        issues.append(Issue("warning", "%s %s" % (name, item.get("id")),
+                            "style %r is not one of this drawing's named styles"
+                            % (ref,)))
 
   # How a container arranges its contents. An unknown arrangement is laid
   # out as flow, so it is worth a warning rather than an error.

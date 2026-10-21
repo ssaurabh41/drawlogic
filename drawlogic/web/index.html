@@ -326,6 +326,15 @@
   <p class="pick-foot"><kbd>&uarr;</kbd><kbd>&darr;</kbd> choose &middot; <kbd>Enter</kbd> move &middot; <kbd>Esc</kbd> cancel</p>
 </dialog>
 
+<!-- Edit named style: filled by editNamedStyle() in js/main.js. -->
+<dialog id="style-dialog" class="shortcuts" aria-labelledby="style-title">
+  <h2 id="style-title" class="style-title">Edit style</h2>
+  <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Cancel" title="Cancel (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>
+  <p class="choice-message style-note"></p>
+  <div class="style-form"></div>
+  <div class="style-buttons"><button type="button" class="style-cancel">Cancel</button><button type="button" class="style-save primary">Save style</button></div>
+</dialog>
+
 <dialog id="shortcuts" class="shortcuts" aria-labelledby="shortcuts-title">
   <h2 id="shortcuts-title">Keyboard shortcuts</h2>
   <form method="dialog" class="dialog-close-form"><button class="dialog-close" type="submit" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></form>

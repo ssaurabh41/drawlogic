@@ -50,6 +50,7 @@ const EXPECTED = [
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
   ["containers", 27],
+  ["headings and named styles", 11],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -951,6 +952,59 @@ section("containers");
         placed.parentId === "gpc", `${placed.parentId}`);
   check("and one placed on bare sheet to none",
         model.placeCell(grouped, "inv", [900, 600], false).cell.parentId === undefined);
+}
+
+section("headings and named styles");
+//
+// A heading and text styles on a block, and named styles: saving one from a
+// block moves the block's own settings into it, editing it reaches every
+// block using it, and a block's own override survives that.
+{
+  const doc = {
+    canvas: { width: 900, height: 500, symbolScale: 1, grid: { size: 5 }, font: { scale: 1 } },
+    cells: [0, 1, 2].map((i) => ({ id: `sm${i}`, type: "block", x: 60 + 220 * i, y: 100,
+                                   w: 140, h: 90, rotate: 0, mirror: false, style: {},
+                                   text: ["Warp scheduler"] })),
+    nets: [], shapes: [], groups: [],
+  };
+  const before = doc.cells[0].h;
+  model.setHeading(doc, "sm0", "  SM 0  ");
+  model.setTextStyle(doc, ["sm0"], "headingStyle", "fontSize", "70");
+  check("a heading is kept trimmed, and the block grows to hold it",
+        doc.cells[0].heading === "SM 0" && doc.cells[0].h > before, `${doc.cells[0].h}`);
+  check("a nonsense size is refused",
+        model.setTextStyle(doc, ["sm0"], "textStyle", "fontSize", "big") === false);
+  model.setStyle(doc, new Set(["sm0"]), "fill", "#d8edb4");
+  model.setTextStyle(doc, ["sm0"], "textStyle", "fill", "#52656f");
+  const key = model.saveNamedStyle(doc, "compute", "sm0", new Set(["sm0", "sm1"]));
+  check("saving a style names it and points the selection at it",
+        key === "compute" && doc.cells[0].styleRef === "compute" && doc.cells[1].styleRef === "compute"
+        && doc.cells[2].styleRef === undefined);
+  check("and moves the block's own settings into it",
+        doc.styles.compute.style.fill === "#d8edb4" && doc.styles.compute.headingStyle.fontSize === 70
+        && doc.cells[0].style.fill === undefined && doc.cells[0].headingStyle === undefined);
+  check("so the second block now looks like the first",
+        geometry.effectiveStyle(doc.styles, doc.cells[1]).style.fill === "#d8edb4");
+  model.setStyle(doc, new Set(["sm1"]), "fill", "#ffe0b2");
+  model.updateNamedStyle(doc, "compute", { style: { fill: "#000001", stroke: "#123456" },
+                                           headingStyle: { fontSize: 70 }, textStyle: {} });
+  const look0 = geometry.effectiveStyle(doc.styles, doc.cells[0]);
+  const look1 = geometry.effectiveStyle(doc.styles, doc.cells[1]);
+  check("editing the style reaches every block using it",
+        look0.style.fill === "#000001" && look1.style.stroke === "#123456");
+  check("but not what a block set itself", look1.style.fill === "#ffe0b2");
+  check("a part left empty is dropped from the style", !("textStyle" in doc.styles.compute));
+  model.setStyleRef(doc, new Set(["sm0"]), null);
+  check("taking the style off leaves the block's own settings only",
+        doc.cells[0].styleRef === undefined
+        && geometry.effectiveStyle(doc.styles, doc.cells[0]) === doc.cells[0]);
+  doc.cells[2].style = { fill: "#abcdef", strokeWidth: 3 };
+  model.setStyleRef(doc, new Set(["sm2"]), "compute");
+  check("choosing a style lets go of the block's own settings of what the style sets, only",
+        doc.cells[2].style.fill === undefined && doc.cells[2].style.strokeWidth === 3
+        && geometry.effectiveStyle(doc.styles, doc.cells[2]).style.fill === "#000001");
+  check("and a style that is not there cannot be named",
+        model.setStyleRef(doc, new Set(["sm1"]), "nope") === false && doc.cells[1].styleRef === "compute");
 }
 
 // Every area has to have run, and to have run the number of checks it says.

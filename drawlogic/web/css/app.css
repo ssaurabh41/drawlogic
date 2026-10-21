@@ -1085,6 +1085,28 @@ select {
 
 /* choose(): a question and a column of answers. */
 .pactions { display: flex; gap: 14px; flex-wrap: wrap; }
+/* Advanced text settings, folded away until wanted. */
+.padvanced { margin: 2px 0 6px; }
+.padvanced > summary {
+  cursor: pointer; color: var(--ink-3); font-size: 12px; padding: 4px 0; user-select: none;
+}
+.padvanced > summary:hover { color: var(--ink); }
+
+/* Edit named style: one form, a row per setting, each one blank for "not set". */
+.style-form { display: grid; grid-template-columns: 110px 1fr 1fr 1fr; gap: 6px 8px; align-items: center; }
+.style-form .sf-head { grid-column: 1 / -1; margin: 8px 0 0; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.style-form label { font-size: 12.5px; color: var(--ink-2); }
+.style-form input, .style-form select {
+  width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid var(--line);
+  border-radius: 5px; background: var(--paper); color: var(--ink); font: inherit; font-size: 12.5px;
+}
+.sf-colour { display: flex; gap: 4px; align-items: center; }
+.sf-colour input[type="color"] { width: 30px; min-width: 30px; height: 28px; padding: 1px; }
+.style-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.style-buttons button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--chrome); color: var(--ink); font: inherit; cursor: pointer; }
+.style-buttons button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
 
 /* Move into container: a tree of containers. Each level of nesting draws a
    guide line down its left, so the shape of the drawing reads at a glance. */

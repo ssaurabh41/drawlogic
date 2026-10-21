@@ -1,0 +1,659 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "CPU architecture -- a quad-core SoC built from linked cores",
+  "canvas": {
+    "width": 1509,
+    "height": 1382,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "core0",
+      "parentId": "slot0",
+      "type": "sheet",
+      "x": 150.0,
+      "y": 246.0,
+      "w": 300,
+      "h": 170,
+      "rotate": 0,
+      "mirror": false,
+      "label": "C0",
+      "style": {},
+      "ref": "components/ooo_core.dlg",
+      "styleRef": "core",
+      "preview": true
+    },
+    {
+      "id": "core1",
+      "parentId": "slot1",
+      "type": "sheet",
+      "x": 150.0,
+      "y": 518.0,
+      "w": 300,
+      "h": 170,
+      "rotate": 0,
+      "mirror": false,
+      "label": "C1",
+      "style": {},
+      "ref": "components/ooo_core.dlg",
+      "styleRef": "core",
+      "preview": true
+    },
+    {
+      "id": "core2",
+      "parentId": "slot2",
+      "type": "sheet",
+      "x": 150.0,
+      "y": 790.0,
+      "w": 300,
+      "h": 170,
+      "rotate": 0,
+      "mirror": false,
+      "label": "C2",
+      "style": {},
+      "ref": "components/ooo_core.dlg",
+      "styleRef": "core",
+      "preview": true
+    },
+    {
+      "id": "core3",
+      "parentId": "slot3",
+      "type": "sheet",
+      "x": 150.0,
+      "y": 1062.0,
+      "w": 300,
+      "h": 170,
+      "rotate": 0,
+      "mirror": false,
+      "label": "C3",
+      "style": {},
+      "ref": "components/ooo_core.dlg",
+      "styleRef": "core",
+      "preview": true
+    },
+    {
+      "id": "ring",
+      "parentId": "uncore",
+      "type": "block8",
+      "x": 540.0,
+      "y": 386.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Ring interconnect",
+      "text": [
+        "coherent, 4 stops"
+      ],
+      "style": {},
+      "styleRef": "fabric"
+    },
+    {
+      "id": "snoop",
+      "parentId": "uncore",
+      "type": "block",
+      "x": 540.0,
+      "y": 768.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Snoop filter",
+      "text": [
+        "MESIF directory"
+      ],
+      "style": {},
+      "styleRef": "fabric"
+    },
+    {
+      "id": "l3_0",
+      "parentId": "llc",
+      "type": "block",
+      "x": 560.0,
+      "y": 246.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L3 slice 0",
+      "text": [
+        "9 MB"
+      ],
+      "style": {},
+      "styleRef": "cache"
+    },
+    {
+      "id": "l3_1",
+      "parentId": "llc",
+      "type": "block",
+      "x": 730.0,
+      "y": 246.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L3 slice 1",
+      "text": [
+        "9 MB"
+      ],
+      "style": {},
+      "styleRef": "cache"
+    },
+    {
+      "id": "l3_2",
+      "parentId": "llc",
+      "type": "block",
+      "x": 900.0,
+      "y": 246.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L3 slice 2",
+      "text": [
+        "9 MB"
+      ],
+      "style": {},
+      "styleRef": "cache"
+    },
+    {
+      "id": "l3_3",
+      "parentId": "llc",
+      "type": "block",
+      "x": 1070.0,
+      "y": 246.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L3 slice 3",
+      "text": [
+        "9 MB"
+      ],
+      "style": {},
+      "styleRef": "cache"
+    },
+    {
+      "id": "imc",
+      "parentId": "sa",
+      "type": "block",
+      "x": 730.0,
+      "y": 628.0,
+      "w": 164,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Memory controller",
+      "text": [
+        "2 x DDR5-6400"
+      ],
+      "style": {},
+      "styleRef": "io"
+    },
+    {
+      "id": "pcie",
+      "parentId": "sa",
+      "type": "block",
+      "x": 924.0,
+      "y": 628.0,
+      "w": 164,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "PCIe root complex",
+      "text": [
+        "Gen5 x16 + x4"
+      ],
+      "style": {},
+      "styleRef": "io"
+    },
+    {
+      "id": "gpu",
+      "parentId": "sa",
+      "type": "block",
+      "x": 560.0,
+      "y": 628.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Integrated GPU",
+      "text": [
+        "96 EUs"
+      ],
+      "style": {},
+      "styleRef": "io"
+    },
+    {
+      "id": "ddr",
+      "type": "port_out",
+      "x": 1380.0,
+      "y": 648.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "DDR5",
+      "style": {}
+    },
+    {
+      "id": "pcie_io",
+      "type": "port_out",
+      "x": 1380.0,
+      "y": 612.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "PCIe",
+      "style": {}
+    },
+    {
+      "id": "disp",
+      "type": "port_out",
+      "x": 1380.0,
+      "y": 684.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "Display",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_stop0",
+      "width": 1,
+      "from": {
+        "cell": "core0",
+        "pin": "ring"
+      },
+      "to": [
+        {
+          "cell": "ring",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_stop1",
+      "width": 1,
+      "from": {
+        "cell": "core1",
+        "pin": "ring"
+      },
+      "to": [
+        {
+          "cell": "ring",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_stop2",
+      "width": 1,
+      "from": {
+        "cell": "core2",
+        "pin": "ring"
+      },
+      "to": [
+        {
+          "cell": "ring",
+          "pin": "in3",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_stop3",
+      "width": 1,
+      "from": {
+        "cell": "core3",
+        "pin": "ring"
+      },
+      "to": [
+        {
+          "cell": "ring",
+          "pin": "in4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_llc",
+      "name": "llc_req",
+      "width": 1,
+      "from": {
+        "cell": "ring",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "l3_0",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "l3_1",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "l3_2",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "l3_3",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_coh",
+      "width": 1,
+      "from": {
+        "cell": "ring",
+        "pin": "out3"
+      },
+      "to": [
+        {
+          "cell": "snoop",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_sa",
+      "name": "sys",
+      "width": 1,
+      "from": {
+        "cell": "ring",
+        "pin": "out4"
+      },
+      "to": [
+        {
+          "cell": "imc",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "pcie",
+          "pin": "in1",
+          "waypoints": []
+        },
+        {
+          "cell": "gpu",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ddr",
+      "width": 1,
+      "from": {
+        "cell": "imc",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "ddr",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_pcie",
+      "width": 1,
+      "from": {
+        "cell": "pcie",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "pcie_io",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_disp",
+      "width": 1,
+      "from": {
+        "cell": "gpu",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "disp",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "containers": [
+    {
+      "id": "die",
+      "title": "CPU die",
+      "x": 90.0,
+      "y": 90.0,
+      "w": 1180.0,
+      "h": 1202.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#5b6b74",
+        "headerFill": "#1f2a33",
+        "titleFill": "#ffffff"
+      }
+    },
+    {
+      "id": "cores",
+      "parentId": "die",
+      "title": "Compute complex",
+      "x": 110.0,
+      "y": 142.0,
+      "w": 380.0,
+      "h": 1130.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "region",
+      "style": {}
+    },
+    {
+      "id": "uncore",
+      "parentId": "die",
+      "title": "Uncore",
+      "x": 520.0,
+      "y": 142.0,
+      "w": 730.0,
+      "h": 736.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "region",
+      "style": {}
+    },
+    {
+      "id": "llc",
+      "parentId": "uncore",
+      "title": "Last-level cache  36 MB",
+      "x": 540.0,
+      "y": 194.0,
+      "w": 690.0,
+      "h": 162.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "region",
+      "style": {}
+    },
+    {
+      "id": "sa",
+      "parentId": "uncore",
+      "title": "System agent",
+      "x": 540.0,
+      "y": 576.0,
+      "w": 568.0,
+      "h": 162.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "region",
+      "style": {}
+    },
+    {
+      "id": "slot0",
+      "parentId": "cores",
+      "title": "Core 0",
+      "x": 130.0,
+      "y": 194.0,
+      "w": 340.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    },
+    {
+      "id": "slot1",
+      "parentId": "cores",
+      "title": "Core 1",
+      "x": 130.0,
+      "y": 466.0,
+      "w": 340.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    },
+    {
+      "id": "slot2",
+      "parentId": "cores",
+      "title": "Core 2",
+      "x": 130.0,
+      "y": 738.0,
+      "w": 340.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    },
+    {
+      "id": "slot3",
+      "parentId": "cores",
+      "title": "Core 3",
+      "x": 130.0,
+      "y": 1010.0,
+      "w": 340.0,
+      "h": 242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "slot",
+      "style": {}
+    }
+  ],
+  "styles": {
+    "cache": {
+      "style": {
+        "fill": "#dde9f7",
+        "stroke": "#2f6db3"
+      },
+      "headingStyle": {
+        "fill": "#123a66"
+      }
+    },
+    "core": {
+      "style": {
+        "fill": "#fdf6ea",
+        "stroke": "#b7791f"
+      },
+      "headingStyle": {
+        "fill": "#5a3a07"
+      }
+    },
+    "fabric": {
+      "style": {
+        "fill": "#e8e4f6",
+        "stroke": "#6b5bb3"
+      },
+      "headingStyle": {
+        "fill": "#2d2366"
+      }
+    },
+    "io": {
+      "style": {
+        "fill": "#eef1f3",
+        "stroke": "#5b6b74"
+      },
+      "headingStyle": {
+        "fill": "#1f2a33"
+      }
+    },
+    "region": {
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#c9d2d8",
+        "headerFill": "#5b6b74",
+        "titleFill": "#ffffff"
+      }
+    },
+    "slot": {
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#e2c99a",
+        "headerFill": "#f7e7c6",
+        "titleFill": "#5a3a07"
+      }
+    }
+  }
+}

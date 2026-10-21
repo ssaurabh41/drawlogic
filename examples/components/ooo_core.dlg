@@ -1,0 +1,720 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "Out-of-order core",
+  "canvas": {
+    "width": 3024,
+    "height": 823,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "po_ring",
+      "type": "port_out",
+      "x": 2908.0,
+      "y": 283.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "ring",
+      "style": {}
+    },
+    {
+      "id": "bpu",
+      "parentId": "fe",
+      "type": "block",
+      "x": 110.0,
+      "y": 142.0,
+      "w": 156,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Branch predictor",
+      "text": [
+        "TAGE + 12K BTB"
+      ],
+      "style": {},
+      "styleRef": "front"
+    },
+    {
+      "id": "l1i",
+      "parentId": "fe",
+      "type": "block",
+      "x": 118.0,
+      "y": 284.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L1 I-cache",
+      "text": [
+        "32 KB, 8-way"
+      ],
+      "style": {},
+      "styleRef": "front"
+    },
+    {
+      "id": "fetch",
+      "parentId": "fe",
+      "type": "block6",
+      "x": 376.0,
+      "y": 143.0,
+      "w": 160.0,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Fetch",
+      "text": [
+        "32 B / clock"
+      ],
+      "style": {},
+      "styleRef": "front"
+    },
+    {
+      "id": "dec",
+      "parentId": "fe",
+      "type": "block",
+      "x": 646.0,
+      "y": 142.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Decode",
+      "text": [
+        "6-wide x86"
+      ],
+      "style": {},
+      "styleRef": "front"
+    },
+    {
+      "id": "uopc",
+      "parentId": "fe",
+      "type": "block",
+      "x": 646.0,
+      "y": 284.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "uop cache",
+      "text": [
+        "4K uops"
+      ],
+      "style": {},
+      "styleRef": "front"
+    },
+    {
+      "id": "uopq",
+      "parentId": "fe",
+      "type": "block6",
+      "x": 896.0,
+      "y": 143.0,
+      "w": 160.0,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "uop queue",
+      "text": [
+        "144 entries"
+      ],
+      "style": {},
+      "styleRef": "front"
+    },
+    {
+      "id": "ren",
+      "parentId": "oe",
+      "type": "block",
+      "x": 1206.0,
+      "y": 142.0,
+      "w": 164,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Rename / allocate",
+      "text": [
+        "6 uops / clock"
+      ],
+      "style": {},
+      "styleRef": "ooo"
+    },
+    {
+      "id": "rob",
+      "parentId": "oe",
+      "type": "block",
+      "x": 1206.0,
+      "y": 262.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Reorder buffer",
+      "text": [
+        "512 entries"
+      ],
+      "style": {},
+      "styleRef": "ooo"
+    },
+    {
+      "id": "sch",
+      "parentId": "oe",
+      "type": "block8",
+      "x": 1206.0,
+      "y": 382.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Schedulers",
+      "text": [
+        "97 + 70 entries"
+      ],
+      "style": {},
+      "styleRef": "ooo"
+    },
+    {
+      "id": "alu",
+      "parentId": "ex",
+      "type": "block",
+      "x": 1536.0,
+      "y": 383.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Integer ALU x5",
+      "text": [
+        "ports 0,1,5,6,10"
+      ],
+      "style": {},
+      "styleRef": "exec"
+    },
+    {
+      "id": "vec",
+      "parentId": "ex",
+      "type": "block",
+      "x": 1536.0,
+      "y": 623.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "FP / SIMD x3",
+      "text": [
+        "FMA, 512-bit"
+      ],
+      "style": {},
+      "styleRef": "exec"
+    },
+    {
+      "id": "bru",
+      "parentId": "ex",
+      "type": "block",
+      "x": 1536.0,
+      "y": 503.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Branch x2",
+      "text": [
+        "ports 0, 6"
+      ],
+      "style": {},
+      "styleRef": "exec"
+    },
+    {
+      "id": "agu",
+      "parentId": "ex",
+      "type": "block",
+      "x": 1536.0,
+      "y": 263.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "AGU x5",
+      "text": [
+        "3 load, 2 store"
+      ],
+      "style": {},
+      "styleRef": "exec"
+    },
+    {
+      "id": "lsq",
+      "parentId": "ms",
+      "type": "block6",
+      "x": 1826.0,
+      "y": 264.0,
+      "w": 182,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Load / store queues",
+      "text": [
+        "192 LD, 114 ST"
+      ],
+      "style": {},
+      "styleRef": "mem"
+    },
+    {
+      "id": "dtlb",
+      "parentId": "ms",
+      "type": "block",
+      "x": 2118.0,
+      "y": 263.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "DTLB",
+      "text": [
+        "96 entries"
+      ],
+      "style": {},
+      "styleRef": "mem"
+    },
+    {
+      "id": "l1d",
+      "parentId": "ms",
+      "type": "block6",
+      "x": 2368.0,
+      "y": 264.0,
+      "w": 160.0,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L1 D-cache",
+      "text": [
+        "48 KB, 12-way"
+      ],
+      "style": {},
+      "styleRef": "mem"
+    },
+    {
+      "id": "l2",
+      "parentId": "ms",
+      "type": "block",
+      "x": 2638.0,
+      "y": 263.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "L2 cache",
+      "text": [
+        "2 MB, private"
+      ],
+      "style": {},
+      "styleRef": "mem"
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_pred",
+      "name": "next_pc",
+      "width": 1,
+      "from": {
+        "cell": "bpu",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "fetch",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ins",
+      "width": 1,
+      "from": {
+        "cell": "l1i",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "fetch",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_raw",
+      "width": 1,
+      "from": {
+        "cell": "fetch",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "dec",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_hit",
+      "width": 1,
+      "from": {
+        "cell": "fetch",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "uopc",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dec",
+      "width": 1,
+      "from": {
+        "cell": "dec",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "uopq",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_cached",
+      "width": 1,
+      "from": {
+        "cell": "uopc",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "uopq",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_uops",
+      "width": 1,
+      "from": {
+        "cell": "uopq",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "ren",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_alloc",
+      "width": 1,
+      "from": {
+        "cell": "ren",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "rob",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_disp",
+      "width": 1,
+      "from": {
+        "cell": "ren",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "sch",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_int",
+      "width": 1,
+      "from": {
+        "cell": "sch",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "alu",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_fp",
+      "width": 1,
+      "from": {
+        "cell": "sch",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "vec",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_br",
+      "width": 1,
+      "from": {
+        "cell": "sch",
+        "pin": "out3"
+      },
+      "to": [
+        {
+          "cell": "bru",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_mem",
+      "width": 1,
+      "from": {
+        "cell": "sch",
+        "pin": "out4"
+      },
+      "to": [
+        {
+          "cell": "agu",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_addr",
+      "width": 1,
+      "from": {
+        "cell": "agu",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "lsq",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_xlate",
+      "width": 1,
+      "from": {
+        "cell": "lsq",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "dtlb",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_acc",
+      "width": 1,
+      "from": {
+        "cell": "dtlb",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "l1d",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_l1miss",
+      "width": 1,
+      "from": {
+        "cell": "l1d",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "l2",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ring",
+      "width": 1,
+      "from": {
+        "cell": "l2",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "po_ring",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "containers": [
+    {
+      "id": "fe",
+      "title": "Front end",
+      "x": 90.0,
+      "y": 90.0,
+      "w": 986.0,
+      "h": 304.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "stage",
+      "style": {}
+    },
+    {
+      "id": "oe",
+      "title": "Out-of-order engine",
+      "x": 1186.0,
+      "y": 90.0,
+      "w": 220.0,
+      "h": 472.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "stage",
+      "style": {}
+    },
+    {
+      "id": "ex",
+      "title": "Execution ports",
+      "x": 1516.0,
+      "y": 211.0,
+      "w": 180.0,
+      "h": 522.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "stage",
+      "style": {}
+    },
+    {
+      "id": "ms",
+      "title": "Memory subsystem",
+      "x": 1806.0,
+      "y": 211.0,
+      "w": 992.0,
+      "h": 193.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "styleRef": "stage",
+      "style": {}
+    }
+  ],
+  "styles": {
+    "exec": {
+      "style": {
+        "fill": "#e6f2d3",
+        "stroke": "#6b8f2a"
+      },
+      "headingStyle": {
+        "fill": "#24400b"
+      }
+    },
+    "front": {
+      "style": {
+        "fill": "#fdf1dc",
+        "stroke": "#b7791f"
+      },
+      "headingStyle": {
+        "fill": "#5a3a07"
+      }
+    },
+    "mem": {
+      "style": {
+        "fill": "#dde9f7",
+        "stroke": "#2f6db3"
+      },
+      "headingStyle": {
+        "fill": "#123a66"
+      }
+    },
+    "ooo": {
+      "style": {
+        "fill": "#e8e4f6",
+        "stroke": "#6b5bb3"
+      },
+      "headingStyle": {
+        "fill": "#2d2366"
+      }
+    },
+    "stage": {
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#c9d2d8",
+        "headerFill": "#eef1f3",
+        "titleFill": "#33434c"
+      }
+    }
+  }
+}

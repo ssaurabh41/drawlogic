@@ -18,7 +18,48 @@ architecture; this file has what was done, what was decided and what is open.
 - Say when unsure. A small, low-risk experiment beats confident guessing.
 - Suggestions for better approaches are welcome.
 
-## What this session did (newest first)
+## The architecture-diagram session (latest)
+
+Four features from a spec the owner supplied, in order, each pushed to main
+and reviewed before the next:
+
+| Commit | What |
+|---|---|
+| 2d89b1a | Linked components (`components.py`, `/api/component`, `/api/resolve`): create from selection with a port-review dialog, Insert, Repeat (rows x columns, sequential names), Edit definition (saving refreshes open users), Make independent, Refresh. Examples `arch_mini.dlg`, `gpu_arch.dlg` + `examples/components/` |
+| 43dcddc | `heading`, `headingStyle`, `textStyle` on cells/box shapes/containers; named `styles` + `styleRef` (`styles.py`, mirrored by `geometry.effectiveStyle`); Text panel Format section, Style picker, Save as style, Edit style dialog |
+| ca43b5f | Layout with containers: innermost first, per-container `layout` (flow lr/tb, row, column, grid; gap; columns); Layout contents for one container; pinned holds its containers |
+| 801b130 | Move into container picker: tree docked right, hovered target outlined on canvas, Sheet row, search |
+| d163572 | Containers: top-level `containers`, `parentId` ownership, absolute coords, painted beneath everything; Container menu, delete asks keep/delete contents |
+
+Decisions the owner made: deliver per feature; containers paint beneath
+everything; components live in `components/` beside the drawing; a new GPU
+example (`gpu_arch.dlg`) rather than reworking `gpu_top.dlg`; the
+Move-into picker is a tree dialog.
+
+Assumptions made and reported (not yet confirmed or reversed):
+
+- A new item made wholly inside a container (palette drop, shape or
+  container drawn) belongs to the innermost one; dragging never reparents.
+- Remove from container / Ungroup go up one level.
+- In a drawing with containers, Auto layout with cells selected lays out the
+  whole drawing (a selection-only layout would pull cells out of containers).
+- Layout contents grows a container but does not push its neighbours.
+- Choosing a named style drops the item's own settings of exactly what the
+  style sets; Save as style does the same.
+
+Open items from it:
+
+- The router does not know about containers: wires can run along header
+  bands and through narrow packing gaps. Needs routing.py + routing.js
+  (parity) changes; suggested as its own step.
+- Named styles cannot be renamed or deleted from the editor.
+- Instances are drawn as compact sheet blocks; live previews of a
+  definition's contents are future work.
+- A plain group's internal wire bends do not move with it (containers' do).
+- The "Inside" row in the panel truncates deep nesting.
+- `drawlogic_bundle.txt` is stale; repack before relying on it.
+
+## Earlier in the first session (newest first)
 
 | Commit | What |
 |---|---|
@@ -66,7 +107,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 545 tests, 0 failed, 5 skipped (~20 s).
+- Suite: `python3 tests/run.py` -> 600 tests, 0 failed, 5 skipped (~25 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.
@@ -75,9 +116,10 @@ avoided and is drawn as a bridge.
 - Screenshots of an exported SVG: load it into a Playwright page with
   `setContent` (navigating to the file hangs on fonts). Chromium is at
   `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
-- The cloud session's local branch is `claude/git-status-0hcdiw`; push with
-  `git push origin HEAD:main` (a plain `git push origin main` sends a stale
-  local `main`).
+- Push with `git push origin HEAD:main`; check which branch the session is
+  on first (`git status -sb`).
+- Editor server processes do not survive between turns here: start
+  `drawlogic serve` in the same command as the browser script driving it.
 - Cloud sessions can't be forked in the browser. To carry on with full
   history, `claude --teleport <session-id>` from a checkout of the repo gives a
   separate local copy; otherwise start a new session and point it at this file.

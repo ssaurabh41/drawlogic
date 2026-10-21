@@ -1408,6 +1408,7 @@ async function insertComponentAsked() {
       made.type = "sheet";
       made.ref = ref;
       made.label = stem.toUpperCase();
+      made.preview = true;
       return made;
     });
     if (cell) selection.set([cell.id]);
@@ -1688,6 +1689,36 @@ function editNamedStyle(name) {
 
   const save = dialog.querySelector(".style-save");
   const cancel = dialog.querySelector(".style-cancel");
+  const rename = dialog.querySelector(".style-rename");
+  const remove = dialog.querySelector(".style-delete");
+  const onRename = () => {
+    const next = (window.prompt(`Rename style "${name}" to:`, name) || "").trim();
+    if (!next || next === name) return;
+    let done = false;
+    store.mutate("rename style", (d) => {
+      done = model.renameNamedStyle(d, name, next);
+      return done;
+    });
+    if (!done) {
+      say(`there is already a style called "${next}"`, "bad");
+      return;
+    }
+    dialog.close();
+    redraw();
+    inspector.render();
+    say(`style "${name}" is now "${next}"; ${count(users, "item")} follow it`, "good");
+  };
+  const onDelete = () => {
+    if (!window.confirm(`Delete style "${name}"? The ${count(users, "item")} using it keep `
+                        + "how they look; they just stop following the style.")) return;
+    store.mutate("delete style", (d) => model.deleteNamedStyle(d, name));
+    dialog.close();
+    redraw();
+    inspector.render();
+    say(`deleted style "${name}"; ${count(users, "item")} kept their look`, "good");
+  };
+  rename.addEventListener("click", onRename);
+  remove.addEventListener("click", onDelete);
   const onSave = () => {
     const next = { style: { ...(spec.style || {}) }, headingStyle: { ...(spec.headingStyle || {}) },
                    textStyle: { ...(spec.textStyle || {}) } };
@@ -1708,6 +1739,8 @@ function editNamedStyle(name) {
   dialog.addEventListener("close", () => {
     save.removeEventListener("click", onSave);
     cancel.removeEventListener("click", onCancel);
+    rename.removeEventListener("click", onRename);
+    remove.removeEventListener("click", onDelete);
   }, { once: true });
   dialog.showModal();
 }

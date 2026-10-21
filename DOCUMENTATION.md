@@ -630,7 +630,8 @@ goes through to the sheet, so a marquee can be dragged round what it holds,
 and a click on something inside selects that thing. Dragging a container
 moves everything in it, every level down, by the same amount -- each thing
 once, however many of its containers are selected too -- and the bends of
-wires that run wholly among what it holds go with them. A wire leaving the
+wires that run wholly among what it holds go with them. The same is true of
+any two or more things moved together: a group, or a selection. A wire leaving the
 container keeps its pins, as every wire does, and is rerouted. Double-click
 the header to rename it.
 
@@ -799,6 +800,10 @@ also sets is let go, and anything else they set is kept. **Save as
 style...** names the selected item's current look and points the selection
 at it. **Edit style...** changes a named style, and with it every item using
 it, in one undo step; a blank field there is one the style does not set.
+From the same dialog a style can be **renamed**, taking every item naming
+it along, or **deleted**: the items using it keep how they look -- the
+style's settings are written into each, under what it set itself -- and
+simply stop following it.
 
 What an item looks like is worked out in three layers: the theme's defaults,
 then its named style, then what the item sets itself. Nothing is copied from
@@ -1367,8 +1372,14 @@ What each instance keeps for itself, and what it takes from its definition:
 | id, label, position, parent container, rotation, size | its pins: the definition's ports |
 | colours, named style, heading and text written on it | its title |
 
-An instance is drawn as a block with its pins and title; showing the
-definition's contents inside it is not done yet.
+An instance is drawn as a block with its pins and title, and **Contents**
+in the properties panel (on for an instance made or placed with these
+commands) draws a miniature of the definition inside it: its blocks and
+containers as outlines and its wires, in pale lines under the pin names,
+scaled to the block. It is the definition as it is now -- edit the
+definition and every instance's miniature follows -- and making an
+instance bigger makes its miniature bigger. In the file it is
+`"preview": true` on the instance; a block without it is drawn as before.
 
 Two examples use all of it together. `examples/arch_mini.dlg` is two
 clusters, each holding two cores, the cores linked instances of
@@ -1547,9 +1558,11 @@ being laid out work as for any layout.
 
 `drawlogic layout FILE` does the same as Auto layout.
 
-The router does not know about containers yet: a wire may run along a
-header band, or through the narrow gap between two packed blocks. Moving a
-container's padding up gives it more room.
+Wires keep off a container's title as they keep off a name: the router
+treats the words in the header band as text a wire must not cross, so a
+wire runs beside the title or crosses the band clear of it rather than
+striking it through. A wire may still pass through the narrow gap between
+two packed blocks; a larger gap gives it more room.
 
 ### Tidy up
 
@@ -2159,7 +2172,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers, headings and named styles, Repeat |
-| `tests/test_components.py` | linked components: ports from the wires crossing a selection, named by wire; the instance rewired by name; definition edits reaching every instance; lost pins reported; making one independent, through the editor's server |
+| `tests/test_components.py` | linked components: ports from the wires crossing a selection, named by wire; the instance rewired by name; definition edits reaching every instance; lost pins reported; making one independent, through the editor's server; previews drawn alike in editor and export, and following the definition |
 | `tests/test_styles.py` | headings and text styles, named styles and overrides, fitting and clipping with a heading, and every line set the same in the editor as in an export |
 | `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over) |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |

@@ -44,13 +44,13 @@ const EXPECTED = [
   ["placing onto a pin", 6],
   ["placing onto a wire end", 3],
   ["undo through a gesture", 8],
-  ["duplicating a group", 6],
+  ["duplicating a group", 8],
   ["stale answers", 8],
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
   ["containers", 27],
-  ["headings and named styles", 11],
+  ["headings and named styles", 14],
   ["linked components", 9],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
@@ -644,6 +644,18 @@ section("duplicating a group");
 // Copy, paste and Ctrl+D all go through copyItems/pasteItems, which carried
 // cells, shapes and nets but never groups -- so duplicating a grouped block
 // gave back a pile of loose parts that had to be grouped again by hand.
+//
+// And a group moved carries the bends of the wires among its members; a
+// wire leaving the group is left to the router.
+{
+  const moved = sketch(0);
+  moved.nets[0].to = [{ cell: "ff1", pin: "d", waypoints: [[320, 100]] }];
+  moved.nets[1].to = [{ cell: "pq", pin: "p", waypoints: [[520, 170]] }];
+  model.moveItems(moved, new Set(["u1", "ff1"]), 10, 20);
+  check("a group moved takes the bends of the wires among it",
+        moved.nets[0].to[0].waypoints[0][0] === 330 && moved.nets[0].to[0].waypoints[0][1] === 120);
+  check("but not of a wire leaving it", moved.nets[1].to[0].waypoints[0][0] === 520);
+}
 {
   const doc = sketch(0);
   doc.shapes = [{ id: "s1", kind: "rect", x: 0, y: 0, w: 40, h: 40 }];
@@ -1024,8 +1036,22 @@ section("headings and named styles");
   check("choosing a style lets go of the block's own settings of what the style sets, only",
         doc.cells[2].style.fill === undefined && doc.cells[2].style.strokeWidth === 3
         && geometry.effectiveStyle(doc.styles, doc.cells[2]).style.fill === "#000001");
+  // Rename and delete.
+  doc.styles.other = { style: { fill: "#eeeeee" } };
+  check("a style cannot be renamed onto another's name",
+        model.renameNamedStyle(doc, "compute", "other") === false && doc.styles.compute);
+  model.renameNamedStyle(doc, "compute", "sm");
+  check("renaming a style takes everything naming it along",
+        !doc.styles.compute && doc.styles.sm && doc.cells[1].styleRef === "sm"
+        && doc.cells.every((c) => c.styleRef !== "compute"));
+  const looked = JSON.stringify(geometry.effectiveStyle(doc.styles, doc.cells[1]).style);
+  model.deleteNamedStyle(doc, "sm");
+  check("deleting a style leaves everything that used it looking as it did",
+        !doc.styles.sm && doc.cells[1].styleRef === undefined
+        && JSON.stringify(doc.cells[1].style) === looked, JSON.stringify(doc.cells[1].style));
+  doc.styles.compute = doc.styles.compute || { style: { fill: "#000001" } };
   check("and a style that is not there cannot be named",
-        model.setStyleRef(doc, new Set(["sm1"]), "nope") === false && doc.cells[1].styleRef === "compute");
+        model.setStyleRef(doc, new Set(["sm1"]), "nope") === false && doc.cells[1].styleRef === undefined);
 }
 
 section("linked components");

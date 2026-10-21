@@ -160,6 +160,62 @@ class TestExtracting(unittest.TestCase):
     self.assertTrue(any("pin 'result'" in e for e in errors(doc, registry)), errors(doc, registry))
 
 
+class TestPreviews(unittest.TestCase):
+  """An instance can show a miniature of what its definition holds."""
+
+  def setUp(self):
+    from tests import ROOT
+    from drawlogic import render_svg
+    self.render = render_svg.render
+    self.doc, self.registry, problems = sheets.open_document(
+      os.path.join(ROOT, "examples", "gpu_arch.dlg"))
+    self.assertEqual(problems, [])
+    self.colour = "#8a9ba4"
+
+  def marks(self, svg):
+    import re
+    return re.findall(r'<(rect|path)[^>]*stroke="%s"' % self.colour, svg)
+
+  def test_drawn_for_an_instance_that_asks(self):
+    shown = len(self.marks(self.render(self.doc, self.registry)))
+    # Eight SMs, each its five blocks and its internal wires.
+    self.assertGreaterEqual(shown, 8 * 5)
+    for cell in self.doc.cells:
+      cell.pop("preview", None)
+    self.assertEqual(self.marks(self.render(self.doc, self.registry)), [])
+
+  def test_a_definition_edit_shows_in_the_preview(self):
+    root = tempfile.mkdtemp()
+    try:
+      shutil.copytree(os.path.join(os.path.dirname(self.doc.path)), os.path.join(root, "ex"))
+      top = os.path.join(root, "ex", "gpu_arch.dlg")
+      before = len(self.marks(self.render(*sheets.open_document(top)[:2])))
+      child = Document.load(os.path.join(root, "ex", "components", "sm.dlg"))
+      child.cells.append({"id": "extra", "type": "block", "x": 1100, "y": 400})
+      child.save()
+      after = len(self.marks(self.render(*sheets.open_document(top)[:2])))
+      self.assertEqual(after - before, 8)
+    finally:
+      shutil.rmtree(root, ignore_errors=True)
+
+  def test_the_editor_draws_the_same_preview(self):
+    from tests.test_js_parity import NODE, _browser_render
+    if not NODE:
+      self.skipTest("node is not installed")
+    import re
+    svg = self.render(self.doc, self.registry)
+    exported = sorted(
+      [tag, d if tag == "path" else "%s,%s,%s,%s" % (x, y, w, h)]
+      for tag, x, y, w, h, d in [
+        (m.group(1), *(re.search(r'%s="([^"]*)"' % k, m.group(0)).group(1)
+                        if re.search(r'%s="([^"]*)"' % k, m.group(0)) else None
+                        for k in ("x", "y", "width", "height", "d")))
+        for m in re.finditer(r'<(rect|path)[^>]*stroke="%s"[^>]*>' % self.colour, svg)])
+    browser = _browser_render(self.doc, self.registry)["preview"]
+    self.assertEqual(len(browser), len(exported))
+    self.assertEqual(browser, exported)
+
+
 class TestThroughTheEditorsServer(unittest.TestCase):
 
   @classmethod

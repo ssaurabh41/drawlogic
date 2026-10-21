@@ -287,6 +287,15 @@ def side_label_boxes(doc, registry=None):
     if box is not None:
       pad = drc.TEXT_TO_WIRE
       boxes.append((box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad))
+  # A container's title is text in the same way: a wire along a header band
+  # struck the title through. The whole depth of the band, as wide as the
+  # words -- a wire may still cross the band beside them, into the box.
+  from . import containers, styles
+  for box in doc.containers:
+    written = containers.title_box(styles.effective(doc.styles, box),
+                                   doc.font_scale, drc.TEXT_TO_WIRE)
+    if written is not None:
+      boxes.append(written)
   return boxes
 
 

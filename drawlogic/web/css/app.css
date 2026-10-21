@@ -517,6 +517,10 @@ select {
 /* A value you can read but not change is drawn as text, not as a box: a box
    says "type here", and typing there did nothing. */
 .pval { background: none; border-color: transparent; padding-left: 0; color: var(--ink-2); }
+/* Where something sits -- "GPU die > GPC 0 > TPC 1 > SM 3" -- is read whole,
+   so it wraps at each step rather than being cut off. */
+.pval.ppath { white-space: normal; overflow: visible; height: auto; line-height: 1.45;
+  padding-top: 4px; padding-bottom: 4px; }
 
 /* An arrowhead: the button showing the head now on that end, and its size. */
 .headrow { display: flex; align-items: center; gap: 6px; }
@@ -1119,6 +1123,8 @@ select {
 .style-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .style-buttons button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line);
   background: var(--chrome); color: var(--ink); font: inherit; cursor: pointer; }
+.style-buttons .push { flex: 1; }
+.style-buttons button.danger { color: var(--danger); }
 .style-buttons button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
 
 /* Move into container: a tree of containers. Each level of nesting draws a

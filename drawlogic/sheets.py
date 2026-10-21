@@ -85,8 +85,12 @@ def ports(doc):
   return unique
 
 
-def describe(ref, title, port_list):
-  """The symbol data for a block standing in for a drawing."""
+def describe(ref, title, port_list, child=None, registry=None):
+  """The symbol data for a block standing in for a drawing.
+
+  With the drawing itself (`child`), the symbol also carries a miniature of
+  it -- see _preview -- which an instance shows when its `preview` is on.
+  """
   left = [p for p in port_list if p["dir"] != "out"]
   right = [p for p in port_list if p["dir"] == "out"]
 
@@ -126,6 +130,13 @@ def describe(ref, title, port_list):
   place(left, "left")
   place(right, "right")
 
+  if child is not None:
+    # The whole inside of the double outline. The pin names are drawn over
+    # it, and read clearly over lines this pale; kept to the room between
+    # them, the picture came out too small to make anything of.
+    draw.extend(_preview(child, registry, (STUB + 10.0, 10.0,
+                                           width - 2 * STUB - 20.0, height - 20.0)))
+
   return {
     "name": title or ref,
     "category": "sheets",
@@ -133,6 +144,70 @@ def describe(ref, title, port_list):
     "pins": pins,
     "draw": draw,
   }
+
+
+def _preview(child, registry, region):
+  """Draw ops for a miniature of a drawing, fitted into `region` (x, y, w, h).
+
+  What the drawing is made of, without its words: each container's
+  outline, each cell as its box, and the wires between them, all scaled
+  together into the inside of the block. Its ports are left
+  out -- they are the pins already drawn on the block's edge -- and so are
+  wires running to them. Drawn in the "preview" roles, which a renderer
+  paints only for an instance whose `preview` is on, so a symbol carrying
+  them looks exactly as before everywhere else.
+  """
+  from . import containers, routing
+  from .symbols import default_registry
+  registry = registry or default_registry()
+  rx, ry, rw, rh = region
+  if rw < 30 or rh < 20:
+    return []
+  ports = set(c.get("id") for c in child.cells if c.get("type") in PORT_DIRECTIONS)
+  boxes = []
+  for box in child.containers:
+    boxes.append(("preview_box", containers.item_box(child, registry, "container", box)))
+  for cell in child.cells:
+    if cell.get("id") in ports:
+      continue
+    found = containers.item_box(child, registry, "cell", cell)
+    if found is None and all(k in cell for k in ("x", "y", "w", "h")):
+      found = (float(cell["x"]), float(cell["y"]), float(cell["w"]), float(cell["h"]))
+    if found is not None:
+      boxes.append(("preview", found))
+  wires = []
+  try:
+    routes = routing.route_all(child, registry)
+  except Exception:  # a drawing that cannot be routed still has boxes to show
+    routes = []
+  for net, branches in routes:
+    ends = [net.get("from")] + list(net.get("to") or [])
+    if any(isinstance(e, dict) and e.get("cell") in ports for e in ends):
+      continue
+    for points in branches:
+      if len(points) >= 2:
+        wires.append(points)
+  extent = None
+  for _role, box in boxes:
+    extent = containers.union_bbox(extent, box)
+  if extent is None or extent[2] <= 0 or extent[3] <= 0:
+    return []
+  scale = min(rw / extent[2], rh / extent[3])
+  ox = rx + (rw - extent[2] * scale) / 2.0 - extent[0] * scale
+  oy = ry + (rh - extent[3] * scale) / 2.0 - extent[1] * scale
+
+  def at(x, y):
+    return (round(ox + x * scale, 3), round(oy + y * scale, 3))
+
+  ops = []
+  for role, (x, y, w, h) in boxes:
+    left, top = at(x, y)
+    ops.append({"op": "rect", "x": left, "y": top, "w": round(w * scale, 3),
+                "h": round(h * scale, 3), "role": role})
+  for points in wires:
+    path = " L".join("%s %s" % at(px, py) for px, py in points)
+    ops.append({"op": "path", "d": "M" + path, "role": "preview_wire"})
+  return ops
 
 
 def missing(ref, why):
@@ -279,7 +354,7 @@ def resolve(doc, registry, seen=None, depth=0, confine=None):
 
     if depth == 0:
       registry.add(Symbol(sheet_symbol_id(ref),
-                          describe(ref, child.title, ports(child))),
+                          describe(ref, child.title, ports(child), child)),
                    source=target, listed=False)
     issues.extend(resolve(child, registry, seen, depth + 1, confine))
 

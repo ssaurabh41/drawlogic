@@ -50,7 +50,7 @@ GRID_KEYS = ["style", "size", "color"]
 FONT_KEYS = ["family", "scale"]
 CELL_KEYS = ["id", "parentId", "type", "x", "y", "w", "h", "rotate", "mirror", "label",
              "heading", "text", "headingStyle", "textStyle", "textFit", "textAlign", "textVAlign", "copies", "pins", "style", "image", "ref",
-             "pinned", "z", "styleRef"]
+             "pinned", "z", "styleRef", "preview"]
 NET_KEYS = ["id", "name", "label", "width", "from", "to", "style"]
 POINT_KEYS = ["cell", "pin", "x", "y"]
 # A load is a point that may also say which way the wire to it should go.

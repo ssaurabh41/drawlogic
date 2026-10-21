@@ -158,6 +158,11 @@ console.log(JSON.stringify({
       .filter((c) => ["rect", "path", "ellipse", "polygon"].includes(c.tag)
               && c.attrs.fill !== "transparent" && !(c.attrs.class || "").includes("hit"))
       .map((c) => [c.attrs.fill ?? null, c.attrs.stroke ?? null])[0] || null]).sort(),
+  // A block's miniature of the drawing it stands for: every mark drawn in the
+  // preview colour, as [tag, the shape it draws].
+  preview: all.filter((n) => n.attrs.stroke === theme.colors.preview)
+    .map((n) => [n.tag, n.attrs.d ?? `${n.attrs.x},${n.attrs.y},${n.attrs.width},${n.attrs.height}`])
+    .sort(),
   // Containers: every mark of each, in paint order, with what it draws.
   // The invisible targets the canvas adds are not marks and are left out.
   containers: all.filter((n) => /^dl-container-(body|header|edge|title)$/.test(n.attrs.class || ""))

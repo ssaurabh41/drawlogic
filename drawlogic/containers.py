@@ -236,3 +236,16 @@ def title_layout(box, font_scale=1.0):
   depth = min(header(box), float(box["h"]))
   return (float(box["x"]) + inset, float(box["y"]) + depth / 2.0 + size * 0.35,
           text, paint)
+
+
+def title_box(box, font_scale=1.0, pad=0.0):
+  """The room a container's title takes in its header band, (x0, y0, x1, y1),
+  padded by `pad` across, or None for a box with no title shown."""
+  title = title_layout(box, font_scale)
+  if title is None or not title[2]:
+    return None
+  x, _baseline, text, paint = title
+  depth = min(header(box), float(box["h"]))
+  return (x - pad, float(box["y"]),
+          x + len(text) * paint["size"] * theme.CONTAINER["char"] + pad,
+          float(box["y"]) + depth)

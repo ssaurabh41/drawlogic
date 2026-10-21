@@ -47,6 +47,9 @@ COLORS = {
   "grid": "#b9c7cc",
   "grid_major": "#c3d0d5",
   "ghost": "#84969c",
+  # The miniature of a drawing inside a block standing for it: quiet lines,
+  # so it reads as a picture of the inside, not more circuit.
+  "preview": "#8a9ba4",
 
   # Ports carry a default tint so the edge of a drawing reads at a glance:
   # what comes in, what goes out, what does both. Tints rather than strong
@@ -68,6 +71,7 @@ WIDTHS = {
   "net": WIRE,
   "decor": 1.2,
   "ghost": 1.2,
+  "preview": 0.8,
 }
 
 # Base point sizes, before canvas.font.scale is applied.
@@ -157,6 +161,12 @@ ROLE_STYLES = {
   "decor": {"fill": "none", "stroke": "cell", "width": "decor"},
   "ghost": {"fill": "none", "stroke": "ghost", "width": "ghost", "dash": GHOST_DASH},
   "pin_label": {"fill": "pin_label", "stroke": "none", "font": "pin_label"},
+  # A block's miniature of the drawing it stands for (sheets._preview).
+  # Outlines only, so the pin names drawn over the miniature stay readable.
+  "preview": {"fill": "none", "stroke": "preview", "width": "preview"},
+  "preview_box": {"fill": "none", "stroke": "preview", "width": "preview",
+                  "dash": "3 2"},
+  "preview_wire": {"fill": "none", "stroke": "preview", "width": "preview"},
 }
 
 GRID_STYLES = ("blank", "dots", "dots-wide", "lines", "lines-heavy")

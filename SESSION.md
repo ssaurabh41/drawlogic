@@ -50,17 +50,14 @@ Behaviour the owner confirmed afterwards (each was first an assumption):
   box and typing in it, and one left empty leaves nothing to undo
   (Store.cancelGesture).
 
-Open items from it:
-
-- The router does not know about containers: wires can run along header
-  bands and through narrow packing gaps. Needs routing.py + routing.js
-  (parity) changes; suggested as its own step.
-- Named styles cannot be renamed or deleted from the editor.
-- Instances are drawn as compact sheet blocks; live previews of a
-  definition's contents are future work.
-- A plain group's internal wire bends do not move with it (containers' do).
-- The "Inside" row in the panel truncates deep nesting.
-- `drawlogic_bundle.txt` is stale; repack before relying on it.
+Open items from it were all done in a follow-up: wires keep off container
+titles (routing.side_label_boxes and its JS twin; geometry.js now holds the
+container title layout both routers and render.js use); a group or any
+multi-selection carries its internal wire bends; the Inside row wraps;
+named styles rename and delete (delete keeps every user's look); instances
+show a live miniature of their definition (`"preview": true`, symbol ops in
+the "preview" roles from sheets._preview, skipped by both renderers when
+off). Still true: a wire may squeeze through a narrow packing gap.
 
 ## Earlier in the first session (newest first)
 
@@ -109,7 +106,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 600 tests, 0 failed, 5 skipped (~25 s).
+- Suite: `python3 tests/run.py` -> 605 tests, 0 failed, 5 skipped (~25 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.

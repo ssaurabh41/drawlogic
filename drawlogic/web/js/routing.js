@@ -191,6 +191,13 @@ export function sideLabelBoxes(doc) {
     const pad = limits.textToWire;
     boxes.push([box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad]);
   }
+  // A container's title, as routing.side_label_boxes keeps wires off it.
+  const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+  for (const box of doc.containers || []) {
+    const written = geometry.containerTitleBox(geometry.effectiveStyle(doc.styles, box),
+                                               fontScale, limits.textToWire);
+    if (written) boxes.push(written);
+  }
   return boxes;
 }
 

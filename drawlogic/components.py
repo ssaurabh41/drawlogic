@@ -221,8 +221,9 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
   ref = ref_for(name)
   parent = _common_parent(doc, inside)
   instance_id = _fresh_id(doc, slug(name))
+  # Shown with a miniature of what it holds: it was made from that.
   instance = {"id": instance_id, "type": "sheet", "ref": ref, "x": bounds[0], "y": bounds[1],
-              "label": str(name).strip()}
+              "label": str(name).strip(), "preview": True}
   if parent is not None:
     instance["parentId"] = parent
 

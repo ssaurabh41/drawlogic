@@ -346,8 +346,8 @@ export function addCell(doc, type, x, y) {
 }
 
 // A container moves with everything inside it, each thing once however many
-// of its containers were also asked to move -- and so do the bends of the
-// wires that run wholly among them, so what it holds arrives as it was.
+// of its containers were also asked to move -- and the bends of the wires
+// that run wholly among what moves go too, so it arrives as it was.
 export function moveItems(doc, ids, dx, dy) {
   const moving = withContents(doc, ids);
   for (const id of moving) {
@@ -359,7 +359,9 @@ export function moveItems(doc, ids, dx, dy) {
     if (item.x !== undefined) item.x += dx;
     if (item.y !== undefined) item.y += dy;
   }
-  if ([...ids].some((id) => isContainer(itemById(doc, id)))) {
+  // Two or more things moving together -- a container's contents, a group,
+  // a selection -- take the bends of the wires between them along.
+  if (moving.size > 1) {
     for (const net of innerNets(doc, moving)) {
       for (const load of routing.loadsOf(net)) {
         load.waypoints = (load.waypoints || []).map((p) => [p[0] + dx, p[1] + dy]);
@@ -612,6 +614,43 @@ export function updateNamedStyle(doc, name, spec) {
   doc.styles = { ...doc.styles, [name]: clean };
   for (const cell of doc.cells) if (cell.styleRef === name) fitCell(doc, cell);
   return true;
+}
+
+// Rename a named style, and every item naming it with it. Refused (false)
+// for an empty name, or one another style already has.
+export function renameNamedStyle(doc, name, next) {
+  const key = String(next || "").trim();
+  const table = doc.styles || {};
+  if (!table[name] || !key || (key !== name && table[key])) return false;
+  if (key === name) return true;
+  const renamed = {};
+  for (const [k, v] of Object.entries(table)) renamed[k === name ? key : k] = v;
+  doc.styles = renamed;
+  for (const item of items(doc)) if (item.styleRef === name) item.styleRef = key;
+  return key;
+}
+
+// Delete a named style. Everything that used it keeps how it looks: the
+// style's settings are written into each item, under what the item already
+// set itself, before the name goes. Nothing on the sheet changes.
+export function deleteNamedStyle(doc, name) {
+  const spec = (doc.styles || {})[name];
+  if (!spec) return false;
+  let users = 0;
+  for (const item of items(doc)) {
+    if (item.styleRef !== name) continue;
+    const look = geometry.effectiveStyle(doc.styles, item);
+    for (const part of geometry.STYLE_PARTS) {
+      if (look[part] && Object.keys(look[part]).length) item[part] = JSON.parse(JSON.stringify(look[part]));
+    }
+    delete item.styleRef;
+    users += 1;
+  }
+  const rest = { ...doc.styles };
+  delete rest[name];
+  if (Object.keys(rest).length) doc.styles = rest;
+  else delete doc.styles;
+  return users + 1;
 }
 
 export function setTextFit(doc, id, fit) {

@@ -778,7 +778,9 @@ export class Inspector {
     if (!box) return;
     const trail = [box, ...model.containerAncestors(doc, box.id)]
       .reverse().map((b) => b.title || b.id).join(" \u203a ");
-    this.root.appendChild(row("Inside", element("div", "pval", trail)));
+    const where = element("div", "pval ppath", trail);
+    where.title = trail;
+    this.root.appendChild(row("Inside", where));
   }
 
   // A container: its title, where it is, how much room it keeps round what
@@ -946,6 +948,22 @@ export class Inspector {
       open.title = "open this drawing";
       open.addEventListener("click", () => this.onOpenRef && this.onOpenRef(cell));
       root.appendChild(row("Sheet", open));
+      // A miniature of the drawing it stands for, drawn inside the block.
+      const shown = document.createElement("input");
+      shown.type = "checkbox";
+      shown.className = "pcheck";
+      shown.checked = cell.preview === true;
+      shown.title = "draw a miniature of the drawing inside the block";
+      shown.addEventListener("change", () => {
+        this.store.mutate(shown.checked ? "show contents" : "hide contents", (doc) => {
+          const target = doc.cells.find((c) => c.id === cell.id);
+          if (!target) return false;
+          if (shown.checked) target.preview = true;
+          else delete target.preview;
+        });
+        this.onChange();
+      });
+      root.appendChild(row("Contents", shown));
     }
 
     const name = input(cell.label || "");

@@ -321,14 +321,82 @@ export function textDefaults() {
   return { text: cellText.size, heading: textTheme.headingSize, step: cellText.step };
 }
 
+// A container's look and size, from theme.CONTAINER; these defaults are
+// theme.py's, for when this runs on its own.
+let containerTheme = { fill: "#f6f8fa", stroke: "#a9b6bf", headerFill: "#e4eaee",
+                       titleFill: "#16202b", radius: 6, width: 1.2, padding: 20,
+                       header: 32, titleInset: 10, char: 0.62, titleSize: 13 };
+
 export function setTextTheme(data) {
   if (!data) return;
+  containerTheme = { ...containerTheme, ...(data.container || {}),
+                     titleSize: (data.fontSizes && data.fontSizes.container_title)
+                       || containerTheme.titleSize };
   textTheme = {
     label: (data.colors && data.colors.label) || textTheme.label,
     headingSize: (data.fontSizes && data.fontSizes.cell_heading) || textTheme.headingSize,
     fontSans: data.fontSans || textTheme.fontSans,
     stacks: data.fontStacks || textTheme.stacks,
   };
+}
+
+// ---- containers ----
+//
+// Mirrors the drawing half of containers.py, for render.js to paint with and
+// routing.js to keep wires off a title by.
+
+export function containerHeader(box) {
+  const value = Number(box.headerHeight);
+  return Number.isFinite(value) ? Math.max(0, value) : containerTheme.header;
+}
+
+export function containerStyle(box) {
+  const style = box.style || {};
+  const base = containerTheme;
+  return {
+    fill: style.fill || base.fill,
+    stroke: style.stroke || base.stroke,
+    headerFill: style.headerFill || base.headerFill,
+    titleFill: style.titleFill || base.titleFill,
+    strokeWidth: Number(style.strokeWidth || base.width),
+  };
+}
+
+export function containerRadius() {
+  return containerTheme.radius;
+}
+
+// [x, baseline, text, paint] for a container's title, or null: centred down
+// the header band, cut short where the box is too narrow. Mirrors
+// containers.title_layout.
+export function containerTitleLayout(box, fontScale = 1) {
+  const title = box.title;
+  if (typeof title !== "string" || !title.trim() || containerHeader(box) <= 0) return null;
+  const spec = box.headingStyle && typeof box.headingStyle === "object" ? box.headingStyle : {};
+  const size = positive(spec.fontSize, containerTheme.titleSize) * fontScale;
+  const paint = { size, weight: weight(spec.fontWeight, 600),
+                  fill: typeof spec.fill === "string" && spec.fill ? spec.fill
+                    : containerStyle(box).titleFill,
+                  family: fontFamily(spec.fontFamily) };
+  const inset = containerTheme.titleInset;
+  const room = Math.trunc(Math.max(0, Number(box.w) - 2 * inset)
+                          / (size * containerTheme.char) + 1e-6);
+  const text = title.length <= room ? title
+    : (room > 0 ? `${title.slice(0, Math.max(0, room - 1)).trimEnd()}\u2026` : "");
+  const depth = Math.min(containerHeader(box), Number(box.h));
+  return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, paint];
+}
+
+// The room a container's title takes in its header band, as [x0, y0, x1, y1]
+// padded by `pad` across: the whole depth of the band, as wide as the words.
+// Mirrors containers.title_box.
+export function containerTitleBox(box, fontScale = 1, pad = 0) {
+  const title = containerTitleLayout(box, fontScale);
+  if (!title || !title[2]) return null;
+  const [x, , text, paint] = title;
+  const depth = Math.min(containerHeader(box), Number(box.h));
+  return [x - pad, Number(box.y), x + text.length * paint.size * containerTheme.char + pad,
+          Number(box.y) + depth];
 }
 
 // The look an item is drawn with: its named style, if it names one that is

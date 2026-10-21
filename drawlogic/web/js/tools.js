@@ -297,7 +297,7 @@ export class SelectTool {
 
   // What a move picks up: the selection, everything inside any container in
   // it -- each once, however many of its containers are selected too -- and
-  // the bends of the wires running wholly among what a container carries.
+  // the bends of the wires running wholly among what moves.
   carry(ids) {
     const { store } = this.ctx;
     const moving = model.withContents(store.doc, ids);
@@ -305,8 +305,7 @@ export class SelectTool {
       const item = model.itemById(store.doc, id);
       return [id, JSON.parse(JSON.stringify(item))];
     }));
-    const boxes = [...ids].some((id) => model.isContainer(model.itemById(store.doc, id)));
-    this.startWires = new Map(boxes
+    this.startWires = new Map(moving.size > 1
       ? model.innerNets(store.doc, moving).map((net) => [
         net.id, routing.loadsOf(net).map((load) => JSON.parse(JSON.stringify(load.waypoints || [])))])
       : []);

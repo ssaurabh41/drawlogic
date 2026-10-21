@@ -322,6 +322,59 @@ class TestLayingOutOneContainer(unittest.TestCase):
     self.assertEqual(len(warned), 1, warned)
 
 
+def across_a_title():
+  """A wire whose straight path runs along a container's header band, right
+  through the words of its title."""
+  doc = new_document("across", 1000, 400)
+  doc.data["containers"] = [{"id": "mem", "title": "Memory subsystem",
+                             "x": 300, "y": 100, "w": 400, "h": 200}]
+  doc.cells.extend([
+    {"id": "d", "type": "inv", "x": 100, "y": 101},
+    {"id": "l", "type": "inv", "x": 800, "y": 101},
+  ])
+  doc.nets.append({"id": "n", "from": {"cell": "d", "pin": "y"},
+                   "to": [{"cell": "l", "pin": "a"}]})
+  doc.normalize()
+  return doc
+
+
+class TestWiresKeepOffTitles(unittest.TestCase):
+
+  def test_a_wire_does_not_run_through_a_title(self):
+    from drawlogic import routing
+    doc = across_a_title()
+    title = containers.title_box(doc.containers[0])
+    [(_net, [points])] = routing.route_all(doc)
+    for a, b in zip(points, points[1:]):
+      if abs(a[1] - b[1]) < 1e-6:
+        crosses = (title[1] <= a[1] <= title[3]
+                   and min(a[0], b[0]) < title[2] and max(a[0], b[0]) > title[0])
+        self.assertFalse(crosses, "run %s-%s goes through the title %s" % (a, b, title))
+    # And it is not that the wire happened to miss: straight, it would not.
+    start = points[0]
+    self.assertTrue(title[1] <= start[1] <= title[3])
+
+  @unittest.skipUnless(NODE, "node is not installed")
+  def test_the_editor_routes_it_the_same_way(self):
+    import os
+    import tempfile
+    from drawlogic import routing
+    from tests.test_js_parity import _browser_result, _rounded
+    doc = across_a_title()
+    handle, path = tempfile.mkstemp(suffix=".dlg")
+    os.close(handle)
+    try:
+      doc.save(path)
+      browser = _browser_result(path, default_registry())
+    finally:
+      os.unlink(path)
+      if os.path.exists(path + ".bak"):
+        os.unlink(path + ".bak")
+    expected = [[net["id"], _rounded(branches)]
+                for net, branches in routing.route_all(doc)]
+    self.assertEqual([[i, _rounded(b)] for i, b in browser["routes"]], expected)
+
+
 @unittest.skipUnless(NODE, "node is not installed")
 class TestTheEditorDrawsTheSame(unittest.TestCase):
 

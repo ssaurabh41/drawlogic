@@ -581,6 +581,9 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
     # A picture replaces the placeholder outline rather than sitting under it.
     if image and op.get("role") == "ghost":
       continue
+    # A block's miniature of the drawing it stands for, only when asked for.
+    if str(op.get("role", "")).startswith("preview") and not cell.get("preview"):
+      continue
     element = _op_element(
       op, _role_paint(op.get("role", "body"), style, stroke_factor, font_scale))
     if element:

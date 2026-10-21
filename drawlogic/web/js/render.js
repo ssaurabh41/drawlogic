@@ -248,6 +248,8 @@ function renderCell(symbol, cell, fontScale, scale, into) {
   for (const op of symbol.draw) {
     if (cell.image && op.role === "ghost") continue;
     if (op.op === "text") continue;
+    // A block's miniature of the drawing it stands for, only when asked for.
+    if (String(op.role || "").startsWith("preview") && !cell.preview) continue;
     const node = opElement(op, rolePaint(op.role || "body", style, factor, fontScale));
     if (node) group.appendChild(node);
   }
@@ -1104,10 +1106,11 @@ function containerPadding(box) {
   return Number.isFinite(value) ? Math.max(0, value) : theme.container.padding;
 }
 
-export function containerHeader(box) {
-  const value = Number(box.headerHeight);
-  return Number.isFinite(value) ? Math.max(0, value) : theme.container.header;
-}
+// The header depth, colours and title layout live in geometry.js, where the
+// router can read them too: a wire is kept off a container's title.
+export const containerHeader = geometry.containerHeader;
+const containerStyle = geometry.containerStyle;
+export const containerTitleLayout = geometry.containerTitleLayout;
 
 // Containers in the order they are painted: each before what it holds, depth
 // first from the ones nobody holds. One caught in a loop is painted last,
@@ -1130,18 +1133,6 @@ export function containerPaintOrder(doc) {
   return order;
 }
 
-function containerStyle(box) {
-  const style = box.style || {};
-  const base = theme.container;
-  return {
-    fill: style.fill || base.fill,
-    stroke: style.stroke || base.stroke,
-    headerFill: style.headerFill || base.headerFill,
-    titleFill: style.titleFill || base.titleFill,
-    strokeWidth: Number(style.strokeWidth || base.width),
-  };
-}
-
 function containerHeaderPath(box) {
   const x = Number(box.x);
   const y = Number(box.y);
@@ -1151,26 +1142,6 @@ function containerHeaderPath(box) {
   const f = (v) => geometry.fmt(v);
   return `M${f(x)} ${f(y + depth)} V${f(y + r)} A${f(r)} ${f(r)} 0 0 1 ${f(x + r)} ${f(y)} `
     + `H${f(x + w - r)} A${f(r)} ${f(r)} 0 0 1 ${f(x + w)} ${f(y + r)} V${f(y + depth)} Z`;
-}
-
-// [x, baseline, text, size] for a container's title, or null: centred down
-// the header band, cut short where the box is too narrow.
-export function containerTitleLayout(box, fontScale = 1) {
-  const title = box.title;
-  if (typeof title !== "string" || !title.trim() || containerHeader(box) <= 0) return null;
-  const spec = box.headingStyle && typeof box.headingStyle === "object" ? box.headingStyle : {};
-  const size = geometry.positive(spec.fontSize, theme.fontSizes.container_title) * fontScale;
-  const paint = { size, weight: geometry.weight(spec.fontWeight, 600),
-                  fill: typeof spec.fill === "string" && spec.fill ? spec.fill
-                    : containerStyle(box).titleFill,
-                  family: geometry.fontFamily(spec.fontFamily) };
-  const inset = theme.container.titleInset;
-  const room = Math.trunc(Math.max(0, Number(box.w) - 2 * inset)
-                          / (size * theme.container.char) + 1e-6);
-  const text = title.length <= room ? title
-    : (room > 0 ? `${title.slice(0, Math.max(0, room - 1)).trimEnd()}\u2026` : "");
-  const depth = Math.min(containerHeader(box), Number(box.h));
-  return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, paint];
 }
 
 // Each container is three marks -- body fill, header band, outline over both

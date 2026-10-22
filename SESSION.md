@@ -65,6 +65,12 @@ call: noise); wires keep CLEARANCE off container outlines on every corridor
 pass (Sheet.add_borders / addBorders); packed rows and grids widen their gap
 for the wires leaving them (layout._pack_gap, capped at CELL_GAP_X; columns
 keep CONTAINER_GAP). The user said two-way ports on the left are not a bug.
+For wires looping between blocks of a Column the user chose "tidy loops
+only" (over staircase / rows-by-stage / leave it): the column stays one
+line of blocks, layout._column_loops widens its sides by a lane per loop and
+the gap above a block two loops turn into, and a crossover leg now moves
+off another wire within WIRE_GAP, not only on top of it (_leg_column /
+legColumn).
 
 ## Earlier in the first session (newest first)
 

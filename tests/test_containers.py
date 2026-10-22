@@ -471,6 +471,86 @@ class TestPackingLeavesRoomForWires(unittest.TestCase):
     self.assertAlmostEqual(sms[2][0] - (sms[0][0] + sms[0][2]), drc.CONTAINER_GAP)
 
 
+def wired_column():
+  """Rename above a reorder buffer above schedulers, in a column, rename
+  wired to both: two wires that have to loop round the side."""
+  doc = new_document("column", 1200, 800)
+  doc.data["containers"] = [{"id": "oe", "title": "OoO engine", "x": 0, "y": 0,
+                             "w": 100, "h": 100, "layout": {"mode": "column"}}]
+  for i, name in enumerate(("ren", "rob", "sch")):
+    doc.cells.append({"id": name, "parentId": "oe", "type": "block",
+                      "x": 100, "y": 150 * i})
+  doc.nets.append({"id": "alloc", "from": {"cell": "ren", "pin": "out1"},
+                   "to": [{"cell": "rob", "pin": "in1"}]})
+  doc.nets.append({"id": "disp", "from": {"cell": "ren", "pin": "out2"},
+                   "to": [{"cell": "sch", "pin": "in1"}]})
+  doc.normalize()
+  layout.arrange(doc, default_registry())
+  return doc
+
+
+class TestColumnLoopsGetLanes(unittest.TestCase):
+
+  def test_the_column_stays_one_column(self):
+    doc = wired_column()
+    lefts = set(round(box_of(doc, c)[0], 3) for c in ("ren", "rob", "sch"))
+    self.assertEqual(len(lefts), 1)
+
+  def test_each_side_has_room_for_its_loops(self):
+    from drawlogic import drc
+    doc = wired_column()
+    box = doc.containers[0]
+    pad = containers.padding(box)
+    blocks = [box_of(doc, c) for c in ("ren", "rob", "sch")]
+    left = min(b[0] for b in blocks) - box["x"]
+    right = box["x"] + box["w"] - max(b[0] + b[2] for b in blocks)
+    # Two wires leave on the right, two loads come in on the left.
+    want = 2 * drc.WIRE_TO_CELL + drc.WIRE_GAP
+    self.assertGreater(want, pad)
+    self.assertAlmostEqual(left, want)
+    self.assertAlmostEqual(right, want)
+
+  def test_the_two_loops_run_in_lanes_of_their_own(self):
+    from drawlogic import drc, routing
+    doc = wired_column()
+    routes = dict((net["id"], branches) for net, branches in routing.route_all(doc))
+    right = max(b[0] + b[2] for b in (box_of(doc, c) for c in ("ren", "rob", "sch")))
+
+    def side_columns(net_id):
+      return set(a[0] for points in routes[net_id] for a, b in zip(points, points[1:])
+                 if abs(a[0] - b[0]) < 1e-6 and a[0] > right)
+
+    alloc, disp = side_columns("alloc"), side_columns("disp")
+    self.assertTrue(alloc and disp)
+    for x in alloc:
+      for y in disp:
+        self.assertGreaterEqual(abs(x - y), drc.WIRE_GAP)
+    self.assertEqual(runs_along_outlines(doc, routing.route_all(doc)), [])
+
+  def test_a_second_layout_changes_nothing(self):
+    doc = wired_column()
+    first = doc.dumps()
+    layout.arrange(doc, default_registry())
+    self.assertEqual(doc.dumps(), first)
+
+  def test_two_loops_into_one_block_widen_the_gap_above_it(self):
+    from drawlogic import drc
+    doc = wired_column()
+    doc.nets.append({"id": "wb", "from": {"cell": "rob", "pin": "out1"},
+                     "to": [{"cell": "sch", "pin": "in2"}]})
+    layout.arrange(doc, default_registry())
+    rob, sch = box_of(doc, "rob"), box_of(doc, "sch")
+    self.assertAlmostEqual(sch[1] - (rob[1] + rob[3]),
+                           2 * drc.WIRE_TO_CELL + drc.WIRE_GAP)
+
+  def test_a_column_of_unwired_blocks_keeps_its_padding(self):
+    doc = wired_column()
+    doc.nets[:] = []
+    layout.arrange(doc, default_registry())
+    box = doc.containers[0]
+    self.assertAlmostEqual(box_of(doc, "ren")[0] - box["x"], containers.padding(box))
+
+
 @unittest.skipUnless(NODE, "node is not installed")
 class TestTheEditorDrawsTheSame(unittest.TestCase):
 

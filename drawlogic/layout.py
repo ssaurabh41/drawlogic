@@ -1680,6 +1680,15 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
 
   mode, direction, gap, columns = (layout_of(owner) if owner is not None
                                    else ("flow", "lr", None, None))
+  # A column whose blocks are wired to each other: room at the sides for the
+  # wires looping round from one block to the next. See _column_loops.
+  sides = (0.0, 0.0)
+  if mode == "column":
+    left, right, into = _column_loops(doc, registry, nodes)
+    sides = (max(0.0, _lanes(left) - pad), max(0.0, _lanes(right) - pad))
+    origin = (origin[0] + sides[0], origin[1])
+    if gap is None:
+      gap = max(drc.CONTAINER_GAP, _lanes(into))
   if mode == "flow":
     after = _flow_level(doc, registry, nodes, fixed, origin, direction,
                         gap if gap is not None else gap_x,
@@ -1704,7 +1713,61 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
       notes = set(s.get("id") for s in doc.shapes if s.get("parentId") == owner_id)
       if notes:
         containers.move(doc, notes, now[0] - was[0], now[1] - was[1])
-    containers.fit(doc, registry, owner)
+    if containers.fit(doc, registry, owner) and any(sides):
+      owner["x"] = round(owner["x"] - sides[0], 6)
+      owner["w"] = round(owner["w"] + sides[0] + sides[1], 6)
+
+
+def _lanes(count):
+  """The room `count` wires running side by side need between two boxes."""
+  if not count:
+    return 0.0
+  return 2 * drc.WIRE_TO_CELL + drc.WIRE_GAP * (count - 1)
+
+
+def _owners(doc, nodes):
+  """{cell id: the node at this level holding it}."""
+  owner_of = {}
+  for kind, item in nodes:
+    inner = ({item["id"]} if kind == "cell"
+             else containers.descendants(doc, {item["id"]}))
+    for key in inner:
+      owner_of.setdefault(key, item["id"])
+  return owner_of
+
+
+def _column_loops(doc, registry, nodes):
+  """(left, right, into) for the wires joining one block of a column to
+  another.
+
+  Pins sit on the sides, so such a wire leaves its block sideways, runs up
+  or down beside the column and comes back in sideways: a loop. Each needs a
+  lane of its own on the side its pin faces -- `left` and `right` count
+  them -- and a row of its own in the gap where it turns in; `into` is the
+  most that turn into any one block. Without the room they crowded into the
+  container's padding, one on top of the next.
+  """
+  owner_of = _owners(doc, nodes)
+  left, right = set(), set()
+  into = {}
+  for net in doc.nets:
+    driver = net.get("from")
+    if not isinstance(driver, dict) or driver.get("cell") not in owner_of:
+      continue
+    source = owner_of[driver["cell"]]
+    loads = [end for end in loads_of(net) if isinstance(end, dict)
+             and owner_of.get(end.get("cell")) not in (None, source)]
+    if not loads:
+      continue
+    for end in [driver] + loads:
+      facing = routing.endpoint_direction(doc, end, registry) or (0.0, 0.0)
+      if facing[0] < 0:
+        left.add(net.get("id"))
+      elif facing[0] > 0:
+        right.add(net.get("id"))
+    for end in loads:
+      into.setdefault(owner_of[end["cell"]], set()).add(net.get("id"))
+  return len(left), len(right), max([len(n) for n in into.values()] or [0])
 
 
 def _pack_gap(doc, nodes, mode):
@@ -1723,12 +1786,7 @@ def _pack_gap(doc, nodes, mode):
   """
   if mode == "column":
     return drc.CONTAINER_GAP
-  owner_of = {}
-  for kind, item in nodes:
-    inner = ({item["id"]} if kind == "cell"
-             else containers.descendants(doc, {item["id"]}))
-    for key in inner:
-      owner_of.setdefault(key, item["id"])
+  owner_of = _owners(doc, nodes)
   leaving = 0
   for net in doc.nets:
     ends = [net.get("from")] + loads_of(net)
@@ -1736,10 +1794,7 @@ def _pack_gap(doc, nodes, mode):
                  for end in ends)
     if len(owners) > 1 and owners - {None}:
       leaving += 1
-  if not leaving:
-    return drc.CONTAINER_GAP
-  need = 2 * drc.WIRE_TO_CELL + drc.WIRE_GAP * (leaving - 1)
-  return min(max(drc.CONTAINER_GAP, need), drc.CELL_GAP_X)
+  return min(max(drc.CONTAINER_GAP, _lanes(leaving)), drc.CELL_GAP_X)
 
 
 def _corner(boxes):

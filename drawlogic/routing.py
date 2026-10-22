@@ -716,11 +716,13 @@ def _leg_column(end, direction, y, sheet):
   one side of a cell -- so two unrelated wires leaving that side both dropped
   down it and were drawn on top of each other: every wire-short the examples
   had after auto-layout. The row was searched for a free place and the legs
-  never were. A leg with nothing under it stays exactly where it was; one
-  that would lie on another net moves outward, away from its pin, until it
-  does not.
+  never were. A leg with nothing beside it stays exactly where it was; one
+  that would lie on another net, or close enough to read as one with it,
+  moves outward, away from its pin, until it does not. Close enough counts
+  since loops down the side of a column: two pins one above the other put
+  both legs a pin pitch apart, a pair the eye cannot tell apart.
   """
-  if sheet.free(False, end[0], end[1], y, False, TOUCHING):
+  if sheet.free(False, end[0], end[1], y, False, WIRE_GAP):
     return end[0]
   boxes = sheet.boxes
 

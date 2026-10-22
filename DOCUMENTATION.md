@@ -1539,7 +1539,12 @@ leaving them packs wider, a wire gap for each wire plus a cell's clearance
 either side, up to the 110 flow leaves between columns: those wires have to
 get out between the blocks, and four cores wired to one ring through a
 30-unit gap could only hug the boxes. A column keeps 30, since pins sit on
-the sides and its wires leave sideways.
+the sides and its wires leave sideways -- unless its blocks are wired to
+each other. Such a wire leaves one block sideways and loops round to come
+back into the next, so the column keeps its single line of blocks but
+grows a lane at the side for each loop, and widens the gap above a block
+when more than one loop turns into it. The router keeps each loop in a
+lane of its own rather than a pin pitch from the next.
 Row, column and grid take their order from where things already are --
 across, down, line by line -- so laying out twice changes nothing, and
 dragging one SM ahead of another and laying out again is how you reorder

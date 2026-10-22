@@ -514,7 +514,7 @@ function rowCrossover(a, b, aDir, bDir, sheet, rowClear) {
 // with nothing under it stays put; one that would lie on another net moves
 // outward, away from its pin. Mirrors routing.py.
 function legColumn(end, direction, y, sheet) {
-  if (sheet.free(false, end[0], end[1], y, false, limits.touching)) return end[0];
+  if (sheet.free(false, end[0], end[1], y, false, limits.wireGap)) return end[0];
   const { boxes } = sheet;
   const clearAt = (m) => [boxes, sheet.own].every((found) =>
     verticalClear(m, end[1], y, found) && horizontalClear(end[1], end[0], m, found));

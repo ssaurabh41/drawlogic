@@ -111,7 +111,7 @@ benchmarks/.cache/
 # The previous version of a drawing, kept by every save that changes it.
 *.bak
 <<<<<<<<<< DLBUNDLE END path=.gitignore >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=126 sha256=244e4cfb87d57f2ba19851ecdb0436f868d91673232a6b76ddca9b54b49016c2 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=129 sha256=a784ec0f8a41bf236a3df4649b0dda0bc72af49360b147d6f50a98416d4d2399 >>>>>>>>>>
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -191,7 +191,10 @@ which is what keeps laying out twice idempotent.
 crossing bridges ("hops"). Doglegs are not implemented; a Phase-0 analysis
 (`benchmarks/channel_graph.py`, vertical-constraint-graph + cycle detection)
 found the example/benchmark corpus acyclic throughout, so they have not been
-needed so far.
+needed so far. Fixed shapes (corner, crossover, detour) place nearly every
+wire; when none is clear of obstacles and outlines, `_find_path` (A* over a
+grid of lines through the gaps, mirrored as `findPath` in routing.js) finds
+one -- the way round a container's header band, which is solid.
 
 **DRCs live in one file.** `drawlogic/drc.py` holds every design-rule limit
 and check, served to the browser at `/api/drc` and run live while editing. `tests/test_drc.TestEveryCheckerIsReachable` replaces
@@ -239,7 +242,7 @@ and writes.
   `Input.dispatchMouseEvent`, not synthetic `new MouseEvent()` — the app
   distinguishes trusted input.
 <<<<<<<<<< DLBUNDLE END path=CLAUDE.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2286 sha256=bf0682edc7ad8d688c0e13e107f2d8f2564fe05531d197b22785242ca4455f03 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2300 sha256=5ea3fdd0df29651ebf5c349f3be974c44a08e18bef35232e0a6573d280bfb0a1 >>>>>>>>>>
 # drawlogic
 
 **Draw logic circuit diagrams, and export them as SVG.**
@@ -1784,9 +1787,11 @@ get out between the blocks, and four cores wired to one ring through a
 the sides and its wires leave sideways -- unless its blocks are wired to
 each other. Such a wire leaves one block sideways and loops round to come
 back into the next, so the column keeps its single line of blocks but
-grows a lane at the side for each loop, and widens the gap above a block
-when more than one loop turns into it. The router keeps each loop in a
-lane of its own rather than a pin pitch from the next.
+grows a lane at the side for each loop, and widens its gaps to hold every
+wire that passes between one block and the next -- a wire on its way into
+a container below has to cross over that container's header, which no wire
+may cut. The router keeps each loop in a lane of its own rather than a pin
+pitch from the next.
 Row, column and grid take their order from where things already are --
 across, down, line by line -- so laying out twice changes nothing, and
 dragging one SM ahead of another and laying out again is how you reorder
@@ -1811,12 +1816,14 @@ being laid out work as for any layout.
 
 `drawlogic layout FILE` does the same as Auto layout.
 
-Wires keep off a container's title as they keep off a name: the router
-treats the words in the header band as text a wire must not cross, so a
-wire runs beside the title or crosses the band clear of it rather than
-striking it through. They keep a cell's clearance (10) off a container's
-outline too, except where they cross it: a wire running along an edge reads
-as part of the box.
+A container's header band is solid, like a cell: wires keep a cell's
+clearance (10) off it and never cross it, the container's own wires
+included. A wire along the band struck the title through, and one across it
+cut the title off from the box it names. So a wire into a container comes in
+through a side or the bottom; when it starts above the box, the router finds
+its way round (see [Routing](#routing)). Wires keep the same clearance off a
+container's outline, except where they cross it: a wire running along an
+edge reads as part of the box.
 
 ### Tidy up
 
@@ -1920,7 +1927,15 @@ gate's output back into the flip-flop feeding it) goes round both rather than
 straight back through them. When the straight line is blocked the router
 sidesteps around it; when both ways round a single corner are blocked -- a
 reset wire to the `rn` pin of a flip-flop in a crowded column -- it tries a
-column and a row of its own before giving up.
+column and a row of its own. When none of those shapes is clear -- a wire
+into a container from above, which has to go round the header band and come
+in through a side -- it searches for a path instead: the shortest way round
+everything over a grid of lines through the gaps, a bend counted as 30
+units of wire, a run alongside another wire as its length again, a
+crossing as 20. It never runs closer than 10 to another wire or along an
+outline, and looks only 300 past the two ends; if that finds nothing, the
+first shape stands. Only wires the shapes cannot place go this way, so the
+rest of a drawing routes exactly as it did.
 
 **Stay off other wires.** Nets are routed in document order and each one
 remembers where it ran, so a later wire prefers a corridor that neither
@@ -2094,6 +2109,7 @@ point to look at.
 | `wire-crossing` | a crossing the renderer left unbridged, so it reads as a connection |
 | `duplicate-id` | a cell or net id used twice; every check looks things up by id, so none of the others run until each has its own |
 | `wire-over-cell` | a wire drawn across a body it does not connect to, which reads either as stopping there or as passing behind it |
+| `wire-over-header` | a wire drawn across a container's header band, which cuts the title off from the box it names |
 | `cell-overlap` | two bodies in the same place |
 | `off-sheet` | drawing outside the sheet, which the exporter crops away |
 
@@ -2103,6 +2119,7 @@ point to look at.
 |---|---|
 | `wire-spacing` | parallel runs closer than `WIRE_GAP` |
 | `wire-to-cell` | a wire passing close enough to a body to suggest a joint |
+| `wire-to-header` | a wire within `WIRE_TO_CELL` of a container's header band |
 | `wire-jog` | a step shorter than `WIRE_MIN_JOG` |
 | `cell-text-clipped` | text inside a cell cut short because fit-to-text is off for it |
 | `cell-spacing` | two parts closer than `CELL_MIN_GAP` |
@@ -2819,7 +2836,7 @@ Each item names what must go red if the change is removed.
 Phase 1 is independently shippable. If Phase 0 says the graphs are mostly
 acyclic, stop after it and measure before deciding on Phase 2.
 <<<<<<<<<< DLBUNDLE END path=ROUTING-CORRIDORS.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=137 sha256=a7d713ab2b793e3a007c8610393e67972437d6d7f034172a42b621c18e7e7390 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=149 sha256=c6701896a10d0c1428a4590e5904ce8b86e4a75966ad8cf4564016c05757cf0f >>>>>>>>>>
 # Session handoff
 
 A summary of one long working session on drawlogic, so a new session can
@@ -2893,6 +2910,18 @@ line of blocks, layout._column_loops widens its sides by a lane per loop and
 the gap above a block two loops turn into, and a crossover leg now moves
 off another wire within WIRE_GAP, not only on top of it (_leg_column /
 legColumn).
+
+Then header bands made solid (user: "a hard cell for spacing"): routing
+keeps CLEARANCE off containers.header_box, DRC wire-over-header (error) /
+wire-to-header (warning). Wires into a container from above could not be
+placed by the fixed shapes, so (user chose this over allowing a crossing)
+routing._find_path / findPath: A* on a grid of obstacle-edge, outline and
+wide-gap-middle lines, bends 30, crowding = length again, crossing 20,
+closer than CLEARANCE barred, reach 300; used only when the shape route is
+not clear. HDL layout tests cost ~15% more. A column's gaps now hold every
+wire passing between blocks (_column_loops `across`). The pre-pathfinder
+state is the branch `before-pathfinder` (a tag push was refused by the
+session's git proxy).
 
 ## Earlier in the first session (newest first)
 
@@ -25892,7 +25921,7 @@ def independent_ref(ref, existing):
       return candidate
     n += 1
 <<<<<<<<<< DLBUNDLE END path=drawlogic/components.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/containers.py lines=251 sha256=cf2e2b9cb8d00733d8bb77784f1d00252c662a512901d736e2abe0cfaa8342a1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/containers.py lines=248 sha256=d56c22b61af2c2c593a83aa2f128084e3ccd788aefb149d39b41bd1c609c631f >>>>>>>>>>
 """Containers: titled boundaries that hold part of a drawing.
 
 A container is a box with a heading -- "GPC 0", "Memory subsystem" -- that
@@ -26133,17 +26162,14 @@ def title_layout(box, font_scale=1.0):
           text, paint)
 
 
-def title_box(box, font_scale=1.0, pad=0.0):
-  """The room a container's title takes in its header band, (x0, y0, x1, y1),
-  padded by `pad` across, or None for a box with no title shown."""
-  title = title_layout(box, font_scale)
-  if title is None or not title[2]:
-    return None
-  x, _baseline, text, paint = title
+def header_box(box, pad=0.0):
+  """A container's header band, (x0, y0, x1, y1) grown by `pad` all round,
+  or None for a box with no band."""
   depth = min(header(box), float(box["h"]))
-  return (x - pad, float(box["y"]),
-          x + len(text) * paint["size"] * theme.CONTAINER["char"] + pad,
-          float(box["y"]) + depth)
+  if depth <= 0:
+    return None
+  x, y, w = float(box["x"]), float(box["y"]), float(box["w"])
+  return (x - pad, y - pad, x + w + pad, y + depth + pad)
 <<<<<<<<<< DLBUNDLE END path=drawlogic/containers.py >>>>>>>>>>
 <<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/doc.py lines=1092 sha256=1d888f4c29105ee6762815ca988c542faab242c2d7fb820f9ee7e2fbd0d53d2e >>>>>>>>>>
 """The .dlg document: load, save, normalise and check.
@@ -27239,7 +27265,7 @@ def _containment_issues(doc):
 def load(path):
   return Document.load(path)
 <<<<<<<<<< DLBUNDLE END path=drawlogic/doc.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/drc.py lines=1013 sha256=6fa934b82fe51168203a24d3d94700aca9bc957e5190f40f64741f375448840f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/drc.py lines=1050 sha256=66234eb055ccea739b3b4152235af63d7e6a2460c25950734e5cf6a874e58b53 >>>>>>>>>>
 """Design rule checks -- the DRCs a drawing has to pass to read well.
 
 A schematic can be correct and still unreadable. Two wires a hair apart read
@@ -27707,6 +27733,14 @@ class _Scene(object):
     # Text notes are words on the sheet like any name, and a wire through one
     # loses it the same way. They were not measured at all, so a layout could
     # lay a wire across a drawing's subtitle and call it clean.
+    # Container header bands, which are as solid as a cell to a wire.
+    from . import containers
+    self.headers = []
+    for box in doc.containers:
+      band = containers.header_box(box)
+      if band is not None:
+        self.headers.append((box.get("title") or box.get("id"), box.get("id"), band))
+
     self.notes = []
     for shape in doc.shapes:
       box = render_svg.text_shape_box(shape, doc.font_scale)
@@ -27780,6 +27814,7 @@ def check(doc, registry=None, routes=None, labels=None):
   _check_wire_contact(scene, report)
   _check_wire_crossings(scene, report)
   _check_wires_and_cells(scene, report)
+  _check_wires_and_headers(scene, report)
   _check_wire_shape(scene, report)
   _check_cell_spacing(scene, report)
   _check_text(scene, report)
@@ -27974,6 +28009,34 @@ def _check_wires_and_cells(scene, report):
           "the wire passes %.1f away, closer than the %.0f needed to read as "
           "passing rather than joining" % (gap, limit),
           _midpoint(run.a, run.b)))
+
+
+def _check_wires_and_headers(scene, report):
+  """Wires through and alongside a container's header band.
+
+  The band is the box's label, and a wire across it cuts the title off from
+  the box it names -- read as the wire's own label, or as the box ending
+  there. Held to a cell's rules, wires belonging to the box included: a wire
+  into a container comes in through a side or the bottom.
+  """
+  if not scene.headers:
+    return
+  for run in scene.runs:
+    box = run.box()
+    for title, box_id, band in scene.headers:
+      where = "net %s and the header of %s" % (scene.net_name(run.net_id), title)
+      if _boxes_overlap(box, band):
+        report.add(("wire-over-header", run.net_id, box_id), -1.0, Violation(
+          "wire-over-header", "error", where,
+          "the wire is drawn across the header band, so it cuts the title "
+          "off from the box it names", _midpoint(run.a, run.b)))
+        continue
+      gap = _box_gap(box, band)
+      if gap < WIRE_TO_CELL:
+        report.add(("wire-to-header", run.net_id, box_id), gap, Violation(
+          "wire-to-header", "warning", where,
+          "the wire passes %.1f from the header band, closer than the %.0f "
+          "a cell is kept" % (gap, WIRE_TO_CELL), _midpoint(run.a, run.b)))
 
 
 def _check_wire_shape(scene, report):
@@ -29373,7 +29436,7 @@ def write_drawings(folder, drawings, overwrite=False):
     drawings[name].save(path)
   return paths
 <<<<<<<<<< DLBUNDLE END path=drawlogic/hdl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/layout.py lines=2017 sha256=d268bc385662ffd3784def74dd926667072f62d2b92f60b5c0c7619b55998b9f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/layout.py lines=2024 sha256=8e39e5718329f46737c0bf76d333e774f8ed57f76bbdbab4c7dbe36cb560200d >>>>>>>>>>
 """Laying a drawing out from what it is wired to, rather than by hand.
 
 Dropping cells and wiring them gets you a correct drawing and a crooked one.
@@ -31060,11 +31123,11 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
   # wires looping round from one block to the next. See _column_loops.
   sides = (0.0, 0.0)
   if mode == "column":
-    left, right, into = _column_loops(doc, registry, nodes)
+    left, right, across = _column_loops(doc, registry, nodes, before)
     sides = (max(0.0, _lanes(left) - pad), max(0.0, _lanes(right) - pad))
     origin = (origin[0] + sides[0], origin[1])
     if gap is None:
-      gap = max(drc.CONTAINER_GAP, _lanes(into))
+      gap = max(drc.CONTAINER_GAP, _lanes(across))
   if mode == "flow":
     after = _flow_level(doc, registry, nodes, fixed, origin, direction,
                         gap if gap is not None else gap_x,
@@ -31112,20 +31175,25 @@ def _owners(doc, nodes):
   return owner_of
 
 
-def _column_loops(doc, registry, nodes):
-  """(left, right, into) for the wires joining one block of a column to
+def _column_loops(doc, registry, nodes, before):
+  """(left, right, across) for the wires joining one block of a column to
   another.
 
   Pins sit on the sides, so such a wire leaves its block sideways, runs up
   or down beside the column and comes back in sideways: a loop. Each needs a
   lane of its own on the side its pin faces -- `left` and `right` count
-  them -- and a row of its own in the gap where it turns in; `into` is the
-  most that turn into any one block. Without the room they crowded into the
-  container's padding, one on top of the next.
+  them -- and a row of its own in a gap between blocks, where it turns in or
+  crosses over a container's header, which no wire may cut through;
+  `across` is the most wires with ends both above and below any one gap.
+  Without the room they crowded into the padding, one on top of the next.
   """
   owner_of = _owners(doc, nodes)
+  # The column's order is the one _pack_level packs it in: down the page.
+  order = sorted((round(before[item["id"]][1], 3), round(before[item["id"]][0], 3),
+                  item["id"]) for _kind, item in nodes)
+  place = dict((entry[2], index) for index, entry in enumerate(order))
   left, right = set(), set()
-  into = {}
+  spans = []
   for net in doc.nets:
     driver = net.get("from")
     if not isinstance(driver, dict) or driver.get("cell") not in owner_of:
@@ -31141,9 +31209,11 @@ def _column_loops(doc, registry, nodes):
         left.add(net.get("id"))
       elif facing[0] > 0:
         right.add(net.get("id"))
-    for end in loads:
-      into.setdefault(owner_of[end["cell"]], set()).add(net.get("id"))
-  return len(left), len(right), max([len(n) for n in into.values()] or [0])
+    rows = [place[source]] + [place[owner_of[end["cell"]]] for end in loads]
+    spans.append((min(rows), max(rows)))
+  across = max([sum(1 for top, bottom in spans if top <= gap < bottom)
+                for gap in range(len(order) - 1)] or [0])
+  return len(left), len(right), across
 
 
 def _pack_gap(doc, nodes, mode):
@@ -33340,7 +33410,7 @@ def render_symbol(symbol, zoom=4.0, margin=16.0, font_scale=1.0):
   out.append("</svg>")
   return "\n".join(out) + "\n"
 <<<<<<<<<< DLBUNDLE END path=drawlogic/render_svg.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/routing.py lines=1316 sha256=8b2bb65de27a6dca5835dde9e576d8e2aa1fca926d98c0e57d248a3f988e5e84 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/routing.py lines=1522 sha256=39d2b4f198eec16ee626411a9ff4f3b2100366c9f78cd5bd7040a61b38449055 >>>>>>>>>>
 """Turning net endpoints into drawable wire paths.
 
 Endpoints are stored as pin references, never as coordinates, so a wire is
@@ -33361,6 +33431,8 @@ one continuous line. Routes also avoid other cells: no leg is drawn without
 checking it clears every cell the wire is not connected to. A net's
 `waypoints` force the route through given points.
 """
+
+import heapq
 
 from . import theme
 from .geometry import corners, label_lines
@@ -33397,6 +33469,12 @@ HOP_GAP = drc.HOP_GAP
 
 # How finely a sheet files the runs it has reserved, in drawing units.
 RUN_BUCKET = 32.0
+
+# The path-finder: how far past the two ends it looks, what a bend costs in
+# wire length, and what running alongside or across another wire costs.
+MAZE_REACH = 300.0
+MAZE_BEND = 30.0
+MAZE_CROSSING = 20.0
 
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")
@@ -33630,15 +33708,15 @@ def side_label_boxes(doc, registry=None):
     if box is not None:
       pad = drc.TEXT_TO_WIRE
       boxes.append((box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad))
-  # A container's title is text in the same way: a wire along a header band
-  # struck the title through. The whole depth of the band, as wide as the
-  # words -- a wire may still cross the band beside them, into the box.
-  from . import containers, styles
+  # A container's header band is solid, like a cell: a wire along it struck
+  # the title through, and one crossing it -- beside the words, into the box
+  # -- cut the band in two. Kept a cell's clearance off, its own wires too,
+  # so a wire into a container comes in through a side or the bottom.
+  from . import containers
   for box in doc.containers:
-    written = containers.title_box(styles.effective(doc.styles, box),
-                                   doc.font_scale, drc.TEXT_TO_WIRE)
-    if written is not None:
-      boxes.append(written)
+    band = containers.header_box(box, CLEARANCE)
+    if band is not None:
+      boxes.append(band)
   return boxes
 
 
@@ -34211,6 +34289,201 @@ def _middle_route(a, b, a_dir, b_dir, sheet):
   return _route_corner(a, b, a_dir, b_dir, sheet, a_horizontal)
 
 
+def _path_ok(points, sheet):
+  """True if no leg of a path runs through an obstacle or along an outline."""
+  for p, q in zip(points, points[1:]):
+    if not _leg_clear(p, q, sheet.boxes):
+      return False
+    if not _off_borders(p, q, sheet):
+      return False
+  return True
+
+
+def _off_borders(p, q, sheet):
+  """True if one axis-aligned run keeps CLEARANCE off every outline it runs
+  beside. The same question free() asks first, without the other wires."""
+  if abs(p[1] - q[1]) < EPSILON:
+    horizontal, fixed, lo, hi = True, p[1], min(p[0], q[0]), max(p[0], q[0])
+  elif abs(p[0] - q[0]) < EPSILON:
+    horizontal, fixed, lo, hi = False, p[0], min(p[1], q[1]), max(p[1], q[1])
+  else:
+    return True
+  for border_h, border_fixed, border_lo, border_hi in sheet._borders:
+    if (border_h == horizontal and abs(border_fixed - fixed) < CLEARANCE
+        and not (hi + EPSILON < border_lo or lo - EPSILON > border_hi)):
+      return False
+  return True
+
+
+def _maze_lines(ends, boxes, borders, horizontal):
+  """The lines a found path may run on, across one axis: through each end,
+  just outside each obstacle and a clearance off each outline."""
+  axis = 1 if horizontal else 0
+  base = set(end[axis] for end in ends)
+  for box in boxes:
+    base.add(box[axis] - 1.0)
+    base.add(box[axis + 2] + 1.0)
+  for border_h, border_fixed, _lo, _hi in borders:
+    if border_h == horizontal:
+      base.add(border_fixed - CLEARANCE)
+      base.add(border_fixed + CLEARANCE)
+  # And the middle of each gap wide enough for a wire to keep clear of both
+  # sides; a narrower one is crossed, not run along, and its lines would only
+  # make the search slower.
+  ordered = sorted(base)
+  lines = set(ordered)
+  for one, other in zip(ordered, ordered[1:]):
+    if other - one > 2 * WIRE_GAP:
+      lines.add((one + other) / 2.0)
+  return sorted(lines)
+
+
+# Directions as (dx, dy), indexed: right, left, down, up.
+_DIRECTIONS = ((1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0))
+
+
+def _direction_index(vector):
+  if abs(vector[0]) >= abs(vector[1]):
+    return 0 if vector[0] > 0 else 1
+  return 2 if vector[1] > 0 else 3
+
+
+def _find_path(a, b, a_dir, b_dir, sheet):
+  """A path from stub end to stub end around everything, or None.
+
+  The fixed shapes above -- a corner, a crossover, a detour -- cover nearly
+  every wire, and a wire they cannot place used to be drawn through whatever
+  was in the way. A wire into a container from above is the common case: the
+  header band is solid, and the way in is round the side, under the box and
+  up, which no fixed shape reaches. So when they fail, this searches for the
+  shortest path over a grid of lines through the gaps, counting each bend
+  as wire, a run beside another wire as its length again and a crossing as
+  a bridge's worth. Running closer to another wire than a cell is kept, or
+  along an outline, is never allowed. It looks only MAZE_REACH past the two ends, which keeps it
+  quick and keeps a wire from setting off round the whole sheet.
+  """
+  lo_x = min(a[0], b[0]) - MAZE_REACH
+  hi_x = max(a[0], b[0]) + MAZE_REACH
+  lo_y = min(a[1], b[1]) - MAZE_REACH
+  hi_y = max(a[1], b[1]) + MAZE_REACH
+  # The net's own cells are kept at a clearance too, as every other cell is:
+  # the stub ends stand outside it, and without it a found path would run
+  # a unit off the very block it is going into.
+  padded = [(x0 - CLEARANCE, y0 - CLEARANCE, x1 + CLEARANCE, y1 + CLEARANCE)
+            for x0, y0, x1, y1 in sheet.own]
+  boxes = [box for box in list(sheet.boxes) + padded
+           if box[2] >= lo_x and box[0] <= hi_x and box[3] >= lo_y and box[1] <= hi_y]
+  for end in (a, b):
+    if not _vertical_clear(end[0], end[1], end[1], boxes):
+      return None
+  borders = [border for border in sheet._borders
+             if (border[1] >= (lo_y if border[0] else lo_x)
+                 and border[1] <= (hi_y if border[0] else hi_x))]
+  xs = [x for x in _maze_lines((a, b), boxes, borders, False) if lo_x <= x <= hi_x]
+  ys = [y for y in _maze_lines((a, b), boxes, borders, True) if lo_y <= y <= hi_y]
+  column = dict((x, i) for i, x in enumerate(xs))
+  row = dict((y, j) for j, y in enumerate(ys))
+  start = (column[a[0]], row[a[1]])
+  goal = (column[b[0]], row[b[1]])
+  first = _direction_index(a_dir)
+  # The last run goes into the pin, against the way its stub points out.
+  last = _direction_index((-b_dir[0], -b_dir[1]))
+
+  def step_cost(p, q):
+    """What one grid step costs over its length, or None if it is barred."""
+    if not _leg_clear(p, q, boxes):
+      return None
+    if abs(p[1] - q[1]) < EPSILON:
+      horizontal, fixed, v0, v1 = True, p[1], p[0], q[0]
+    else:
+      horizontal, fixed, v0, v1 = False, p[0], p[1], q[1]
+    # Most steps are clear of everything, so the fussiest question first.
+    if sheet.free(horizontal, fixed, v0, v1, True, WIRE_GAP):
+      return abs(v1 - v0)
+    # Closer than a cell is kept, two wires read as one: barred, not priced.
+    if not sheet.free(horizontal, fixed, v0, v1, False, CLEARANCE):
+      return None
+    if not sheet.free(horizontal, fixed, v0, v1, False, WIRE_GAP):
+      return 2 * abs(v1 - v0)
+    return abs(v1 - v0) + MAZE_CROSSING
+
+  def ahead(node, heading):
+    """No path from here costs less than this: A*'s estimate, which keeps
+    the search heading for the goal instead of flooding the window. The
+    distance, and the bends still owed: one to come round to the way the
+    wire must arrive, or two to get back onto its line if it is already
+    heading that way beside it or past it."""
+    dx, dy = b[0] - xs[node[0]], b[1] - ys[node[1]]
+    owed = 1
+    if heading == last:
+      along, across = ((dx * _DIRECTIONS[last][0], dy) if last < 2
+                       else (dy * _DIRECTIONS[last][1], dx))
+      owed = 0 if (abs(across) < EPSILON and along >= -EPSILON) else 2
+    return abs(dx) + abs(dy) + owed * MAZE_BEND
+
+  steps = {}
+  best = {(start, first): 0.0}
+  came = {}
+  # Ties on the estimate go to the path that has come furthest, which is
+  # the one nearest the goal: the search runs down one way instead of
+  # widening across every equally good one.
+  queue = [(ahead(start, first), 0.0, 0, start, first)]
+  count = 1
+  found = None
+  while queue:
+    _estimate, cost, _order, node, heading = heapq.heappop(queue)
+    cost = -cost
+    if cost > best.get((node, heading), float("inf")):
+      continue
+    if node == goal:
+      if heading == last:
+        found = (node, heading)
+        break
+      # Arriving the wrong way costs a bend at the stub, or is barred if
+      # it would come in through the pin's own cell.
+      if heading != _direction_index(b_dir):
+        turned = cost + MAZE_BEND
+        if turned < best.get((node, last), float("inf")):
+          best[(node, last)] = turned
+          came[(node, last)] = (node, heading)
+          heapq.heappush(queue, (turned + ahead(node, last), -turned, count, node, last))
+          count += 1
+      continue
+    for index, (dx, dy) in enumerate(_DIRECTIONS):
+      if index == heading ^ 1:
+        continue
+      i, j = node[0] + int(dx), node[1] + int(dy)
+      if not (0 <= i < len(xs) and 0 <= j < len(ys)):
+        continue
+      key = (node, (i, j))
+      if key not in steps:
+        p, q = (xs[node[0]], ys[node[1]]), (xs[i], ys[j])
+        length = step_cost(p, q)
+        if length is not None and not _off_borders(p, q, sheet):
+          length = None
+        steps[key] = length
+      length = steps[key]
+      if length is None:
+        continue
+      total = cost + length + (MAZE_BEND if index != heading else 0.0)
+      state = ((i, j), index)
+      if total < best.get(state, float("inf")):
+        best[state] = total
+        came[state] = (node, heading)
+        heapq.heappush(queue, (total + ahead((i, j), index), -total, count, (i, j), index))
+        count += 1
+  if found is None:
+    return None
+  nodes = [found[0]]
+  state = found
+  while state in came:
+    state = came[state]
+    if state[0] != nodes[-1]:
+      nodes.append(state[0])
+  nodes.reverse()
+  return _clean([(xs[i], ys[j]) for i, j in nodes])
+
+
 def _direct_route(start, end, start_dir, end_dir, sheet,
                   start_stub=STUB, end_stub=STUB):
   """Route between two pins with no waypoints to honour.
@@ -34226,7 +34499,10 @@ def _direct_route(start, end, start_dir, end_dir, sheet,
   b_dir = end_dir or _free_direction(end, start)
   a = _stub_end(start, a_dir, start_stub) if start_dir else start
   b = _stub_end(end, b_dir, end_stub) if end_dir else end
-  return [start] + _middle_route(a, b, a_dir, b_dir, sheet) + [end]
+  middle = _middle_route(a, b, a_dir, b_dir, sheet)
+  if not _path_ok(middle, sheet):
+    middle = _find_path(a, b, a_dir, b_dir, sheet) or middle
+  return [start] + middle + [end]
 
 
 def route(doc, net, registry=None, sheet=None):
@@ -42214,7 +42490,7 @@ textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
 </body>
 </html>
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/index.html >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/geometry.js lines=734 sha256=8aa5c3aa2c0e13d76fb991acd8c6053ccc20f67d96149d9d3ece5e458073fc37 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/geometry.js lines=732 sha256=aee6eed86ff1f46cc1c5324fc881a784f33e111e22610595da2df5ba3229ffd2 >>>>>>>>>>
 // Affine geometry. A direct port of drawlogic/geometry.py -- the canvas and
 // the exporter must place a pin in exactly the same spot.
 
@@ -42604,16 +42880,14 @@ export function containerTitleLayout(box, fontScale = 1) {
   return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, paint];
 }
 
-// The room a container's title takes in its header band, as [x0, y0, x1, y1]
-// padded by `pad` across: the whole depth of the band, as wide as the words.
-// Mirrors containers.title_box.
-export function containerTitleBox(box, fontScale = 1, pad = 0) {
-  const title = containerTitleLayout(box, fontScale);
-  if (!title || !title[2]) return null;
-  const [x, , text, paint] = title;
+// A container's header band, as [x0, y0, x1, y1] grown by `pad` all round,
+// or null for a box with no band. Mirrors containers.header_box.
+export function containerHeaderBox(box, pad = 0) {
   const depth = Math.min(containerHeader(box), Number(box.h));
-  return [x - pad, Number(box.y), x + text.length * paint.size * containerTheme.char + pad,
-          Number(box.y) + depth];
+  if (!(depth > 0)) return null;
+  const x = Number(box.x);
+  const y = Number(box.y);
+  return [x - pad, y - pad, x + Number(box.w) + pad, y + depth + pad];
 }
 
 // The look an item is drawn with: its named style, if it names one that is
@@ -51303,7 +51577,7 @@ export function symbolThumbnail(symbol, boxSize = 34, maxHeight = null) {
   return svg;
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/render.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/routing.js lines=992 sha256=91eccfba99b93c6c129ad7750df4466ad9604cc3c2888cd7291d9191931af587 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/routing.js lines=1219 sha256=97d65f25adf083ca3d46e1530fab023524195427bb90ad9dc33f7a7c69caf033 >>>>>>>>>>
 // Wire routing. A port of drawlogic/routing.py.
 //
 // Endpoints are pin references, never coordinates, so a wire is re-resolved
@@ -51497,12 +51771,11 @@ export function sideLabelBoxes(doc) {
     const pad = limits.textToWire;
     boxes.push([box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad]);
   }
-  // A container's title, as routing.side_label_boxes keeps wires off it.
-  const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+  // A container's header band is solid, like a cell; see
+  // routing.side_label_boxes.
   for (const box of doc.containers || []) {
-    const written = geometry.containerTitleBox(geometry.effectiveStyle(doc.styles, box),
-                                               fontScale, limits.textToWire);
-    if (written) boxes.push(written);
+    const band = geometry.containerHeaderBox(box, limits.wireToCell);
+    if (band) boxes.push(band);
   }
   return boxes;
 }
@@ -51949,13 +52222,241 @@ function middleRoute(a, b, aDir, bDir, sheet) {
 // allowed to turn. That short stub is what makes the joint at, say, a
 // flip-flop clock pin read as a continuation of the wire instead of a line
 // that arrived from the wrong side.
+// The path-finder's reach past the two ends, and what a bend, and a crossing,
+// cost in wire length. Mirrors MAZE_* in routing.py.
+const MAZE_REACH = 300;
+const MAZE_BEND = 30;
+const MAZE_CROSSING = 20;
+
+// True if no leg of a path runs through an obstacle or along an outline.
+function pathOk(points, sheet) {
+  for (let i = 0; i < points.length - 1; i += 1) {
+    if (!legClear(points[i], points[i + 1], sheet.boxes)) return false;
+    if (!offBorders(points[i], points[i + 1], sheet)) return false;
+  }
+  return true;
+}
+
+// True if one axis-aligned run keeps a cell's clearance off every outline it
+// runs beside.
+function offBorders(p, q, sheet) {
+  let horizontal;
+  let fixed;
+  let lo;
+  let hi;
+  if (Math.abs(p[1] - q[1]) < EPSILON) {
+    [horizontal, fixed, lo, hi] = [true, p[1], Math.min(p[0], q[0]), Math.max(p[0], q[0])];
+  } else if (Math.abs(p[0] - q[0]) < EPSILON) {
+    [horizontal, fixed, lo, hi] = [false, p[0], Math.min(p[1], q[1]), Math.max(p[1], q[1])];
+  } else {
+    return true;
+  }
+  for (const [borderH, borderFixed, borderLo, borderHi] of sheet.borders) {
+    if (borderH === horizontal && Math.abs(borderFixed - fixed) < limits.wireToCell
+        && !(hi + EPSILON < borderLo || lo - EPSILON > borderHi)) return false;
+  }
+  return true;
+}
+
+// The lines a found path may run on, across one axis; see routing._maze_lines.
+function mazeLines(ends, boxes, borders, horizontal) {
+  const axis = horizontal ? 1 : 0;
+  const base = new Set(ends.map((end) => end[axis]));
+  for (const box of boxes) {
+    base.add(box[axis] - 1);
+    base.add(box[axis + 2] + 1);
+  }
+  for (const [borderH, borderFixed] of borders) {
+    if (borderH === horizontal) {
+      base.add(borderFixed - limits.wireToCell);
+      base.add(borderFixed + limits.wireToCell);
+    }
+  }
+  const ordered = [...base].sort((p, q) => p - q);
+  const lines = new Set(ordered);
+  for (let i = 0; i < ordered.length - 1; i += 1) {
+    if (ordered[i + 1] - ordered[i] > 2 * limits.wireGap) {
+      lines.add((ordered[i] + ordered[i + 1]) / 2);
+    }
+  }
+  return [...lines].sort((p, q) => p - q);
+}
+
+// Directions as [dx, dy], indexed: right, left, down, up.
+const DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+function directionIndex(vector) {
+  if (Math.abs(vector[0]) >= Math.abs(vector[1])) return vector[0] > 0 ? 0 : 1;
+  return vector[1] > 0 ? 2 : 3;
+}
+
+// A binary heap of [estimate, -cost, order, ...], smallest first, compared
+// field by field as Python compares the tuples routing._find_path pushes.
+function heapLess(p, q) {
+  for (let i = 0; i < 3; i += 1) {
+    if (p[i] !== q[i]) return p[i] < q[i];
+  }
+  return false;
+}
+
+function heapPush(heap, entry) {
+  heap.push(entry);
+  let i = heap.length - 1;
+  while (i > 0) {
+    const parent = (i - 1) >> 1;
+    if (!heapLess(heap[i], heap[parent])) break;
+    [heap[i], heap[parent]] = [heap[parent], heap[i]];
+    i = parent;
+  }
+}
+
+function heapPop(heap) {
+  const top = heap[0];
+  const last = heap.pop();
+  if (heap.length) {
+    heap[0] = last;
+    let i = 0;
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = l + 1;
+      let m = i;
+      if (l < heap.length && heapLess(heap[l], heap[m])) m = l;
+      if (r < heap.length && heapLess(heap[r], heap[m])) m = r;
+      if (m === i) break;
+      [heap[i], heap[m]] = [heap[m], heap[i]];
+      i = m;
+    }
+  }
+  return top;
+}
+
+// A path from stub end to stub end around everything, or null, for when the
+// fixed shapes cannot place a wire. Mirrors routing._find_path, which says why.
+function findPath(a, b, aDir, bDir, sheet) {
+  const loX = Math.min(a[0], b[0]) - MAZE_REACH;
+  const hiX = Math.max(a[0], b[0]) + MAZE_REACH;
+  const loY = Math.min(a[1], b[1]) - MAZE_REACH;
+  const hiY = Math.max(a[1], b[1]) + MAZE_REACH;
+  const c = limits.wireToCell;
+  const padded = sheet.own.map(([x0, y0, x1, y1]) => [x0 - c, y0 - c, x1 + c, y1 + c]);
+  const boxes = [...sheet.boxes, ...padded].filter((box) =>
+    box[2] >= loX && box[0] <= hiX && box[3] >= loY && box[1] <= hiY);
+  for (const end of [a, b]) {
+    if (!verticalClear(end[0], end[1], end[1], boxes)) return null;
+  }
+  const borders = sheet.borders.filter((border) =>
+    border[1] >= (border[0] ? loY : loX) && border[1] <= (border[0] ? hiY : hiX));
+  const xs = mazeLines([a, b], boxes, borders, false).filter((x) => loX <= x && x <= hiX);
+  const ys = mazeLines([a, b], boxes, borders, true).filter((y) => loY <= y && y <= hiY);
+  const column = new Map(xs.map((x, i) => [x, i]));
+  const row = new Map(ys.map((y, j) => [y, j]));
+  const start = [column.get(a[0]), row.get(a[1])];
+  const goal = [column.get(b[0]), row.get(b[1])];
+  const first = directionIndex(aDir);
+  const last = directionIndex([-bDir[0], -bDir[1]]);
+  const backwards = directionIndex(bDir);
+
+  const stepCost = (p, q) => {
+    if (!legClear(p, q, boxes)) return null;
+    let horizontal;
+    let fixed;
+    let v0;
+    let v1;
+    if (Math.abs(p[1] - q[1]) < EPSILON) [horizontal, fixed, v0, v1] = [true, p[1], p[0], q[0]];
+    else [horizontal, fixed, v0, v1] = [false, p[0], p[1], q[1]];
+    if (sheet.free(horizontal, fixed, v0, v1, true, limits.wireGap)) return Math.abs(v1 - v0);
+    if (!sheet.free(horizontal, fixed, v0, v1, false, limits.wireToCell)) return null;
+    if (!sheet.free(horizontal, fixed, v0, v1, false, limits.wireGap)) return 2 * Math.abs(v1 - v0);
+    return Math.abs(v1 - v0) + MAZE_CROSSING;
+  };
+
+  const ahead = (node, heading) => {
+    const dx = b[0] - xs[node[0]];
+    const dy = b[1] - ys[node[1]];
+    let owed = 1;
+    if (heading === last) {
+      const [along, across] = last < 2 ? [dx * DIRECTIONS[last][0], dy]
+        : [dy * DIRECTIONS[last][1], dx];
+      owed = (Math.abs(across) < EPSILON && along >= -EPSILON) ? 0 : 2;
+    }
+    return Math.abs(dx) + Math.abs(dy) + owed * MAZE_BEND;
+  };
+
+  const stateKey = (node, heading) => `${node[0]},${node[1]},${heading}`;
+  const steps = new Map();
+  const best = new Map([[stateKey(start, first), 0]]);
+  const came = new Map();
+  const queue = [[ahead(start, first), 0, 0, start, first]];
+  let count = 1;
+  let found = null;
+  while (queue.length) {
+    const [, negative, , node, heading] = heapPop(queue);
+    const cost = -negative;
+    const here = stateKey(node, heading);
+    if (cost > (best.has(here) ? best.get(here) : Infinity)) continue;
+    if (node[0] === goal[0] && node[1] === goal[1]) {
+      if (heading === last) {
+        found = [node, heading];
+        break;
+      }
+      if (heading !== backwards) {
+        const turned = cost + MAZE_BEND;
+        const key = stateKey(node, last);
+        if (turned < (best.has(key) ? best.get(key) : Infinity)) {
+          best.set(key, turned);
+          came.set(key, [node, heading]);
+          heapPush(queue, [turned + ahead(node, last), -turned, count, node, last]);
+          count += 1;
+        }
+      }
+      continue;
+    }
+    for (let index = 0; index < 4; index += 1) {
+      if (index === (heading ^ 1)) continue;
+      const i = node[0] + DIRECTIONS[index][0];
+      const j = node[1] + DIRECTIONS[index][1];
+      if (!(i >= 0 && i < xs.length && j >= 0 && j < ys.length)) continue;
+      const stepKey = `${node[0]},${node[1]},${i},${j}`;
+      if (!steps.has(stepKey)) {
+        const p = [xs[node[0]], ys[node[1]]];
+        const q = [xs[i], ys[j]];
+        let length = stepCost(p, q);
+        if (length !== null && !offBorders(p, q, sheet)) length = null;
+        steps.set(stepKey, length);
+      }
+      const length = steps.get(stepKey);
+      if (length === null) continue;
+      const total = cost + length + (index !== heading ? MAZE_BEND : 0);
+      const key = stateKey([i, j], index);
+      if (total < (best.has(key) ? best.get(key) : Infinity)) {
+        best.set(key, total);
+        came.set(key, [node, heading]);
+        heapPush(queue, [total + ahead([i, j], index), -total, count, [i, j], index]);
+        count += 1;
+      }
+    }
+  }
+  if (!found) return null;
+  const nodes = [found[0]];
+  let state = found;
+  while (came.has(stateKey(state[0], state[1]))) {
+    state = came.get(stateKey(state[0], state[1]));
+    const tail = nodes[nodes.length - 1];
+    if (state[0][0] !== tail[0] || state[0][1] !== tail[1]) nodes.push(state[0]);
+  }
+  nodes.reverse();
+  return clean(nodes.map(([i, j]) => [xs[i], ys[j]]));
+}
+
 function directRoute(start, end, startDir, endDir, sheet,
                      startStub = STUB, endStub = STUB) {
   const aDir = startDir || freeDirection(start, end);
   const bDir = endDir || freeDirection(end, start);
   const a = startDir ? stubEnd(start, aDir, startStub) : start;
   const b = endDir ? stubEnd(end, bDir, endStub) : end;
-  return [start, ...middleRoute(a, b, aDir, bDir, sheet), end];
+  let middle = middleRoute(a, b, aDir, bDir, sheet);
+  if (!pathOk(middle, sheet)) middle = findPath(a, b, aDir, bDir, sheet) || middle;
+  return [start, ...middle, end];
 }
 
 function elbow(a, b, horizontalFirst) {
@@ -56018,14 +56519,14 @@ def _whole(bits, nets, label, text):
   }
 }
 <<<<<<<<<< DLBUNDLE END path=examples/components/core.dlg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=examples/components/ooo_core.dlg lines=720 sha256=c2ad70b5db76789a48f2ca76741cbc6856ee2cdb48e37be5966813c3813e02ea >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=examples/components/ooo_core.dlg lines=720 sha256=0c3294373829f3922403d26e6bc7b5a24e7d3482ad1148b8d3097fe437eae2ae >>>>>>>>>>
 {
   "format": "drawlogic",
   "version": 2,
   "title": "Out-of-order core",
   "canvas": {
     "width": 3060,
-    "height": 823,
+    "height": 839,
     "background": "#ffffff",
     "grid": {
       "style": "blank",
@@ -56045,7 +56546,7 @@ def _whole(bits, nets, label, text):
       "id": "po_ring",
       "type": "port_out",
       "x": 2944.0,
-      "y": 283.0,
+      "y": 299.0,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -56177,7 +56678,7 @@ def _whole(bits, nets, label, text):
       "parentId": "oe",
       "type": "block",
       "x": 1224.0,
-      "y": 262.0,
+      "y": 270.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56194,7 +56695,7 @@ def _whole(bits, nets, label, text):
       "parentId": "oe",
       "type": "block8",
       "x": 1224.0,
-      "y": 382.0,
+      "y": 398.0,
       "w": 180.0,
       "h": 160.0,
       "rotate": 0,
@@ -56211,7 +56712,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ex",
       "type": "block",
       "x": 1572.0,
-      "y": 383.0,
+      "y": 399.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56228,7 +56729,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ex",
       "type": "block",
       "x": 1572.0,
-      "y": 623.0,
+      "y": 639.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56245,7 +56746,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ex",
       "type": "block",
       "x": 1572.0,
-      "y": 503.0,
+      "y": 519.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56262,7 +56763,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ex",
       "type": "block",
       "x": 1572.0,
-      "y": 263.0,
+      "y": 279.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56279,7 +56780,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ms",
       "type": "block6",
       "x": 1862.0,
-      "y": 264.0,
+      "y": 280.0,
       "w": 182,
       "h": 120.0,
       "rotate": 0,
@@ -56296,7 +56797,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ms",
       "type": "block",
       "x": 2154.0,
-      "y": 263.0,
+      "y": 279.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56313,7 +56814,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ms",
       "type": "block6",
       "x": 2404.0,
-      "y": 264.0,
+      "y": 280.0,
       "w": 160.0,
       "h": 120.0,
       "rotate": 0,
@@ -56330,7 +56831,7 @@ def _whole(bits, nets, label, text):
       "parentId": "ms",
       "type": "block",
       "x": 2674.0,
-      "y": 263.0,
+      "y": 279.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -56655,7 +57156,7 @@ def _whole(bits, nets, label, text):
       "x": 1186.0,
       "y": 90.0,
       "w": 256.0,
-      "h": 472.0,
+      "h": 488.0,
       "padding": 20,
       "headerHeight": 32,
       "layout": {
@@ -56668,7 +57169,7 @@ def _whole(bits, nets, label, text):
       "id": "ex",
       "title": "Execution ports",
       "x": 1552.0,
-      "y": 211.0,
+      "y": 227.0,
       "w": 180.0,
       "h": 522.0,
       "padding": 20,
@@ -56683,7 +57184,7 @@ def _whole(bits, nets, label, text):
       "id": "ms",
       "title": "Memory subsystem",
       "x": 1842.0,
-      "y": 211.0,
+      "y": 227.0,
       "w": 992.0,
       "h": 193.0,
       "padding": 20,
@@ -56990,14 +57491,14 @@ def _whole(bits, nets, label, text):
   }
 }
 <<<<<<<<<< DLBUNDLE END path=examples/components/sm.dlg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=examples/cpu_arch.dlg lines=659 sha256=f773387bcd610f423cb6759c185b3527ca6be0d80294612b214ad409f628b2c8 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=examples/cpu_arch.dlg lines=659 sha256=dc0a11e7610517d07cec791ad3c686ae77826a4d163c83da44c1114859ea3160 >>>>>>>>>>
 {
   "format": "drawlogic",
   "version": 2,
   "title": "CPU architecture -- a quad-core SoC built from linked cores",
   "canvas": {
     "width": 2075,
-    "height": 988,
+    "height": 1012,
     "background": "#ffffff",
     "grid": {
       "style": "blank",
@@ -57082,7 +57583,7 @@ def _whole(bits, nets, label, text):
       "parentId": "uncore",
       "type": "block8",
       "x": 1070.0,
-      "y": 386.0,
+      "y": 394.0,
       "w": 180.0,
       "h": 160.0,
       "rotate": 0,
@@ -57099,7 +57600,7 @@ def _whole(bits, nets, label, text):
       "parentId": "uncore",
       "type": "block",
       "x": 1070.0,
-      "y": 768.0,
+      "y": 792.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -57184,7 +57685,7 @@ def _whole(bits, nets, label, text):
       "parentId": "sa",
       "type": "block",
       "x": 1304.0,
-      "y": 628.0,
+      "y": 644.0,
       "w": 164,
       "h": 90.0,
       "rotate": 0,
@@ -57201,7 +57702,7 @@ def _whole(bits, nets, label, text):
       "parentId": "sa",
       "type": "block",
       "x": 1542.0,
-      "y": 628.0,
+      "y": 644.0,
       "w": 164,
       "h": 90.0,
       "rotate": 0,
@@ -57218,7 +57719,7 @@ def _whole(bits, nets, label, text):
       "parentId": "sa",
       "type": "block",
       "x": 1090.0,
-      "y": 628.0,
+      "y": 644.0,
       "w": 140.0,
       "h": 90.0,
       "rotate": 0,
@@ -57234,7 +57735,7 @@ def _whole(bits, nets, label, text):
       "id": "ddr",
       "type": "port_out",
       "x": 1946.0,
-      "y": 648.0,
+      "y": 664.0,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -57246,7 +57747,7 @@ def _whole(bits, nets, label, text):
       "id": "pcie_io",
       "type": "port_out",
       "x": 1946.0,
-      "y": 612.0,
+      "y": 628.0,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -57258,7 +57759,7 @@ def _whole(bits, nets, label, text):
       "id": "disp",
       "type": "port_out",
       "x": 1946.0,
-      "y": 684.0,
+      "y": 700.0,
       "w": 20.0,
       "h": 10.0,
       "rotate": 0,
@@ -57465,7 +57966,7 @@ def _whole(bits, nets, label, text):
       "x": 90.0,
       "y": 90.0,
       "w": 1746.0,
-      "h": 808.0,
+      "h": 832.0,
       "padding": 20,
       "headerHeight": 32,
       "layout": {
@@ -57501,7 +58002,7 @@ def _whole(bits, nets, label, text):
       "x": 1014.0,
       "y": 142.0,
       "w": 802.0,
-      "h": 736.0,
+      "h": 760.0,
       "padding": 20,
       "headerHeight": 32,
       "layout": {
@@ -57531,7 +58032,7 @@ def _whole(bits, nets, label, text):
       "parentId": "uncore",
       "title": "System agent",
       "x": 1070.0,
-      "y": 576.0,
+      "y": 592.0,
       "w": 656.0,
       "h": 162.0,
       "padding": 20,
@@ -62065,20 +62566,20 @@ def _whole(bits, nets, label, text):
   "groups": []
 }
 <<<<<<<<<< DLBUNDLE END path=examples/spi_master.dlg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=2dd0bef15ac31f5eaa8ee80cebafe1bdb6a8584f1e6cb36a895734d627f77555 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=07b669cebcffa53c5bf9bb73595ef03f28a0a261065b78f21265ecb7d25205dc >>>>>>>>>>
 86844009d34ccd786913c5d047f5e75cf14c1873432da49e3c93cd7bef19d099  drawlogic/__init__.py
 dd0c5bff5a05b805b0c08c7db6118605c86deb1d2746ad6d9c9124c4d667b0ee  drawlogic/__main__.py
 b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/authoring.py
 68de8cc30ed580e5ace9fd9ac02f024ff287f80369ac8e723d4944921ebbd9bb  drawlogic/cli.py
 b566b7ea7055ab7310dc058660b780b52392cac9714d5b7b40c7d85b4b079c3d  drawlogic/components.py
-cf2e2b9cb8d00733d8bb77784f1d00252c662a512901d736e2abe0cfaa8342a1  drawlogic/containers.py
+d56c22b61af2c2c593a83aa2f128084e3ccd788aefb149d39b41bd1c609c631f  drawlogic/containers.py
 1d888f4c29105ee6762815ca988c542faab242c2d7fb820f9ee7e2fbd0d53d2e  drawlogic/doc.py
-6fa934b82fe51168203a24d3d94700aca9bc957e5190f40f64741f375448840f  drawlogic/drc.py
+66234eb055ccea739b3b4152235af63d7e6a2460c25950734e5cf6a874e58b53  drawlogic/drc.py
 dde231e36f130f2efffc7570b31e3745523c948c9439a1361053b70c3bab3990  drawlogic/geometry.py
 dc226a23d4bca7d73e349aa340e94e7319f6811d27d32ec6a1db78d5e80b7e1c  drawlogic/hdl.py
-d268bc385662ffd3784def74dd926667072f62d2b92f60b5c0c7619b55998b9f  drawlogic/layout.py
+8e39e5718329f46737c0bf76d333e774f8ed57f76bbdbab4c7dbe36cb560200d  drawlogic/layout.py
 cf168ab719e253cfe26cc9068ae550220c3666ef965da6b29d3ed5008ef31f57  drawlogic/render_svg.py
-8b2bb65de27a6dca5835dde9e576d8e2aa1fca926d98c0e57d248a3f988e5e84  drawlogic/routing.py
+39d2b4f198eec16ee626411a9ff4f3b2100366c9f78cd5bd7040a61b38449055  drawlogic/routing.py
 552b3dfca066ab7e512edd6cf95aac1443aa8f277ba72b7fc6ca8d9fd1a9aa02  drawlogic/rtl.py
 7bf84d0ba516880340e184e9830d3d347c7abdae1af76b88364278118790b9a6  drawlogic/server.py
 1cd6bd69f69f8390bd5606917da09403a4a46417c53c016c71c635201d482741  drawlogic/sheets.py
@@ -62088,7 +62589,7 @@ b96fd4db05911a5bf353b1853d09c5401e4a924ee9588214ee3ccb3ae73248da  drawlogic/styl
 e7c23cfa5d99d49ffcd75ddda021bddb61afb6bb3fecf47cc8ab200988afa04b  drawlogic/theme.py
 685aa70cd4753b437eac6b1150e45b9f121437f8d417eedc22da5b91f5cf5465  drawlogic/web/css/app.css
 00fed238979d00998fb16a2f3e3e1ce6a0e01a1715c1511af018f846eadfa9b8  drawlogic/web/index.html
-8aa5c3aa2c0e13d76fb991acd8c6053ccc20f67d96149d9d3ece5e458073fc37  drawlogic/web/js/geometry.js
+aee6eed86ff1f46cc1c5324fc881a784f33e111e22610595da2df5ba3229ffd2  drawlogic/web/js/geometry.js
 c0fc21fb73261b87f7c837e4d30bffbbf461b96efbb5bc2a07ae6fb74c8e3f12  drawlogic/web/js/guides.js
 c30a75f7a75995fae3cd6716fc49fb509030764bd455747daa3a8c3577ff37ed  drawlogic/web/js/main.js
 652de8cb6fabdb45bccc9081c8f120aad7add974ea08e2f0ed78a4bbfa2e0c3a  drawlogic/web/js/menus.js
@@ -62098,7 +62599,7 @@ fc89b8ff8678e27cc3c7a1396a420c27458a1e86e275dc1446c5d1f499459643  drawlogic/web/
 5cb2c07d2409346288029e9509671ed16a50b4316e605f8575adf5e6a23146f7  drawlogic/web/js/prefs.js
 09f268a86b57db231f600bd19a57b8005feb784842d48f70c0325d041af59a8a  drawlogic/web/js/recovery.js
 eaa7cac510f6b56d406c30474df1214b0a1abb54b85ddd3972be406a6ebb87ba  drawlogic/web/js/render.js
-91eccfba99b93c6c129ad7750df4466ad9604cc3c2888cd7291d9191931af587  drawlogic/web/js/routing.js
+97d65f25adf083ca3d46e1530fab023524195427bb90ad9dc33f7a7c69caf033  drawlogic/web/js/routing.js
 6308e2ed6b84140c92cc93bd3ce94f04cdc282fee2e4e916ef54ba42fb4a7d33  drawlogic/web/js/selection.js
 7098b8fcd142e3c4affc337aec6d3023ee95ca41518acf1ea19e63b53d484eb3  drawlogic/web/js/shortcuts.js
 1747405609d63894e1a6fd8f10e406a695177ead43b89a3553b8a7aa38e97bd1  drawlogic/web/js/tools.js
@@ -63140,16 +63641,16 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">cdc_fifo</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/cdc_fifo.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cpu_arch.svg lines=350 sha256=357d39cdfa8461ba6d18f19e27eb4a3f7c1d818e4f9c70554740c0374766223f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cpu_arch.svg lines=352 sha256=5c372affdad6442cb65a7d23df3faee93d8a055e3b65888591957aa07513ec7b >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="2075" height="988" viewBox="0 0 2075 988" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="2075" height="1012" viewBox="0 0 2075 1012" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>CPU architecture -- a quad-core SoC built from linked cores</title>
-<rect x="0" y="0" width="2075" height="988" fill="#ffffff" />
+<rect x="0" y="0" width="2075" height="1012" fill="#ffffff" />
 <g class="dl-containers">
 <g class="dl-container" data-id="die">
-<rect class="dl-container-body" x="90" y="90" width="1746" height="808" rx="6" fill="#fbfcfd" stroke="none" />
+<rect class="dl-container-body" x="90" y="90" width="1746" height="832" rx="6" fill="#fbfcfd" stroke="none" />
 <path class="dl-container-header" d="M90 122 V96 A6 6 0 0 1 96 90 H1830 A6 6 0 0 1 1836 96 V122 Z" fill="#1f2a33" />
-<rect class="dl-container-edge" x="90" y="90" width="1746" height="808" rx="6" fill="none" stroke="#5b6b74" stroke-width="1.2" />
+<rect class="dl-container-edge" x="90" y="90" width="1746" height="832" rx="6" fill="none" stroke="#5b6b74" stroke-width="1.2" />
 <text class="dl-container-title" x="100" y="110.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">CPU die</text>
 </g>
 <g class="dl-container" data-id="cores">
@@ -63183,9 +63684,9 @@ def open_example(path):
 <text class="dl-container-title" x="554" y="530.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 3</text>
 </g>
 <g class="dl-container" data-id="uncore">
-<rect class="dl-container-body" x="1014" y="142" width="802" height="736" rx="6" fill="#fbfcfd" stroke="none" />
+<rect class="dl-container-body" x="1014" y="142" width="802" height="760" rx="6" fill="#fbfcfd" stroke="none" />
 <path class="dl-container-header" d="M1014 174 V148 A6 6 0 0 1 1020 142 H1810 A6 6 0 0 1 1816 148 V174 Z" fill="#5b6b74" />
-<rect class="dl-container-edge" x="1014" y="142" width="802" height="736" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
+<rect class="dl-container-edge" x="1014" y="142" width="802" height="760" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
 <text class="dl-container-title" x="1024" y="162.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Uncore</text>
 </g>
 <g class="dl-container" data-id="llc">
@@ -63195,97 +63696,99 @@ def open_example(path):
 <text class="dl-container-title" x="1080" y="214.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Last-level cache  36 MB</text>
 </g>
 <g class="dl-container" data-id="sa">
-<rect class="dl-container-body" x="1070" y="576" width="656" height="162" rx="6" fill="#fbfcfd" stroke="none" />
-<path class="dl-container-header" d="M1070 608 V582 A6 6 0 0 1 1076 576 H1720 A6 6 0 0 1 1726 582 V608 Z" fill="#5b6b74" />
-<rect class="dl-container-edge" x="1070" y="576" width="656" height="162" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
-<text class="dl-container-title" x="1080" y="596.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">System agent</text>
+<rect class="dl-container-body" x="1070" y="592" width="656" height="162" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M1070 624 V598 A6 6 0 0 1 1076 592 H1720 A6 6 0 0 1 1726 598 V624 Z" fill="#5b6b74" />
+<rect class="dl-container-edge" x="1070" y="592" width="656" height="162" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
+<text class="dl-container-title" x="1080" y="612.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">System agent</text>
 </g>
 </g>
 <g class="dl-shapes">
 </g>
 <g class="dl-nets">
-<path class="dl-net" data-id="n_stop0" d="M450 331 L482 331 L482 451.5 L1048 451.5 L1048 412 L1070 412" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_stop1" d="M864 331 L967 331 L967 444 L1043 444 A5 5 0 0 1 1053 444 L1070 444" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_stop2" d="M450 647 L482 647 L482 497.5 L1058 497.5 L1058 488 L1070 488" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_stop3" d="M864 647 L967 647 L967 520 L1070 520" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_llc" d="M1250 444 L1262 444 L1262 367.5 L1058 367.5 L1058 271 L1090 271 M1250 444 L1262 444 L1262 367.5 L1248 367.5 L1248 271 L1260 271 M1250 444 L1262 444 L1262 367.5 L1418 367.5 L1418 271 L1430 271 M1250 444 L1585 444 L1585 271 L1600 271" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_coh" d="M1250 488 L1272 488 L1272 610.5 L1058 610.5 L1058 793 L1070 793" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_sa" d="M1250 520 L1277 520 L1277 653 L1304 653 M1250 520 L1267 520 A5 5 0 0 1 1277 520 L1486 520 L1486 653 L1542 653 M1250 520 L1267 520 A5 5 0 0 1 1277 520 L1292 520 L1292 726.5 L1247 726.5 A5 5 0 0 0 1237 726.5 L1063 726.5 A5 5 0 0 0 1053 726.5 L1038 726.5 L1038 653 L1053 653 A5 5 0 0 1 1063 653 L1090 653" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_ddr" d="M1468 653 L1480 653 L1480 753 L1895 753 A5 5 0 0 1 1905 753 L1920 753 L1920 653 L1946 653" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_pcie" d="M1706 653 L1799 653 L1799 617 L1946 617" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_disp" d="M1230 653 L1242 653 L1242 771 L1900 771 L1900 689 L1915 689 A5 5 0 0 1 1925 689 L1946 689" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="569.5,451.5 562.5,454.65 562.5,448.35" fill="#16202b" />
-<polygon points="809.5,451.5 802.5,454.65 802.5,448.35" fill="#16202b" />
-<polygon points="1058.8,412 1051.8,415.15 1051.8,408.85" fill="#16202b" />
-<polygon points="1034.8,444 1027.8,447.15 1027.8,440.85" fill="#16202b" />
-<polygon points="540.5,497.5 533.5,500.65 533.5,494.35" fill="#16202b" />
-<polygon points="780.5,497.5 773.5,500.65 773.5,494.35" fill="#16202b" />
-<polygon points="770,497.5 763,500.65 763,494.35" fill="#16202b" />
-<polygon points="1058.8,520 1051.8,523.15 1051.8,516.85" fill="#16202b" />
-<polygon points="1110.5,367.5 1117.5,364.35 1117.5,370.65" fill="#16202b" />
+<path class="dl-net" data-id="n_stop0" d="M450 331 L482 331 L482 475.5 L1048 475.5 L1048 420 L1070 420" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_stop1" d="M864 331 L967 331 L967 452 L1043 452 A5 5 0 0 1 1053 452 L1070 452" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_stop2" d="M450 647 L481 647 L481 496 L1070 496" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_stop3" d="M864 647 L967 647 L967 528 L1070 528" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_llc" d="M1250 452 L1262 452 L1262 371.5 L1058 371.5 L1058 271 L1090 271 M1250 452 L1262 452 L1262 371.5 L1248 371.5 L1248 271 L1260 271 M1250 452 L1262 452 L1262 371.5 L1418 371.5 L1418 271 L1430 271 M1250 452 L1585 452 L1585 271 L1600 271" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_coh" d="M1250 496 L1272 496 L1272 576.5 L1058 576.5 L1058 817 L1070 817" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_sa" d="M1250 528 L1262 528 L1262 565 L1024 565 L1024 764 L1053 764 A5 5 0 0 1 1063 764 L1237 764 A5 5 0 0 1 1247 764 L1249 764 L1249 669 L1304 669 M1250 528 L1267 528 A5 5 0 0 1 1277 528 L1737 528 L1737 764 L1530 764 L1530 669 L1542 669 M1250 528 L1262 528 L1262 565 L1024 565 L1024 669 L1053 669 A5 5 0 0 1 1063 669 L1090 669" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_ddr" d="M1468 669 L1480 669 L1480 789 L1895 789 A5 5 0 0 1 1905 789 L1920 789 L1920 669 L1946 669" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_pcie" d="M1706 669 L1732 669 A5 5 0 0 1 1742 669 L1799 669 L1799 633 L1946 633" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_disp" d="M1230 669 L1242 669 L1242 807 L1900 807 L1900 705 L1915 705 A5 5 0 0 1 1925 705 L1946 705" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<polygon points="545.5,475.5 538.5,478.65 538.5,472.35" fill="#16202b" />
+<polygon points="785.5,475.5 778.5,478.65 778.5,472.35" fill="#16202b" />
+<polygon points="1058.8,420 1051.8,423.15 1051.8,416.85" fill="#16202b" />
+<polygon points="1034.8,452 1027.8,455.15 1027.8,448.85" fill="#16202b" />
+<polygon points="539,496 532,499.15 532,492.85" fill="#16202b" />
+<polygon points="779,496 772,499.15 772,492.85" fill="#16202b" />
+<polygon points="1058.8,496 1051.8,499.15 1051.8,492.85" fill="#16202b" />
+<polygon points="1058.8,528 1051.8,531.15 1051.8,524.85" fill="#16202b" />
+<polygon points="1114.5,371.5 1121.5,368.35 1121.5,374.65" fill="#16202b" />
 <polygon points="1078.8,271 1071.8,274.15 1071.8,267.85" fill="#16202b" />
-<polygon points="1248,319.25 1251.15,326.25 1244.85,326.25" fill="#16202b" />
-<polygon points="1340,367.5 1333,370.65 1333,364.35" fill="#16202b" />
-<polygon points="1490,444 1483,447.15 1483,440.85" fill="#16202b" />
-<polygon points="1417.5,444 1410.5,447.15 1410.5,440.85" fill="#16202b" />
-<polygon points="1176.5,610.5 1183.5,607.35 1183.5,613.65" fill="#16202b" />
-<polygon points="1165,610.5 1172,607.35 1172,613.65" fill="#16202b" />
-<polygon points="1292.8,653 1285.8,656.15 1285.8,649.85" fill="#16202b" />
-<polygon points="1530.8,653 1523.8,656.15 1523.8,649.85" fill="#16202b" />
-<polygon points="1072.5,726.5 1079.5,723.35 1079.5,729.65" fill="#16202b" />
-<polygon points="1078.8,653 1071.8,656.15 1071.8,649.85" fill="#16202b" />
-<polygon points="1608,753 1601,756.15 1601,749.85" fill="#16202b" />
-<polygon points="1848,753 1841,756.15 1841,749.85" fill="#16202b" />
-<polygon points="1934.8,653 1927.8,656.15 1927.8,649.85" fill="#16202b" />
-<polygon points="1934.8,617 1927.8,620.15 1927.8,613.85" fill="#16202b" />
-<polygon points="1352,771 1345,774.15 1345,767.85" fill="#16202b" />
-<polygon points="1592,771 1585,774.15 1585,767.85" fill="#16202b" />
-<polygon points="1832,771 1825,774.15 1825,767.85" fill="#16202b" />
-<polygon points="1934.8,689 1927.8,692.15 1927.8,685.85" fill="#16202b" />
+<polygon points="1248,321.25 1251.15,328.25 1244.85,328.25" fill="#16202b" />
+<polygon points="1340,371.5 1333,374.65 1333,368.35" fill="#16202b" />
+<polygon points="1490,452 1483,455.15 1483,448.85" fill="#16202b" />
+<polygon points="1417.5,452 1410.5,455.15 1410.5,448.85" fill="#16202b" />
+<polygon points="1134.5,576.5 1141.5,573.35 1141.5,579.65" fill="#16202b" />
+<polygon points="1058,696.75 1054.85,689.75 1061.15,689.75" fill="#16202b" />
+<polygon points="1071,565 1078,561.85 1078,568.15" fill="#16202b" />
+<polygon points="1292.8,669 1285.8,672.15 1285.8,665.85" fill="#16202b" />
+<polygon points="1490,528 1483,531.15 1483,524.85" fill="#16202b" />
+<polygon points="1493.5,528 1486.5,531.15 1486.5,524.85" fill="#16202b" />
+<polygon points="1071,565 1078,561.85 1078,568.15" fill="#16202b" />
+<polygon points="1078.8,669 1071.8,672.15 1071.8,665.85" fill="#16202b" />
+<polygon points="1588,789 1581,792.15 1581,785.85" fill="#16202b" />
+<polygon points="1828,789 1821,792.15 1821,785.85" fill="#16202b" />
+<polygon points="1934.8,669 1927.8,672.15 1927.8,665.85" fill="#16202b" />
+<polygon points="1934.8,633 1927.8,636.15 1927.8,629.85" fill="#16202b" />
+<polygon points="1332,807 1325,810.15 1325,803.85" fill="#16202b" />
+<polygon points="1572,807 1565,810.15 1565,803.85" fill="#16202b" />
+<polygon points="1812,807 1805,810.15 1805,803.85" fill="#16202b" />
+<polygon points="1934.8,705 1927.8,708.15 1927.8,701.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="core0" data-type="sheet" transform="matrix(2,0,0,2.4286,150,246)">
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
-  <rect x="20" y="22.112" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="63.936" y="22.112" width="10.262" height="18.921" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="78.608" y="26.962" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="90.233" y="26.962" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="20.802" y="24.196" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="21.122" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="31.465" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="24.196" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="52.31" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="24.196" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="20" y="21.791" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="63.936" y="21.791" width="10.262" height="19.563" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="78.608" y="27.283" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="90.233" y="27.283" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="20.802" y="23.876" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="21.122" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="31.465" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="23.876" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="52.31" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="23.876" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <rect x="65.459" y="29.007" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="33.817" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="33.858" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="43.478" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="38.668" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="91.035" y="29.087" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="102.741" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="112.762" y="29.087" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="123.586" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M27.055 25.199 L31.465 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M26.735 30.891 L29.1 30.891 L29.1 26.642 L31.465 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 25.199 L42.289 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 26.642 L40.084 26.642 L40.084 30.891 L42.289 30.891" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 25.199 L52.31 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 30.891 L50.106 30.891 L50.106 26.642 L52.31 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M58.724 25.199 L65.459 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 25.199 L72.915 25.199 L72.915 28.005 L64.978 28.005 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 26.802 L73.717 26.802 L73.717 33.236 L64.978 33.236 L64.978 34.86 L65.459 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 34.86 L79.41 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 36.142 L76.042 36.142 L76.042 44.481 L79.41 44.481" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 37.906 L76.844 37.906 L76.844 39.67 L79.41 39.67" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 39.189 L75.241 39.189 L75.241 30.049 L79.41 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M85.022 30.049 L91.035 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M98.331 30.049 L102.741 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M108.353 30.049 L112.762 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M119.176 30.049 L123.586 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="34.138" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="34.178" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="43.799" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="38.989" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="91.035" y="29.408" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="102.741" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="112.762" y="29.408" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="123.586" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M27.055 24.878 L31.465 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M26.735 30.57 L29.1 30.57 L29.1 26.321 L31.465 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 24.878 L42.289 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 26.321 L40.084 26.321 L40.084 30.57 L42.289 30.57" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 24.878 L52.31 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 30.57 L50.106 30.57 L50.106 26.321 L52.31 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M58.724 24.878 L65.459 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 24.878 L72.915 24.878 L72.915 27.844 L64.978 27.844 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 26.481 L73.717 26.481 L73.717 33.236 L64.978 33.236 L64.978 35.18 L65.459 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 35.18 L79.41 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 36.463 L76.042 36.463 L76.042 44.801 L79.41 44.801" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 38.227 L76.844 38.227 L76.844 39.991 L79.41 39.991" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 39.51 L75.241 39.51 L75.241 30.37 L79.41 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M85.022 30.37 L91.035 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M98.331 30.37 L102.741 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M108.353 30.37 L112.762 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M119.176 30.37 L123.586 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
 <text x="418" y="340.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
 <text x="300" y="241" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C0</text>
@@ -63293,44 +63796,44 @@ def open_example(path):
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
-  <rect x="20" y="22.112" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="63.936" y="22.112" width="10.262" height="18.921" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="78.608" y="26.962" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="90.233" y="26.962" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="20.802" y="24.196" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="21.122" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="31.465" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="24.196" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="52.31" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="24.196" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="20" y="21.791" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="63.936" y="21.791" width="10.262" height="19.563" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="78.608" y="27.283" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="90.233" y="27.283" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="20.802" y="23.876" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="21.122" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="31.465" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="23.876" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="52.31" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="23.876" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <rect x="65.459" y="29.007" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="33.817" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="33.858" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="43.478" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="38.668" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="91.035" y="29.087" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="102.741" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="112.762" y="29.087" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="123.586" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M27.055 25.199 L31.465 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M26.735 30.891 L29.1 30.891 L29.1 26.642 L31.465 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 25.199 L42.289 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 26.642 L40.084 26.642 L40.084 30.891 L42.289 30.891" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 25.199 L52.31 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 30.891 L50.106 30.891 L50.106 26.642 L52.31 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M58.724 25.199 L65.459 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 25.199 L72.915 25.199 L72.915 28.005 L64.978 28.005 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 26.802 L73.717 26.802 L73.717 33.236 L64.978 33.236 L64.978 34.86 L65.459 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 34.86 L79.41 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 36.142 L76.042 36.142 L76.042 44.481 L79.41 44.481" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 37.906 L76.844 37.906 L76.844 39.67 L79.41 39.67" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 39.189 L75.241 39.189 L75.241 30.049 L79.41 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M85.022 30.049 L91.035 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M98.331 30.049 L102.741 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M108.353 30.049 L112.762 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M119.176 30.049 L123.586 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="34.138" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="34.178" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="43.799" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="38.989" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="91.035" y="29.408" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="102.741" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="112.762" y="29.408" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="123.586" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M27.055 24.878 L31.465 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M26.735 30.57 L29.1 30.57 L29.1 26.321 L31.465 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 24.878 L42.289 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 26.321 L40.084 26.321 L40.084 30.57 L42.289 30.57" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 24.878 L52.31 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 30.57 L50.106 30.57 L50.106 26.321 L52.31 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M58.724 24.878 L65.459 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 24.878 L72.915 24.878 L72.915 27.844 L64.978 27.844 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 26.481 L73.717 26.481 L73.717 33.236 L64.978 33.236 L64.978 35.18 L65.459 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 35.18 L79.41 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 36.463 L76.042 36.463 L76.042 44.801 L79.41 44.801" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 38.227 L76.844 38.227 L76.844 39.991 L79.41 39.991" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 39.51 L75.241 39.51 L75.241 30.37 L79.41 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M85.022 30.37 L91.035 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M98.331 30.37 L102.741 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M108.353 30.37 L112.762 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M119.176 30.37 L123.586 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
 <text x="832" y="340.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
 <text x="714" y="241" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C1</text>
@@ -63338,44 +63841,44 @@ def open_example(path):
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
-  <rect x="20" y="22.112" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="63.936" y="22.112" width="10.262" height="18.921" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="78.608" y="26.962" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="90.233" y="26.962" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="20.802" y="24.196" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="21.122" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="31.465" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="24.196" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="52.31" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="24.196" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="20" y="21.791" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="63.936" y="21.791" width="10.262" height="19.563" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="78.608" y="27.283" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="90.233" y="27.283" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="20.802" y="23.876" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="21.122" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="31.465" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="23.876" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="52.31" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="23.876" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <rect x="65.459" y="29.007" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="33.817" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="33.858" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="43.478" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="38.668" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="91.035" y="29.087" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="102.741" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="112.762" y="29.087" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="123.586" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M27.055 25.199 L31.465 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M26.735 30.891 L29.1 30.891 L29.1 26.642 L31.465 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 25.199 L42.289 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 26.642 L40.084 26.642 L40.084 30.891 L42.289 30.891" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 25.199 L52.31 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 30.891 L50.106 30.891 L50.106 26.642 L52.31 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M58.724 25.199 L65.459 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 25.199 L72.915 25.199 L72.915 28.005 L64.978 28.005 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 26.802 L73.717 26.802 L73.717 33.236 L64.978 33.236 L64.978 34.86 L65.459 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 34.86 L79.41 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 36.142 L76.042 36.142 L76.042 44.481 L79.41 44.481" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 37.906 L76.844 37.906 L76.844 39.67 L79.41 39.67" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 39.189 L75.241 39.189 L75.241 30.049 L79.41 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M85.022 30.049 L91.035 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M98.331 30.049 L102.741 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M108.353 30.049 L112.762 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M119.176 30.049 L123.586 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="34.138" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="34.178" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="43.799" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="38.989" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="91.035" y="29.408" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="102.741" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="112.762" y="29.408" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="123.586" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M27.055 24.878 L31.465 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M26.735 30.57 L29.1 30.57 L29.1 26.321 L31.465 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 24.878 L42.289 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 26.321 L40.084 26.321 L40.084 30.57 L42.289 30.57" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 24.878 L52.31 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 30.57 L50.106 30.57 L50.106 26.321 L52.31 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M58.724 24.878 L65.459 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 24.878 L72.915 24.878 L72.915 27.844 L64.978 27.844 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 26.481 L73.717 26.481 L73.717 33.236 L64.978 33.236 L64.978 35.18 L65.459 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 35.18 L79.41 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 36.463 L76.042 36.463 L76.042 44.801 L79.41 44.801" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 38.227 L76.844 38.227 L76.844 39.991 L79.41 39.991" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 39.51 L75.241 39.51 L75.241 30.37 L79.41 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M85.022 30.37 L91.035 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M98.331 30.37 L102.741 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M108.353 30.37 L112.762 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M119.176 30.37 L123.586 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
 <text x="418" y="656.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
 <text x="300" y="557" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C2</text>
@@ -63383,57 +63886,57 @@ def open_example(path):
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
-  <rect x="20" y="22.112" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="63.936" y="22.112" width="10.262" height="18.921" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="78.608" y="26.962" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="90.233" y="26.962" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
-  <rect x="20.802" y="24.196" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="21.122" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="31.465" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="24.196" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="42.289" y="29.889" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="52.31" y="24.237" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="24.196" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="20" y="21.791" width="39.526" height="12.187" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="63.936" y="21.791" width="10.262" height="19.563" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="78.608" y="27.283" width="7.216" height="20.926" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="90.233" y="27.283" width="39.767" height="7.737" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.361" />
+  <rect x="20.802" y="23.876" width="6.254" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="21.122" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="31.465" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="23.876" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="42.289" y="29.568" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="52.31" y="23.916" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="23.876" width="6.574" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <rect x="65.459" y="29.007" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="65.459" y="33.817" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="33.858" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="43.478" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="38.668" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="79.41" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="91.035" y="29.087" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="102.741" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="112.762" y="29.087" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <rect x="123.586" y="29.047" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M27.055 25.199 L31.465 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M26.735 30.891 L29.1 30.891 L29.1 26.642 L31.465 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 25.199 L42.289 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M37.879 26.642 L40.084 26.642 L40.084 30.891 L42.289 30.891" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 25.199 L52.31 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M47.901 30.891 L50.106 30.891 L50.106 26.642 L52.31 26.642" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M58.724 25.199 L65.459 25.199" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 25.199 L72.915 25.199 L72.915 28.005 L64.978 28.005 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.034 26.802 L73.717 26.802 L73.717 33.236 L64.978 33.236 L64.978 34.86 L65.459 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 34.86 L79.41 34.86" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 36.142 L76.042 36.142 L76.042 44.481 L79.41 44.481" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 37.906 L76.844 37.906 L76.844 39.67 L79.41 39.67" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M72.675 39.189 L75.241 39.189 L75.241 30.049 L79.41 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M85.022 30.049 L91.035 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M98.331 30.049 L102.741 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M108.353 30.049 L112.762 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M119.176 30.049 L123.586 30.049" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="65.459" y="34.138" width="7.216" height="6.414" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="34.178" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="43.799" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="38.989" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="79.41" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="91.035" y="29.408" width="7.296" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="102.741" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="112.762" y="29.408" width="6.414" height="4.81" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <rect x="123.586" y="29.368" width="5.612" height="3.608" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M27.055 24.878 L31.465 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M26.735 30.57 L29.1 30.57 L29.1 26.321 L31.465 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 24.878 L42.289 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M37.879 26.321 L40.084 26.321 L40.084 30.57 L42.289 30.57" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 24.878 L52.31 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M47.901 30.57 L50.106 30.57 L50.106 26.321 L52.31 26.321" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M58.724 24.878 L65.459 24.878" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 24.878 L72.915 24.878 L72.915 27.844 L64.978 27.844 L64.978 30.009 L65.459 30.009" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.034 26.481 L73.717 26.481 L73.717 33.236 L64.978 33.236 L64.978 35.18 L65.459 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 35.18 L79.41 35.18" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 36.463 L76.042 36.463 L76.042 44.801 L79.41 44.801" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 38.227 L76.844 38.227 L76.844 39.991 L79.41 39.991" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M72.675 39.51 L75.241 39.51 L75.241 30.37 L79.41 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M85.022 30.37 L91.035 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M98.331 30.37 L102.741 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M108.353 30.37 L112.762 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M119.176 30.37 L123.586 30.37" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
 <text x="832" y="656.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
 <text x="714" y="557" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C3</text>
-<g class="dl-cell" data-id="ring" data-type="block8" transform="matrix(1,0,0,1,1070,386)">
+<g class="dl-cell" data-id="ring" data-type="block8" transform="matrix(1,0,0,1,1070,394)">
   <rect x="0" y="0" width="180" height="160" fill="#e8e4f6" stroke="#6b5bb3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="1160" y="460.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Ring interconnect</text>
-<text class="dl-cell-text" x="1160" y="479.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">coherent, 4 stops</text>
-<g class="dl-cell" data-id="snoop" data-type="block" transform="matrix(1,0,0,1,1070,768)">
+<text class="dl-cell-heading" x="1160" y="468.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Ring interconnect</text>
+<text class="dl-cell-text" x="1160" y="487.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">coherent, 4 stops</text>
+<g class="dl-cell" data-id="snoop" data-type="block" transform="matrix(1,0,0,1,1070,792)">
   <rect x="0" y="0" width="140" height="90" fill="#e8e4f6" stroke="#6b5bb3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="1140" y="807.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Snoop filter</text>
-<text class="dl-cell-text" x="1140" y="826.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">MESIF directory</text>
+<text class="dl-cell-heading" x="1140" y="831.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Snoop filter</text>
+<text class="dl-cell-text" x="1140" y="850.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">MESIF directory</text>
 <g class="dl-cell" data-id="l3_0" data-type="block" transform="matrix(1,0,0,1,1090,246)">
   <rect x="0" y="0" width="140" height="90" fill="#dde9f7" stroke="#2f6db3" stroke-width="1.6" />
 </g>
@@ -63454,40 +63957,40 @@ def open_example(path):
 </g>
 <text class="dl-cell-heading" x="1670" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 3</text>
 <text class="dl-cell-text" x="1670" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
-<g class="dl-cell" data-id="imc" data-type="block" transform="matrix(1.1714,0,0,1,1304,628)">
+<g class="dl-cell" data-id="imc" data-type="block" transform="matrix(1.1714,0,0,1,1304,644)">
   <rect x="0" y="0" width="140" height="90" fill="#eef1f3" stroke="#5b6b74" stroke-width="1.474" />
 </g>
-<text class="dl-cell-heading" x="1386" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Memory controller</text>
-<text class="dl-cell-text" x="1386" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">2 x DDR5-6400</text>
-<g class="dl-cell" data-id="pcie" data-type="block" transform="matrix(1.1714,0,0,1,1542,628)">
+<text class="dl-cell-heading" x="1386" y="683.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Memory controller</text>
+<text class="dl-cell-text" x="1386" y="702.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">2 x DDR5-6400</text>
+<g class="dl-cell" data-id="pcie" data-type="block" transform="matrix(1.1714,0,0,1,1542,644)">
   <rect x="0" y="0" width="140" height="90" fill="#eef1f3" stroke="#5b6b74" stroke-width="1.474" />
 </g>
-<text class="dl-cell-heading" x="1624" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">PCIe root complex</text>
-<text class="dl-cell-text" x="1624" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">Gen5 x16 + x4</text>
-<g class="dl-cell" data-id="gpu" data-type="block" transform="matrix(1,0,0,1,1090,628)">
+<text class="dl-cell-heading" x="1624" y="683.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">PCIe root complex</text>
+<text class="dl-cell-text" x="1624" y="702.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">Gen5 x16 + x4</text>
+<g class="dl-cell" data-id="gpu" data-type="block" transform="matrix(1,0,0,1,1090,644)">
   <rect x="0" y="0" width="140" height="90" fill="#eef1f3" stroke="#5b6b74" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="1160" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Integrated GPU</text>
-<text class="dl-cell-text" x="1160" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">96 EUs</text>
-<g class="dl-cell" data-id="ddr" data-type="port_out" transform="matrix(1,0,0,1,1946,648)">
+<text class="dl-cell-heading" x="1160" y="683.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Integrated GPU</text>
+<text class="dl-cell-text" x="1160" y="702.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">96 EUs</text>
+<g class="dl-cell" data-id="ddr" data-type="port_out" transform="matrix(1,0,0,1,1946,664)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1956" y="643" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">DDR5</text>
-<g class="dl-cell" data-id="pcie_io" data-type="port_out" transform="matrix(1,0,0,1,1946,612)">
+<text x="1956" y="659" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">DDR5</text>
+<g class="dl-cell" data-id="pcie_io" data-type="port_out" transform="matrix(1,0,0,1,1946,628)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1956" y="607" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">PCIe</text>
-<g class="dl-cell" data-id="disp" data-type="port_out" transform="matrix(1,0,0,1,1946,684)">
+<text x="1956" y="623" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">PCIe</text>
+<g class="dl-cell" data-id="disp" data-type="port_out" transform="matrix(1,0,0,1,1946,700)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1956" y="679" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">Display</text>
+<text x="1956" y="695" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">Display</text>
 </g>
 <g class="dl-junctions">
-<circle cx="1248" cy="367.5" r="3.2" fill="#16202b" />
-<circle cx="1262" cy="367.5" r="3.2" fill="#16202b" />
-<circle cx="1262" cy="444" r="3.2" fill="#16202b" />
-<circle cx="1277" cy="520" r="3.2" fill="#16202b" />
-<circle cx="1292" cy="520" r="3.2" fill="#16202b" />
+<circle cx="1024" cy="669" r="3.2" fill="#16202b" />
+<circle cx="1248" cy="371.5" r="3.2" fill="#16202b" />
+<circle cx="1262" cy="371.5" r="3.2" fill="#16202b" />
+<circle cx="1262" cy="452" r="3.2" fill="#16202b" />
+<circle cx="1262" cy="528" r="3.2" fill="#16202b" />
 </g>
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">CPU architecture -- a quad-core SoC built from linked cores</text>
 </svg>
@@ -67386,7 +67889,7 @@ class TestThroughTheEditorsServer(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_components.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_containers.py lines=575 sha256=96de19c8bddb161fc19e3b59d69d5b2a791e38dacfd090a8c445478c767c364a >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_containers.py lines=653 sha256=9ef515b851c938e9cad3a7f0a28e6976829513ed9975fdacc34d1ab972349b31 >>>>>>>>>>
 """Containers: titled boundaries that own part of a drawing.
 
 What matters is that ownership is the `parentId` field and nothing else: it
@@ -67727,21 +68230,28 @@ def across_a_title():
   return doc
 
 
+def through_band(points, band):
+  """The runs of a path that touch a box: none, for a wire that keeps off."""
+  hits = []
+  for a, b in zip(points, points[1:]):
+    x0, x1 = sorted((a[0], b[0]))
+    y0, y1 = sorted((a[1], b[1]))
+    if not (x1 < band[0] or x0 > band[2] or y1 < band[1] or y0 > band[3]):
+      hits.append((a, b))
+  return hits
+
+
 class TestWiresKeepOffTitles(unittest.TestCase):
 
-  def test_a_wire_does_not_run_through_a_title(self):
+  def test_a_wire_keeps_a_clearance_off_the_whole_header_band(self):
     from drawlogic import routing
     doc = across_a_title()
-    title = containers.title_box(doc.containers[0])
+    band = containers.header_box(doc.containers[0], routing.CLEARANCE - 0.5)
     [(_net, [points])] = routing.route_all(doc)
-    for a, b in zip(points, points[1:]):
-      if abs(a[1] - b[1]) < 1e-6:
-        crosses = (title[1] <= a[1] <= title[3]
-                   and min(a[0], b[0]) < title[2] and max(a[0], b[0]) > title[0])
-        self.assertFalse(crosses, "run %s-%s goes through the title %s" % (a, b, title))
+    self.assertEqual(through_band(points, band), [])
     # And it is not that the wire happened to miss: straight, it would not.
     start = points[0]
-    self.assertTrue(title[1] <= start[1] <= title[3])
+    self.assertTrue(band[1] <= start[1] <= band[3])
 
   @unittest.skipUnless(NODE, "node is not installed")
   def test_the_editor_routes_it_the_same_way(self):
@@ -67750,6 +68260,77 @@ class TestWiresKeepOffTitles(unittest.TestCase):
     from drawlogic import routing
     from tests.test_js_parity import _browser_result, _rounded
     doc = across_a_title()
+    handle, path = tempfile.mkstemp(suffix=".dlg")
+    os.close(handle)
+    try:
+      doc.save(path)
+      browser = _browser_result(path, default_registry())
+    finally:
+      os.unlink(path)
+      if os.path.exists(path + ".bak"):
+        os.unlink(path + ".bak")
+    expected = [[net["id"], _rounded(branches)]
+                for net, branches in routing.route_all(doc)]
+    self.assertEqual([[i, _rounded(b)] for i, b in browser["routes"]], expected)
+
+
+def into_from_above():
+  """A driver above a container, wired to a block inside it whose pin faces
+  left. No corner or crossover reaches the pin without cutting through the
+  header band, so only a path round the side gets there."""
+  doc = new_document("into", 1000, 700)
+  doc.data["containers"] = [{"id": "sa", "title": "System agent",
+                             "x": 300, "y": 300, "w": 500, "h": 200}]
+  doc.cells.extend([
+    {"id": "src", "type": "block", "x": 450, "y": 120},
+    {"id": "a", "parentId": "sa", "type": "block", "x": 340, "y": 370},
+    {"id": "b", "parentId": "sa", "type": "block", "x": 560, "y": 370},
+  ])
+  doc.nets.append({"id": "n", "from": {"cell": "src", "pin": "out1"},
+                   "to": [{"cell": "b", "pin": "in1"}]})
+  doc.normalize()
+  return doc
+
+
+class TestAPathRoundTheHeader(unittest.TestCase):
+
+  def test_a_wire_into_a_container_from_above_goes_round_the_header(self):
+    from drawlogic import drc, routing
+    doc = into_from_above()
+    band = containers.header_box(doc.containers[0], routing.CLEARANCE - 0.5)
+    [(_net, [points])] = routing.route_all(doc)
+    self.assertEqual(through_band(points, band), [])
+    # In through a side of the box, below the band.
+    box = doc.containers[0]
+    sides = [(a, b) for a, b in zip(points, points[1:]) if abs(a[1] - b[1]) < 1e-6
+             and min(a[0], b[0]) < box["x"] + box["w"] < max(a[0], b[0])]
+    self.assertTrue(sides, points)
+    self.assertEqual([v for v in drc.check(doc) if v.level == "error"], [])
+
+  def test_without_the_path_finder_it_would_cut_the_band(self):
+    from drawlogic import routing
+    doc = into_from_above()
+    band = containers.header_box(doc.containers[0])
+    saved = routing._find_path
+    routing._find_path = lambda *args: None
+    try:
+      [(_net, [points])] = routing.route_all(doc)
+    finally:
+      routing._find_path = saved
+    self.assertNotEqual(through_band(points, band), [])
+
+  def test_a_boxed_in_end_finds_no_path(self):
+    from drawlogic import routing
+    sheet = routing.Sheet(boxes=[(0, 0, 100, 100)])
+    self.assertIsNone(routing._find_path((50, 50), (300, 50), (1, 0), (-1, 0), sheet))
+
+  @unittest.skipUnless(NODE, "node is not installed")
+  def test_the_editor_finds_the_same_path(self):
+    import os
+    import tempfile
+    from drawlogic import routing
+    from tests.test_js_parity import _browser_result, _rounded
+    doc = into_from_above()
     handle, path = tempfile.mkstemp(suffix=".dlg")
     os.close(handle)
     try:
@@ -69625,7 +70206,7 @@ class TestFlipFlopsAndClockGates(unittest.TestCase):
     pins = {pin["name"]: pin for pin in default_registry().get("icg").pins}
     self.assertLess(pins["e"]["y"], pins["ck"]["y"])
 <<<<<<<<<< DLBUNDLE END path=tests/test_draw.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_drc.py lines=820 sha256=5e0dd33839a18c43f6917f67624df73ca8c97b700d7e601c0b5d858fc038e12c >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_drc.py lines=841 sha256=7f1a6eb7823e79228a3cebb5276479d5e6ff1e20894effa88e515b11d742b42d >>>>>>>>>>
 """Design rule checks: does the drawing say what the file says?
 
 Every check here is built the same way -- a small drawing made to break one
@@ -69994,6 +70575,27 @@ class TestParallelRuns(unittest.TestCase):
     ])
     doc.normalize()
     self.assertEqual(only(drc.check(doc), "wire-spacing"), [])
+
+
+class TestContainerHeaders(unittest.TestCase):
+  """A container's header band is held to a cell's rules."""
+
+  def test_a_wire_drawn_through_a_band_is_an_error(self):
+    from tests.test_containers import across_a_title
+    doc = across_a_title()
+    # Waypoints are the drawer's own route, which the router does not
+    # second-guess: straight along the band.
+    doc.nets[0]["to"][0]["waypoints"] = [[250, 115], [750, 115]]
+    found = [v for v in drc.check(doc) if v.rule == "wire-over-header"]
+    self.assertEqual([v.level for v in found], ["error"])
+
+  def test_a_wire_drawn_close_to_a_band_is_a_warning(self):
+    from tests.test_containers import across_a_title
+    doc = across_a_title()
+    # Five above the top of the box, alongside the band: crowded, not through.
+    doc.nets[0]["to"][0]["waypoints"] = [[250, 95], [750, 95]]
+    found = [v for v in drc.check(doc) if v.rule.endswith("-header")]
+    self.assertEqual([(v.rule, v.level) for v in found], [("wire-to-header", "warning")])
 
 
 class TestEveryCheckerIsReachable(unittest.TestCase):

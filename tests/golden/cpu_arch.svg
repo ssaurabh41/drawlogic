@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1509" height="1382" viewBox="0 0 1509 1382" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="2003" height="988" viewBox="0 0 2003 988" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>CPU architecture -- a quad-core SoC built from linked cores</title>
-<rect x="0" y="0" width="1509" height="1382" fill="#ffffff" />
+<rect x="0" y="0" width="2003" height="988" fill="#ffffff" />
 <g class="dl-containers">
 <g class="dl-container" data-id="die">
-<rect class="dl-container-body" x="90" y="90" width="1180" height="1202" rx="6" fill="#fbfcfd" stroke="none" />
-<path class="dl-container-header" d="M90 122 V96 A6 6 0 0 1 96 90 H1264 A6 6 0 0 1 1270 96 V122 Z" fill="#1f2a33" />
-<rect class="dl-container-edge" x="90" y="90" width="1180" height="1202" rx="6" fill="none" stroke="#5b6b74" stroke-width="1.2" />
+<rect class="dl-container-body" x="90" y="90" width="1674" height="808" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M90 122 V96 A6 6 0 0 1 96 90 H1758 A6 6 0 0 1 1764 96 V122 Z" fill="#1f2a33" />
+<rect class="dl-container-edge" x="90" y="90" width="1674" height="808" rx="6" fill="none" stroke="#5b6b74" stroke-width="1.2" />
 <text class="dl-container-title" x="100" y="110.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">CPU die</text>
 </g>
 <g class="dl-container" data-id="cores">
-<rect class="dl-container-body" x="110" y="142" width="380" height="1130" rx="6" fill="#fbfcfd" stroke="none" />
-<path class="dl-container-header" d="M110 174 V148 A6 6 0 0 1 116 142 H484 A6 6 0 0 1 490 148 V174 Z" fill="#5b6b74" />
-<rect class="dl-container-edge" x="110" y="142" width="380" height="1130" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
+<rect class="dl-container-body" x="110" y="142" width="794" height="630" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M110 174 V148 A6 6 0 0 1 116 142 H898 A6 6 0 0 1 904 148 V174 Z" fill="#5b6b74" />
+<rect class="dl-container-edge" x="110" y="142" width="794" height="630" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
 <text class="dl-container-title" x="120" y="162.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Compute complex</text>
 </g>
 <g class="dl-container" data-id="slot0">
@@ -22,80 +22,83 @@
 <text class="dl-container-title" x="140" y="214.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 0</text>
 </g>
 <g class="dl-container" data-id="slot1">
-<rect class="dl-container-body" x="130" y="466" width="340" height="242" rx="6" fill="#ffffff" stroke="none" />
-<path class="dl-container-header" d="M130 498 V472 A6 6 0 0 1 136 466 H464 A6 6 0 0 1 470 472 V498 Z" fill="#f7e7c6" />
-<rect class="dl-container-edge" x="130" y="466" width="340" height="242" rx="6" fill="none" stroke="#e2c99a" stroke-width="1.2" />
-<text class="dl-container-title" x="140" y="486.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 1</text>
+<rect class="dl-container-body" x="544" y="194" width="340" height="242" rx="6" fill="#ffffff" stroke="none" />
+<path class="dl-container-header" d="M544 226 V200 A6 6 0 0 1 550 194 H878 A6 6 0 0 1 884 200 V226 Z" fill="#f7e7c6" />
+<rect class="dl-container-edge" x="544" y="194" width="340" height="242" rx="6" fill="none" stroke="#e2c99a" stroke-width="1.2" />
+<text class="dl-container-title" x="554" y="214.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 1</text>
 </g>
 <g class="dl-container" data-id="slot2">
-<rect class="dl-container-body" x="130" y="738" width="340" height="242" rx="6" fill="#ffffff" stroke="none" />
-<path class="dl-container-header" d="M130 770 V744 A6 6 0 0 1 136 738 H464 A6 6 0 0 1 470 744 V770 Z" fill="#f7e7c6" />
-<rect class="dl-container-edge" x="130" y="738" width="340" height="242" rx="6" fill="none" stroke="#e2c99a" stroke-width="1.2" />
-<text class="dl-container-title" x="140" y="758.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 2</text>
+<rect class="dl-container-body" x="130" y="510" width="340" height="242" rx="6" fill="#ffffff" stroke="none" />
+<path class="dl-container-header" d="M130 542 V516 A6 6 0 0 1 136 510 H464 A6 6 0 0 1 470 516 V542 Z" fill="#f7e7c6" />
+<rect class="dl-container-edge" x="130" y="510" width="340" height="242" rx="6" fill="none" stroke="#e2c99a" stroke-width="1.2" />
+<text class="dl-container-title" x="140" y="530.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 2</text>
 </g>
 <g class="dl-container" data-id="slot3">
-<rect class="dl-container-body" x="130" y="1010" width="340" height="242" rx="6" fill="#ffffff" stroke="none" />
-<path class="dl-container-header" d="M130 1042 V1016 A6 6 0 0 1 136 1010 H464 A6 6 0 0 1 470 1016 V1042 Z" fill="#f7e7c6" />
-<rect class="dl-container-edge" x="130" y="1010" width="340" height="242" rx="6" fill="none" stroke="#e2c99a" stroke-width="1.2" />
-<text class="dl-container-title" x="140" y="1030.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 3</text>
+<rect class="dl-container-body" x="544" y="510" width="340" height="242" rx="6" fill="#ffffff" stroke="none" />
+<path class="dl-container-header" d="M544 542 V516 A6 6 0 0 1 550 510 H878 A6 6 0 0 1 884 516 V542 Z" fill="#f7e7c6" />
+<rect class="dl-container-edge" x="544" y="510" width="340" height="242" rx="6" fill="none" stroke="#e2c99a" stroke-width="1.2" />
+<text class="dl-container-title" x="554" y="530.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#5a3a07">Core 3</text>
 </g>
 <g class="dl-container" data-id="uncore">
-<rect class="dl-container-body" x="520" y="142" width="730" height="736" rx="6" fill="#fbfcfd" stroke="none" />
-<path class="dl-container-header" d="M520 174 V148 A6 6 0 0 1 526 142 H1244 A6 6 0 0 1 1250 148 V174 Z" fill="#5b6b74" />
-<rect class="dl-container-edge" x="520" y="142" width="730" height="736" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
-<text class="dl-container-title" x="530" y="162.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Uncore</text>
+<rect class="dl-container-body" x="1014" y="142" width="730" height="736" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M1014 174 V148 A6 6 0 0 1 1020 142 H1738 A6 6 0 0 1 1744 148 V174 Z" fill="#5b6b74" />
+<rect class="dl-container-edge" x="1014" y="142" width="730" height="736" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
+<text class="dl-container-title" x="1024" y="162.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Uncore</text>
 </g>
 <g class="dl-container" data-id="llc">
-<rect class="dl-container-body" x="540" y="194" width="690" height="162" rx="6" fill="#fbfcfd" stroke="none" />
-<path class="dl-container-header" d="M540 226 V200 A6 6 0 0 1 546 194 H1224 A6 6 0 0 1 1230 200 V226 Z" fill="#5b6b74" />
-<rect class="dl-container-edge" x="540" y="194" width="690" height="162" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
-<text class="dl-container-title" x="550" y="214.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Last-level cache  36 MB</text>
+<rect class="dl-container-body" x="1034" y="194" width="690" height="162" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M1034 226 V200 A6 6 0 0 1 1040 194 H1718 A6 6 0 0 1 1724 200 V226 Z" fill="#5b6b74" />
+<rect class="dl-container-edge" x="1034" y="194" width="690" height="162" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
+<text class="dl-container-title" x="1044" y="214.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Last-level cache  36 MB</text>
 </g>
 <g class="dl-container" data-id="sa">
-<rect class="dl-container-body" x="540" y="576" width="568" height="162" rx="6" fill="#fbfcfd" stroke="none" />
-<path class="dl-container-header" d="M540 608 V582 A6 6 0 0 1 546 576 H1102 A6 6 0 0 1 1108 582 V608 Z" fill="#5b6b74" />
-<rect class="dl-container-edge" x="540" y="576" width="568" height="162" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
-<text class="dl-container-title" x="550" y="596.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">System agent</text>
+<rect class="dl-container-body" x="1034" y="576" width="656" height="162" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M1034 608 V582 A6 6 0 0 1 1040 576 H1684 A6 6 0 0 1 1690 582 V608 Z" fill="#5b6b74" />
+<rect class="dl-container-edge" x="1034" y="576" width="656" height="162" rx="6" fill="none" stroke="#c9d2d8" stroke-width="1.2" />
+<text class="dl-container-title" x="1044" y="596.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">System agent</text>
 </g>
 </g>
 <g class="dl-shapes">
 </g>
 <g class="dl-nets">
-<path class="dl-net" data-id="n_stop0" d="M450 331 L495 331 L495 412 L540 412" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_stop1" d="M450 603 L470 603 A5 5 0 0 1 480 603 L495 603 L495 444 L540 444" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_stop2" d="M450 875 L470 875 A5 5 0 0 1 480 875 L515 875 L515 488 L540 488" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_stop3" d="M450 1147 L475 1147 L475 520 L491 520 A4 4 0 0 1 499 520 L511 520 A4 4 0 0 1 519 520 L540 520" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_llc" d="M720 444 L732 444 L732 357.5 L548 357.5 L548 271 L560 271 M720 444 L732 444 L732 357.5 L718 357.5 L718 271 L730 271 M720 444 L732 444 L732 357.5 L888 357.5 L888 271 L900 271 M720 444 L1055 444 L1055 271 L1070 271" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_coh" d="M720 488 L742 488 L742 610.5 L734.5 610.5 A2.5 2.5 0 0 0 729.5 610.5 L720.5 610.5 A2.5 2.5 0 0 0 715.5 610.5 L528 610.5 L528 793 L540 793" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_sa" d="M720 520 L732 520 L732 586.5 L718 586.5 L718 653 L730 653 M720 520 L737 520 A5 5 0 0 1 747 520 L762 520 L762 466.5 L912 466.5 L912 653 L924 653 M720 520 L732 520 L732 616.5 L548 616.5 L548 653 L560 653" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_ddr" d="M894 653 L906 653 L906 733 L1329 733 A5 5 0 0 1 1339 733 L1354 733 L1354 653 L1380 653" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_pcie" d="M1088 653 L1227 653 L1227 617 L1380 617" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<path class="dl-net" data-id="n_disp" d="M700 653 L712 653 L712 751 L1334 751 L1334 689 L1349 689 A5 5 0 0 1 1359 689 L1380 689" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="528.8,412 521.8,415.15 521.8,408.85" fill="#16202b" />
-<polygon points="528.8,444 521.8,447.15 521.8,440.85" fill="#16202b" />
-<polygon points="515,700 518.15,707 511.85,707" fill="#16202b" />
-<polygon points="528.8,488 521.8,491.15 521.8,484.85" fill="#16202b" />
-<polygon points="475,932 478.15,939 471.85,939" fill="#16202b" />
-<polygon points="475,692 478.15,699 471.85,699" fill="#16202b" />
-<polygon points="528.8,520 521.8,523.15 521.8,516.85" fill="#16202b" />
-<polygon points="590.5,357.5 597.5,354.35 597.5,360.65" fill="#16202b" />
-<polygon points="640,357.5 647,354.35 647,360.65" fill="#16202b" />
-<polygon points="732,400.75 735.15,407.75 728.85,407.75" fill="#16202b" />
-<polygon points="810,357.5 803,360.65 803,354.35" fill="#16202b" />
-<polygon points="960,444 953,447.15 953,440.85" fill="#16202b" />
-<polygon points="887.5,444 880.5,447.15 880.5,440.85" fill="#16202b" />
-<polygon points="646.5,610.5 653.5,607.35 653.5,613.65" fill="#16202b" />
-<polygon points="635,610.5 642,607.35 642,613.65" fill="#16202b" />
-<polygon points="732,553.25 728.85,546.25 735.15,546.25" fill="#16202b" />
-<polygon points="912,559.75 908.85,552.75 915.15,552.75" fill="#16202b" />
-<polygon points="640,616.5 647,613.35 647,619.65" fill="#16202b" />
-<polygon points="1054,733 1047,736.15 1047,729.85" fill="#16202b" />
-<polygon points="1294,733 1287,736.15 1287,729.85" fill="#16202b" />
-<polygon points="1368.8,653 1361.8,656.15 1361.8,649.85" fill="#16202b" />
-<polygon points="1368.8,617 1361.8,620.15 1361.8,613.85" fill="#16202b" />
-<polygon points="842,751 835,754.15 835,747.85" fill="#16202b" />
-<polygon points="1082,751 1075,754.15 1075,747.85" fill="#16202b" />
-<polygon points="1368.8,689 1361.8,692.15 1361.8,685.85" fill="#16202b" />
+<path class="dl-net" data-id="n_stop0" d="M450 331 L482 331 L482 451.5 L1002 451.5 L1002 412 L1034 412" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_stop1" d="M864 331 L949 331 L949 444 L997 444 A5 5 0 0 1 1007 444 L1034 444" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_stop2" d="M450 647 L482 647 L482 497.5 L1002 497.5 L1002 488 L1034 488" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_stop3" d="M864 647 L949 647 L949 520 L1034 520" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_llc" d="M1214 444 L1226 444 L1226 367.5 L1002 367.5 L1002 271 L1054 271 M1214 444 L1226 444 L1226 367.5 L1212 367.5 L1212 271 L1224 271 M1214 444 L1226 444 L1226 367.5 L1382 367.5 L1382 271 L1394 271 M1214 444 L1549 444 L1549 271 L1564 271" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_coh" d="M1214 488 L1236 488 L1236 610.5 L1231 610.5 A5 5 0 0 0 1221 610.5 L1002 610.5 L1002 793 L1034 793" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_sa" d="M1214 520 L1241 520 L1241 653 L1268 653 M1214 520 L1231 520 A5 5 0 0 1 1241 520 L1450 520 L1450 653 L1506 653 M1214 520 L1226 520 L1226 726.5 L1211 726.5 A5 5 0 0 0 1201 726.5 L1007 726.5 A5 5 0 0 0 997 726.5 L982 726.5 L982 653 L997 653 A5 5 0 0 1 1007 653 L1054 653" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_ddr" d="M1432 653 L1444 653 L1444 753 L1823 753 A5 5 0 0 1 1833 753 L1848 753 L1848 653 L1874 653" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_pcie" d="M1670 653 L1775 653 L1775 617 L1874 617" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_disp" d="M1194 653 L1206 653 L1206 771 L1828 771 L1828 689 L1843 689 A5 5 0 0 1 1853 689 L1874 689" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<polygon points="569.5,451.5 562.5,454.65 562.5,448.35" fill="#16202b" />
+<polygon points="809.5,451.5 802.5,454.65 802.5,448.35" fill="#16202b" />
+<polygon points="1022.8,412 1015.8,415.15 1015.8,408.85" fill="#16202b" />
+<polygon points="1022.8,444 1015.8,447.15 1015.8,440.85" fill="#16202b" />
+<polygon points="540.5,497.5 533.5,500.65 533.5,494.35" fill="#16202b" />
+<polygon points="780.5,497.5 773.5,500.65 773.5,494.35" fill="#16202b" />
+<polygon points="1022.8,488 1015.8,491.15 1015.8,484.85" fill="#16202b" />
+<polygon points="1022.8,520 1015.8,523.15 1015.8,516.85" fill="#16202b" />
+<polygon points="1074.5,367.5 1081.5,364.35 1081.5,370.65" fill="#16202b" />
+<polygon points="1042.8,271 1035.8,274.15 1035.8,267.85" fill="#16202b" />
+<polygon points="1212,319.25 1215.15,326.25 1208.85,326.25" fill="#16202b" />
+<polygon points="1304,367.5 1297,370.65 1297,364.35" fill="#16202b" />
+<polygon points="1454,444 1447,447.15 1447,440.85" fill="#16202b" />
+<polygon points="1381.5,444 1374.5,447.15 1374.5,440.85" fill="#16202b" />
+<polygon points="1140.5,610.5 1147.5,607.35 1147.5,613.65" fill="#16202b" />
+<polygon points="1022.8,793 1015.8,796.15 1015.8,789.85" fill="#16202b" />
+<polygon points="1256.8,653 1249.8,656.15 1249.8,649.85" fill="#16202b" />
+<polygon points="1494.8,653 1487.8,656.15 1487.8,649.85" fill="#16202b" />
+<polygon points="1192.5,726.5 1199.5,723.35 1199.5,729.65" fill="#16202b" />
+<polygon points="1042.8,653 1035.8,656.15 1035.8,649.85" fill="#16202b" />
+<polygon points="1572,753 1565,756.15 1565,749.85" fill="#16202b" />
+<polygon points="1812,753 1805,756.15 1805,749.85" fill="#16202b" />
+<polygon points="1862.8,653 1855.8,656.15 1855.8,649.85" fill="#16202b" />
+<polygon points="1862.8,617 1855.8,620.15 1855.8,613.85" fill="#16202b" />
+<polygon points="1316,771 1309,774.15 1309,767.85" fill="#16202b" />
+<polygon points="1556,771 1549,774.15 1549,767.85" fill="#16202b" />
+<polygon points="1796,771 1789,774.15 1789,767.85" fill="#16202b" />
+<polygon points="1862.8,689 1855.8,692.15 1855.8,685.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="core0" data-type="sheet" transform="matrix(2,0,0,2.4286,150,246)">
@@ -130,8 +133,8 @@
   <path d="M48.272 25.068 L52.74 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M48.272 30.836 L50.506 30.836 L50.506 26.531 L52.74 26.531" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M59.239 25.068 L65.332 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.845 27.912 L64.845 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.845 33.213 L64.845 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.032 27.912 L64.032 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.032 33.213 L64.032 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 34.858 L78.737 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 36.158 L75.691 36.158 L75.691 44.607 L78.737 44.607" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 37.945 L76.503 37.945 L76.503 39.732 L78.737 39.732" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
@@ -143,7 +146,7 @@
 </g>
 <text x="418" y="340.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
 <text x="300" y="241" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C0</text>
-<g class="dl-cell" data-id="core1" data-type="sheet" transform="matrix(2,0,0,2.4286,150,518)">
+<g class="dl-cell" data-id="core1" data-type="sheet" transform="matrix(2,0,0,2.4286,564,246)">
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
@@ -175,8 +178,8 @@
   <path d="M48.272 25.068 L52.74 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M48.272 30.836 L50.506 30.836 L50.506 26.531 L52.74 26.531" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M59.239 25.068 L65.332 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.845 27.912 L64.845 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.845 33.213 L64.845 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.032 27.912 L64.032 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.032 33.213 L64.032 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 34.858 L78.737 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 36.158 L75.691 36.158 L75.691 44.607 L78.737 44.607" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 37.945 L76.503 37.945 L76.503 39.732 L78.737 39.732" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
@@ -186,9 +189,9 @@
   <path d="M108.065 29.983 L112.533 29.983" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M119.032 29.983 L123.501 29.983" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
-<text x="418" y="612.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
-<text x="300" y="513" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C1</text>
-<g class="dl-cell" data-id="core2" data-type="sheet" transform="matrix(2,0,0,2.4286,150,790)">
+<text x="832" y="340.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
+<text x="714" y="241" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C1</text>
+<g class="dl-cell" data-id="core2" data-type="sheet" transform="matrix(2,0,0,2.4286,150,562)">
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
@@ -220,8 +223,8 @@
   <path d="M48.272 25.068 L52.74 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M48.272 30.836 L50.506 30.836 L50.506 26.531 L52.74 26.531" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M59.239 25.068 L65.332 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.845 27.912 L64.845 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.845 33.213 L64.845 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.032 27.912 L64.032 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.032 33.213 L64.032 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 34.858 L78.737 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 36.158 L75.691 36.158 L75.691 44.607 L78.737 44.607" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 37.945 L76.503 37.945 L76.503 39.732 L78.737 39.732" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
@@ -231,9 +234,9 @@
   <path d="M108.065 29.983 L112.533 29.983" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M119.032 29.983 L123.501 29.983" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
-<text x="418" y="884.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
-<text x="300" y="785" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C2</text>
-<g class="dl-cell" data-id="core3" data-type="sheet" transform="matrix(2,0,0,2.4286,150,1062)">
+<text x="418" y="656.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
+<text x="300" y="557" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C2</text>
+<g class="dl-cell" data-id="core3" data-type="sheet" transform="matrix(2,0,0,2.4286,564,562)">
   <rect x="10" y="0" width="130" height="70" fill="#fdf6ea" stroke="#b7791f" stroke-width="0.723" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#b7791f" stroke-width="0.542" />
   <line x1="150" y1="35" x2="140" y2="35" stroke="#b7791f" stroke-width="0.723" />
@@ -265,8 +268,8 @@
   <path d="M48.272 25.068 L52.74 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M48.272 30.836 L50.506 30.836 L50.506 26.531 L52.74 26.531" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M59.239 25.068 L65.332 25.068" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.845 27.912 L64.845 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
-  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.845 33.213 L64.845 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 25.068 L72.888 25.068 L72.888 27.912 L64.032 27.912 L64.032 29.943 L65.332 29.943" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
+  <path d="M71.994 26.693 L72.482 26.693 L72.482 33.213 L64.032 33.213 L64.032 34.858 L65.332 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 34.858 L78.737 34.858" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 36.158 L75.691 36.158 L75.691 44.607 L78.737 44.607" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M72.644 37.945 L76.503 37.945 L76.503 39.732 L78.737 39.732" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
@@ -276,72 +279,72 @@
   <path d="M108.065 29.983 L112.533 29.983" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
   <path d="M119.032 29.983 L123.501 29.983" fill="none" stroke="#8a9ba4" stroke-width="0.361" />
 </g>
-<text x="418" y="1156.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
-<text x="300" y="1057" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C3</text>
-<g class="dl-cell" data-id="ring" data-type="block8" transform="matrix(1,0,0,1,540,386)">
+<text x="832" y="656.714" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ring</text>
+<text x="714" y="557" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">C3</text>
+<g class="dl-cell" data-id="ring" data-type="block8" transform="matrix(1,0,0,1,1034,386)">
   <rect x="0" y="0" width="180" height="160" fill="#e8e4f6" stroke="#6b5bb3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="630" y="460.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Ring interconnect</text>
-<text class="dl-cell-text" x="630" y="479.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">coherent, 4 stops</text>
-<g class="dl-cell" data-id="snoop" data-type="block" transform="matrix(1,0,0,1,540,768)">
+<text class="dl-cell-heading" x="1124" y="460.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Ring interconnect</text>
+<text class="dl-cell-text" x="1124" y="479.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">coherent, 4 stops</text>
+<g class="dl-cell" data-id="snoop" data-type="block" transform="matrix(1,0,0,1,1034,768)">
   <rect x="0" y="0" width="140" height="90" fill="#e8e4f6" stroke="#6b5bb3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="610" y="807.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Snoop filter</text>
-<text class="dl-cell-text" x="610" y="826.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">MESIF directory</text>
-<g class="dl-cell" data-id="l3_0" data-type="block" transform="matrix(1,0,0,1,560,246)">
+<text class="dl-cell-heading" x="1104" y="807.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#2d2366">Snoop filter</text>
+<text class="dl-cell-text" x="1104" y="826.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">MESIF directory</text>
+<g class="dl-cell" data-id="l3_0" data-type="block" transform="matrix(1,0,0,1,1054,246)">
   <rect x="0" y="0" width="140" height="90" fill="#dde9f7" stroke="#2f6db3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="630" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 0</text>
-<text class="dl-cell-text" x="630" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
-<g class="dl-cell" data-id="l3_1" data-type="block" transform="matrix(1,0,0,1,730,246)">
+<text class="dl-cell-heading" x="1124" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 0</text>
+<text class="dl-cell-text" x="1124" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
+<g class="dl-cell" data-id="l3_1" data-type="block" transform="matrix(1,0,0,1,1224,246)">
   <rect x="0" y="0" width="140" height="90" fill="#dde9f7" stroke="#2f6db3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="800" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 1</text>
-<text class="dl-cell-text" x="800" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
-<g class="dl-cell" data-id="l3_2" data-type="block" transform="matrix(1,0,0,1,900,246)">
+<text class="dl-cell-heading" x="1294" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 1</text>
+<text class="dl-cell-text" x="1294" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
+<g class="dl-cell" data-id="l3_2" data-type="block" transform="matrix(1,0,0,1,1394,246)">
   <rect x="0" y="0" width="140" height="90" fill="#dde9f7" stroke="#2f6db3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="970" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 2</text>
-<text class="dl-cell-text" x="970" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
-<g class="dl-cell" data-id="l3_3" data-type="block" transform="matrix(1,0,0,1,1070,246)">
+<text class="dl-cell-heading" x="1464" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 2</text>
+<text class="dl-cell-text" x="1464" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
+<g class="dl-cell" data-id="l3_3" data-type="block" transform="matrix(1,0,0,1,1564,246)">
   <rect x="0" y="0" width="140" height="90" fill="#dde9f7" stroke="#2f6db3" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="1140" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 3</text>
-<text class="dl-cell-text" x="1140" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
-<g class="dl-cell" data-id="imc" data-type="block" transform="matrix(1.1714,0,0,1,730,628)">
+<text class="dl-cell-heading" x="1634" y="285.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">L3 slice 3</text>
+<text class="dl-cell-text" x="1634" y="304.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">9 MB</text>
+<g class="dl-cell" data-id="imc" data-type="block" transform="matrix(1.1714,0,0,1,1268,628)">
   <rect x="0" y="0" width="140" height="90" fill="#eef1f3" stroke="#5b6b74" stroke-width="1.474" />
 </g>
-<text class="dl-cell-heading" x="812" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Memory controller</text>
-<text class="dl-cell-text" x="812" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">2 x DDR5-6400</text>
-<g class="dl-cell" data-id="pcie" data-type="block" transform="matrix(1.1714,0,0,1,924,628)">
+<text class="dl-cell-heading" x="1350" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Memory controller</text>
+<text class="dl-cell-text" x="1350" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">2 x DDR5-6400</text>
+<g class="dl-cell" data-id="pcie" data-type="block" transform="matrix(1.1714,0,0,1,1506,628)">
   <rect x="0" y="0" width="140" height="90" fill="#eef1f3" stroke="#5b6b74" stroke-width="1.474" />
 </g>
-<text class="dl-cell-heading" x="1006" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">PCIe root complex</text>
-<text class="dl-cell-text" x="1006" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">Gen5 x16 + x4</text>
-<g class="dl-cell" data-id="gpu" data-type="block" transform="matrix(1,0,0,1,560,628)">
+<text class="dl-cell-heading" x="1588" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">PCIe root complex</text>
+<text class="dl-cell-text" x="1588" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">Gen5 x16 + x4</text>
+<g class="dl-cell" data-id="gpu" data-type="block" transform="matrix(1,0,0,1,1054,628)">
   <rect x="0" y="0" width="140" height="90" fill="#eef1f3" stroke="#5b6b74" stroke-width="1.6" />
 </g>
-<text class="dl-cell-heading" x="630" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Integrated GPU</text>
-<text class="dl-cell-text" x="630" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">96 EUs</text>
-<g class="dl-cell" data-id="ddr" data-type="port_out" transform="matrix(1,0,0,1,1380,648)">
+<text class="dl-cell-heading" x="1124" y="667.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Integrated GPU</text>
+<text class="dl-cell-text" x="1124" y="686.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">96 EUs</text>
+<g class="dl-cell" data-id="ddr" data-type="port_out" transform="matrix(1,0,0,1,1874,648)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1390" y="643" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">DDR5</text>
-<g class="dl-cell" data-id="pcie_io" data-type="port_out" transform="matrix(1,0,0,1,1380,612)">
+<text x="1884" y="643" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">DDR5</text>
+<g class="dl-cell" data-id="pcie_io" data-type="port_out" transform="matrix(1,0,0,1,1874,612)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1390" y="607" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">PCIe</text>
-<g class="dl-cell" data-id="disp" data-type="port_out" transform="matrix(1,0,0,1,1380,684)">
+<text x="1884" y="607" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">PCIe</text>
+<g class="dl-cell" data-id="disp" data-type="port_out" transform="matrix(1,0,0,1,1874,684)">
   <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
 </g>
-<text x="1390" y="679" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">Display</text>
+<text x="1884" y="679" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">Display</text>
 </g>
 <g class="dl-junctions">
-<circle cx="718" cy="357.5" r="3.2" fill="#16202b" />
-<circle cx="732" cy="357.5" r="3.2" fill="#16202b" />
-<circle cx="732" cy="444" r="3.2" fill="#16202b" />
-<circle cx="732" cy="520" r="3.2" fill="#16202b" />
-<circle cx="732" cy="586.5" r="3.2" fill="#16202b" />
+<circle cx="1212" cy="367.5" r="3.2" fill="#16202b" />
+<circle cx="1226" cy="367.5" r="3.2" fill="#16202b" />
+<circle cx="1226" cy="444" r="3.2" fill="#16202b" />
+<circle cx="1226" cy="520" r="3.2" fill="#16202b" />
+<circle cx="1241" cy="520" r="3.2" fill="#16202b" />
 </g>
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">CPU architecture -- a quad-core SoC built from linked cores</text>
 </svg>

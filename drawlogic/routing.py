@@ -389,6 +389,18 @@ class Sheet:
     self._names = []
     self._keys = frozenset()
     self._net = None
+    # Container outlines, as (horizontal, fixed, lo, hi). A wire may cross
+    # one -- it has to, to get in or out -- but one run along it reads as
+    # part of the box, or hides the box's edge.
+    self._borders = []
+
+  def add_borders(self, boxes):
+    """Keep wires from running along these container outlines."""
+    for box in boxes:
+      x, y = box.get("x", 0), box.get("y", 0)
+      w, h = box.get("w", 0), box.get("h", 0)
+      self._borders.extend([(True, y, x, x + w), (True, y + h, x, x + w),
+                            (False, x, y, y + h), (False, x + w, y, y + h)])
 
   def reserve(self, keys, points, net_id=None):
     """Remember the runs of a wire that has been routed."""
@@ -417,6 +429,7 @@ class Sheet:
     view._lines = self._lines
     view._cells = self._cells
     view._names = self._names
+    view._borders = self._borders
     view._keys = keys
     view._net = net_id
     return view
@@ -437,6 +450,19 @@ class Sheet:
     if gap is None:
       gap = WIRE_GAP
     lo, hi = min(v0, v1), max(v0, v1)
+    # An outline is kept at a cell's distance, not a wire's: a wire is
+    # meant to pass between two boxes, and the gap packing leaves there is
+    # narrower than two wire gaps. Every pass asks for it, the one that
+    # settles for crowding other wires included: a wire hugging an outline
+    # reads as part of the box, which is worse than one close to a wire.
+    for border_h, border_fixed, border_lo, border_hi in self._borders:
+      if border_h != horizontal:
+        continue
+      if abs(border_fixed - fixed) >= CLEARANCE:
+        continue
+      if hi + EPSILON < border_lo or lo - EPSILON > border_hi:
+        continue
+      return False
     # Only runs that could answer "no" are looked at: those lying within `gap`
     # of this line, and -- when crossings count -- those running across its
     # span. The answer is the same as asking every run, which is what this did
@@ -1122,6 +1148,7 @@ def route_all(doc, registry=None):
   """
   registry = registry or default_registry()
   sheet = Sheet()
+  sheet.add_borders(doc.containers)
   for net in doc.nets:
     keys = _endpoint_keys(net)
     for endpoint in [net.get("from")] + loads_of(net):

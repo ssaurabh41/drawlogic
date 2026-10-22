@@ -1686,7 +1686,7 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
                         gap if gap is not None else gap_y, margin, result)
   else:
     after = _pack_level(nodes, before, fixed, origin, mode, columns,
-                        gap if gap is not None else drc.CONTAINER_GAP)
+                        gap if gap is not None else _pack_gap(doc, nodes, mode))
 
   for kind, item in nodes:
     old, new = before[item["id"]], after.get(item["id"])
@@ -1705,6 +1705,41 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
       if notes:
         containers.move(doc, notes, now[0] - was[0], now[1] - was[1])
     containers.fit(doc, registry, owner)
+
+
+def _pack_gap(doc, nodes, mode):
+  """The room between packed neighbours: enough for the wires leaving them.
+
+  CONTAINER_GAP is right for blocks that are only a count of how many there
+  are. Once wires leave them -- four cores to one ring -- those wires have to
+  get out through the gaps, and a gap a wire can only hug one side of reads
+  as the wire belonging to the box. So each wire that leaves gets a wire
+  gap, with a cell's clearance either side, up to the room flow leaves
+  between columns: past that the wires spread over more than one gap.
+
+  A column keeps the plain gap. Pins sit on the sides, so wires leave a
+  column sideways into open space; widening the gaps between its rows only
+  made it taller.
+  """
+  if mode == "column":
+    return drc.CONTAINER_GAP
+  owner_of = {}
+  for kind, item in nodes:
+    inner = ({item["id"]} if kind == "cell"
+             else containers.descendants(doc, {item["id"]}))
+    for key in inner:
+      owner_of.setdefault(key, item["id"])
+  leaving = 0
+  for net in doc.nets:
+    ends = [net.get("from")] + loads_of(net)
+    owners = set(owner_of.get(end.get("cell")) if isinstance(end, dict) else None
+                 for end in ends)
+    if len(owners) > 1 and owners - {None}:
+      leaving += 1
+  if not leaving:
+    return drc.CONTAINER_GAP
+  need = 2 * drc.WIRE_TO_CELL + drc.WIRE_GAP * (leaving - 1)
+  return min(max(drc.CONTAINER_GAP, need), drc.CELL_GAP_X)
 
 
 def _corner(boxes):

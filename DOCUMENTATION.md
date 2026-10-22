@@ -1533,7 +1533,13 @@ properties panel:
 | **Grid** | packed line by line, **Columns** wide, or as square as it can be with that left empty |
 
 **Gap** is the room between what it holds; left empty, it is the usual for
-the arrangement (`CONTAINER_GAP`, 30, for packing; the cell gaps for flow).
+the arrangement (the cell gaps for flow; for packing, `CONTAINER_GAP`, 30,
+when nothing it holds is wired out). A row or grid whose blocks have wires
+leaving them packs wider, a wire gap for each wire plus a cell's clearance
+either side, up to the 110 flow leaves between columns: those wires have to
+get out between the blocks, and four cores wired to one ring through a
+30-unit gap could only hug the boxes. A column keeps 30, since pins sit on
+the sides and its wires leave sideways.
 Row, column and grid take their order from where things already are --
 across, down, line by line -- so laying out twice changes nothing, and
 dragging one SM ahead of another and laying out again is how you reorder
@@ -1561,8 +1567,9 @@ being laid out work as for any layout.
 Wires keep off a container's title as they keep off a name: the router
 treats the words in the header band as text a wire must not cross, so a
 wire runs beside the title or crosses the band clear of it rather than
-striking it through. A wire may still pass through the narrow gap between
-two packed blocks; a larger gap gives it more room.
+striking it through. They keep a cell's clearance (10) off a container's
+outline too, except where they cross it: a wire running along an edge reads
+as part of the box.
 
 ### Tidy up
 
@@ -1880,8 +1887,10 @@ one question -- is this drawing fit to hand to someone else.
 **Reference faults.** Errors: unknown cell type, duplicate id, a net pointing
 at a missing cell or a pin that does not exist, a bus width that disagrees
 with the net name, a bus on a single-bit pin, a group member that does not
-exist. Warnings: unconnected pins, a rotation that is not a multiple of 90, a
-net name that is not a legal identifier.
+exist. Warnings: a rotation that is not a multiple of 90, a net name that is
+not a legal identifier. An unconnected pin is not reported: generic blocks
+have a fixed number of pins, and a warning per spare pin buried the ones that
+mattered.
 
 **Rule failures**, from [the DRCs](#design-rule-checks-drcs). Each line names
 the rule that found it, which is the heading to look up in `drc.py` where the

@@ -229,6 +229,19 @@ export class Sheet {
     this.runs = [];
     this.keys = new Set();
     this.net = null;
+    // Container outlines, as [horizontal, fixed, lo, hi]; see routing.py.
+    this.borders = [];
+  }
+
+  addBorders(boxes) {
+    for (const box of boxes) {
+      const x = box.x || 0;
+      const y = box.y || 0;
+      const w = box.w || 0;
+      const h = box.h || 0;
+      this.borders.push([true, y, x, x + w], [true, y + h, x, x + w],
+                        [false, x, y, y + h], [false, x + w, y, y + h]);
+    }
   }
 
   reserve(keys, points, netId = null) {
@@ -248,6 +261,7 @@ export class Sheet {
   forNet(boxes, keys, netId = null, own = []) {
     const view = new Sheet(boxes, own);
     view.runs = this.runs;
+    view.borders = this.borders;
     view.keys = keys;
     view.net = netId;
     return view;
@@ -264,6 +278,14 @@ export class Sheet {
   free(horizontal, fixed, v0, v1, crossings = true, gap = limits.wireGap) {
     const lo = Math.min(v0, v1);
     const hi = Math.max(v0, v1);
+    // An outline is kept at a cell's distance, not a wire's, on every pass;
+    // see routing.py.
+    for (const [borderH, borderFixed, borderLo, borderHi] of this.borders) {
+      if (borderH !== horizontal) continue;
+      if (Math.abs(borderFixed - fixed) >= limits.wireToCell) continue;
+      if (hi + EPSILON < borderLo || lo - EPSILON > borderHi) continue;
+      return false;
+    }
     return !this.runs.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
       // A net never crowds itself, and neither does anything sharing a pin
       // with it: two wires off one pin are one signal, drawn as one rail.
@@ -851,6 +873,7 @@ function branchTo(doc, net, load, start, startDir, sheet, keys, fromPin = true) 
 // and leave it nowhere to go but on top. Mirrors routing.py.
 export function routeAll(doc) {
   const sheet = new Sheet();
+  sheet.addBorders(doc.containers || []);
   for (const net of doc.nets || []) {
     const keys = endpointKeys(net);
     for (const endpoint of [net.from, ...loadsOf(net)]) {

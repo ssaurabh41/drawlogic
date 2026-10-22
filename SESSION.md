@@ -57,7 +57,14 @@ multi-selection carries its internal wire bends; the Inside row wraps;
 named styles rename and delete (delete keeps every user's look); instances
 show a live miniature of their definition (`"preview": true`, symbol ops in
 the "preview" roles from sheets._preview, skipped by both renderers when
-off). Still true: a wire may squeeze through a narrow packing gap.
+off).
+
+Then examples/cpu_arch.dlg (quad-core SoC of linked components/ooo_core.dlg)
+and, from what drawing it exposed: no unconnected-pin warning at all (user's
+call: noise); wires keep CLEARANCE off container outlines on every corridor
+pass (Sheet.add_borders / addBorders); packed rows and grids widen their gap
+for the wires leaving them (layout._pack_gap, capped at CELL_GAP_X; columns
+keep CONTAINER_GAP). The user said two-way ports on the left are not a bug.
 
 ## Earlier in the first session (newest first)
 
@@ -88,15 +95,15 @@ saved through `Document.loads(...).dumps()`. Layout: ports left and right, a
 dashed "GPU die" outline, host/front end -> GigaThread -> 8 GPCs -> crossbar ->
 12 memory partitions, display and NVLink; two shape-only panels underneath for
 "inside one GPC" and "inside one SM". Unit counts are realistic but invented.
-Every pin is connected because an unconnected pin is a warning; that is why a
+Every pin is connected because an unconnected pin was a warning then; that is why a
 few blocks carry clock or status pins. One wire crossing (NVLink tx) cannot be
 avoided and is drawn as a bridge.
 
 ## Open items (none requested yet)
 
 - **Generic blocks have fixed pin counts** (`block` 2/2, `block6` 3/3,
-  `block8` 4/4) and an unused pin warns. A block whose pin count you choose
-  would make block diagrams much easier. Proposed, not started.
+  `block8` 4/4). Unused pins no longer warn; a block whose pin count you
+  choose would still make block diagrams easier. Proposed, not started.
 - soc_top and spi_master still have DRC warnings (spacing, hops).
 - The xN badge can overlap a flop's Q stub.
 - Possible: unit tests for the newest editor features, shadow presets, a test

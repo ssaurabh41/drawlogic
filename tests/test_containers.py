@@ -375,6 +375,102 @@ class TestWiresKeepOffTitles(unittest.TestCase):
     self.assertEqual([[i, _rounded(b)] for i, b in browser["routes"]], expected)
 
 
+def runs_along_outlines(doc, routes):
+  """Every run lying closer than a cell's clearance to a container outline,
+  alongside it -- the wire that reads as part of the box."""
+  from drawlogic import routing
+  found = []
+  for net, branches in routes:
+    for points in branches:
+      for a, b in zip(points, points[1:]):
+        for box in doc.containers:
+          x, y, w, h = box["x"], box["y"], box["w"], box["h"]
+          if abs(a[1] - b[1]) < 1e-6:
+            lines = [(y, x, x + w), (y + h, x, x + w)]
+            fixed, lo, hi = a[1], min(a[0], b[0]), max(a[0], b[0])
+          else:
+            lines = [(x, y, y + h), (x + w, y, y + h)]
+            fixed, lo, hi = a[0], min(a[1], b[1]), max(a[1], b[1])
+          for line, line_lo, line_hi in lines:
+            if (abs(line - fixed) < routing.CLEARANCE
+                and lo < line_hi and hi > line_lo):
+              found.append((net["id"], a, b, box["id"]))
+  return found
+
+
+class TestWiresKeepOffOutlines(unittest.TestCase):
+
+  def test_an_outline_is_crossed_but_not_followed(self):
+    from drawlogic import routing
+    sheet = routing.Sheet()
+    sheet.add_borders([{"x": 0, "y": 0, "w": 100, "h": 100}])
+    # Alongside the left edge, inside or out: not free, on any pass.
+    for x in (-5, 0, 5):
+      for gap in (routing.WIRE_GAP, routing.TOUCHING):
+        self.assertFalse(sheet.free(False, x, 20, 80, False, gap), (x, gap))
+    self.assertTrue(sheet.free(False, 15, 20, 80))
+    # Straight across it is how a wire gets in, so it stays free.
+    self.assertTrue(sheet.free(True, 50, -40, 40))
+    # Past the end of the edge is not alongside it.
+    self.assertTrue(sheet.free(False, 0, 120, 160))
+
+  def test_four_cores_in_a_grid_wire_out_through_the_gaps(self):
+    from drawlogic import routing
+    from tests import ROOT, open_example
+    import os
+    doc, registry, _issues = open_example(os.path.join(ROOT, "examples", "cpu_arch.dlg"))
+    self.assertEqual(layout_of_cores(doc), "grid")
+    self.assertEqual(runs_along_outlines(doc, routing.route_all(doc, registry)), [])
+
+
+def layout_of_cores(doc):
+  return layout.layout_of(containers.by_id(doc)["cores"])[0]
+
+
+class TestPackingLeavesRoomForWires(unittest.TestCase):
+
+  def gaps(self, mode):
+    """The gaps a packed container leaves between four blocks, each with a
+    wire out to a ring beside it."""
+    doc = new_document("packed", 1200, 800)
+    doc.data["containers"] = [{"id": "c", "title": "Cores", "x": 0, "y": 0,
+                               "w": 100, "h": 100, "layout": {"mode": mode}}]
+    for i in range(4):
+      doc.cells.append({"id": "b%d" % i, "parentId": "c", "type": "block",
+                        "x": 200 * i, "y": 0})
+    doc.cells.append({"id": "ring", "type": "block8", "x": 1000, "y": 0})
+    for i in range(4):
+      doc.nets.append({"id": "n%d" % i, "from": {"cell": "b%d" % i, "pin": "out1"},
+                       "to": [{"cell": "ring", "pin": "in%d" % (i + 1)}]})
+    doc.normalize()
+    layout.arrange(doc, default_registry())
+    boxes = sorted(box_of(doc, "b%d" % i) for i in range(4))
+    if mode == "row":
+      return [b[0] - (a[0] + a[2]) for a, b in zip(boxes, boxes[1:])]
+    return [b[1] - (a[1] + a[3]) for a, b in zip(boxes, boxes[1:])]
+
+  def test_a_row_widens_for_the_wires_leaving_it(self):
+    from drawlogic import drc
+    # Four wires: a wire gap each after the first, a cell's clearance either
+    # side.
+    want = 2 * drc.WIRE_TO_CELL + 3 * drc.WIRE_GAP
+    for gap in self.gaps("row"):
+      self.assertAlmostEqual(gap, want)
+
+  def test_a_column_keeps_the_plain_gap(self):
+    from drawlogic import drc
+    for gap in self.gaps("column"):
+      self.assertAlmostEqual(gap, drc.CONTAINER_GAP)
+
+  def test_blocks_with_no_wires_keep_the_plain_gap(self):
+    from drawlogic import drc
+    doc = gpcs()
+    doc.nets[:] = []
+    layout.arrange(doc, default_registry())
+    sms = sorted(box_of(doc, "g0_sm%d" % s) for s in range(4))
+    self.assertAlmostEqual(sms[2][0] - (sms[0][0] + sms[0][2]), drc.CONTAINER_GAP)
+
+
 @unittest.skipUnless(NODE, "node is not installed")
 class TestTheEditorDrawsTheSame(unittest.TestCase):
 

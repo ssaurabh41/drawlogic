@@ -72,6 +72,18 @@ the gap above a block two loops turn into, and a crossover leg now moves
 off another wire within WIRE_GAP, not only on top of it (_leg_column /
 legColumn).
 
+Then header bands made solid (user: "a hard cell for spacing"): routing
+keeps CLEARANCE off containers.header_box, DRC wire-over-header (error) /
+wire-to-header (warning). Wires into a container from above could not be
+placed by the fixed shapes, so (user chose this over allowing a crossing)
+routing._find_path / findPath: A* on a grid of obstacle-edge, outline and
+wide-gap-middle lines, bends 30, crowding = length again, crossing 20,
+closer than CLEARANCE barred, reach 300; used only when the shape route is
+not clear. HDL layout tests cost ~15% more. A column's gaps now hold every
+wire passing between blocks (_column_loops `across`). The pre-pathfinder
+state is the branch `before-pathfinder` (a tag push was refused by the
+session's git proxy).
+
 ## Earlier in the first session (newest first)
 
 | Commit | What |

@@ -191,12 +191,11 @@ export function sideLabelBoxes(doc) {
     const pad = limits.textToWire;
     boxes.push([box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad]);
   }
-  // A container's title, as routing.side_label_boxes keeps wires off it.
-  const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+  // A container's header band is solid, like a cell; see
+  // routing.side_label_boxes.
   for (const box of doc.containers || []) {
-    const written = geometry.containerTitleBox(geometry.effectiveStyle(doc.styles, box),
-                                               fontScale, limits.textToWire);
-    if (written) boxes.push(written);
+    const band = geometry.containerHeaderBox(box, limits.wireToCell);
+    if (band) boxes.push(band);
   }
   return boxes;
 }
@@ -643,13 +642,241 @@ function middleRoute(a, b, aDir, bDir, sheet) {
 // allowed to turn. That short stub is what makes the joint at, say, a
 // flip-flop clock pin read as a continuation of the wire instead of a line
 // that arrived from the wrong side.
+// The path-finder's reach past the two ends, and what a bend, and a crossing,
+// cost in wire length. Mirrors MAZE_* in routing.py.
+const MAZE_REACH = 300;
+const MAZE_BEND = 30;
+const MAZE_CROSSING = 20;
+
+// True if no leg of a path runs through an obstacle or along an outline.
+function pathOk(points, sheet) {
+  for (let i = 0; i < points.length - 1; i += 1) {
+    if (!legClear(points[i], points[i + 1], sheet.boxes)) return false;
+    if (!offBorders(points[i], points[i + 1], sheet)) return false;
+  }
+  return true;
+}
+
+// True if one axis-aligned run keeps a cell's clearance off every outline it
+// runs beside.
+function offBorders(p, q, sheet) {
+  let horizontal;
+  let fixed;
+  let lo;
+  let hi;
+  if (Math.abs(p[1] - q[1]) < EPSILON) {
+    [horizontal, fixed, lo, hi] = [true, p[1], Math.min(p[0], q[0]), Math.max(p[0], q[0])];
+  } else if (Math.abs(p[0] - q[0]) < EPSILON) {
+    [horizontal, fixed, lo, hi] = [false, p[0], Math.min(p[1], q[1]), Math.max(p[1], q[1])];
+  } else {
+    return true;
+  }
+  for (const [borderH, borderFixed, borderLo, borderHi] of sheet.borders) {
+    if (borderH === horizontal && Math.abs(borderFixed - fixed) < limits.wireToCell
+        && !(hi + EPSILON < borderLo || lo - EPSILON > borderHi)) return false;
+  }
+  return true;
+}
+
+// The lines a found path may run on, across one axis; see routing._maze_lines.
+function mazeLines(ends, boxes, borders, horizontal) {
+  const axis = horizontal ? 1 : 0;
+  const base = new Set(ends.map((end) => end[axis]));
+  for (const box of boxes) {
+    base.add(box[axis] - 1);
+    base.add(box[axis + 2] + 1);
+  }
+  for (const [borderH, borderFixed] of borders) {
+    if (borderH === horizontal) {
+      base.add(borderFixed - limits.wireToCell);
+      base.add(borderFixed + limits.wireToCell);
+    }
+  }
+  const ordered = [...base].sort((p, q) => p - q);
+  const lines = new Set(ordered);
+  for (let i = 0; i < ordered.length - 1; i += 1) {
+    if (ordered[i + 1] - ordered[i] > 2 * limits.wireGap) {
+      lines.add((ordered[i] + ordered[i + 1]) / 2);
+    }
+  }
+  return [...lines].sort((p, q) => p - q);
+}
+
+// Directions as [dx, dy], indexed: right, left, down, up.
+const DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+function directionIndex(vector) {
+  if (Math.abs(vector[0]) >= Math.abs(vector[1])) return vector[0] > 0 ? 0 : 1;
+  return vector[1] > 0 ? 2 : 3;
+}
+
+// A binary heap of [estimate, -cost, order, ...], smallest first, compared
+// field by field as Python compares the tuples routing._find_path pushes.
+function heapLess(p, q) {
+  for (let i = 0; i < 3; i += 1) {
+    if (p[i] !== q[i]) return p[i] < q[i];
+  }
+  return false;
+}
+
+function heapPush(heap, entry) {
+  heap.push(entry);
+  let i = heap.length - 1;
+  while (i > 0) {
+    const parent = (i - 1) >> 1;
+    if (!heapLess(heap[i], heap[parent])) break;
+    [heap[i], heap[parent]] = [heap[parent], heap[i]];
+    i = parent;
+  }
+}
+
+function heapPop(heap) {
+  const top = heap[0];
+  const last = heap.pop();
+  if (heap.length) {
+    heap[0] = last;
+    let i = 0;
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = l + 1;
+      let m = i;
+      if (l < heap.length && heapLess(heap[l], heap[m])) m = l;
+      if (r < heap.length && heapLess(heap[r], heap[m])) m = r;
+      if (m === i) break;
+      [heap[i], heap[m]] = [heap[m], heap[i]];
+      i = m;
+    }
+  }
+  return top;
+}
+
+// A path from stub end to stub end around everything, or null, for when the
+// fixed shapes cannot place a wire. Mirrors routing._find_path, which says why.
+function findPath(a, b, aDir, bDir, sheet) {
+  const loX = Math.min(a[0], b[0]) - MAZE_REACH;
+  const hiX = Math.max(a[0], b[0]) + MAZE_REACH;
+  const loY = Math.min(a[1], b[1]) - MAZE_REACH;
+  const hiY = Math.max(a[1], b[1]) + MAZE_REACH;
+  const c = limits.wireToCell;
+  const padded = sheet.own.map(([x0, y0, x1, y1]) => [x0 - c, y0 - c, x1 + c, y1 + c]);
+  const boxes = [...sheet.boxes, ...padded].filter((box) =>
+    box[2] >= loX && box[0] <= hiX && box[3] >= loY && box[1] <= hiY);
+  for (const end of [a, b]) {
+    if (!verticalClear(end[0], end[1], end[1], boxes)) return null;
+  }
+  const borders = sheet.borders.filter((border) =>
+    border[1] >= (border[0] ? loY : loX) && border[1] <= (border[0] ? hiY : hiX));
+  const xs = mazeLines([a, b], boxes, borders, false).filter((x) => loX <= x && x <= hiX);
+  const ys = mazeLines([a, b], boxes, borders, true).filter((y) => loY <= y && y <= hiY);
+  const column = new Map(xs.map((x, i) => [x, i]));
+  const row = new Map(ys.map((y, j) => [y, j]));
+  const start = [column.get(a[0]), row.get(a[1])];
+  const goal = [column.get(b[0]), row.get(b[1])];
+  const first = directionIndex(aDir);
+  const last = directionIndex([-bDir[0], -bDir[1]]);
+  const backwards = directionIndex(bDir);
+
+  const stepCost = (p, q) => {
+    if (!legClear(p, q, boxes)) return null;
+    let horizontal;
+    let fixed;
+    let v0;
+    let v1;
+    if (Math.abs(p[1] - q[1]) < EPSILON) [horizontal, fixed, v0, v1] = [true, p[1], p[0], q[0]];
+    else [horizontal, fixed, v0, v1] = [false, p[0], p[1], q[1]];
+    if (sheet.free(horizontal, fixed, v0, v1, true, limits.wireGap)) return Math.abs(v1 - v0);
+    if (!sheet.free(horizontal, fixed, v0, v1, false, limits.wireToCell)) return null;
+    if (!sheet.free(horizontal, fixed, v0, v1, false, limits.wireGap)) return 2 * Math.abs(v1 - v0);
+    return Math.abs(v1 - v0) + MAZE_CROSSING;
+  };
+
+  const ahead = (node, heading) => {
+    const dx = b[0] - xs[node[0]];
+    const dy = b[1] - ys[node[1]];
+    let owed = 1;
+    if (heading === last) {
+      const [along, across] = last < 2 ? [dx * DIRECTIONS[last][0], dy]
+        : [dy * DIRECTIONS[last][1], dx];
+      owed = (Math.abs(across) < EPSILON && along >= -EPSILON) ? 0 : 2;
+    }
+    return Math.abs(dx) + Math.abs(dy) + owed * MAZE_BEND;
+  };
+
+  const stateKey = (node, heading) => `${node[0]},${node[1]},${heading}`;
+  const steps = new Map();
+  const best = new Map([[stateKey(start, first), 0]]);
+  const came = new Map();
+  const queue = [[ahead(start, first), 0, 0, start, first]];
+  let count = 1;
+  let found = null;
+  while (queue.length) {
+    const [, negative, , node, heading] = heapPop(queue);
+    const cost = -negative;
+    const here = stateKey(node, heading);
+    if (cost > (best.has(here) ? best.get(here) : Infinity)) continue;
+    if (node[0] === goal[0] && node[1] === goal[1]) {
+      if (heading === last) {
+        found = [node, heading];
+        break;
+      }
+      if (heading !== backwards) {
+        const turned = cost + MAZE_BEND;
+        const key = stateKey(node, last);
+        if (turned < (best.has(key) ? best.get(key) : Infinity)) {
+          best.set(key, turned);
+          came.set(key, [node, heading]);
+          heapPush(queue, [turned + ahead(node, last), -turned, count, node, last]);
+          count += 1;
+        }
+      }
+      continue;
+    }
+    for (let index = 0; index < 4; index += 1) {
+      if (index === (heading ^ 1)) continue;
+      const i = node[0] + DIRECTIONS[index][0];
+      const j = node[1] + DIRECTIONS[index][1];
+      if (!(i >= 0 && i < xs.length && j >= 0 && j < ys.length)) continue;
+      const stepKey = `${node[0]},${node[1]},${i},${j}`;
+      if (!steps.has(stepKey)) {
+        const p = [xs[node[0]], ys[node[1]]];
+        const q = [xs[i], ys[j]];
+        let length = stepCost(p, q);
+        if (length !== null && !offBorders(p, q, sheet)) length = null;
+        steps.set(stepKey, length);
+      }
+      const length = steps.get(stepKey);
+      if (length === null) continue;
+      const total = cost + length + (index !== heading ? MAZE_BEND : 0);
+      const key = stateKey([i, j], index);
+      if (total < (best.has(key) ? best.get(key) : Infinity)) {
+        best.set(key, total);
+        came.set(key, [node, heading]);
+        heapPush(queue, [total + ahead([i, j], index), -total, count, [i, j], index]);
+        count += 1;
+      }
+    }
+  }
+  if (!found) return null;
+  const nodes = [found[0]];
+  let state = found;
+  while (came.has(stateKey(state[0], state[1]))) {
+    state = came.get(stateKey(state[0], state[1]));
+    const tail = nodes[nodes.length - 1];
+    if (state[0][0] !== tail[0] || state[0][1] !== tail[1]) nodes.push(state[0]);
+  }
+  nodes.reverse();
+  return clean(nodes.map(([i, j]) => [xs[i], ys[j]]));
+}
+
 function directRoute(start, end, startDir, endDir, sheet,
                      startStub = STUB, endStub = STUB) {
   const aDir = startDir || freeDirection(start, end);
   const bDir = endDir || freeDirection(end, start);
   const a = startDir ? stubEnd(start, aDir, startStub) : start;
   const b = endDir ? stubEnd(end, bDir, endStub) : end;
-  return [start, ...middleRoute(a, b, aDir, bDir, sheet), end];
+  let middle = middleRoute(a, b, aDir, bDir, sheet);
+  if (!pathOk(middle, sheet)) middle = findPath(a, b, aDir, bDir, sheet) || middle;
+  return [start, ...middle, end];
 }
 
 function elbow(a, b, horizontalFirst) {

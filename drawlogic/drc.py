@@ -465,6 +465,14 @@ class _Scene(object):
     # Text notes are words on the sheet like any name, and a wire through one
     # loses it the same way. They were not measured at all, so a layout could
     # lay a wire across a drawing's subtitle and call it clean.
+    # Container header bands, which are as solid as a cell to a wire.
+    from . import containers
+    self.headers = []
+    for box in doc.containers:
+      band = containers.header_box(box)
+      if band is not None:
+        self.headers.append((box.get("title") or box.get("id"), box.get("id"), band))
+
     self.notes = []
     for shape in doc.shapes:
       box = render_svg.text_shape_box(shape, doc.font_scale)
@@ -538,6 +546,7 @@ def check(doc, registry=None, routes=None, labels=None):
   _check_wire_contact(scene, report)
   _check_wire_crossings(scene, report)
   _check_wires_and_cells(scene, report)
+  _check_wires_and_headers(scene, report)
   _check_wire_shape(scene, report)
   _check_cell_spacing(scene, report)
   _check_text(scene, report)
@@ -732,6 +741,34 @@ def _check_wires_and_cells(scene, report):
           "the wire passes %.1f away, closer than the %.0f needed to read as "
           "passing rather than joining" % (gap, limit),
           _midpoint(run.a, run.b)))
+
+
+def _check_wires_and_headers(scene, report):
+  """Wires through and alongside a container's header band.
+
+  The band is the box's label, and a wire across it cuts the title off from
+  the box it names -- read as the wire's own label, or as the box ending
+  there. Held to a cell's rules, wires belonging to the box included: a wire
+  into a container comes in through a side or the bottom.
+  """
+  if not scene.headers:
+    return
+  for run in scene.runs:
+    box = run.box()
+    for title, box_id, band in scene.headers:
+      where = "net %s and the header of %s" % (scene.net_name(run.net_id), title)
+      if _boxes_overlap(box, band):
+        report.add(("wire-over-header", run.net_id, box_id), -1.0, Violation(
+          "wire-over-header", "error", where,
+          "the wire is drawn across the header band, so it cuts the title "
+          "off from the box it names", _midpoint(run.a, run.b)))
+        continue
+      gap = _box_gap(box, band)
+      if gap < WIRE_TO_CELL:
+        report.add(("wire-to-header", run.net_id, box_id), gap, Violation(
+          "wire-to-header", "warning", where,
+          "the wire passes %.1f from the header band, closer than the %.0f "
+          "a cell is kept" % (gap, WIRE_TO_CELL), _midpoint(run.a, run.b)))
 
 
 def _check_wire_shape(scene, report):

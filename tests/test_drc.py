@@ -368,6 +368,27 @@ class TestParallelRuns(unittest.TestCase):
     self.assertEqual(only(drc.check(doc), "wire-spacing"), [])
 
 
+class TestContainerHeaders(unittest.TestCase):
+  """A container's header band is held to a cell's rules."""
+
+  def test_a_wire_drawn_through_a_band_is_an_error(self):
+    from tests.test_containers import across_a_title
+    doc = across_a_title()
+    # Waypoints are the drawer's own route, which the router does not
+    # second-guess: straight along the band.
+    doc.nets[0]["to"][0]["waypoints"] = [[250, 115], [750, 115]]
+    found = [v for v in drc.check(doc) if v.rule == "wire-over-header"]
+    self.assertEqual([v.level for v in found], ["error"])
+
+  def test_a_wire_drawn_close_to_a_band_is_a_warning(self):
+    from tests.test_containers import across_a_title
+    doc = across_a_title()
+    # Five above the top of the box, alongside the band: crowded, not through.
+    doc.nets[0]["to"][0]["waypoints"] = [[250, 95], [750, 95]]
+    found = [v for v in drc.check(doc) if v.rule.endswith("-header")]
+    self.assertEqual([(v.rule, v.level) for v in found], [("wire-to-header", "warning")])
+
+
 class TestEveryCheckerIsReachable(unittest.TestCase):
   """Each checker `check()` runs must be the only reason some test passes.
 

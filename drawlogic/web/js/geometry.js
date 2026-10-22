@@ -387,16 +387,14 @@ export function containerTitleLayout(box, fontScale = 1) {
   return [Number(box.x) + inset, Number(box.y) + depth / 2 + size * 0.35, text, paint];
 }
 
-// The room a container's title takes in its header band, as [x0, y0, x1, y1]
-// padded by `pad` across: the whole depth of the band, as wide as the words.
-// Mirrors containers.title_box.
-export function containerTitleBox(box, fontScale = 1, pad = 0) {
-  const title = containerTitleLayout(box, fontScale);
-  if (!title || !title[2]) return null;
-  const [x, , text, paint] = title;
+// A container's header band, as [x0, y0, x1, y1] grown by `pad` all round,
+// or null for a box with no band. Mirrors containers.header_box.
+export function containerHeaderBox(box, pad = 0) {
   const depth = Math.min(containerHeader(box), Number(box.h));
-  return [x - pad, Number(box.y), x + text.length * paint.size * containerTheme.char + pad,
-          Number(box.y) + depth];
+  if (!(depth > 0)) return null;
+  const x = Number(box.x);
+  const y = Number(box.y);
+  return [x - pad, y - pad, x + Number(box.w) + pad, y + depth + pad];
 }
 
 // The look an item is drawn with: its named style, if it names one that is

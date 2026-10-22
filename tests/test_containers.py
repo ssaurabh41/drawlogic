@@ -338,21 +338,28 @@ def across_a_title():
   return doc
 
 
+def through_band(points, band):
+  """The runs of a path that touch a box: none, for a wire that keeps off."""
+  hits = []
+  for a, b in zip(points, points[1:]):
+    x0, x1 = sorted((a[0], b[0]))
+    y0, y1 = sorted((a[1], b[1]))
+    if not (x1 < band[0] or x0 > band[2] or y1 < band[1] or y0 > band[3]):
+      hits.append((a, b))
+  return hits
+
+
 class TestWiresKeepOffTitles(unittest.TestCase):
 
-  def test_a_wire_does_not_run_through_a_title(self):
+  def test_a_wire_keeps_a_clearance_off_the_whole_header_band(self):
     from drawlogic import routing
     doc = across_a_title()
-    title = containers.title_box(doc.containers[0])
+    band = containers.header_box(doc.containers[0], routing.CLEARANCE - 0.5)
     [(_net, [points])] = routing.route_all(doc)
-    for a, b in zip(points, points[1:]):
-      if abs(a[1] - b[1]) < 1e-6:
-        crosses = (title[1] <= a[1] <= title[3]
-                   and min(a[0], b[0]) < title[2] and max(a[0], b[0]) > title[0])
-        self.assertFalse(crosses, "run %s-%s goes through the title %s" % (a, b, title))
+    self.assertEqual(through_band(points, band), [])
     # And it is not that the wire happened to miss: straight, it would not.
     start = points[0]
-    self.assertTrue(title[1] <= start[1] <= title[3])
+    self.assertTrue(band[1] <= start[1] <= band[3])
 
   @unittest.skipUnless(NODE, "node is not installed")
   def test_the_editor_routes_it_the_same_way(self):
@@ -361,6 +368,77 @@ class TestWiresKeepOffTitles(unittest.TestCase):
     from drawlogic import routing
     from tests.test_js_parity import _browser_result, _rounded
     doc = across_a_title()
+    handle, path = tempfile.mkstemp(suffix=".dlg")
+    os.close(handle)
+    try:
+      doc.save(path)
+      browser = _browser_result(path, default_registry())
+    finally:
+      os.unlink(path)
+      if os.path.exists(path + ".bak"):
+        os.unlink(path + ".bak")
+    expected = [[net["id"], _rounded(branches)]
+                for net, branches in routing.route_all(doc)]
+    self.assertEqual([[i, _rounded(b)] for i, b in browser["routes"]], expected)
+
+
+def into_from_above():
+  """A driver above a container, wired to a block inside it whose pin faces
+  left. No corner or crossover reaches the pin without cutting through the
+  header band, so only a path round the side gets there."""
+  doc = new_document("into", 1000, 700)
+  doc.data["containers"] = [{"id": "sa", "title": "System agent",
+                             "x": 300, "y": 300, "w": 500, "h": 200}]
+  doc.cells.extend([
+    {"id": "src", "type": "block", "x": 450, "y": 120},
+    {"id": "a", "parentId": "sa", "type": "block", "x": 340, "y": 370},
+    {"id": "b", "parentId": "sa", "type": "block", "x": 560, "y": 370},
+  ])
+  doc.nets.append({"id": "n", "from": {"cell": "src", "pin": "out1"},
+                   "to": [{"cell": "b", "pin": "in1"}]})
+  doc.normalize()
+  return doc
+
+
+class TestAPathRoundTheHeader(unittest.TestCase):
+
+  def test_a_wire_into_a_container_from_above_goes_round_the_header(self):
+    from drawlogic import drc, routing
+    doc = into_from_above()
+    band = containers.header_box(doc.containers[0], routing.CLEARANCE - 0.5)
+    [(_net, [points])] = routing.route_all(doc)
+    self.assertEqual(through_band(points, band), [])
+    # In through a side of the box, below the band.
+    box = doc.containers[0]
+    sides = [(a, b) for a, b in zip(points, points[1:]) if abs(a[1] - b[1]) < 1e-6
+             and min(a[0], b[0]) < box["x"] + box["w"] < max(a[0], b[0])]
+    self.assertTrue(sides, points)
+    self.assertEqual([v for v in drc.check(doc) if v.level == "error"], [])
+
+  def test_without_the_path_finder_it_would_cut_the_band(self):
+    from drawlogic import routing
+    doc = into_from_above()
+    band = containers.header_box(doc.containers[0])
+    saved = routing._find_path
+    routing._find_path = lambda *args: None
+    try:
+      [(_net, [points])] = routing.route_all(doc)
+    finally:
+      routing._find_path = saved
+    self.assertNotEqual(through_band(points, band), [])
+
+  def test_a_boxed_in_end_finds_no_path(self):
+    from drawlogic import routing
+    sheet = routing.Sheet(boxes=[(0, 0, 100, 100)])
+    self.assertIsNone(routing._find_path((50, 50), (300, 50), (1, 0), (-1, 0), sheet))
+
+  @unittest.skipUnless(NODE, "node is not installed")
+  def test_the_editor_finds_the_same_path(self):
+    import os
+    import tempfile
+    from drawlogic import routing
+    from tests.test_js_parity import _browser_result, _rounded
+    doc = into_from_above()
     handle, path = tempfile.mkstemp(suffix=".dlg")
     os.close(handle)
     try:

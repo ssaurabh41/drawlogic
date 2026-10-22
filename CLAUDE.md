@@ -77,7 +77,10 @@ which is what keeps laying out twice idempotent.
 crossing bridges ("hops"). Doglegs are not implemented; a Phase-0 analysis
 (`benchmarks/channel_graph.py`, vertical-constraint-graph + cycle detection)
 found the example/benchmark corpus acyclic throughout, so they have not been
-needed so far.
+needed so far. Fixed shapes (corner, crossover, detour) place nearly every
+wire; when none is clear of obstacles and outlines, `_find_path` (A* over a
+grid of lines through the gaps, mirrored as `findPath` in routing.js) finds
+one -- the way round a container's header band, which is solid.
 
 **DRCs live in one file.** `drawlogic/drc.py` holds every design-rule limit
 and check, served to the browser at `/api/drc` and run live while editing. `tests/test_drc.TestEveryCheckerIsReachable` replaces

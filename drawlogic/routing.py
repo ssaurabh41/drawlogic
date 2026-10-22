@@ -19,6 +19,8 @@ checking it clears every cell the wire is not connected to. A net's
 `waypoints` force the route through given points.
 """
 
+import heapq
+
 from . import theme
 from .geometry import corners, label_lines
 from . import drc
@@ -54,6 +56,12 @@ HOP_GAP = drc.HOP_GAP
 
 # How finely a sheet files the runs it has reserved, in drawing units.
 RUN_BUCKET = 32.0
+
+# The path-finder: how far past the two ends it looks, what a bend costs in
+# wire length, and what running alongside or across another wire costs.
+MAZE_REACH = 300.0
+MAZE_BEND = 30.0
+MAZE_CROSSING = 20.0
 
 # Corridor searches that may run anywhere on the sheet.
 NEG_SPAN = float("-inf")
@@ -287,15 +295,15 @@ def side_label_boxes(doc, registry=None):
     if box is not None:
       pad = drc.TEXT_TO_WIRE
       boxes.append((box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad))
-  # A container's title is text in the same way: a wire along a header band
-  # struck the title through. The whole depth of the band, as wide as the
-  # words -- a wire may still cross the band beside them, into the box.
-  from . import containers, styles
+  # A container's header band is solid, like a cell: a wire along it struck
+  # the title through, and one crossing it -- beside the words, into the box
+  # -- cut the band in two. Kept a cell's clearance off, its own wires too,
+  # so a wire into a container comes in through a side or the bottom.
+  from . import containers
   for box in doc.containers:
-    written = containers.title_box(styles.effective(doc.styles, box),
-                                   doc.font_scale, drc.TEXT_TO_WIRE)
-    if written is not None:
-      boxes.append(written)
+    band = containers.header_box(box, CLEARANCE)
+    if band is not None:
+      boxes.append(band)
   return boxes
 
 
@@ -868,6 +876,201 @@ def _middle_route(a, b, a_dir, b_dir, sheet):
   return _route_corner(a, b, a_dir, b_dir, sheet, a_horizontal)
 
 
+def _path_ok(points, sheet):
+  """True if no leg of a path runs through an obstacle or along an outline."""
+  for p, q in zip(points, points[1:]):
+    if not _leg_clear(p, q, sheet.boxes):
+      return False
+    if not _off_borders(p, q, sheet):
+      return False
+  return True
+
+
+def _off_borders(p, q, sheet):
+  """True if one axis-aligned run keeps CLEARANCE off every outline it runs
+  beside. The same question free() asks first, without the other wires."""
+  if abs(p[1] - q[1]) < EPSILON:
+    horizontal, fixed, lo, hi = True, p[1], min(p[0], q[0]), max(p[0], q[0])
+  elif abs(p[0] - q[0]) < EPSILON:
+    horizontal, fixed, lo, hi = False, p[0], min(p[1], q[1]), max(p[1], q[1])
+  else:
+    return True
+  for border_h, border_fixed, border_lo, border_hi in sheet._borders:
+    if (border_h == horizontal and abs(border_fixed - fixed) < CLEARANCE
+        and not (hi + EPSILON < border_lo or lo - EPSILON > border_hi)):
+      return False
+  return True
+
+
+def _maze_lines(ends, boxes, borders, horizontal):
+  """The lines a found path may run on, across one axis: through each end,
+  just outside each obstacle and a clearance off each outline."""
+  axis = 1 if horizontal else 0
+  base = set(end[axis] for end in ends)
+  for box in boxes:
+    base.add(box[axis] - 1.0)
+    base.add(box[axis + 2] + 1.0)
+  for border_h, border_fixed, _lo, _hi in borders:
+    if border_h == horizontal:
+      base.add(border_fixed - CLEARANCE)
+      base.add(border_fixed + CLEARANCE)
+  # And the middle of each gap wide enough for a wire to keep clear of both
+  # sides; a narrower one is crossed, not run along, and its lines would only
+  # make the search slower.
+  ordered = sorted(base)
+  lines = set(ordered)
+  for one, other in zip(ordered, ordered[1:]):
+    if other - one > 2 * WIRE_GAP:
+      lines.add((one + other) / 2.0)
+  return sorted(lines)
+
+
+# Directions as (dx, dy), indexed: right, left, down, up.
+_DIRECTIONS = ((1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0))
+
+
+def _direction_index(vector):
+  if abs(vector[0]) >= abs(vector[1]):
+    return 0 if vector[0] > 0 else 1
+  return 2 if vector[1] > 0 else 3
+
+
+def _find_path(a, b, a_dir, b_dir, sheet):
+  """A path from stub end to stub end around everything, or None.
+
+  The fixed shapes above -- a corner, a crossover, a detour -- cover nearly
+  every wire, and a wire they cannot place used to be drawn through whatever
+  was in the way. A wire into a container from above is the common case: the
+  header band is solid, and the way in is round the side, under the box and
+  up, which no fixed shape reaches. So when they fail, this searches for the
+  shortest path over a grid of lines through the gaps, counting each bend
+  as wire, a run beside another wire as its length again and a crossing as
+  a bridge's worth. Running closer to another wire than a cell is kept, or
+  along an outline, is never allowed. It looks only MAZE_REACH past the two ends, which keeps it
+  quick and keeps a wire from setting off round the whole sheet.
+  """
+  lo_x = min(a[0], b[0]) - MAZE_REACH
+  hi_x = max(a[0], b[0]) + MAZE_REACH
+  lo_y = min(a[1], b[1]) - MAZE_REACH
+  hi_y = max(a[1], b[1]) + MAZE_REACH
+  # The net's own cells are kept at a clearance too, as every other cell is:
+  # the stub ends stand outside it, and without it a found path would run
+  # a unit off the very block it is going into.
+  padded = [(x0 - CLEARANCE, y0 - CLEARANCE, x1 + CLEARANCE, y1 + CLEARANCE)
+            for x0, y0, x1, y1 in sheet.own]
+  boxes = [box for box in list(sheet.boxes) + padded
+           if box[2] >= lo_x and box[0] <= hi_x and box[3] >= lo_y and box[1] <= hi_y]
+  for end in (a, b):
+    if not _vertical_clear(end[0], end[1], end[1], boxes):
+      return None
+  borders = [border for border in sheet._borders
+             if (border[1] >= (lo_y if border[0] else lo_x)
+                 and border[1] <= (hi_y if border[0] else hi_x))]
+  xs = [x for x in _maze_lines((a, b), boxes, borders, False) if lo_x <= x <= hi_x]
+  ys = [y for y in _maze_lines((a, b), boxes, borders, True) if lo_y <= y <= hi_y]
+  column = dict((x, i) for i, x in enumerate(xs))
+  row = dict((y, j) for j, y in enumerate(ys))
+  start = (column[a[0]], row[a[1]])
+  goal = (column[b[0]], row[b[1]])
+  first = _direction_index(a_dir)
+  # The last run goes into the pin, against the way its stub points out.
+  last = _direction_index((-b_dir[0], -b_dir[1]))
+
+  def step_cost(p, q):
+    """What one grid step costs over its length, or None if it is barred."""
+    if not _leg_clear(p, q, boxes):
+      return None
+    if abs(p[1] - q[1]) < EPSILON:
+      horizontal, fixed, v0, v1 = True, p[1], p[0], q[0]
+    else:
+      horizontal, fixed, v0, v1 = False, p[0], p[1], q[1]
+    # Most steps are clear of everything, so the fussiest question first.
+    if sheet.free(horizontal, fixed, v0, v1, True, WIRE_GAP):
+      return abs(v1 - v0)
+    # Closer than a cell is kept, two wires read as one: barred, not priced.
+    if not sheet.free(horizontal, fixed, v0, v1, False, CLEARANCE):
+      return None
+    if not sheet.free(horizontal, fixed, v0, v1, False, WIRE_GAP):
+      return 2 * abs(v1 - v0)
+    return abs(v1 - v0) + MAZE_CROSSING
+
+  def ahead(node, heading):
+    """No path from here costs less than this: A*'s estimate, which keeps
+    the search heading for the goal instead of flooding the window. The
+    distance, and the bends still owed: one to come round to the way the
+    wire must arrive, or two to get back onto its line if it is already
+    heading that way beside it or past it."""
+    dx, dy = b[0] - xs[node[0]], b[1] - ys[node[1]]
+    owed = 1
+    if heading == last:
+      along, across = ((dx * _DIRECTIONS[last][0], dy) if last < 2
+                       else (dy * _DIRECTIONS[last][1], dx))
+      owed = 0 if (abs(across) < EPSILON and along >= -EPSILON) else 2
+    return abs(dx) + abs(dy) + owed * MAZE_BEND
+
+  steps = {}
+  best = {(start, first): 0.0}
+  came = {}
+  # Ties on the estimate go to the path that has come furthest, which is
+  # the one nearest the goal: the search runs down one way instead of
+  # widening across every equally good one.
+  queue = [(ahead(start, first), 0.0, 0, start, first)]
+  count = 1
+  found = None
+  while queue:
+    _estimate, cost, _order, node, heading = heapq.heappop(queue)
+    cost = -cost
+    if cost > best.get((node, heading), float("inf")):
+      continue
+    if node == goal:
+      if heading == last:
+        found = (node, heading)
+        break
+      # Arriving the wrong way costs a bend at the stub, or is barred if
+      # it would come in through the pin's own cell.
+      if heading != _direction_index(b_dir):
+        turned = cost + MAZE_BEND
+        if turned < best.get((node, last), float("inf")):
+          best[(node, last)] = turned
+          came[(node, last)] = (node, heading)
+          heapq.heappush(queue, (turned + ahead(node, last), -turned, count, node, last))
+          count += 1
+      continue
+    for index, (dx, dy) in enumerate(_DIRECTIONS):
+      if index == heading ^ 1:
+        continue
+      i, j = node[0] + int(dx), node[1] + int(dy)
+      if not (0 <= i < len(xs) and 0 <= j < len(ys)):
+        continue
+      key = (node, (i, j))
+      if key not in steps:
+        p, q = (xs[node[0]], ys[node[1]]), (xs[i], ys[j])
+        length = step_cost(p, q)
+        if length is not None and not _off_borders(p, q, sheet):
+          length = None
+        steps[key] = length
+      length = steps[key]
+      if length is None:
+        continue
+      total = cost + length + (MAZE_BEND if index != heading else 0.0)
+      state = ((i, j), index)
+      if total < best.get(state, float("inf")):
+        best[state] = total
+        came[state] = (node, heading)
+        heapq.heappush(queue, (total + ahead((i, j), index), -total, count, (i, j), index))
+        count += 1
+  if found is None:
+    return None
+  nodes = [found[0]]
+  state = found
+  while state in came:
+    state = came[state]
+    if state[0] != nodes[-1]:
+      nodes.append(state[0])
+  nodes.reverse()
+  return _clean([(xs[i], ys[j]) for i, j in nodes])
+
+
 def _direct_route(start, end, start_dir, end_dir, sheet,
                   start_stub=STUB, end_stub=STUB):
   """Route between two pins with no waypoints to honour.
@@ -883,7 +1086,10 @@ def _direct_route(start, end, start_dir, end_dir, sheet,
   b_dir = end_dir or _free_direction(end, start)
   a = _stub_end(start, a_dir, start_stub) if start_dir else start
   b = _stub_end(end, b_dir, end_stub) if end_dir else end
-  return [start] + _middle_route(a, b, a_dir, b_dir, sheet) + [end]
+  middle = _middle_route(a, b, a_dir, b_dir, sheet)
+  if not _path_ok(middle, sheet):
+    middle = _find_path(a, b, a_dir, b_dir, sheet) or middle
+  return [start] + middle + [end]
 
 
 def route(doc, net, registry=None, sheet=None):

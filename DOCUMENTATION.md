@@ -1542,9 +1542,11 @@ get out between the blocks, and four cores wired to one ring through a
 the sides and its wires leave sideways -- unless its blocks are wired to
 each other. Such a wire leaves one block sideways and loops round to come
 back into the next, so the column keeps its single line of blocks but
-grows a lane at the side for each loop, and widens the gap above a block
-when more than one loop turns into it. The router keeps each loop in a
-lane of its own rather than a pin pitch from the next.
+grows a lane at the side for each loop, and widens its gaps to hold every
+wire that passes between one block and the next -- a wire on its way into
+a container below has to cross over that container's header, which no wire
+may cut. The router keeps each loop in a lane of its own rather than a pin
+pitch from the next.
 Row, column and grid take their order from where things already are --
 across, down, line by line -- so laying out twice changes nothing, and
 dragging one SM ahead of another and laying out again is how you reorder
@@ -1569,12 +1571,14 @@ being laid out work as for any layout.
 
 `drawlogic layout FILE` does the same as Auto layout.
 
-Wires keep off a container's title as they keep off a name: the router
-treats the words in the header band as text a wire must not cross, so a
-wire runs beside the title or crosses the band clear of it rather than
-striking it through. They keep a cell's clearance (10) off a container's
-outline too, except where they cross it: a wire running along an edge reads
-as part of the box.
+A container's header band is solid, like a cell: wires keep a cell's
+clearance (10) off it and never cross it, the container's own wires
+included. A wire along the band struck the title through, and one across it
+cut the title off from the box it names. So a wire into a container comes in
+through a side or the bottom; when it starts above the box, the router finds
+its way round (see [Routing](#routing)). Wires keep the same clearance off a
+container's outline, except where they cross it: a wire running along an
+edge reads as part of the box.
 
 ### Tidy up
 
@@ -1678,7 +1682,15 @@ gate's output back into the flip-flop feeding it) goes round both rather than
 straight back through them. When the straight line is blocked the router
 sidesteps around it; when both ways round a single corner are blocked -- a
 reset wire to the `rn` pin of a flip-flop in a crowded column -- it tries a
-column and a row of its own before giving up.
+column and a row of its own. When none of those shapes is clear -- a wire
+into a container from above, which has to go round the header band and come
+in through a side -- it searches for a path instead: the shortest way round
+everything over a grid of lines through the gaps, a bend counted as 30
+units of wire, a run alongside another wire as its length again, a
+crossing as 20. It never runs closer than 10 to another wire or along an
+outline, and looks only 300 past the two ends; if that finds nothing, the
+first shape stands. Only wires the shapes cannot place go this way, so the
+rest of a drawing routes exactly as it did.
 
 **Stay off other wires.** Nets are routed in document order and each one
 remembers where it ran, so a later wire prefers a corridor that neither
@@ -1852,6 +1864,7 @@ point to look at.
 | `wire-crossing` | a crossing the renderer left unbridged, so it reads as a connection |
 | `duplicate-id` | a cell or net id used twice; every check looks things up by id, so none of the others run until each has its own |
 | `wire-over-cell` | a wire drawn across a body it does not connect to, which reads either as stopping there or as passing behind it |
+| `wire-over-header` | a wire drawn across a container's header band, which cuts the title off from the box it names |
 | `cell-overlap` | two bodies in the same place |
 | `off-sheet` | drawing outside the sheet, which the exporter crops away |
 
@@ -1861,6 +1874,7 @@ point to look at.
 |---|---|
 | `wire-spacing` | parallel runs closer than `WIRE_GAP` |
 | `wire-to-cell` | a wire passing close enough to a body to suggest a joint |
+| `wire-to-header` | a wire within `WIRE_TO_CELL` of a container's header band |
 | `wire-jog` | a step shorter than `WIRE_MIN_JOG` |
 | `cell-text-clipped` | text inside a cell cut short because fit-to-text is off for it |
 | `cell-spacing` | two parts closer than `CELL_MIN_GAP` |

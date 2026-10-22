@@ -1684,11 +1684,11 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
   # wires looping round from one block to the next. See _column_loops.
   sides = (0.0, 0.0)
   if mode == "column":
-    left, right, into = _column_loops(doc, registry, nodes)
+    left, right, across = _column_loops(doc, registry, nodes, before)
     sides = (max(0.0, _lanes(left) - pad), max(0.0, _lanes(right) - pad))
     origin = (origin[0] + sides[0], origin[1])
     if gap is None:
-      gap = max(drc.CONTAINER_GAP, _lanes(into))
+      gap = max(drc.CONTAINER_GAP, _lanes(across))
   if mode == "flow":
     after = _flow_level(doc, registry, nodes, fixed, origin, direction,
                         gap if gap is not None else gap_x,
@@ -1736,20 +1736,25 @@ def _owners(doc, nodes):
   return owner_of
 
 
-def _column_loops(doc, registry, nodes):
-  """(left, right, into) for the wires joining one block of a column to
+def _column_loops(doc, registry, nodes, before):
+  """(left, right, across) for the wires joining one block of a column to
   another.
 
   Pins sit on the sides, so such a wire leaves its block sideways, runs up
   or down beside the column and comes back in sideways: a loop. Each needs a
   lane of its own on the side its pin faces -- `left` and `right` count
-  them -- and a row of its own in the gap where it turns in; `into` is the
-  most that turn into any one block. Without the room they crowded into the
-  container's padding, one on top of the next.
+  them -- and a row of its own in a gap between blocks, where it turns in or
+  crosses over a container's header, which no wire may cut through;
+  `across` is the most wires with ends both above and below any one gap.
+  Without the room they crowded into the padding, one on top of the next.
   """
   owner_of = _owners(doc, nodes)
+  # The column's order is the one _pack_level packs it in: down the page.
+  order = sorted((round(before[item["id"]][1], 3), round(before[item["id"]][0], 3),
+                  item["id"]) for _kind, item in nodes)
+  place = dict((entry[2], index) for index, entry in enumerate(order))
   left, right = set(), set()
-  into = {}
+  spans = []
   for net in doc.nets:
     driver = net.get("from")
     if not isinstance(driver, dict) or driver.get("cell") not in owner_of:
@@ -1765,9 +1770,11 @@ def _column_loops(doc, registry, nodes):
         left.add(net.get("id"))
       elif facing[0] > 0:
         right.add(net.get("id"))
-    for end in loads:
-      into.setdefault(owner_of[end["cell"]], set()).add(net.get("id"))
-  return len(left), len(right), max([len(n) for n in into.values()] or [0])
+    rows = [place[source]] + [place[owner_of[end["cell"]]] for end in loads]
+    spans.append((min(rows), max(rows)))
+  across = max([sum(1 for top, bottom in spans if top <= gap < bottom)
+                for gap in range(len(order) - 1)] or [0])
+  return len(left), len(right), across
 
 
 def _pack_gap(doc, nodes, mode):

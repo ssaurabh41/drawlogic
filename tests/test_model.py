@@ -200,13 +200,11 @@ class TestValidate(unittest.TestCase):
     doc.normalize()
     self.assertEqual(self._errors(doc), [])
 
-  def test_unconnected_pin_is_only_a_warning(self):
+  def test_unconnected_pin_is_not_reported(self):
     doc = new_document()
     doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
     doc.normalize()
-    issues = doc.validate()
-    self.assertEqual([i for i in issues if i.level == "error"], [])
-    self.assertTrue(any("unconnected" in i.message for i in issues))
+    self.assertEqual(doc.validate(), [])
 
   def test_group_member_must_exist(self):
     doc = new_document()

@@ -907,7 +907,6 @@ class Document(object):
         issues.append(Issue("error", "shape %s" % shape.get("id"),
                             "unknown shape kind %r" % kind))
 
-    connected = set()
     for net in self.nets:
       where = "net %s" % (net.get("name") or net.get("id"))
       name = net.get("name")
@@ -948,7 +947,6 @@ class Document(object):
                                    ", ".join(symbol.pin_names()))))
             continue
           endpoint_widths.append(pin.get("width", 1))
-          connected.add((endpoint["cell"], endpoint.get("pin")))
         elif not ("x" in endpoint and "y" in endpoint):
           issues.append(Issue("error", where,
                               "%s endpoint needs either cell+pin or x+y" % end))
@@ -978,14 +976,9 @@ class Document(object):
                             "pin %r is driven by %d nets (%s)"
                             % (pin_name, len(owners), ", ".join(owners))))
 
-    for cell in self.cells:
-      symbol = registry.for_cell(cell)
-      if symbol is None:
-        continue
-      for pin in symbol.pins:
-        if (cell.get("id"), pin["name"]) not in connected:
-          issues.append(Issue("warning", "cell %s" % cell.get("id"),
-                              "pin %r is unconnected" % pin["name"]))
+    # No warning for an unconnected pin: a generic block has a fixed pin
+    # count, so an architecture drawing collected one per spare pin and the
+    # warnings that mattered were lost among them.
 
     # Shapes group exactly like cells do -- the editor's groupItems() takes
     # whatever is selected, and a box drawn round a gate is the ordinary

@@ -215,7 +215,7 @@ def _module(module, names):
       net = _clean("k%d" % ties[0], taken)
       cells.append(("tie" + bit, "tie%d" % ties[0], {"y": net}))
       pins[pin] = net
-    # x and z: left unconnected, which validate reports.
+    # x and z: left unconnected.
 
   counter = [0]
   for cell_name, cell in sorted(module.get("cells", {}).items()):

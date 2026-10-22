@@ -946,8 +946,9 @@ def _find_path(a, b, a_dir, b_dir, sheet):
   shortest path over a grid of lines through the gaps, counting each bend
   as wire, a run beside another wire as its length again and a crossing as
   a bridge's worth. Running closer to another wire than a cell is kept, or
-  along an outline, is never allowed. It looks only MAZE_REACH past the two ends, which keeps it
-  quick and keeps a wire from setting off round the whole sheet.
+  along an outline, is never allowed. It looks MAZE_REACH past the two
+  ends, and past anything that reach touches, which keeps it quick without
+  leaving a tall block with no way round.
   """
   lo_x = min(a[0], b[0]) - MAZE_REACH
   hi_x = max(a[0], b[0]) + MAZE_REACH
@@ -958,7 +959,20 @@ def _find_path(a, b, a_dir, b_dir, sheet):
   # a unit off the very block it is going into.
   padded = [(x0 - CLEARANCE, y0 - CLEARANCE, x1 + CLEARANCE, y1 + CLEARANCE)
             for x0, y0, x1, y1 in sheet.own]
-  boxes = [box for box in list(sheet.boxes) + padded
+  every = list(sheet.boxes) + padded
+  # The window takes in whatever it touches, and room to pass it: a column
+  # of blocks taller than the reach used to leave no way round inside it.
+  grown = True
+  while grown:
+    grown = False
+    for box in every:
+      if box[2] >= lo_x and box[0] <= hi_x and box[3] >= lo_y and box[1] <= hi_y:
+        wider = (min(lo_x, box[0] - 2 * WIRE_GAP), max(hi_x, box[2] + 2 * WIRE_GAP),
+                 min(lo_y, box[1] - 2 * WIRE_GAP), max(hi_y, box[3] + 2 * WIRE_GAP))
+        if wider != (lo_x, hi_x, lo_y, hi_y):
+          lo_x, hi_x, lo_y, hi_y = wider
+          grown = True
+  boxes = [box for box in every
            if box[2] >= lo_x and box[0] <= hi_x and box[3] >= lo_y and box[1] <= hi_y]
   for end in (a, b):
     if not _vertical_clear(end[0], end[1], end[1], boxes):
@@ -1057,7 +1071,8 @@ def _find_path(a, b, a_dir, b_dir, sheet):
       if total < best.get(state, float("inf")):
         best[state] = total
         came[state] = (node, heading)
-        heapq.heappush(queue, (total + ahead((i, j), index), -total, count, (i, j), index))
+        heapq.heappush(queue, (total + ahead((i, j), index), -total, count,
+                               (i, j), index))
         count += 1
   if found is None:
     return None

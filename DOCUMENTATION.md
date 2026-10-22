@@ -1380,6 +1380,9 @@ scaled to the block. It is the definition as it is now -- edit the
 definition and every instance's miniature follows -- and making an
 instance bigger makes its miniature bigger. In the file it is
 `"preview": true` on the instance; a block without it is drawn as before.
+A definition that itself places linked blocks shows them too, wires
+included: its own links are resolved against its own folder before the
+miniature is drawn.
 
 Two examples use all of it together. `examples/arch_mini.dlg` is two
 clusters, each holding two cores, the cores linked instances of
@@ -1394,6 +1397,11 @@ grid, wired to a ring with a shared L3 and a system agent beside them. It is
 the drawing that exercises the wiring rules for containers hardest: wires
 leaving a packed grid, loops down a column, and wires that have to come into
 a container round its header.
+`examples/gpu_linked.dlg` links two levels deep: eight instances of a GPC
+(`components/gpc.dlg`), which is itself four TPCs of two linked SMs
+(`components/sm.dlg`), and a crossbar (`components/xbar.dlg`) with ten
+inputs -- more pins than any built-in block has, which a linked drawing
+gets simply by having that many ports. Edit `sm.dlg` and all 64 SMs change.
 
 ---
 
@@ -1695,8 +1703,9 @@ in through a side -- it searches for a path instead: the shortest way round
 everything over a grid of lines through the gaps, a bend counted as 30
 units of wire, a run alongside another wire as its length again, a
 crossing as 20. It never runs closer than 10 to another wire or along an
-outline, and looks only 300 past the two ends; if that finds nothing, the
-first shape stands. Only wires the shapes cannot place go this way, so the
+outline, and looks 300 past the two ends -- and past anything that reaches
+into that, so a column of blocks taller than the reach still has a way
+round; if that finds nothing, the first shape stands. Only wires the shapes cannot place go this way, so the
 rest of a drawing routes exactly as it did.
 
 **Stay off other wires.** Nets are routed in document order and each one
@@ -2115,8 +2124,8 @@ drawlogic/
 tests/            unittest, a golden-file regression suite, a JS parity check
   js/             node-side runners: the editor checks, and dumps of what
                   routing.js and render.js produce for parity to compare
-examples/         worked schematics, including a CDC FIFO, a GPU and a CPU block diagram;
-  components/     the definitions arch_mini, gpu_arch and cpu_arch place as linked instances
+examples/         worked schematics, including a CDC FIFO, GPU and CPU block diagrams;
+  components/     the definitions the architecture examples place as linked instances
 manifest.txt      a hash of every file above; generated, never hand-edited
 .github/          one CI workflow: the suite on the oldest supported Python
 sample.txt        a plain file to edit when trying verify.ps1 out by hand
@@ -2195,7 +2204,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-622 tests, in nineteen parts:
+625 tests, in nineteen parts:
 
 | File | Covers |
 |---|---|
@@ -2207,7 +2216,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_regression.py` | golden files and whole-library invariants |
 | `tests/test_js_parity.py` | routing.js against routing.py, net for net |
 | `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers, headings and named styles, Repeat |
-| `tests/test_components.py` | linked components: ports from the wires crossing a selection, named by wire; the instance rewired by name; definition edits reaching every instance; lost pins reported; making one independent, through the editor's server; previews drawn alike in editor and export, and following the definition |
+| `tests/test_components.py` | linked components: ports from the wires crossing a selection, named by wire; the instance rewired by name; definition edits reaching every instance; lost pins reported; making one independent, through the editor's server; previews drawn alike in editor and export, and following the definition, including one whose definition is itself made of linked blocks |
 | `tests/test_styles.py` | headings and text styles, named styles and overrides, fitting and clipping with a heading, and every line set the same in the editor as in an export |
 | `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over); room packed for wires leaving a row or grid and for loops down a column; wires kept off outlines and header bands, and the path round a header, alike in editor and export |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |

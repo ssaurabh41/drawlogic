@@ -160,6 +160,50 @@ class TestExtracting(unittest.TestCase):
     self.assertTrue(any("pin 'result'" in e for e in errors(doc, registry)), errors(doc, registry))
 
 
+class TestNestedPreviews(unittest.TestCase):
+  """A definition that itself places linked blocks: a GPC made of SMs."""
+
+  def roles(self):
+    from tests import ROOT
+    doc, registry, problems = sheets.open_document(
+      os.path.join(ROOT, "examples", "gpu_linked.dlg"))
+    self.assertEqual(problems, [])
+    symbol = registry.get(sheets.sheet_symbol_id("components/gpc.dlg"))
+    found = {}
+    for op in symbol.draw:
+      found[op.get("role")] = found.get(op.get("role"), 0) + 1
+    return found
+
+  def test_the_miniature_shows_the_wires_between_the_linked_blocks(self):
+    found = self.roles()
+    # Eight SMs, the raster engine and the MMU; the TPC outlines.
+    self.assertEqual(found.get("preview"), 10)
+    self.assertEqual(found.get("preview_box"), 5)
+    # Work to four SMs, SM to SM in four TPCs, four SMs to the MMU. With the
+    # SMs unresolved none of them could be routed and there were none.
+    self.assertEqual(found.get("preview_wire"), 12)
+
+  def test_a_loop_through_a_nested_definition_is_still_refused(self):
+    root = tempfile.mkdtemp()
+    try:
+      inner = new_document("inner")
+      inner.cells.append({"id": "back", "type": "sheet", "ref": "outer.dlg",
+                          "x": 0, "y": 0})
+      inner.save(os.path.join(root, "inner.dlg"))
+      outer = new_document("outer")
+      outer.cells.append({"id": "down", "type": "sheet", "ref": "inner.dlg",
+                          "x": 0, "y": 0})
+      outer.save(os.path.join(root, "outer.dlg"))
+      top = new_document("top")
+      top.cells.append({"id": "u", "type": "sheet", "ref": "outer.dlg",
+                        "x": 0, "y": 0, "preview": True})
+      top.save(os.path.join(root, "top.dlg"))
+      _doc, _registry, problems = sheets.open_document(os.path.join(root, "top.dlg"))
+      self.assertTrue(any("refers back" in p.message for p in problems), problems)
+    finally:
+      shutil.rmtree(root)
+
+
 class TestPreviews(unittest.TestCase):
   """An instance can show a miniature of what its definition holds."""
 

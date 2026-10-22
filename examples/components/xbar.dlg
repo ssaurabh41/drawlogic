@@ -1,0 +1,515 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "Crossbar",
+  "canvas": {
+    "width": 949,
+    "height": 694,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "pi_g0",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 111.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc0",
+      "style": {}
+    },
+    {
+      "id": "pi_g1",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 143.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc1",
+      "style": {}
+    },
+    {
+      "id": "pi_g2",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 187.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc2",
+      "style": {}
+    },
+    {
+      "id": "pi_g3",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 219.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc3",
+      "style": {}
+    },
+    {
+      "id": "pi_g4",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 323.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc4",
+      "style": {}
+    },
+    {
+      "id": "pi_g5",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 355.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc5",
+      "style": {}
+    },
+    {
+      "id": "pi_g6",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 399.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc6",
+      "style": {}
+    },
+    {
+      "id": "pi_g7",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 431.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "gpc7",
+      "style": {}
+    },
+    {
+      "id": "pi_ce",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 534.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "ce",
+      "style": {}
+    },
+    {
+      "id": "pi_nvl",
+      "type": "port_in",
+      "x": 117.665,
+      "y": 574.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "nvlink_in",
+      "style": {}
+    },
+    {
+      "id": "po_mem",
+      "type": "port_out",
+      "x": 807.665,
+      "y": 111.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "mem",
+      "style": {}
+    },
+    {
+      "id": "po_disp",
+      "type": "port_out",
+      "x": 807.665,
+      "y": 147.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "display",
+      "style": {}
+    },
+    {
+      "id": "po_nvl",
+      "type": "port_out",
+      "x": 807.665,
+      "y": 183.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "nvlink_out",
+      "style": {}
+    },
+    {
+      "id": "arb_a",
+      "type": "block8",
+      "x": 247.665,
+      "y": 90.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Arbiter A",
+      "text": [
+        "GPC 0-3"
+      ],
+      "style": {},
+      "styleRef": "arb"
+    },
+    {
+      "id": "arb_b",
+      "type": "block8",
+      "x": 247.665,
+      "y": 302.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Arbiter B",
+      "text": [
+        "GPC 4-7"
+      ],
+      "style": {},
+      "styleRef": "arb"
+    },
+    {
+      "id": "arb_c",
+      "type": "block",
+      "x": 267.665,
+      "y": 514.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Arbiter C",
+      "text": [
+        "copy, NVLink"
+      ],
+      "style": {},
+      "styleRef": "arb"
+    },
+    {
+      "id": "switch",
+      "type": "block6",
+      "x": 537.665,
+      "y": 92.0,
+      "w": 160.0,
+      "h": 120.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Switch",
+      "text": [
+        "3 x 3"
+      ],
+      "style": {},
+      "styleRef": "arb"
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_g0",
+      "width": 1,
+      "from": {
+        "cell": "pi_g0",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_a",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g1",
+      "width": 1,
+      "from": {
+        "cell": "pi_g1",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_a",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g2",
+      "width": 1,
+      "from": {
+        "cell": "pi_g2",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_a",
+          "pin": "in3",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g3",
+      "width": 1,
+      "from": {
+        "cell": "pi_g3",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_a",
+          "pin": "in4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g4",
+      "width": 1,
+      "from": {
+        "cell": "pi_g4",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_b",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g5",
+      "width": 1,
+      "from": {
+        "cell": "pi_g5",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_b",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g6",
+      "width": 1,
+      "from": {
+        "cell": "pi_g6",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_b",
+          "pin": "in3",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g7",
+      "width": 1,
+      "from": {
+        "cell": "pi_g7",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_b",
+          "pin": "in4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_ce",
+      "width": 1,
+      "from": {
+        "cell": "pi_ce",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_c",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvl",
+      "width": 1,
+      "from": {
+        "cell": "pi_nvl",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "arb_c",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_a",
+      "width": 1,
+      "from": {
+        "cell": "arb_a",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "switch",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_b",
+      "width": 1,
+      "from": {
+        "cell": "arb_b",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "switch",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_c",
+      "width": 1,
+      "from": {
+        "cell": "arb_c",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "switch",
+          "pin": "in3",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_mem",
+      "width": 1,
+      "from": {
+        "cell": "switch",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "po_mem",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_disp",
+      "width": 1,
+      "from": {
+        "cell": "switch",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "po_disp",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvo",
+      "width": 1,
+      "from": {
+        "cell": "switch",
+        "pin": "out3"
+      },
+      "to": [
+        {
+          "cell": "po_nvl",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "styles": {
+    "arb": {
+      "style": {
+        "fill": "#e8e4f6",
+        "stroke": "#6b5bb3"
+      },
+      "headingStyle": {
+        "fill": "#2d2366"
+      }
+    }
+  }
+}

@@ -427,6 +427,22 @@ class TestAPathRoundTheHeader(unittest.TestCase):
       routing._find_path = saved
     self.assertNotEqual(through_band(points, band), [])
 
+  def test_a_block_taller_than_the_reach_is_still_gone_round(self):
+    from drawlogic import drc, routing
+    doc = new_document("tall", 1400, 1400)
+    doc.cells.extend([
+      {"id": "src", "type": "block", "x": 100, "y": 650},
+      {"id": "wall", "type": "block", "x": 600, "y": 50, "w": 120, "h": 1300},
+      {"id": "dst", "type": "block", "x": 1100, "y": 650},
+    ])
+    doc.nets.append({"id": "n", "from": {"cell": "src", "pin": "out1"},
+                     "to": [{"cell": "dst", "pin": "in1"}]})
+    doc.normalize()
+    [(_net, [points])] = routing.route_all(doc)
+    # Over the top: the wall reaches 625 above the wire, past MAZE_REACH.
+    self.assertLess(min(p[1] for p in points), 50)
+    self.assertEqual([v.rule for v in drc.check(doc) if v.level == "error"], [])
+
   def test_a_boxed_in_end_finds_no_path(self):
     from drawlogic import routing
     sheet = routing.Sheet(boxes=[(0, 0, 100, 100)])

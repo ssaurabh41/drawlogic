@@ -753,13 +753,29 @@ function heapPop(heap) {
 // A path from stub end to stub end around everything, or null, for when the
 // fixed shapes cannot place a wire. Mirrors routing._find_path, which says why.
 function findPath(a, b, aDir, bDir, sheet) {
-  const loX = Math.min(a[0], b[0]) - MAZE_REACH;
-  const hiX = Math.max(a[0], b[0]) + MAZE_REACH;
-  const loY = Math.min(a[1], b[1]) - MAZE_REACH;
-  const hiY = Math.max(a[1], b[1]) + MAZE_REACH;
+  let loX = Math.min(a[0], b[0]) - MAZE_REACH;
+  let hiX = Math.max(a[0], b[0]) + MAZE_REACH;
+  let loY = Math.min(a[1], b[1]) - MAZE_REACH;
+  let hiY = Math.max(a[1], b[1]) + MAZE_REACH;
   const c = limits.wireToCell;
   const padded = sheet.own.map(([x0, y0, x1, y1]) => [x0 - c, y0 - c, x1 + c, y1 + c]);
-  const boxes = [...sheet.boxes, ...padded].filter((box) =>
+  const every = [...sheet.boxes, ...padded];
+  // The window takes in whatever it touches, and room to pass it.
+  const room = 2 * limits.wireGap;
+  for (let grown = true; grown;) {
+    grown = false;
+    for (const box of every) {
+      if (box[2] >= loX && box[0] <= hiX && box[3] >= loY && box[1] <= hiY) {
+        const wider = [Math.min(loX, box[0] - room), Math.max(hiX, box[2] + room),
+                       Math.min(loY, box[1] - room), Math.max(hiY, box[3] + room)];
+        if (wider[0] !== loX || wider[1] !== hiX || wider[2] !== loY || wider[3] !== hiY) {
+          [loX, hiX, loY, hiY] = wider;
+          grown = true;
+        }
+      }
+    }
+  }
+  const boxes = every.filter((box) =>
     box[2] >= loX && box[0] <= hiX && box[3] >= loY && box[1] <= hiY);
   for (const end of [a, b]) {
     if (!verticalClear(end[0], end[1], end[1], boxes)) return null;

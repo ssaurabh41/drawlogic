@@ -284,7 +284,7 @@ def open_document(path, base=None, confine=None):
   return doc, registry, issues
 
 
-def resolve(doc, registry, seen=None, depth=0, confine=None):
+def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
   """Add a symbol for each drawing `doc` itself references.
 
   Descendants are walked but not registered: they get their own registry when
@@ -294,6 +294,9 @@ def resolve(doc, registry, seen=None, depth=0, confine=None):
 
   Returns the problems found: a ref that does not resolve, a child that will
   not parse, or a loop back to a drawing already open above this one.
+
+  `above` is how many levels up the drawing that asked for this one sits,
+  when it is being resolved only to draw its miniature; see _child_registry.
   """
   issues = []
   if doc.path is None and any(is_sheet(cell) for cell in doc.cells):
@@ -306,7 +309,7 @@ def resolve(doc, registry, seen=None, depth=0, confine=None):
   if doc.path:
     seen.add(os.path.abspath(doc.path))
 
-  if depth >= MAX_DEPTH:
+  if depth + above >= MAX_DEPTH:
     issues.append(Issue("error", "document",
                         "hierarchy is more than %d deep" % MAX_DEPTH))
     return issues
@@ -354,11 +357,34 @@ def resolve(doc, registry, seen=None, depth=0, confine=None):
 
     if depth == 0:
       registry.add(Symbol(sheet_symbol_id(ref),
-                          describe(ref, child.title, ports(child), child)),
+                          describe(ref, child.title, ports(child), child,
+                                   _child_registry(child, seen, confine,
+                                                   above + 1))),
                    source=target, listed=False)
-    issues.extend(resolve(child, registry, seen, depth + 1, confine))
+    issues.extend(resolve(child, registry, seen, depth + 1, confine, above))
 
   return issues
+
+
+def _child_registry(child, seen, confine, above):
+  """The registry a referenced drawing would open with, for its miniature.
+
+  A miniature is drawn from the child's own cells, so a child that itself
+  places linked blocks -- a GPC made of SMs -- needs those blocks resolved
+  against its own folder, or they have no size and no pins and the
+  miniature shows the GPC's boxes with nothing in them. None for a child
+  that references nothing, which the standard library already covers.
+  """
+  if not any(is_sheet(cell) for cell in child.cells):
+    return None
+  from .symbols import default_registry, load_folder
+  registry = default_registry().copy()
+  load_folder(registry, os.path.dirname(os.path.abspath(child.path)))
+  # Problems down there are the child's to report, and the walk that
+  # follows this one reports them; here they only cost the miniature a box.
+  resolve(child, registry, seen, 0, confine, above)
+  child.normalize(registry)
+  return registry
 
 
 def tree(doc, registry=None, depth=0, seen=None):

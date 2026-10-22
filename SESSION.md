@@ -84,6 +84,17 @@ wire passing between blocks (_column_loops `across`). The pre-pathfinder
 state is the branch `before-pathfinder` (a tag push was refused by the
 session's git proxy).
 
+Then examples/gpu_linked.dlg (the open item "hierarchical GPU", as a new
+file; gpu_top.dlg untouched): 8 linked components/gpc.dlg (4 TPC rows of 2
+linked sm.dlg) + linked components/xbar.dlg (10 in / 3 out, which no
+built-in block has). Needed two fixes: sheets._child_registry resolves a
+definition's own links before its miniature is drawn (else a GPC miniature
+had no wires), and _find_path/findPath grow their window over anything it
+touches (a column of GPCs taller than MAZE_REACH left no way round).
+First attempts worth knowing: a 2-column grid of GPCs and a column-stacked
+TPC both tangled badly; rows of SMs in a column of TPCs, and one column of
+GPCs, read cleanly.
+
 ## Earlier in the first session (newest first)
 
 | Commit | What |
@@ -126,12 +137,10 @@ avoided and is drawn as a bridge.
 - The xN badge can overlap a flop's Q stub.
 - Possible: unit tests for the newest editor features, shadow presets, a test
   for the fork-late reset.
-- Hierarchical version of the GPU (GPC as its own drawing) was offered as an
-  alternative to the flat one.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 622 tests, 0 failed, 5 skipped (~26 s).
+- Suite: `python3 tests/run.py` -> 625 tests, 0 failed, 5 skipped (~29 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.

@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2220" height="1574" viewBox="0 0 2220 1574" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
+<title>GPU built from linked GPCs -- each GPC is a drawing of linked SMs</title>
+<rect x="0" y="0" width="2220" height="1574" fill="#ffffff" />
+<g class="dl-containers">
+<g class="dl-container" data-id="die">
+<rect class="dl-container-body" x="243.48" y="90" width="1720.6" height="1394.263" rx="6" fill="#fbfcfd" stroke="none" />
+<path class="dl-container-header" d="M243.48 122 V96 A6 6 0 0 1 249.48 90 H1958.08 A6 6 0 0 1 1964.08 96 V122 Z" fill="#1f2a33" />
+<rect class="dl-container-edge" x="243.48" y="90" width="1720.6" height="1394.263" rx="6" fill="none" stroke="#5b6b74" stroke-width="1.2" />
+<text class="dl-container-title" x="253.48" y="110.55" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">GPU die</text>
+</g>
+<g class="dl-container" data-id="gpcs">
+<rect class="dl-container-body" x="1088.48" y="222.263" width="280" height="1242" rx="6" fill="#f6faf0" stroke="none" />
+<path class="dl-container-header" d="M1088.48 254.263 V228.263 A6 6 0 0 1 1094.48 222.263 H1362.48 A6 6 0 0 1 1368.48 228.263 V254.263 Z" fill="#76b900" />
+<rect class="dl-container-edge" x="1088.48" y="222.263" width="280" height="1242" rx="6" fill="none" stroke="#a9c47e" stroke-width="1.2" />
+<text class="dl-container-title" x="1098.48" y="242.813" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Graphics processing clusters</text>
+</g>
+</g>
+<g class="dl-shapes">
+</g>
+<g class="dl-nets">
+<path class="dl-net" data-id="n_refclk" d="M133.48 491 L263.48 491" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_rstn" d="M133.48 531 L263.48 531" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_pcie" d="M133.48 349 L288.98 349" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_nvlrx" d="M133.48 618.263 L1019.48 618.263 A4 4 0 0 1 1027.48 618.263 L1039.48 618.263 A4 4 0 0 1 1047.48 618.263 L1077.48 618.263 L1077.48 211.263 L1451.48 211.263 A5 5 0 0 1 1461.48 211.263 L1725.08 211.263 L1725.08 618.263 L1792.08 618.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_gclk" d="M454.48 491 L509.48 491 L509.48 309 L564.48 309" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_cmd" d="M428.98 349 L481.73 349 A5 5 0 0 1 491.73 349 L504.48 349 A5 5 0 0 1 514.48 349 L564.48 349" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_dma" d="M428.98 389 L486.73 389 L486.73 167 L564.48 167" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_work" d="M704.48 309 L814.48 309" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_cta" d="M978.48 309 L1072.48 309 A5 5 0 0 1 1082.48 309 L1108.48 309 M978.48 309 L1043.48 309 L1043.48 459 L1072.48 459 A5 5 0 0 1 1082.48 459 L1108.48 459 M978.48 309 L1043.48 309 L1043.48 609 L1072.48 609 A5 5 0 0 1 1082.48 609 L1108.48 609 M978.48 309 L1043.48 309 L1043.48 759 L1108.48 759 M978.48 309 L1043.48 309 L1043.48 909 L1108.48 909 M978.48 309 L1043.48 309 L1043.48 1059 L1108.48 1059 M978.48 309 L1043.48 309 L1043.48 1209 L1108.48 1209 M978.48 309 L1043.48 309 L1043.48 1359 L1108.48 1359" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_prim" d="M978.48 349 L1023.48 349 L1023.48 359.526 L1038.48 359.526 A5 5 0 0 1 1048.48 359.526 L1072.48 359.526 A5 5 0 0 1 1082.48 359.526 L1108.48 359.526 M978.48 349 L1023.48 349 L1023.48 509.526 L1038.48 509.526 A5 5 0 0 1 1048.48 509.526 L1072.48 509.526 A5 5 0 0 1 1082.48 509.526 L1108.48 509.526 M978.48 349 L1023.48 349 L1023.48 659.526 L1038.48 659.526 A5 5 0 0 1 1048.48 659.526 L1108.48 659.526 M978.48 349 L1023.48 349 L1023.48 809.526 L1038.48 809.526 A5 5 0 0 1 1048.48 809.526 L1108.48 809.526 M978.48 349 L1023.48 349 L1023.48 959.526 L1038.48 959.526 A5 5 0 0 1 1048.48 959.526 L1108.48 959.526 M978.48 349 L1023.48 349 L1023.48 1109.526 L1038.48 1109.526 A5 5 0 0 1 1048.48 1109.526 L1108.48 1109.526 M978.48 349 L1023.48 349 L1023.48 1259.526 L1038.48 1259.526 A5 5 0 0 1 1048.48 1259.526 L1108.48 1259.526 M978.48 349 L1023.48 349 L1023.48 1409.526 L1108.48 1409.526" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_cemem" d="M704.48 167 L716.48 167 L716.48 208.632 L1456.48 208.632 L1456.48 590.263 L1478.48 590.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_nvlin" d="M1932.08 618.263 L1954.08 618.263 L1954.08 690.263 L1466.48 690.263 L1466.48 622.263 L1478.48 622.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_req" d="M1670.08 334.263 L1720.08 334.263 A5 5 0 0 1 1730.08 334.263 L1780.08 334.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_fetch" d="M1670.08 366.263 L1720.08 366.263 A5 5 0 0 1 1730.08 366.263 L1749.33 366.263 L1749.33 476.263 L1788.58 476.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_egress" d="M1670.08 398.263 L1701.08 398.263 L1701.08 658.263 L1792.08 658.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_nvltx" d="M1932.08 658.263 L1949.08 658.263 A5 5 0 0 1 1959.08 658.263 L2074.08 658.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_dp" d="M1935.58 476.263 L2074.08 476.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_dq" d="M1944.08 334.263 L2074.08 334.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g0" d="M1348.48 334.263 L1451.48 334.263 A5 5 0 0 1 1461.48 334.263 L1478.48 334.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g1" d="M1348.48 484.263 L1388.48 484.263 A5 5 0 0 1 1398.48 484.263 L1413.48 484.263 L1413.48 366.263 L1451.48 366.263 A5 5 0 0 1 1461.48 366.263 L1478.48 366.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g2" d="M1348.48 634.263 L1390.98 634.263 A2.5 2.5 0 0 1 1395.98 634.263 L1400.98 634.263 A2.5 2.5 0 0 1 1405.98 634.263 L1410.98 634.263 A2.5 2.5 0 0 1 1415.98 634.263 L1420.98 634.263 A2.5 2.5 0 0 1 1425.98 634.263 L1433.48 634.263 L1433.48 398.263 L1451.48 398.263 A5 5 0 0 1 1461.48 398.263 L1478.48 398.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g3" d="M1348.48 784.263 L1393.48 784.263 L1393.48 430.263 L1409.48 430.263 A4 4 0 0 1 1417.48 430.263 L1429.48 430.263 A4 4 0 0 1 1437.48 430.263 L1451.48 430.263 A5 5 0 0 1 1461.48 430.263 L1478.48 430.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g4" d="M1348.48 934.263 L1400.98 934.263 A2.5 2.5 0 0 1 1405.98 934.263 L1410.98 934.263 A2.5 2.5 0 0 1 1415.98 934.263 L1423.48 934.263 L1423.48 462.263 L1428.48 462.263 A5 5 0 0 1 1438.48 462.263 L1451.48 462.263 A5 5 0 0 1 1461.48 462.263 L1478.48 462.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g5" d="M1348.48 1084.263 L1398.48 1084.263 A5 5 0 0 1 1408.48 1084.263 L1413.48 1084.263 L1413.48 494.263 L1420.98 494.263 A2.5 2.5 0 0 1 1425.98 494.263 L1430.98 494.263 A2.5 2.5 0 0 1 1435.98 494.263 L1451.48 494.263 A5 5 0 0 1 1461.48 494.263 L1478.48 494.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g6" d="M1348.48 1234.263 L1403.48 1234.263 L1403.48 526.263 L1410.98 526.263 A2.5 2.5 0 0 1 1415.98 526.263 L1420.98 526.263 A2.5 2.5 0 0 1 1425.98 526.263 L1430.98 526.263 A2.5 2.5 0 0 1 1435.98 526.263 L1451.48 526.263 A5 5 0 0 1 1461.48 526.263 L1478.48 526.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<path class="dl-net" data-id="n_g7" d="M1348.48 1384.263 L1443.48 1384.263 L1443.48 558.263 L1451.48 558.263 A5 5 0 0 1 1461.48 558.263 L1478.48 558.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
+<polygon points="252.28,491 245.28,494.15 245.28,487.85" fill="#16202b" />
+<polygon points="252.28,531 245.28,534.15 245.28,527.85" fill="#16202b" />
+<polygon points="277.78,349 270.78,352.15 270.78,345.85" fill="#16202b" />
+<polygon points="373.48,618.263 366.48,621.413 366.48,615.113" fill="#16202b" />
+<polygon points="613.48,618.263 606.48,621.413 606.48,615.113" fill="#16202b" />
+<polygon points="853.48,618.263 846.48,621.413 846.48,615.113" fill="#16202b" />
+<polygon points="1077.48,594.263 1080.63,601.263 1074.33,601.263" fill="#16202b" />
+<polygon points="1077.48,374.263 1080.63,381.263 1074.33,381.263" fill="#16202b" />
+<polygon points="1166.48,211.263 1159.48,214.413 1159.48,208.113" fill="#16202b" />
+<polygon points="1406.48,211.263 1399.48,214.413 1399.48,208.113" fill="#16202b" />
+<polygon points="1646.48,211.263 1639.48,214.413 1639.48,208.113" fill="#16202b" />
+<polygon points="1725.08,380.663 1721.93,373.663 1728.23,373.663" fill="#16202b" />
+<polygon points="1780.88,618.263 1773.88,621.413 1773.88,615.113" fill="#16202b" />
+<polygon points="553.28,309 546.28,312.15 546.28,305.85" fill="#16202b" />
+<polygon points="553.28,349 546.28,352.15 546.28,345.85" fill="#16202b" />
+<polygon points="553.28,167 546.28,170.15 546.28,163.85" fill="#16202b" />
+<polygon points="803.28,309 796.28,312.15 796.28,305.85" fill="#16202b" />
+<polygon points="1097.28,309 1090.28,312.15 1090.28,305.85" fill="#16202b" />
+<polygon points="1097.28,459 1090.28,462.15 1090.28,455.85" fill="#16202b" />
+<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
+<polygon points="1097.28,609 1090.28,612.15 1090.28,605.85" fill="#16202b" />
+<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
+<polygon points="1097.28,759 1090.28,762.15 1090.28,755.85" fill="#16202b" />
+<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
+<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
+<polygon points="1097.28,909 1090.28,912.15 1090.28,905.85" fill="#16202b" />
+<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
+<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
+<polygon points="1043.48,972 1040.33,965 1046.63,965" fill="#16202b" />
+<polygon points="1097.28,1059 1090.28,1062.15 1090.28,1055.85" fill="#16202b" />
+<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
+<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
+<polygon points="1043.48,972 1040.33,965 1046.63,965" fill="#16202b" />
+<polygon points="1097.28,1209 1090.28,1212.15 1090.28,1205.85" fill="#16202b" />
+<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
+<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
+<polygon points="1043.48,972 1040.33,965 1046.63,965" fill="#16202b" />
+<polygon points="1043.48,1196 1040.33,1189 1046.63,1189" fill="#16202b" />
+<polygon points="1097.28,1359 1090.28,1362.15 1090.28,1355.85" fill="#16202b" />
+<polygon points="1097.28,359.526 1090.28,362.676 1090.28,356.376" fill="#16202b" />
+<polygon points="1097.28,509.526 1090.28,512.676 1090.28,506.376" fill="#16202b" />
+<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
+<polygon points="1097.28,659.526 1090.28,662.676 1090.28,656.376" fill="#16202b" />
+<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
+<polygon points="1097.28,809.526 1090.28,812.676 1090.28,806.376" fill="#16202b" />
+<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
+<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
+<polygon points="1097.28,959.526 1090.28,962.676 1090.28,956.376" fill="#16202b" />
+<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
+<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
+<polygon points="1023.48,1024 1020.33,1017 1026.63,1017" fill="#16202b" />
+<polygon points="1097.28,1109.526 1090.28,1112.676 1090.28,1106.376" fill="#16202b" />
+<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
+<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
+<polygon points="1023.48,1024 1020.33,1017 1026.63,1017" fill="#16202b" />
+<polygon points="1097.28,1259.526 1090.28,1262.676 1090.28,1256.376" fill="#16202b" />
+<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
+<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
+<polygon points="1023.48,1024 1020.33,1017 1026.63,1017" fill="#16202b" />
+<polygon points="1023.48,1272 1020.33,1265 1026.63,1265" fill="#16202b" />
+<polygon points="1097.28,1409.526 1090.28,1412.676 1090.28,1406.376" fill="#16202b" />
+<polygon points="902.848,208.632 895.848,211.782 895.848,205.482" fill="#16202b" />
+<polygon points="1142.848,208.632 1135.848,211.782 1135.848,205.482" fill="#16202b" />
+<polygon points="1382.848,208.632 1375.848,211.782 1375.848,205.482" fill="#16202b" />
+<polygon points="1456.48,379 1453.33,372 1459.63,372" fill="#16202b" />
+<polygon points="1467.28,590.263 1460.28,593.413 1460.28,587.113" fill="#16202b" />
+<polygon points="1808.08,690.263 1815.08,687.113 1815.08,693.413" fill="#16202b" />
+<polygon points="1568.08,690.263 1575.08,687.113 1575.08,693.413" fill="#16202b" />
+<polygon points="1710.28,690.263 1717.28,687.113 1717.28,693.413" fill="#16202b" />
+<polygon points="1768.88,334.263 1761.88,337.413 1761.88,331.113" fill="#16202b" />
+<polygon points="1777.38,476.263 1770.38,479.413 1770.38,473.113" fill="#16202b" />
+<polygon points="1701.08,607.263 1697.93,600.263 1704.23,600.263" fill="#16202b" />
+<polygon points="1780.88,658.263 1773.88,661.413 1773.88,655.113" fill="#16202b" />
+<polygon points="2062.88,658.263 2055.88,661.413 2055.88,655.113" fill="#16202b" />
+<polygon points="2062.88,476.263 2055.88,479.413 2055.88,473.113" fill="#16202b" />
+<polygon points="2062.88,334.263 2055.88,337.413 2055.88,331.113" fill="#16202b" />
+<polygon points="1443.28,334.263 1436.28,337.413 1436.28,331.113" fill="#16202b" />
+<polygon points="1443.28,366.263 1436.28,369.413 1436.28,363.113" fill="#16202b" />
+<polygon points="1393.48,589.263 1396.63,596.263 1390.33,596.263" fill="#16202b" />
+<polygon points="1423.48,769.263 1426.63,776.263 1420.33,776.263" fill="#16202b" />
+<polygon points="1413.48,909.263 1416.63,916.263 1410.33,916.263" fill="#16202b" />
+<polygon points="1413.48,669.263 1416.63,676.263 1410.33,676.263" fill="#16202b" />
+<polygon points="1403.48,1049.263 1406.63,1056.263 1400.33,1056.263" fill="#16202b" />
+<polygon points="1403.48,809.263 1406.63,816.263 1400.33,816.263" fill="#16202b" />
+<polygon points="1443.48,1239.263 1446.63,1246.263 1440.33,1246.263" fill="#16202b" />
+<polygon points="1443.48,999.263 1446.63,1006.263 1440.33,1006.263" fill="#16202b" />
+<polygon points="1443.48,759.263 1446.63,766.263 1440.33,766.263" fill="#16202b" />
+<polygon points="1443.48,574.463 1446.63,581.463 1440.33,581.463" fill="#16202b" />
+</g>
+<g class="dl-cells">
+<g class="dl-cell" data-id="gpc0" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,274.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="315.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="365.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="340.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="269.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 0</text>
+<g class="dl-cell" data-id="gpc1" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,424.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="465.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="515.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="490.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="419.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 1</text>
+<g class="dl-cell" data-id="gpc2" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,574.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="615.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="665.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="640.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="569.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 2</text>
+<g class="dl-cell" data-id="gpc3" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,724.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="765.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="815.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="790.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="719.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 3</text>
+<g class="dl-cell" data-id="gpc4" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,874.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="915.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="965.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="940.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="869.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 4</text>
+<g class="dl-cell" data-id="gpc5" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,1024.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="1065.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="1115.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="1090.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="1019.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 5</text>
+<g class="dl-cell" data-id="gpc6" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,1174.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="1215.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="1265.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="1240.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="1169.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 6</text>
+<g class="dl-cell" data-id="gpc7" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,1324.2632)">
+  <rect x="10" y="0" width="130" height="76" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="14" y="4" width="122" height="68" fill="none" stroke="#6b8f2a" stroke-width="0.755" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b8f2a" stroke-width="1.007" />
+  <line x1="150" y1="38" x2="140" y2="38" stroke="#6b8f2a" stroke-width="1.007" />
+  <rect x="56.879" y="10" width="33.726" height="56" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="13.272" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="26.611" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="39.951" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="58.137" y="53.29" width="31.209" height="11.452" fill="none" stroke="#8a9ba4" stroke-dasharray="3 2" stroke-width="0.503" />
+  <rect x="59.396" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="16.544" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="29.883" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="43.222" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="59.396" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="75.503" y="56.562" width="12.584" height="6.921" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="41.148" y="18.431" width="8.809" height="5.663" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <rect x="97.526" y="18.369" width="11.326" height="10.067" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L59.396 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 33.344 L59.396 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 46.683 L59.396 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M49.957 20.004 L54.676 20.004 L54.676 60.022 L59.396 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 20.004 L75.503 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 20.004 L97.526 20.004" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 33.344 L75.503 33.344" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 33.344 L92.807 33.344 L92.807 22.018 L97.526 22.018" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 46.683 L75.503 46.683" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 46.683 L94.065 46.683 L94.065 24.787 L97.526 24.787" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M71.98 60.022 L75.503 60.022" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+  <path d="M88.088 60.022 L95.324 60.022 L95.324 26.8 L97.526 26.8" fill="none" stroke="#8a9ba4" stroke-width="0.503" />
+</g>
+<text x="1134.08" y="1365.316" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">cta</text>
+<text x="1134.08" y="1415.842" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">prim</text>
+<text x="1322.88" y="1390.579" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1228.48" y="1319.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">GPC 7</text>
+<g class="dl-cell" data-id="u_clk" data-type="block" transform="matrix(1.3643,0,0,1,263.48,466)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.353" />
+</g>
+<text class="dl-cell-heading" x="358.98" y="505.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Clock, reset &amp; power</text>
+<text class="dl-cell-text" x="358.98" y="524.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">PLLs, DVFS</text>
+<g class="dl-cell" data-id="u_host" data-type="block" transform="matrix(1,0,0,1,288.98,324)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.6" />
+</g>
+<text class="dl-cell-heading" x="358.98" y="363.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Host interface</text>
+<text class="dl-cell-text" x="358.98" y="382.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">PCIe Gen5 x16</text>
+<g class="dl-cell" data-id="u_nvl" data-type="block" transform="matrix(1,0,0,1,1792.08,593.2632)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.6" />
+</g>
+<text class="dl-cell-heading" x="1862.08" y="633.143" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">NVLink</text>
+<text class="dl-cell-text" x="1862.08" y="651.483" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">18 links</text>
+<g class="dl-cell" data-id="u_fe" data-type="block" transform="matrix(1,0,0,1,564.48,284)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.6" />
+</g>
+<text class="dl-cell-heading" x="634.48" y="323.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Front end</text>
+<text class="dl-cell-text" x="634.48" y="342.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">command processor</text>
+<g class="dl-cell" data-id="u_ce" data-type="block" transform="matrix(1,0,0,1,564.48,142)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.6" />
+</g>
+<text class="dl-cell-heading" x="634.48" y="181.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Copy engine</text>
+<text class="dl-cell-text" x="634.48" y="200.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">async DMA</text>
+<g class="dl-cell" data-id="u_gte" data-type="block" transform="matrix(1.1714,0,0,1,814.48,284)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.474" />
+</g>
+<text class="dl-cell-heading" x="896.48" y="323.88" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">GigaThread engine</text>
+<text class="dl-cell-text" x="896.48" y="342.22" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">grid / CTA scheduler</text>
+<g class="dl-cell" data-id="u_xbar" data-type="sheet" transform="matrix(1,0,0,1,1478.48,312.2632)">
+  <rect x="10" y="0" width="171.6" height="332" fill="#e8e4f6" stroke="#6b5bb3" stroke-width="1.6" />
+  <rect x="14" y="4" width="163.6" height="324" fill="none" stroke="#6b5bb3" stroke-width="1.2" />
+  <line x1="0" y1="22" x2="10" y2="22" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="54" x2="10" y2="54" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="86" x2="10" y2="86" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="118" x2="10" y2="118" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="150" x2="10" y2="150" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="182" x2="10" y2="182" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="214" x2="10" y2="214" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="246" x2="10" y2="246" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="278" x2="10" y2="278" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="0" y1="310" x2="10" y2="310" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="191.6" y1="22" x2="181.6" y2="22" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="191.6" y1="54" x2="181.6" y2="54" stroke="#6b5bb3" stroke-width="1.6" />
+  <line x1="191.6" y1="86" x2="181.6" y2="86" stroke="#6b5bb3" stroke-width="1.6" />
+  <rect x="20" y="79.42" width="60.64" height="53.902" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+  <rect x="20" y="150.84" width="60.64" height="53.902" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+  <rect x="26.738" y="222.26" width="47.164" height="30.32" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+  <rect x="117.698" y="80.093" width="53.902" height="40.427" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+  <path d="M80.64 88.179 L117.698 88.179" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+  <path d="M80.64 159.599 L99.169 159.599 L99.169 100.307 L117.698 100.307" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+  <path d="M73.902 230.683 L105.907 230.683 L105.907 112.435 L117.698 112.435" fill="none" stroke="#8a9ba4" stroke-width="0.8" />
+</g>
+<text x="1494.48" y="338.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc0</text>
+<text x="1494.48" y="370.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc1</text>
+<text x="1494.48" y="402.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc2</text>
+<text x="1494.48" y="434.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc3</text>
+<text x="1494.48" y="466.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc4</text>
+<text x="1494.48" y="498.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc5</text>
+<text x="1494.48" y="530.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc6</text>
+<text x="1494.48" y="562.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">gpc7</text>
+<text x="1494.48" y="594.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">ce</text>
+<text x="1494.48" y="626.263" text-anchor="start" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">nvlink_in</text>
+<text x="1654.08" y="338.263" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">mem</text>
+<text x="1654.08" y="370.263" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">display</text>
+<text x="1654.08" y="402.263" text-anchor="end" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11" fill="#5b6b74">nvlink_out</text>
+<text x="1574.28" y="307.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">Crossbar</text>
+<g class="dl-cell" data-id="u_disp" data-type="block" transform="matrix(1.05,0,0,1,1788.58,451.2632)">
+  <rect x="0" y="0" width="140" height="90" fill="#f3f6f8" stroke="#5b6b74" stroke-width="1.561" />
+</g>
+<text class="dl-cell-heading" x="1862.08" y="491.143" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#1f2a33">Display &amp; media</text>
+<text class="dl-cell-text" x="1862.08" y="509.483" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#52656f">4 heads, NVENC</text>
+<g class="dl-cell" data-id="u_mp" data-type="block" transform="matrix(1.1714,0,0,1,1780.08,309.2632)">
+  <rect x="0" y="0" width="140" height="90" fill="#dde9f7" stroke="#2f6db3" stroke-width="1.474" />
+</g>
+<text class="dl-cell-heading" x="1862.08" y="349.143" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13" font-weight="600" fill="#123a66">Memory partitions</text>
+<text class="dl-cell-text" x="1862.08" y="367.483" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="11.5" fill="#16202b">L2 48 MB, HBM3 x 12</text>
+<g class="dl-cell" data-id="p_refclk" data-type="port_in" transform="matrix(1,0,0,1,113.48,486)">
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="123.48" y="481" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">refclk</text>
+<g class="dl-cell" data-id="p_rstn" data-type="port_in" transform="matrix(1,0,0,1,113.48,526)">
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="123.48" y="521" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">rst_n</text>
+<g class="dl-cell" data-id="p_pcie" data-type="port_in" transform="matrix(1,0,0,1,113.48,344)">
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="123.48" y="323.475" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b"><tspan x="123.48" y="323.475">pcie_</tspan><tspan x="123.48" y="339">rx[15:0]</tspan></text>
+<g class="dl-cell" data-id="p_nvlrx" data-type="port_in" transform="matrix(1,0,0,1,113.48,613.2632)">
+  <path d="M0 0 H15 L20 5 L15 10 H0 Z" fill="#dcecd8" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="123.48" y="592.738" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b"><tspan x="123.48" y="592.738">nvlink_</tspan><tspan x="123.48" y="608.263">rx[17:0]</tspan></text>
+<g class="dl-cell" data-id="p_dp" data-type="port_out" transform="matrix(1,0,0,1,2074.08,471.2632)">
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="2084.08" y="466.263" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b">dp_out[3:0]</text>
+<g class="dl-cell" data-id="p_dq" data-type="port_out" transform="matrix(1,0,0,1,2074.08,329.2632)">
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="2084.08" y="308.738" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b"><tspan x="2084.08" y="308.738">hbm_</tspan><tspan x="2084.08" y="324.263">dq[1023:0]</tspan></text>
+<g class="dl-cell" data-id="p_nvltx" data-type="port_out" transform="matrix(1,0,0,1,2074.08,653.2632)">
+  <path d="M20 0 H5 L0 5 L5 10 H20 Z" fill="#f7e2cd" stroke="#16202b" stroke-width="1.6" />
+</g>
+<text x="2084.08" y="632.738" text-anchor="middle" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="13.5" font-weight="600" fill="#16202b"><tspan x="2084.08" y="632.738">nvlink_</tspan><tspan x="2084.08" y="648.263">tx[17:0]</tspan></text>
+</g>
+<g class="dl-junctions">
+<circle cx="1023.48" cy="359.526" r="3.2" fill="#16202b" />
+<circle cx="1023.48" cy="509.526" r="3.2" fill="#16202b" />
+<circle cx="1023.48" cy="659.526" r="3.2" fill="#16202b" />
+<circle cx="1023.48" cy="809.526" r="3.2" fill="#16202b" />
+<circle cx="1023.48" cy="959.526" r="3.2" fill="#16202b" />
+<circle cx="1023.48" cy="1109.526" r="3.2" fill="#16202b" />
+<circle cx="1023.48" cy="1259.526" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="309" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="459" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="609" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="759" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="909" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="1059" r="3.2" fill="#16202b" />
+<circle cx="1043.48" cy="1209" r="3.2" fill="#16202b" />
+</g>
+<text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">GPU built from linked GPCs -- each GPC is a drawing of linked SMs</text>
+</svg>

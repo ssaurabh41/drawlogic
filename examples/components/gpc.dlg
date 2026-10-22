@@ -1,0 +1,551 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "GPC",
+  "canvas": {
+    "width": 1525,
+    "height": 1070,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "pi_cta",
+      "type": "port_in",
+      "x": 96.74,
+      "y": 244.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "cta",
+      "style": {}
+    },
+    {
+      "id": "pi_prim",
+      "type": "port_in",
+      "x": 96.74,
+      "y": 284.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "prim",
+      "style": {}
+    },
+    {
+      "id": "po_mem",
+      "type": "port_out",
+      "x": 1412.74,
+      "y": 244.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "mem",
+      "style": {}
+    },
+    {
+      "id": "t0_sm0",
+      "parentId": "tpc0",
+      "type": "sheet",
+      "x": 516.74,
+      "y": 194.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 0",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t0_sm1",
+      "parentId": "tpc0",
+      "type": "sheet",
+      "x": 772.74,
+      "y": 194.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 1",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t1_sm0",
+      "parentId": "tpc1",
+      "type": "sheet",
+      "x": 516.74,
+      "y": 406.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 2",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t1_sm1",
+      "parentId": "tpc1",
+      "type": "sheet",
+      "x": 772.74,
+      "y": 406.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 3",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t2_sm0",
+      "parentId": "tpc2",
+      "type": "sheet",
+      "x": 516.74,
+      "y": 618.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 4",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t2_sm1",
+      "parentId": "tpc2",
+      "type": "sheet",
+      "x": 772.74,
+      "y": 618.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 5",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t3_sm0",
+      "parentId": "tpc3",
+      "type": "sheet",
+      "x": 516.74,
+      "y": 830.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 6",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "t3_sm1",
+      "parentId": "tpc3",
+      "type": "sheet",
+      "x": 772.74,
+      "y": 830.0,
+      "w": 200,
+      "h": 110,
+      "rotate": 0,
+      "mirror": false,
+      "label": "SM 7",
+      "style": {},
+      "ref": "sm.dlg",
+      "styleRef": "sm",
+      "preview": true
+    },
+    {
+      "id": "raster",
+      "type": "block",
+      "x": 226.74,
+      "y": 224.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Raster & work",
+      "text": [
+        "setup, rasterise",
+        "CTA dispatch"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "mmu",
+      "type": "block8",
+      "x": 1122.74,
+      "y": 223.0,
+      "w": 180.0,
+      "h": 160.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "MMU / L1.5",
+      "text": [
+        "to the crossbar"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_cta",
+      "name": "cta",
+      "width": 1,
+      "from": {
+        "cell": "pi_cta",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "raster",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_prim",
+      "name": "prim",
+      "width": 1,
+      "from": {
+        "cell": "pi_prim",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "raster",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_work",
+      "name": "work",
+      "width": 1,
+      "from": {
+        "cell": "raster",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "t0_sm0",
+          "pin": "warps",
+          "waypoints": []
+        },
+        {
+          "cell": "t1_sm0",
+          "pin": "warps",
+          "waypoints": []
+        },
+        {
+          "cell": "t2_sm0",
+          "pin": "warps",
+          "waypoints": []
+        },
+        {
+          "cell": "t3_sm0",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_mem",
+      "width": 1,
+      "from": {
+        "cell": "mmu",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "po_mem",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_t0",
+      "width": 1,
+      "from": {
+        "cell": "t0_sm0",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "t0_sm1",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_m0",
+      "width": 1,
+      "from": {
+        "cell": "t0_sm1",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "mmu",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_t1",
+      "width": 1,
+      "from": {
+        "cell": "t1_sm0",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "t1_sm1",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_m1",
+      "width": 1,
+      "from": {
+        "cell": "t1_sm1",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "mmu",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_t2",
+      "width": 1,
+      "from": {
+        "cell": "t2_sm0",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "t2_sm1",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_m2",
+      "width": 1,
+      "from": {
+        "cell": "t2_sm1",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "mmu",
+          "pin": "in3",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_t3",
+      "width": 1,
+      "from": {
+        "cell": "t3_sm0",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "t3_sm1",
+          "pin": "warps",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_m3",
+      "width": 1,
+      "from": {
+        "cell": "t3_sm1",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "mmu",
+          "pin": "in4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "containers": [
+    {
+      "id": "tpcs",
+      "title": "Texture processing clusters",
+      "x": 476.74,
+      "y": 90.0,
+      "w": 536.0,
+      "h": 890.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#d5dde2",
+        "headerFill": "none",
+        "titleFill": "#5b6b74"
+      }
+    },
+    {
+      "id": "tpc0",
+      "parentId": "tpcs",
+      "title": "TPC 0",
+      "x": 496.74,
+      "y": 142.0,
+      "w": 496.0,
+      "h": 182.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    },
+    {
+      "id": "tpc1",
+      "parentId": "tpcs",
+      "title": "TPC 1",
+      "x": 496.74,
+      "y": 354.0,
+      "w": 496.0,
+      "h": 182.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    },
+    {
+      "id": "tpc2",
+      "parentId": "tpcs",
+      "title": "TPC 2",
+      "x": 496.74,
+      "y": 566.0,
+      "w": 496.0,
+      "h": 182.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    },
+    {
+      "id": "tpc3",
+      "parentId": "tpcs",
+      "title": "TPC 3",
+      "x": 496.74,
+      "y": 778.0,
+      "w": 496.0,
+      "h": 182.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "row"
+      },
+      "styleRef": "tpc",
+      "style": {}
+    }
+  ],
+  "styles": {
+    "sm": {
+      "style": {
+        "fill": "#e6f2d3",
+        "stroke": "#6b8f2a"
+      },
+      "headingStyle": {
+        "fill": "#24400b"
+      }
+    },
+    "tpc": {
+      "style": {
+        "fill": "#ffffff",
+        "stroke": "#c5d8a6",
+        "headerFill": "#e3f0cf",
+        "titleFill": "#2f4a0e"
+      }
+    },
+    "unit": {
+      "style": {
+        "fill": "#f3f6f8",
+        "stroke": "#5b6b74"
+      },
+      "headingStyle": {
+        "fill": "#1f2a33"
+      },
+      "textStyle": {
+        "fill": "#52656f"
+      }
+    }
+  }
+}

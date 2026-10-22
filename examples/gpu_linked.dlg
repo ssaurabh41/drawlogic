@@ -1,0 +1,969 @@
+{
+  "format": "drawlogic",
+  "version": 2,
+  "title": "GPU built from linked GPCs -- each GPC is a drawing of linked SMs",
+  "canvas": {
+    "width": 2220,
+    "height": 1574,
+    "background": "#ffffff",
+    "grid": {
+      "style": "blank",
+      "size": 5,
+      "color": "#b9c7cc"
+    },
+    "font": {
+      "family": "IBM Plex Sans",
+      "scale": 1.0
+    },
+    "symbolScale": 1.0,
+    "arrows": true,
+    "hops": true
+  },
+  "cells": [
+    {
+      "id": "gpc0",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 274.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 0",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc1",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 424.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 1",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc2",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 574.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 2",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc3",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 724.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 3",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc4",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 874.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 4",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc5",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 1024.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 5",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc6",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 1174.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 6",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "gpc7",
+      "parentId": "gpcs",
+      "type": "sheet",
+      "x": 1108.48,
+      "y": 1324.263158,
+      "w": 240,
+      "h": 120,
+      "rotate": 0,
+      "mirror": false,
+      "label": "GPC 7",
+      "style": {},
+      "ref": "components/gpc.dlg",
+      "styleRef": "gpc",
+      "preview": true
+    },
+    {
+      "id": "u_clk",
+      "parentId": "die",
+      "type": "block",
+      "x": 263.48,
+      "y": 466.0,
+      "w": 191,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Clock, reset & power",
+      "text": [
+        "PLLs, DVFS"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_host",
+      "parentId": "die",
+      "type": "block",
+      "x": 288.98,
+      "y": 324.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Host interface",
+      "text": [
+        "PCIe Gen5 x16"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_nvl",
+      "parentId": "die",
+      "type": "block",
+      "x": 1792.08,
+      "y": 593.263158,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "NVLink",
+      "text": [
+        "18 links"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_fe",
+      "parentId": "die",
+      "type": "block",
+      "x": 564.48,
+      "y": 284.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Front end",
+      "text": [
+        "command processor"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_ce",
+      "parentId": "die",
+      "type": "block",
+      "x": 564.48,
+      "y": 142.0,
+      "w": 140.0,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Copy engine",
+      "text": [
+        "async DMA"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_gte",
+      "parentId": "die",
+      "type": "block",
+      "x": 814.48,
+      "y": 284.0,
+      "w": 164,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "GigaThread engine",
+      "text": [
+        "grid / CTA scheduler"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_xbar",
+      "parentId": "die",
+      "type": "sheet",
+      "x": 1478.48,
+      "y": 312.263158,
+      "w": 191.60000000000002,
+      "h": 332.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "Crossbar",
+      "style": {},
+      "ref": "components/xbar.dlg",
+      "styleRef": "fabric",
+      "preview": true
+    },
+    {
+      "id": "u_disp",
+      "parentId": "die",
+      "type": "block",
+      "x": 1788.58,
+      "y": 451.263158,
+      "w": 147,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Display & media",
+      "text": [
+        "4 heads, NVENC"
+      ],
+      "style": {},
+      "styleRef": "unit"
+    },
+    {
+      "id": "u_mp",
+      "parentId": "die",
+      "type": "block",
+      "x": 1780.08,
+      "y": 309.263158,
+      "w": 164,
+      "h": 90.0,
+      "rotate": 0,
+      "mirror": false,
+      "heading": "Memory partitions",
+      "text": [
+        "L2 48 MB, HBM3 x 12"
+      ],
+      "style": {},
+      "styleRef": "memory"
+    },
+    {
+      "id": "p_refclk",
+      "type": "port_in",
+      "x": 113.48,
+      "y": 486.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "refclk",
+      "style": {}
+    },
+    {
+      "id": "p_rstn",
+      "type": "port_in",
+      "x": 113.48,
+      "y": 526.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "rst_n",
+      "style": {}
+    },
+    {
+      "id": "p_pcie",
+      "type": "port_in",
+      "x": 113.48,
+      "y": 344.0,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "pcie_rx[15:0]",
+      "style": {}
+    },
+    {
+      "id": "p_nvlrx",
+      "type": "port_in",
+      "x": 113.48,
+      "y": 613.263158,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "nvlink_rx[17:0]",
+      "style": {}
+    },
+    {
+      "id": "p_dp",
+      "type": "port_out",
+      "x": 2074.08,
+      "y": 471.263158,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "dp_out[3:0]",
+      "style": {}
+    },
+    {
+      "id": "p_dq",
+      "type": "port_out",
+      "x": 2074.08,
+      "y": 329.263158,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "hbm_dq[1023:0]",
+      "style": {}
+    },
+    {
+      "id": "p_nvltx",
+      "type": "port_out",
+      "x": 2074.08,
+      "y": 653.263158,
+      "w": 20.0,
+      "h": 10.0,
+      "rotate": 0,
+      "mirror": false,
+      "label": "nvlink_tx[17:0]",
+      "style": {}
+    }
+  ],
+  "nets": [
+    {
+      "id": "n_refclk",
+      "width": 1,
+      "from": {
+        "cell": "p_refclk",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_clk",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_rstn",
+      "width": 1,
+      "from": {
+        "cell": "p_rstn",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_clk",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_pcie",
+      "name": "pcie_rx[15:0]",
+      "width": 16,
+      "from": {
+        "cell": "p_pcie",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_host",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvlrx",
+      "name": "nvlink_rx[17:0]",
+      "width": 18,
+      "from": {
+        "cell": "p_nvlrx",
+        "pin": "p"
+      },
+      "to": [
+        {
+          "cell": "u_nvl",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_gclk",
+      "name": "gclk",
+      "width": 1,
+      "from": {
+        "cell": "u_clk",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_fe",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_cmd",
+      "width": 1,
+      "from": {
+        "cell": "u_host",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_fe",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dma",
+      "width": 1,
+      "from": {
+        "cell": "u_host",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "u_ce",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_work",
+      "width": 1,
+      "from": {
+        "cell": "u_fe",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_gte",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_cta",
+      "name": "cta",
+      "width": 1,
+      "from": {
+        "cell": "u_gte",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "gpc0",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc1",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc2",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc3",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc4",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc5",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc6",
+          "pin": "cta",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc7",
+          "pin": "cta",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_prim",
+      "name": "prim",
+      "width": 1,
+      "from": {
+        "cell": "u_gte",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "gpc0",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc1",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc2",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc3",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc4",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc5",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc6",
+          "pin": "prim",
+          "waypoints": []
+        },
+        {
+          "cell": "gpc7",
+          "pin": "prim",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_cemem",
+      "width": 1,
+      "from": {
+        "cell": "u_ce",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "ce",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvlin",
+      "width": 1,
+      "from": {
+        "cell": "u_nvl",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "nvlink_in",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_req",
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_mp",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_fetch",
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "display"
+      },
+      "to": [
+        {
+          "cell": "u_disp",
+          "pin": "in1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_egress",
+      "width": 1,
+      "from": {
+        "cell": "u_xbar",
+        "pin": "nvlink_out"
+      },
+      "to": [
+        {
+          "cell": "u_nvl",
+          "pin": "in2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_nvltx",
+      "name": "nvlink_tx[17:0]",
+      "width": 18,
+      "from": {
+        "cell": "u_nvl",
+        "pin": "out2"
+      },
+      "to": [
+        {
+          "cell": "p_nvltx",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dp",
+      "name": "dp_out[3:0]",
+      "width": 4,
+      "from": {
+        "cell": "u_disp",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "p_dp",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_dq",
+      "name": "hbm_dq[1023:0]",
+      "width": 1024,
+      "from": {
+        "cell": "u_mp",
+        "pin": "out1"
+      },
+      "to": [
+        {
+          "cell": "p_dq",
+          "pin": "p",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g0",
+      "width": 1,
+      "from": {
+        "cell": "gpc0",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc0",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g1",
+      "width": 1,
+      "from": {
+        "cell": "gpc1",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc1",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g2",
+      "width": 1,
+      "from": {
+        "cell": "gpc2",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc2",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g3",
+      "width": 1,
+      "from": {
+        "cell": "gpc3",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc3",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g4",
+      "width": 1,
+      "from": {
+        "cell": "gpc4",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc4",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g5",
+      "width": 1,
+      "from": {
+        "cell": "gpc5",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc5",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g6",
+      "width": 1,
+      "from": {
+        "cell": "gpc6",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc6",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    },
+    {
+      "id": "n_g7",
+      "width": 1,
+      "from": {
+        "cell": "gpc7",
+        "pin": "mem"
+      },
+      "to": [
+        {
+          "cell": "u_xbar",
+          "pin": "gpc7",
+          "waypoints": []
+        }
+      ],
+      "style": {}
+    }
+  ],
+  "shapes": [],
+  "groups": [],
+  "containers": [
+    {
+      "id": "die",
+      "title": "GPU die",
+      "x": 243.48,
+      "y": 90.0,
+      "w": 1720.6,
+      "h": 1394.263158,
+      "padding": 20,
+      "headerHeight": 32,
+      "style": {
+        "fill": "#fbfcfd",
+        "stroke": "#5b6b74",
+        "headerFill": "#1f2a33",
+        "titleFill": "#ffffff"
+      }
+    },
+    {
+      "id": "gpcs",
+      "parentId": "die",
+      "title": "Graphics processing clusters",
+      "x": 1088.48,
+      "y": 222.263158,
+      "w": 280.0,
+      "h": 1242.0,
+      "padding": 20,
+      "headerHeight": 32,
+      "layout": {
+        "mode": "column"
+      },
+      "styleRef": "region",
+      "style": {}
+    }
+  ],
+  "styles": {
+    "fabric": {
+      "style": {
+        "fill": "#e8e4f6",
+        "stroke": "#6b5bb3"
+      },
+      "headingStyle": {
+        "fill": "#2d2366"
+      }
+    },
+    "gpc": {
+      "style": {
+        "fill": "#e6f2d3",
+        "stroke": "#6b8f2a"
+      },
+      "headingStyle": {
+        "fill": "#24400b"
+      }
+    },
+    "memory": {
+      "style": {
+        "fill": "#dde9f7",
+        "stroke": "#2f6db3"
+      },
+      "headingStyle": {
+        "fill": "#123a66"
+      }
+    },
+    "region": {
+      "style": {
+        "fill": "#f6faf0",
+        "stroke": "#a9c47e",
+        "headerFill": "#76b900",
+        "titleFill": "#ffffff"
+      }
+    },
+    "unit": {
+      "style": {
+        "fill": "#f3f6f8",
+        "stroke": "#5b6b74"
+      },
+      "headingStyle": {
+        "fill": "#1f2a33"
+      },
+      "textStyle": {
+        "fill": "#52656f"
+      }
+    }
+  }
+}

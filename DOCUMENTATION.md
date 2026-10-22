@@ -1387,6 +1387,13 @@ clusters, each holding two cores, the cores linked instances of
 every container's edge. `examples/gpu_arch.dlg` is a GPU die: two GPCs of two
 TPCs of two linked SMs (`components/sm.dlg`), laid out as a column of rows of
 columns, with the memory subsystem beside them in a style of its own.
+`examples/cpu_arch.dlg` is a quad-core CPU: four linked instances of an
+out-of-order core (`components/ooo_core.dlg`, itself a drawing of four
+containers -- front end, out-of-order engine, execution ports, memory) in a
+grid, wired to a ring with a shared L3 and a system agent beside them. It is
+the drawing that exercises the wiring rules for containers hardest: wires
+leaving a packed grid, loops down a column, and wires that have to come into
+a container round its header.
 
 ---
 
@@ -2108,8 +2115,8 @@ drawlogic/
 tests/            unittest, a golden-file regression suite, a JS parity check
   js/             node-side runners: the editor checks, and dumps of what
                   routing.js and render.js produce for parity to compare
-examples/         worked schematics, including a CDC FIFO and a GPU block diagram;
-  components/     the definitions arch_mini.dlg and gpu_arch.dlg place as linked instances
+examples/         worked schematics, including a CDC FIFO, a GPU and a CPU block diagram;
+  components/     the definitions arch_mini, gpu_arch and cpu_arch place as linked instances
 manifest.txt      a hash of every file above; generated, never hand-edited
 .github/          one CI workflow: the suite on the oldest supported Python
 sample.txt        a plain file to edit when trying verify.ps1 out by hand
@@ -2188,7 +2195,7 @@ python3 -m unittest discover          # everything
 python3 -m unittest tests.test_regression
 ```
 
-492 tests, in fifteen parts:
+622 tests, in nineteen parts:
 
 | File | Covers |
 |---|---|
@@ -2202,7 +2209,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_js_editor.py` | editor behaviour in node: alignment, Tidy, auto-connect, undo, moving and fitting containers, headings and named styles, Repeat |
 | `tests/test_components.py` | linked components: ports from the wires crossing a selection, named by wire; the instance rewired by name; definition edits reaching every instance; lost pins reported; making one independent, through the editor's server; previews drawn alike in editor and export, and following the definition |
 | `tests/test_styles.py` | headings and text styles, named styles and overrides, fitting and clipping with a heading, and every line set the same in the editor as in an export |
-| `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over) |
+| `tests/test_containers.py` | containers: saving, every containment fault, drawing beneath their contents, the same marks in editor and export, laying them out level by level (rows, grids, flow, pins, one container alone, twice over); room packed for wires leaving a row or grid and for loops down a column; wires kept off outlines and header bands, and the path round a header, alike in editor and export |
 | `tests/test_sheets.py` | hierarchy: derived pins, loops, broken references |
 | `tests/test_layout.py` | auto layout: flow, overlap, settling, ordering choice |
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
@@ -2210,6 +2217,7 @@ python3 -m unittest tests.test_regression
 | `tests/test_hdl.py` | Verilog import: netlists, RTL lowered to gates, Yosys, errors |
 | `tests/test_manifest.py` | `manifest.txt` still describes the files here |
 | `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
+| `tests/test_bundle.py` | packing the repository into one text file and back, byte for byte, and a damaged paste naming the file it broke |
 
 Two of these are worth knowing about because of what they guard rather than
 what they test. `tests.test_drc.TestEveryCheckerIsReachable` replaces each

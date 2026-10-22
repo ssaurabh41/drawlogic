@@ -131,7 +131,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 605 tests, 0 failed, 5 skipped (~25 s).
+- Suite: `python3 tests/run.py` -> 622 tests, 0 failed, 5 skipped (~26 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.

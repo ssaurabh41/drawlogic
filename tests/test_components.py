@@ -380,5 +380,103 @@ class TestThroughTheEditorsServer(unittest.TestCase):
                      ["go"])
 
 
+class TestCustomSymbolsTravel(unittest.TestCase):
+  """A component made of cells drawn with the folder's own symbols.json takes
+  those symbols with it: it lives one folder down, where that file is not
+  read."""
+
+  SM = {"name": "SM", "category": "custom", "size": [80, 50],
+        "pins": [{"name": "i", "x": 0, "y": 25, "dir": "in"}],
+        "draw": [{"op": "rect", "x": 0, "y": 0, "w": 80, "h": 50, "role": "body"}]}
+
+  def setUp(self):
+    from drawlogic.symbols import load_folder
+    self.root = tempfile.mkdtemp()
+    with open(os.path.join(self.root, "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": self.SM}, handle)
+    registry = default_registry().copy()
+    load_folder(registry, self.root)
+    handler = type("BoundHandler", (server.Handler,), {
+      "root": self.root, "registry": registry, "base": default_registry(), "quiet": True})
+    self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    self.base = "http://127.0.0.1:%d" % self.httpd.server_port
+    threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+    top = new_document("top")
+    top.cells.append({"id": "sm", "type": "custom_sm", "x": 200, "y": 100})
+    self.top = top.ordered()
+
+  def tearDown(self):
+    self.httpd.shutdown()
+    self.httpd.server_close()
+    shutil.rmtree(self.root, ignore_errors=True)
+
+  post = TestThroughTheEditorsServer.post
+
+  def make(self):
+    return self.post("/api/component", {"action": "create", "doc": self.top,
+                                        "source": "top.dlg", "ids": ["sm"], "name": "GPC"})
+
+  def opened(self):
+    """The component opened as anyone would open it: on its own."""
+    from drawlogic import render_svg
+    doc, registry, problems = sheets.open_document(
+      os.path.join(self.root, "components", "gpc.dlg"))
+    errors = [str(i) for i in problems + doc.validate(registry) if i.level == "error"]
+    render_svg.render(doc, registry)
+    return doc, registry, errors
+
+  def library(self):
+    with open(os.path.join(self.root, "components", "symbols.json")) as handle:
+      return json.load(handle)
+
+  def test_the_symbol_goes_with_the_component(self):
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertEqual(self.library(), {"custom_sm": self.SM})
+    doc, registry, errors = self.opened()
+    self.assertEqual(errors, [])
+    self.assertEqual([c["type"] for c in doc.cells if not c["type"].startswith("port")],
+                     ["custom_sm"])
+    self.assertEqual(registry.get("custom_sm").width, 80)
+
+  def test_one_already_there_and_the_same_is_used_as_it_is(self):
+    os.makedirs(os.path.join(self.root, "components"))
+    with open(os.path.join(self.root, "components", "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": self.SM}, handle)
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertEqual(self.library(), {"custom_sm": self.SM})
+    self.assertEqual(self.opened()[2], [])
+
+  def test_a_component_that_could_not_open_is_not_written(self):
+    # The server read the folder's symbols when it started; the file has
+    # gone since, so there is nothing to carry -- and the component, which
+    # this server can still draw, would open nowhere else.
+    os.remove(os.path.join(self.root, "symbols.json"))
+    status, answer = self.make()
+    self.assertEqual(status, 422, answer)
+    self.assertIn("unknown cell type", answer.get("error", ""))
+    self.assertFalse(os.path.exists(os.path.join(self.root, "components", "gpc.dlg")))
+
+  def test_a_different_one_of_the_same_name_is_left_alone(self):
+    other = dict(self.SM, name="Something else", size=[40, 40])
+    os.makedirs(os.path.join(self.root, "components"))
+    with open(os.path.join(self.root, "components", "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": other}, handle)
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertIn("custom_sm as custom_sm_2", made["note"])
+    # Theirs is untouched; the component's copy has a name of its own.
+    self.assertEqual(self.library(), {"custom_sm": other, "custom_sm_2": self.SM})
+    doc, registry, errors = self.opened()
+    self.assertEqual(errors, [])
+    self.assertEqual([c["type"] for c in doc.cells if not c["type"].startswith("port")],
+                     ["custom_sm_2"])
+    self.assertEqual(registry.get("custom_sm_2").width, 80)
+    # And the drawing it came from still draws with the folder's own.
+    with open(os.path.join(self.root, "symbols.json")) as handle:
+      self.assertEqual(json.load(handle), {"custom_sm": self.SM})
+
+
 if __name__ == "__main__":
   unittest.main()

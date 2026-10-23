@@ -138,6 +138,7 @@ class Handler(BaseHTTPRequestHandler):
   server_version = "drawlogic"
   root = "."
   registry = None
+  base = None
   quiet = False
   # The names this server answers to. See _refusal.
   hosts = frozenset(("127.0.0.1", "localhost", "::1"))
@@ -473,8 +474,25 @@ class Handler(BaseHTTPRequestHandler):
                                                   names=names)
       except components.ComponentError as exc:
         return self._fail(422, str(exc))
-      return self._write_and_answer(document, child, target, relative,
-                                    "made component %s" % relative, instance)
+      # The drawing's own symbols are not read from a folder below it, so
+      # the ones the component draws with go with it.
+      library_path = os.path.join(os.path.dirname(target), FOLDER_FILE)
+      existing = {}
+      if os.path.isfile(library_path):
+        try:
+          with open(library_path) as handle:
+            existing = json.load(handle)
+        except (OSError, ValueError) as exc:
+          return self._fail(422, "cannot read %s: %s" % (FOLDER_FILE, exc))
+        if not isinstance(existing, dict):
+          return self._fail(422, "%s must hold an object of symbols" % FOLDER_FILE)
+      library, renames = components.carry_symbols(child, registry, existing)
+      note = "made component %s" % relative
+      if renames:
+        note += " (its %s renamed there, as a different symbol has the name)" % (
+          ", ".join("%s as %s" % pair for pair in sorted(renames.items())))
+      return self._write_and_answer(document, child, target, relative, note, instance,
+                                    library if library != existing else None)
 
     if action == "copy":
       cell_id = payload.get("cell")
@@ -505,20 +523,31 @@ class Handler(BaseHTTPRequestHandler):
 
     return self._fail(400, "unknown component action %r" % (action,))
 
-  def _write_and_answer(self, document, child, target, relative, note, instance):
-    # Opened where it is about to be written, with a registry of its own, as
-    # it will be the next time anyone opens it: a definition whose links
-    # do not resolve from there is refused rather than written and reported
-    # as made.
+  def _write_and_answer(self, document, child, target, relative, note, instance,
+                        library=None):
+    # Opened where it is about to be written, as the next person to open it
+    # will: the standard library, the symbols of that folder -- `library`,
+    # when the component brings some -- and its links resolved from there,
+    # not the served folder's symbols this server holds for everything. A
+    # definition that would not open is refused rather than written and
+    # reported as made.
+    folder = os.path.dirname(target)
+    library_path = os.path.join(folder, FOLDER_FILE)
+    fresh = (self.base or default_registry()).copy()
+    load_folder(fresh, folder)
+    for type_id, definition in sorted((library or {}).items()):
+      fresh.add(Symbol(type_id, definition), source=library_path)
     child.path = target
-    found = sheets.resolve(child, self.registry.copy(), confine=self.root)
+    found = sheets.resolve(child, fresh, confine=self.root)
+    found += child.validate(fresh)
     broken = [str(issue) for issue in found if issue.level == "error"]
     if broken:
       return self._fail(422, "%s would not open: %s" % (relative, "; ".join(broken[:3])))
     try:
-      folder = os.path.dirname(target)
       if folder and not os.path.isdir(folder):
         os.makedirs(folder)
+      if library is not None:
+        write_file(library_path, json.dumps(library, indent=2, sort_keys=True) + "\n")
       write_file(target, child.dumps())
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
@@ -776,11 +805,15 @@ def serve(root=".", host="127.0.0.1", port=8080, registry=None,
   if not os.path.isdir(root):
     raise ValueError("no such directory: %s" % root)
 
-  registry = (registry or default_registry()).copy()
+  registry_base = (registry or default_registry()).copy()
+  registry = registry_base.copy()
   folder_file = load_folder(registry, root)
 
   handler = type("BoundHandler", (Handler,), {
     "root": root,
+    # Without the folder's own symbols: what a drawing in another folder
+    # opens with, before that folder's are added.
+    "base": registry_base,
     "registry": registry,
     "quiet": quiet,
     "hosts": (None if host in ("", "0.0.0.0", "::")

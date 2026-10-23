@@ -1351,6 +1351,11 @@ A linked block in the selection keeps pointing at the same definition: its
 the drawing becomes `sm.dlg` inside `components/gpc.dlg`. The component is
 opened where it is about to be written, as anyone would next open it, and
 not written at all if a link inside it would not resolve from there.
+Cells drawn with the folder's own symbols (its `symbols.json`) take those
+symbols with them into `components/symbols.json`, since a drawing reads only
+its own folder's: one already there and identical is used as it is, and one
+there under the same name that differs is left alone -- the component's copy
+takes a name of its own, such as `custom_sm_2`, and the message says so.
 The drawing has to have been saved, since the component is kept beside it;
 the definition is written when you confirm, and undo takes the drawing back
 to before (leaving the new file, which is harmless).

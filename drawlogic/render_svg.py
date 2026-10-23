@@ -1195,6 +1195,18 @@ def text_shape_box(shape, font_scale=1.0):
   return _label_box(spot, style.get("anchor", "start"), text, size)
 
 
+def note_box(doc, shape):
+  """text_shape_box for a text shape in `doc`, as it is drawn: in its
+  named style and at the drawing's font scale.
+
+  Every caller asking how much room a note takes wants this. Measuring the
+  shape as written left out a named style's font size -- a 60-unit title
+  in a style was measured at 14 and an export cropped to it cut it off --
+  and the font scale with it.
+  """
+  return text_shape_box(styles.effective(doc.styles, shape), doc.font_scale)
+
+
 def _grown(box, pad):
   """A box with clear space around it.
 

@@ -311,7 +311,7 @@ export function textLayoutIn(box, item, fontScale = 1) {
 // The theme's text colour, faces and heading size, from /api/theme; these
 // defaults are theme.py's, for when this runs on its own.
 let textTheme = {
-  label: "#16202b", headingSize: 13,
+  label: "#16202b", headingSize: 13, shapeText: 14,
   fontSans: "'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif",
   stacks: {},
 };
@@ -335,6 +335,7 @@ export function setTextTheme(data) {
   textTheme = {
     label: (data.colors && data.colors.label) || textTheme.label,
     headingSize: (data.fontSizes && data.fontSizes.cell_heading) || textTheme.headingSize,
+    shapeText: (data.fontSizes && data.fontSizes.shape_text) || textTheme.shapeText,
     fontSans: data.fontSans || textTheme.fontSans,
     stacks: data.fontStacks || textTheme.stacks,
   };
@@ -634,6 +635,23 @@ export function lineHead(tip, before, kind, length, spread) {
 export const SHAPE_TEXT_KINDS = ["rect", "ellipse", "polygon", "line", "polyline"];
 export const SHAPE_STACK_KINDS = ["rect", "ellipse", "polygon"];
 const LINE_TEXT_LIFT = 5;
+
+// The rectangle a text shape covers, [x0, y0, x1, y1], or null; `shape` is
+// as drawn, its named style merged. Width by counting characters, as for
+// labels. Mirrors text_shape_box.
+const NOTE_CHAR = 0.62;
+
+export function textShapeBox(shape, fontScale = 1) {
+  if (shape.kind !== "text" || typeof shape.text !== "string" || !shape.text) return null;
+  const style = shape.style || {};
+  const size = Number(style.fontSize || textTheme.shapeText) * fontScale;
+  const width = Math.max(shape.text.length, 1) * size * NOTE_CHAR;
+  const x = Number(shape.x || 0);
+  const y = Number(shape.y || 0);
+  const anchor = style.anchor || "start";
+  const x0 = anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
+  return [x0, y - size * 0.8, x0 + width, y + size * 0.2];
+}
 
 // A shape's box [x, y, w, h], or null for a text shape. Mirrors shape_box.
 export function shapeBox(shape) {

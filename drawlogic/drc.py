@@ -475,7 +475,7 @@ class _Scene(object):
 
     self.notes = []
     for shape in doc.shapes:
-      box = render_svg.text_shape_box(shape, doc.font_scale)
+      box = render_svg.note_box(doc, shape)
       if box is not None:
         self.notes.append(("note %s" % shape.get("id"), box))
 

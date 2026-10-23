@@ -304,6 +304,13 @@ export function itemBounds(doc, item) {
   if (!item) return null;
   if (isContainer(item)) return [item.x, item.y, item.w, item.h];
   if (isShape(item)) {
+    if (item.kind === "text") {
+      // As it is drawn, so a container fitted round a note holds the words,
+      // not the point they start at. Mirrors containers.item_box.
+      const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+      const written = geometry.textShapeBox(geometry.effectiveStyle(doc.styles, item), fontScale);
+      if (written) return [written[0], written[1], written[2] - written[0], written[3] - written[1]];
+    }
     if (item.points && item.points.length) {
       return geometry.boundsOf(item.points);
     }

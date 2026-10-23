@@ -799,7 +799,7 @@ class Document(object):
       # gave a box of nothing and a cropped export cut the writing off. What
       # it covers depends on the string and the font size, which is a question
       # only the renderer can answer.
-      written = render_svg.text_shape_box(shape)
+      written = render_svg.note_box(self, shape)
       if written is not None:
         box = union_bbox(box, (written[0], written[1],
                                written[2] - written[0],

@@ -257,6 +257,43 @@ class TestLayingOut(unittest.TestCase):
     self.assertEqual(str(self.result), "18 cells in 5 containers")
 
 
+class TestLayingOutWithNotes(unittest.TestCase):
+  """A container's notes keep their place and the container keeps its own."""
+
+  def noted(self, mode):
+    doc = new_document("n", 1200, 800)
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 100, "y": 100, "w": 400,
+                               "h": 300, "layout": {"mode": mode}}]
+    doc.cells.extend([{"id": "a", "parentId": "k", "type": "block", "x": 200, "y": 200},
+                      {"id": "b", "parentId": "k", "type": "block", "x": 350, "y": 200}])
+    # Above and left of both blocks.
+    doc.shapes.append({"id": "t", "parentId": "k", "kind": "text", "x": 150, "y": 140,
+                       "text": "a note about these"})
+    doc.normalize()
+    return doc
+
+  def test_laying_out_a_container_again_and_again_leaves_it_where_it_is(self):
+    for mode in ("row", "column", "grid", "flow"):
+      doc = self.noted(mode)
+      layout.arrange(doc, default_registry(), container="k")
+      box = doc.containers[0]
+      self.assertEqual((box["x"], box["y"]), (100, 100), mode)
+      once = doc.dumps()
+      layout.arrange(doc, default_registry(), container="k")
+      self.assertEqual(doc.dumps(), once, mode)
+
+  def test_the_note_stays_inside_and_above_the_blocks(self):
+    from drawlogic import render_svg
+    doc = self.noted("row")
+    layout.arrange(doc, default_registry(), container="k")
+    box = doc.containers[0]
+    x0, y0, x1, y1 = render_svg.note_box(doc, doc.shapes[0])
+    self.assertGreaterEqual(x0, box["x"])
+    self.assertGreaterEqual(y0, box["y"] + containers.header(box))
+    self.assertLessEqual(x1, box["x"] + box["w"])
+    self.assertLess(y1, min(box_of(doc, c)[1] for c in ("a", "b")))
+
+
 class TestLayingOutAroundPins(unittest.TestCase):
 
   def test_a_pinned_cell_and_its_containers_stay(self):

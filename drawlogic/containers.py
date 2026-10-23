@@ -131,6 +131,12 @@ def item_box(doc, registry, kind, item):
   if kind == "container":
     return (float(item["x"]), float(item["y"]), float(item["w"]), float(item["h"]))
   if kind == "shape":
+    if item.get("kind") == "text":
+      # Imported here: render_svg imports this module.
+      from . import render_svg
+      written = render_svg.note_box(doc, item)
+      if written is not None:
+        return (written[0], written[1], written[2] - written[0], written[3] - written[1])
     points = item.get("points")
     if points:
       xs = [p[0] for p in points]

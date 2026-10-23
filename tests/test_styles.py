@@ -167,6 +167,43 @@ class TestNamedStyles(unittest.TestCase):
 
 
 @unittest.skipUnless(NODE, "node is not installed")
+class TestNotesInTheirNamedStyle(unittest.TestCase):
+  """A text note's room is measured as it is drawn: named style, font scale."""
+
+  def titled(self, scale=1.0):
+    doc = new_document("t", 1200, 800)
+    doc.data["styles"] = {"big": {"style": {"fontSize": 60}}}
+    doc.canvas["font"] = {"family": "IBM Plex Sans", "scale": scale}
+    doc.shapes.append({"id": "t", "kind": "text", "x": 100, "y": 150,
+                       "text": "GPU ARCHITECTURE OVERVIEW", "styleRef": "big"})
+    doc.normalize()
+    return doc
+
+  def test_a_cropped_export_holds_the_whole_title(self):
+    for scale in (1.0, 1.5):
+      doc = self.titled(scale)
+      x0, y0, x1, y1 = render_svg.note_box(doc, doc.shapes[0])
+      # 25 characters at 60 * scale: far wider than the 14-unit default.
+      self.assertGreater(x1 - x0, 25 * 60 * scale * 0.6)
+      found = re.search(r'viewBox="([^"]*)"', render_svg.render(doc, crop=True)).group(1)
+      vx, vy, vw, vh = (float(v) for v in found.split())
+      self.assertLessEqual(vx, x0)
+      self.assertLessEqual(vy, y0)
+      self.assertGreaterEqual(vx + vw, x1)
+      self.assertGreaterEqual(vy + vh, y1)
+
+  def test_a_container_fits_round_the_words_not_their_start(self):
+    from drawlogic import containers
+    doc = self.titled()
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 0, "y": 0, "w": 10, "h": 10}]
+    doc.shapes[0]["parentId"] = "k"
+    containers.fit(doc, default_registry(), doc.containers[0])
+    x0, _y0, x1, _y1 = render_svg.note_box(doc, doc.shapes[0])
+    box = doc.containers[0]
+    self.assertLessEqual(box["x"], x0)
+    self.assertGreaterEqual(box["x"] + box["w"], x1)
+
+
 class TestTheEditorSetsTextTheSame(unittest.TestCase):
 
   @classmethod

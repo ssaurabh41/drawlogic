@@ -1459,7 +1459,7 @@ def _below_headings(doc, registry, cells, margin):
   highest = min(tops)
   bottoms = []
   for shape in doc.shapes:
-    box = render_svg.text_shape_box(shape, doc.font_scale)
+    box = render_svg.note_box(doc, shape)
     # Starting above the drawing is enough. Ending above it was the test
     # once, and a subtitle reaching down past the room left for the top
     # cell's name was then not a heading -- until a first layout had moved
@@ -1677,6 +1677,19 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
     pad = containers.padding(owner)
     origin = (float(owner["x"]) + pad,
               float(owner["y"]) + containers.header(owner) + pad)
+
+  # The notes a container holds keep their place relative to what it holds
+  # (below), so they count towards where that goes: placed at the inner
+  # corner by itself, a note above or left of it stuck out past the corner,
+  # the refit moved the box to take it in, and every layout of the container
+  # walked it further up and left.
+  if owner is not None:
+    notes = [containers.item_box(doc, registry, "shape", s) for s in doc.shapes
+             if s.get("parentId") == owner_id]
+    held = _corner(before.values())
+    reach = _corner([b for b in notes if b is not None] + list(before.values()))
+    if held is not None and reach is not None:
+      origin = (origin[0] + held[0] - reach[0], origin[1] + held[1] - reach[1])
 
   mode, direction, gap, columns = (layout_of(owner) if owner is not None
                                    else ("flow", "lr", None, None))
@@ -1971,7 +1984,9 @@ def _flow_level(doc, registry, nodes, fixed, origin, direction, gap_x, gap_y,
   part = Document({"format": doc.data.get("format"),
                    "version": doc.data.get("version"), "title": doc.title,
                    "canvas": canvas, "cells": cells, "nets": nets,
-                   "shapes": notes, "groups": []}, doc.path)
+                   "shapes": notes, "groups": [],
+                   # Notes are measured in their named styles.
+                   "styles": json.loads(json.dumps(doc.styles))}, doc.path)
 
   if direction == "tb" and not fixed:
     _rows_of_ranks(part, stand_ins, gap_x, gap_y)

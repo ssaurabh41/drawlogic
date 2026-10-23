@@ -638,8 +638,10 @@ the header to rename it.
 Resizing a container moves its boundary only; nothing inside is scaled or
 moved, and it cannot be pulled in past what it holds. **Fit to contents**
 (in the menu and the properties panel) makes it hug its contents, keeping its
-padding round them and its header above. Moving things around inside never
-grows the container by itself.
+padding round them and its header above. A text note counts for the whole
+of its words as they are drawn -- in its named style, at the drawing's font
+scale -- which is also how a cropped export measures it. Moving things
+around inside never grows the container by itself.
 
 **Ungroup container** takes the boundary away and leaves what it held where
 it is, now in the container that held the container. Deleting a container

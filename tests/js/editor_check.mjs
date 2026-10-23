@@ -49,7 +49,7 @@ const EXPECTED = [
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
-  ["containers", 27],
+  ["containers", 28],
   ["headings and named styles", 14],
   ["linked components", 9],
 ];
@@ -932,6 +932,19 @@ section("containers");
   check("a container cannot be made smaller than what it holds",
         tpc.w === 200 && tpc.h === 112, JSON.stringify([tpc.w, tpc.h]));
   check("and resizing it moves nothing inside", JSON.stringify(sized.cells) === before);
+
+  // A note is as wide as its words, in its named style, not the point they
+  // start at.
+  const noted = nested();
+  noted.styles = { big: { style: { fontSize: 40 } } };
+  noted.shapes = [{ id: "t", kind: "text", parentId: "tpc", x: 140, y: 100,
+                    text: "a long note about this TPC", styleRef: "big" }];
+  model.fitContainer(noted, "tpc");
+  const round = model.containerById(noted, "tpc");
+  const words = geometry.textShapeBox({ ...noted.shapes[0], style: { fontSize: 40 } });
+  check("fitting takes in the whole of a note in its named style",
+        round.x <= words[0] && round.x + round.w >= words[2] && round.y < words[1],
+        JSON.stringify([round.x, round.w, words]));
 
   // The commands.
   const loose = nested();

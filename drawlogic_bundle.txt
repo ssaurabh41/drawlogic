@@ -1,4 +1,4 @@
-<<<<<<<<<< DLBUNDLE v1 part=1/1 files=117 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE v1 part=1/1 files=118 >>>>>>>>>>
 # Rebuild with: python3 unpack_repo.py drawlogic_bundle.txt
 <<<<<<<<<< DLBUNDLE BEGIN path=.claude/settings.json lines=17 sha256=e9432f71414b946515faf8e4107ba9187008922fe846ae767e3a2df6066b4149 >>>>>>>>>>
 {
@@ -111,7 +111,7 @@ benchmarks/.cache/
 # The previous version of a drawing, kept by every save that changes it.
 *.bak
 <<<<<<<<<< DLBUNDLE END path=.gitignore >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=129 sha256=773c43bfe8f804b9a4e35f05d07ad1f4831125d3a35ec1cac1e6305a3abcbf67 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=129 sha256=4b044dc54453fa95a7d15e88705cb9677d4bbb4382cf28fc4dd3417df0461dd5 >>>>>>>>>>
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -129,7 +129,7 @@ reference, and under Tests, what is and is not covered.
 ## Commands
 
 ```bash
-python3 tests/run.py                       # everything, in parallel (~620 tests, ~26s); one line when green
+python3 tests/run.py                       # everything, in parallel (~640 tests, ~30s); one line when green
 python3 tests/run.py test_layout           # only modules whose name contains this
 python3 -m unittest discover -s tests      # everything, serially (~50s) -- what CI runs
 python3 -m unittest tests.test_drc         # one file
@@ -242,7 +242,7 @@ and writes.
   `Input.dispatchMouseEvent`, not synthetic `new MouseEvent()` — the app
   distinguishes trusted input.
 <<<<<<<<<< DLBUNDLE END path=CLAUDE.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2317 sha256=82cd4ab6f66ae9afb1b30d505fc350ddb5a3a5298422417f23472ba73ff56763 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2342 sha256=697fd217cdbbcfde737cff00bd825dd5fc7192957fd4e3dec5f66c7ada8b4e2c >>>>>>>>>>
 # drawlogic
 
 **Draw logic circuit diagrams, and export them as SVG.**
@@ -883,8 +883,10 @@ the header to rename it.
 Resizing a container moves its boundary only; nothing inside is scaled or
 moved, and it cannot be pulled in past what it holds. **Fit to contents**
 (in the menu and the properties panel) makes it hug its contents, keeping its
-padding round them and its header above. Moving things around inside never
-grows the container by itself.
+padding round them and its header above. A text note counts for the whole
+of its words as they are drawn -- in its named style, at the drawing's font
+scale -- which is also how a cropped export measures it. Moving things
+around inside never grows the container by itself.
 
 **Ungroup container** takes the boundary away and leaves what it held where
 it is, now in the container that held the container. Deleting a container
@@ -1555,7 +1557,11 @@ is drawn as a labelled empty box saying which. It is drawn rather than left
 out on purpose: a cell you cannot see is a cell you cannot click on to fix.
 
 A drawing can reference another that references a third, to sixteen levels. A
-loop back to a drawing already open above is caught and reported.
+loop back to a drawing already open above is caught and reported. Opening a
+drawing reads each file in its hierarchy once, however many instances of it
+there are, and a fault deep down is reported once, not once per instance on
+the way to it; nothing is kept between opens, so Refresh reads every
+definition fresh.
 
 ### One drawing never affects another
 
@@ -1585,6 +1591,11 @@ container, with every wire from outside reattached to the instance's pin of
 the same name. Names are matched by wire, never by their order in the list,
 so nothing can be attached to the wrong port. A wire with a loose end across
 the edge cannot be represented, and is explained before anything changes.
+A linked block in the selection keeps pointing at the same definition: its
+`ref` is rewritten for the component's folder, so `components/sm.dlg` in
+the drawing becomes `sm.dlg` inside `components/gpc.dlg`. The component is
+opened where it is about to be written, as anyone would next open it, and
+not written at all if a link inside it would not resolve from there.
 The drawing has to have been saved, since the component is kept beside it;
 the definition is written when you confirm, and undo takes the drawing back
 to before (leaving the new file, which is harmless).
@@ -1595,6 +1606,18 @@ grid -- rows, columns, the gap across and down, and names in sequence from
 a prefix and a starting index, so 2 rows by 4 from "SM " and 0 give SM 0 to
 SM 7. Copies of an instance are instances of the same definition; each has
 an id of its own and sits in the same container.
+
+**Copying between drawings.** Ids, style names and refs each mean something
+only in the drawing they were written in, so a paste into another open
+drawing translates them. A linked block's `ref` is rewritten to name the
+same file from the new drawing's folder, and its pins come with it. A named
+style the drawing lacks is added; one it has under the same name with
+another look is added as "<name> (pasted)", so nothing already there changes
+look. A pasted item stays in a container only if the container was copied
+too -- the other drawing may have its own `k1` somewhere else entirely.
+Into a drawing never saved, linked blocks are left out and the message says
+why: a link is kept relative to a saved drawing. Within one drawing, paste
+and duplicate work as they always have.
 
 **Edit component definition** opens the definition in a tab of its own.
 Saving it there reads it again into every open drawing using it, so their
@@ -1823,7 +1846,9 @@ their containers, they would be pulled out of the boxes they sit in.
 A pinned cell never moves, and neither does any container holding one --
 its contents are still arranged round the pin -- and the message after the
 layout names those containers, so a container that did not move is not a
-puzzle. Cells keep the way they face. Shapes a container holds keep their
+puzzle. Top to bottom stays top to bottom round a pin: the rows are lined
+up on the first pinned cell, and a row that would land on another pinned
+cell goes below it. Cells keep the way they face. Shapes a container holds keep their
 place relative to what it holds; shapes on the sheet itself, such as a page
 title or a legend, stay where they are. All of it is one undo step, and the
 Cancel button and the protection against a drawing edited while it was
@@ -2853,7 +2878,7 @@ Each item names what must go red if the change is removed.
 Phase 1 is independently shippable. If Phase 0 says the graphs are mostly
 acyclic, stop after it and measure before deciding on Phase 2.
 <<<<<<<<<< DLBUNDLE END path=ROUTING-CORRIDORS.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=158 sha256=764c22fac69c34b474f8b2711316302493239ed832beab144207b9d940984613 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=180 sha256=ae713d2f30969b502107ed29c148dff4c7d61435725ac54f19761fc953a1c315 >>>>>>>>>>
 # Session handoff
 
 A summary of one long working session on drawlogic, so a new session can
@@ -2951,6 +2976,28 @@ First attempts worth knowing: a 2-column grid of GPCs and a column-stacked
 TPC both tangled badly; rows of SMs in a column of TPCs, and one column of
 GPCs, read cleanly.
 
+Then findings1.md (an outside review of e912c74, ten findings): all ten
+reproduced and fixed, each with a test that fails without its fix.
+1 extract rebases refs of linked blocks taken into a component
+  (components.rebase); /api/component opens the definition at its target
+  with a fresh registry and refuses to write it if a link would not resolve;
+  answers carry `problems` and the editor shows them (sayMade).
+2/5/9 one note measurement, render_svg.note_box / geometry.textShapeBox
+  (named style + font scale), used by fit, crop, DRC and layout; layout
+  places contents so notes, not blocks, sit at the inner corner (no drift).
+3 the editor merges server sheet answers into the tab's (model.keptSheets)
+  so Undo of Make independent still draws -- verified in Chromium.
+4/7/8 copy records `from`, styles and sheet symbols; paste into another
+  drawing rebases refs (model.clipFor), drops uncopied parentIds, adds or
+  renames ("<name> (pasted)") clashing styles; unsaved target leaves linked
+  blocks out with a message -- verified in Chromium across two folders.
+6 tb flow with pins (_rows_of_ranks anchors on the first pin, pushes rows
+  clear of others).
+10 sheets._Reading: one parse per file and memoised walks per (path, seen,
+  depth) for one resolve; duplicate deep issues reported once.
+Not changed (the review agrees they are design limits): Make independent is
+shallow; miniatures are boxes and wires only.
+
 ## Earlier in the first session (newest first)
 
 | Commit | What |
@@ -2996,7 +3043,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 625 tests, 0 failed, 5 skipped (~29 s).
+- Suite: `python3 tests/run.py` -> 637 tests, 0 failed, 5 skipped (~30 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.
@@ -25634,7 +25681,7 @@ def main(argv=None):
 if __name__ == "__main__":
   sys.exit(main())
 <<<<<<<<<< DLBUNDLE END path=drawlogic/cli.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/components.py lines=311 sha256=b566b7ea7055ab7310dc058660b780b52392cac9714d5b7b40c7d85b4b079c3d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/components.py lines=331 sha256=1d45d606460828b906518338e046e2c1529d61b5525d7fcac1b4a2542320257d >>>>>>>>>>
 """Linked components: a part of a drawing defined once and placed many times.
 
 A component is an ordinary drawing -- its definition -- and each placed copy
@@ -25671,6 +25718,7 @@ Usage:
 
 import copy
 import os
+import posixpath
 import re
 
 from . import containers
@@ -25775,7 +25823,7 @@ def _end_y(doc, registry, end):
   return at[1] if at else 0.0
 
 
-def extract(doc, registry, ids, name, names=None, parent_path=None):
+def extract(doc, registry, ids, name, names=None):
   """Make the component and put an instance of it where the selection was.
 
   `doc` is changed in place; returns (definition Document, ref, the new
@@ -25820,6 +25868,7 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
     child.shapes.append(item)
   if boxes:
     child.data["containers"] = copy.deepcopy(boxes)
+  ref = ref_for(name)
   for kind, items in (("cell", child.cells), ("shape", child.shapes),
                       ("container", child.containers)):
     for item in items:
@@ -25855,7 +25904,6 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
                         "label": port["name"]})
 
   # The instance, where the selection was, in the container that held it.
-  ref = ref_for(name)
   parent = _common_parent(doc, inside)
   instance_id = _fresh_id(doc, slug(name))
   # Shown with a miniature of what it holds: it was made from that.
@@ -25895,6 +25943,15 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
   problems = [str(i) for i in child.validate(registry) if i.level == "error"]
   if problems:
     raise ComponentError("the component would not be sound: %s" % "; ".join(problems[:3]))
+  # A linked block taken into the component keeps pointing at the same file:
+  # its ref is relative to the drawing that holds it, and that is now the
+  # component, one folder down -- `components/sm.dlg` from the drawing is
+  # `sm.dlg` from beside it. Rebased only now, as the check above resolves
+  # refs against the drawing's registry; the server opens the result where
+  # it will be written before writing it.
+  for item in child.cells:
+    if item.get("ref"):
+      item["ref"] = rebase(item["ref"], posixpath.dirname(ref))
 
   keep = [n for n in doc.nets if n not in internal and n not in crossing]
   doc.data["nets"] = keep + rewired
@@ -25936,6 +25993,16 @@ def _fresh_id(doc, base):
   return candidate
 
 
+def rebase(ref, folder):
+  """`ref`, written beside a drawing, as seen from `folder` under it.
+
+  Both are relative to the same drawing's folder, with forward slashes as a
+  ref is stored.
+  """
+  target = posixpath.normpath(ref.replace("\\", "/"))
+  return posixpath.relpath(target, folder or ".")
+
+
 def independent_ref(ref, existing):
   """A ref for a copy of `ref`'s definition that is not one of `existing`."""
   folder, name = os.path.split(ref)
@@ -25947,7 +26014,7 @@ def independent_ref(ref, existing):
       return candidate
     n += 1
 <<<<<<<<<< DLBUNDLE END path=drawlogic/components.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/containers.py lines=248 sha256=d56c22b61af2c2c593a83aa2f128084e3ccd788aefb149d39b41bd1c609c631f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/containers.py lines=254 sha256=9e8dc9983790d9ae649457aebed1cc02dd33a885e2e6035b8e80e58866b375fe >>>>>>>>>>
 """Containers: titled boundaries that hold part of a drawing.
 
 A container is a box with a heading -- "GPC 0", "Memory subsystem" -- that
@@ -26081,6 +26148,12 @@ def item_box(doc, registry, kind, item):
   if kind == "container":
     return (float(item["x"]), float(item["y"]), float(item["w"]), float(item["h"]))
   if kind == "shape":
+    if item.get("kind") == "text":
+      # Imported here: render_svg imports this module.
+      from . import render_svg
+      written = render_svg.note_box(doc, item)
+      if written is not None:
+        return (written[0], written[1], written[2] - written[0], written[3] - written[1])
     points = item.get("points")
     if points:
       xs = [p[0] for p in points]
@@ -26197,7 +26270,7 @@ def header_box(box, pad=0.0):
   x, y, w = float(box["x"]), float(box["y"]), float(box["w"])
   return (x - pad, y - pad, x + w + pad, y + depth + pad)
 <<<<<<<<<< DLBUNDLE END path=drawlogic/containers.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/doc.py lines=1092 sha256=1d888f4c29105ee6762815ca988c542faab242c2d7fb820f9ee7e2fbd0d53d2e >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/doc.py lines=1092 sha256=7e025f5ef9456e395179b32e1e5eef573ffb6716ab8407a2396c8343355cf8bf >>>>>>>>>>
 """The .dlg document: load, save, normalise and check.
 
 The file is plain JSON written with a stable key order, so `git diff` on a
@@ -26999,7 +27072,7 @@ class Document(object):
       # gave a box of nothing and a cropped export cut the writing off. What
       # it covers depends on the string and the font size, which is a question
       # only the renderer can answer.
-      written = render_svg.text_shape_box(shape)
+      written = render_svg.note_box(self, shape)
       if written is not None:
         box = union_bbox(box, (written[0], written[1],
                                written[2] - written[0],
@@ -27291,7 +27364,7 @@ def _containment_issues(doc):
 def load(path):
   return Document.load(path)
 <<<<<<<<<< DLBUNDLE END path=drawlogic/doc.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/drc.py lines=1050 sha256=66234eb055ccea739b3b4152235af63d7e6a2460c25950734e5cf6a874e58b53 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/drc.py lines=1050 sha256=c6fede35e529784d29061a5956f13a23df9b1055a934c8f121c6c1e972170d04 >>>>>>>>>>
 """Design rule checks -- the DRCs a drawing has to pass to read well.
 
 A schematic can be correct and still unreadable. Two wires a hair apart read
@@ -27769,7 +27842,7 @@ class _Scene(object):
 
     self.notes = []
     for shape in doc.shapes:
-      box = render_svg.text_shape_box(shape, doc.font_scale)
+      box = render_svg.note_box(doc, shape)
       if box is not None:
         self.notes.append(("note %s" % shape.get("id"), box))
 
@@ -29462,7 +29535,7 @@ def write_drawings(folder, drawings, overwrite=False):
     drawings[name].save(path)
   return paths
 <<<<<<<<<< DLBUNDLE END path=drawlogic/hdl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/layout.py lines=2024 sha256=8e39e5718329f46737c0bf76d333e774f8ed57f76bbdbab4c7dbe36cb560200d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/layout.py lines=2074 sha256=ae254ddf8e393d837aac9712a69a385debf7fdcc24f6751c76e12c3bcd2c13f1 >>>>>>>>>>
 """Laying a drawing out from what it is wired to, rather than by hand.
 
 Dropping cells and wiring them gets you a correct drawing and a crooked one.
@@ -30924,7 +30997,7 @@ def _below_headings(doc, registry, cells, margin):
   highest = min(tops)
   bottoms = []
   for shape in doc.shapes:
-    box = render_svg.text_shape_box(shape, doc.font_scale)
+    box = render_svg.note_box(doc, shape)
     # Starting above the drawing is enough. Ending above it was the test
     # once, and a subtitle reaching down past the room left for the top
     # cell's name was then not a heading -- until a first layout had moved
@@ -31142,6 +31215,19 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
     pad = containers.padding(owner)
     origin = (float(owner["x"]) + pad,
               float(owner["y"]) + containers.header(owner) + pad)
+
+  # The notes a container holds keep their place relative to what it holds
+  # (below), so they count towards where that goes: placed at the inner
+  # corner by itself, a note above or left of it stuck out past the corner,
+  # the refit moved the box to take it in, and every layout of the container
+  # walked it further up and left.
+  if owner is not None:
+    notes = [containers.item_box(doc, registry, "shape", s) for s in doc.shapes
+             if s.get("parentId") == owner_id]
+    held = _corner(before.values())
+    reach = _corner([b for b in notes if b is not None] + list(before.values()))
+    if held is not None and reach is not None:
+      origin = (origin[0] + held[0] - reach[0], origin[1] + held[1] - reach[1])
 
   mode, direction, gap, columns = (layout_of(owner) if owner is not None
                                    else ("flow", "lr", None, None))
@@ -31436,10 +31522,12 @@ def _flow_level(doc, registry, nodes, fixed, origin, direction, gap_x, gap_y,
   part = Document({"format": doc.data.get("format"),
                    "version": doc.data.get("version"), "title": doc.title,
                    "canvas": canvas, "cells": cells, "nets": nets,
-                   "shapes": notes, "groups": []}, doc.path)
+                   "shapes": notes, "groups": [],
+                   # Notes are measured in their named styles.
+                   "styles": json.loads(json.dumps(doc.styles))}, doc.path)
 
-  if direction == "tb" and not fixed:
-    _rows_of_ranks(part, stand_ins, gap_x, gap_y)
+  if direction == "tb":
+    _rows_of_ranks(part, stand_ins, gap_x, gap_y, fixed)
   elif fixed:
     found = arrange(part, stand_ins, gap_x, gap_y, margin, turn=False)
     result.feedback += getattr(found, "feedback", 0)
@@ -31462,11 +31550,17 @@ def _flow_level(doc, registry, nodes, fixed, origin, direction, gap_x, gap_y,
   return placed
 
 
-def _rows_of_ranks(part, registry, gap_x, gap_y):
+def _rows_of_ranks(part, registry, gap_x, gap_y, fixed=()):
   """Flow top to bottom: the layered layout's columns, laid out as rows.
 
   The ranking and ordering are the layered layout's own, so what drives what
   still reads in order; each rank becomes a row, centred on the widest.
+
+  `fixed` are the ids of pinned cells, which do not move. The rows are laid
+  out as if they could, lined up so the first pinned cell lands where it
+  is, and any row that would then run into a pinned cell is pushed down
+  past it, with every row below. Pinning used to switch this off and lay
+  the level out left to right, as if the direction had not been asked for.
   """
   cells = part.cells
   edges, _feedback = _edges(part, registry, cells)
@@ -31479,16 +31573,45 @@ def _rows_of_ranks(part, registry, gap_x, gap_y):
     width = sum(b[2] for _c, b in boxes) + gap_x * max(0, len(boxes) - 1)
     rows.append((boxes, width, max(b[3] for _c, b in boxes)))
   widest = max(width for _boxes, width, _h in rows)
+  pinned = [(cell, box) for boxes, _w, _h in rows for cell, box in boxes
+            if cell["id"] in fixed]
+  planned = {}
   y = 0.0
   for boxes, width, height in rows:
     x = (widest - width) / 2.0
     for cell, box in boxes:
-      cell["x"] += x - box[0]
-      cell["y"] += y - box[1]
+      planned[cell["id"]] = (x, y)
       x += box[2] + gap_x
     y += height + gap_y
+  # Where the plan puts the first pinned cell is where it is.
+  dx = dy = 0.0
+  if pinned:
+    anchor, box = pinned[0]
+    dx = box[0] - planned[anchor["id"]][0]
+    dy = box[1] - planned[anchor["id"]][1]
+  stays = [box for _cell, box in pinned]
+  push = 0.0
+  for boxes, _width, _height in rows:
+    movable = [(cell, box) for cell, box in boxes if cell["id"] not in fixed]
+    for _attempt in range(len(stays) + 1):
+      clash = 0.0
+      for cell, box in movable:
+        px, py = planned[cell["id"]]
+        top = py + dy + push
+        for other in stays:
+          left = px + dx
+          if (left < other[0] + other[2] + gap_x and other[0] < left + box[2] + gap_x
+              and top < other[1] + other[3] + gap_y and other[1] < top + box[3] + gap_y):
+            clash = max(clash, other[1] + other[3] + gap_y - top)
+      if clash <= 0:
+        break
+      push += clash
+    for cell, box in movable:
+      px, py = planned[cell["id"]]
+      cell["x"] += px + dx - box[0]
+      cell["y"] += py + dy + push - box[1]
 <<<<<<<<<< DLBUNDLE END path=drawlogic/layout.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/render_svg.py lines=1946 sha256=cf168ab719e253cfe26cc9068ae550220c3666ef965da6b29d3ed5008ef31f57 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/render_svg.py lines=1958 sha256=99a7d9f5033b48c797e78d652ca6f5a82b08d6201828ae543e4ad3373878c6d7 >>>>>>>>>>
 """Document to SVG.
 
 This is the only place that turns a drawing into a file. The GUI's Export
@@ -32684,6 +32807,18 @@ def text_shape_box(shape, font_scale=1.0):
   size = float(style.get("fontSize", theme.FONT_SIZES["shape_text"])) * font_scale
   spot = (float(shape.get("x", 0)), float(shape.get("y", 0)))
   return _label_box(spot, style.get("anchor", "start"), text, size)
+
+
+def note_box(doc, shape):
+  """text_shape_box for a text shape in `doc`, as it is drawn: in its
+  named style and at the drawing's font scale.
+
+  Every caller asking how much room a note takes wants this. Measuring the
+  shape as written left out a named style's font size -- a 60-unit title
+  in a style was measured at 14 and an export cropped to it cut it off --
+  and the font scale with it.
+  """
+  return text_shape_box(styles.effective(doc.styles, shape), doc.font_scale)
 
 
 def _grown(box, pad):
@@ -36094,7 +36229,7 @@ def parameters(text, known=None):
     stream.take()
   return found
 <<<<<<<<<< DLBUNDLE END path=drawlogic/rtl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/server.py lines=803 sha256=7bf84d0ba516880340e184e9830d3d347c7abdae1af76b88364278118790b9a6 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/server.py lines=813 sha256=3fec43596b4033f32ffc4a2d352ddffd6d77297527ba9265f0b7bca86d466fa9 >>>>>>>>>>
 """Local web server for the browser editor.
 
 Binds to the loopback interface and serves exactly one directory of drawings,
@@ -36603,6 +36738,15 @@ class Handler(BaseHTTPRequestHandler):
     return self._fail(400, "unknown component action %r" % (action,))
 
   def _write_and_answer(self, document, child, target, relative, note, instance):
+    # Opened where it is about to be written, with a registry of its own, as
+    # it will be the next time anyone opens it: a definition whose links
+    # do not resolve from there is refused rather than written and reported
+    # as made.
+    child.path = target
+    found = sheets.resolve(child, self.registry.copy(), confine=self.root)
+    broken = [str(issue) for issue in found if issue.level == "error"]
+    if broken:
+      return self._fail(422, "%s would not open: %s" % (relative, "; ".join(broken[:3])))
     try:
       folder = os.path.dirname(target)
       if folder and not os.path.isdir(folder):
@@ -36611,11 +36755,12 @@ class Handler(BaseHTTPRequestHandler):
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
     registry = self.registry.copy()
-    sheets.resolve(document, registry, confine=self.root)
+    problems = sheets.resolve(document, registry, confine=self.root)
     document.normalize(registry)
     return self._send_json({"doc": document.ordered(), "path": relative,
                             "sheets": self._sheet_data(registry), "note": note,
-                            "instance": instance})
+                            "instance": instance,
+                            "problems": [_issue_data(p) for p in problems]})
 
   def _save(self, payload):
     relative = self._param("path") or payload.get("path")
@@ -36899,7 +37044,7 @@ def serve(root=".", host="127.0.0.1", port=8080, registry=None,
     httpd.server_close()
   return 0
 <<<<<<<<<< DLBUNDLE END path=drawlogic/server.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/sheets.py lines=417 sha256=93215aa9f4f5bc8bf1714bd986487765dd34da60d6ac9b6cad7b00e4a1c0690f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/sheets.py lines=462 sha256=5bf0924adf0055eb77baec53e973def22d385f07f8ca47502b5ced0c636ff5b5 >>>>>>>>>>
 """Hierarchy: a cell that stands for another drawing.
 
 A cell with a `ref` is an instance of the drawing that path names, the way a
@@ -37186,7 +37331,36 @@ def open_document(path, base=None, confine=None):
   return doc, registry, issues
 
 
-def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
+class _Reading(object):
+  """What one resolve has already read, so a repeated hierarchy reads once.
+
+  A GPC placed eight times, each of its SMs four times, is the same few
+  files over and over: every instance below the top walked its whole subtree
+  again, and every miniature resolved its own, so the reads grew with the
+  number of instances rather than the number of files -- 7,280 for a chain
+  of eight. This lives for one resolve and no longer, so Refresh still
+  reads every definition fresh.
+  """
+
+  def __init__(self):
+    self.drawings = {}
+    self.walks = {}
+
+  def load(self, path):
+    """The drawing at `path`, parsed once; a failure is remembered too."""
+    if path not in self.drawings:
+      try:
+        self.drawings[path] = Document.load(path)
+      except (DocumentError, OSError, ValueError) as exc:
+        self.drawings[path] = exc
+    found = self.drawings[path]
+    if isinstance(found, Exception):
+      raise found
+    return found
+
+
+def resolve(doc, registry, seen=None, depth=0, confine=None, above=0,
+            reading=None):
   """Add a symbol for each drawing `doc` itself references.
 
   Descendants are walked but not registered: they get their own registry when
@@ -37199,7 +37373,9 @@ def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
 
   `above` is how many levels up the drawing that asked for this one sits,
   when it is being resolved only to draw its miniature; see _child_registry.
+  `reading` is shared by the calls one resolve makes; see _Reading.
   """
+  reading = reading or _Reading()
   issues = []
   if doc.path is None and any(is_sheet(cell) for cell in doc.cells):
     issues.append(Issue("error", "document",
@@ -37251,7 +37427,7 @@ def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
       continue
 
     try:
-      child = Document.load(target)
+      child = reading.load(target)
     except (DocumentError, OSError, ValueError) as exc:
       issues.append(Issue("error", where, "cannot read %s: %s" % (ref, exc)))
       stand_in("will not open")
@@ -37261,14 +37437,28 @@ def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
       registry.add(Symbol(sheet_symbol_id(ref),
                           describe(ref, child.title, ports(child), child,
                                    _child_registry(child, seen, confine,
-                                                   above + 1))),
+                                                   above + 1, reading))),
                    source=target, listed=False)
-    issues.extend(resolve(child, registry, seen, depth + 1, confine, above))
+    # What walking a drawing finds depends on the drawing and on what is
+    # open above it -- that is how a loop is caught -- so a walk is reused
+    # only from the same place in the hierarchy.
+    key = (target, frozenset(seen), depth + 1 + above)
+    if key not in reading.walks:
+      reading.walks[key] = resolve(child, registry, seen, depth + 1, confine,
+                                   above, reading)
+    # The same fault reached through every instance on the way down is one
+    # fault: reported once, not once per path to it (4,096 of them, eight
+    # levels down a tree four wide).
+    known = set(str(issue) for issue in issues)
+    for issue in reading.walks[key]:
+      if str(issue) not in known:
+        known.add(str(issue))
+        issues.append(issue)
 
   return issues
 
 
-def _child_registry(child, seen, confine, above):
+def _child_registry(child, seen, confine, above, reading=None):
   """The registry a referenced drawing would open with, for its miniature.
 
   A miniature is drawn from the child's own cells, so a child that itself
@@ -37284,7 +37474,7 @@ def _child_registry(child, seen, confine, above):
   load_folder(registry, os.path.dirname(os.path.abspath(child.path)))
   # Problems down there are the child's to report, and the walk that
   # follows this one reports them; here they only cost the miniature a box.
-  resolve(child, registry, seen, 0, confine, above)
+  resolve(child, registry, seen, 0, confine, above, reading)
   child.normalize(registry)
   return registry
 
@@ -42557,7 +42747,7 @@ textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
 </body>
 </html>
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/index.html >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/geometry.js lines=732 sha256=aee6eed86ff1f46cc1c5324fc881a784f33e111e22610595da2df5ba3229ffd2 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/geometry.js lines=757 sha256=90dff3b818c8a57cbc426aa6cb88bb2cb5e6c419bae4dca4951f6c174635298f >>>>>>>>>>
 // Affine geometry. A direct port of drawlogic/geometry.py -- the canvas and
 // the exporter must place a pin in exactly the same spot.
 
@@ -42667,6 +42857,13 @@ export function setSheets(data) {
     if (id.startsWith("sheet:")) delete library[id];
   }
   Object.assign(library, data || {});
+}
+
+// The sheet symbols in use now, as setSheets takes them.
+export function sheetData() {
+  const found = {};
+  for (const id of Object.keys(library)) if (id.startsWith("sheet:")) found[id] = library[id];
+  return found;
 }
 
 export function get(typeId) {
@@ -42871,7 +43068,7 @@ export function textLayoutIn(box, item, fontScale = 1) {
 // The theme's text colour, faces and heading size, from /api/theme; these
 // defaults are theme.py's, for when this runs on its own.
 let textTheme = {
-  label: "#16202b", headingSize: 13,
+  label: "#16202b", headingSize: 13, shapeText: 14,
   fontSans: "'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif",
   stacks: {},
 };
@@ -42895,6 +43092,7 @@ export function setTextTheme(data) {
   textTheme = {
     label: (data.colors && data.colors.label) || textTheme.label,
     headingSize: (data.fontSizes && data.fontSizes.cell_heading) || textTheme.headingSize,
+    shapeText: (data.fontSizes && data.fontSizes.shape_text) || textTheme.shapeText,
     fontSans: data.fontSans || textTheme.fontSans,
     stacks: data.fontStacks || textTheme.stacks,
   };
@@ -43195,6 +43393,23 @@ export const SHAPE_TEXT_KINDS = ["rect", "ellipse", "polygon", "line", "polyline
 export const SHAPE_STACK_KINDS = ["rect", "ellipse", "polygon"];
 const LINE_TEXT_LIFT = 5;
 
+// The rectangle a text shape covers, [x0, y0, x1, y1], or null; `shape` is
+// as drawn, its named style merged. Width by counting characters, as for
+// labels. Mirrors text_shape_box.
+const NOTE_CHAR = 0.62;
+
+export function textShapeBox(shape, fontScale = 1) {
+  if (shape.kind !== "text" || typeof shape.text !== "string" || !shape.text) return null;
+  const style = shape.style || {};
+  const size = Number(style.fontSize || textTheme.shapeText) * fontScale;
+  const width = Math.max(shape.text.length, 1) * size * NOTE_CHAR;
+  const x = Number(shape.x || 0);
+  const y = Number(shape.y || 0);
+  const anchor = style.anchor || "start";
+  const x0 = anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
+  return [x0, y - size * 0.8, x0 + width, y + size * 0.2];
+}
+
 // A shape's box [x, y, w, h], or null for a text shape. Mirrors shape_box.
 export function shapeBox(shape) {
   const points = shape.points;
@@ -43448,7 +43663,7 @@ function boxAlignments(doc, moving, offer) {
   }
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/guides.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/main.js lines=2984 sha256=c30a75f7a75995fae3cd6716fc49fb509030764bd455747daa3a8c3577ff37ed >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/main.js lines=2997 sha256=21ea31f55cdb6e022adc4904c04b7e4fa308dd848ecf1c4895e1351e440a7ad9 >>>>>>>>>>
 // Boots the editor and wires the pieces together.
 //
 // Usage: loaded by index.html as a module. Talks to the server over
@@ -43883,7 +44098,10 @@ function choose(title, message, options) {
 
 function copySelection(cut) {
   if (!selection.size) return;
-  clipboard = model.copyItems(store.doc, selection.ids);
+  // Marked with where it came from, and carrying the symbols of the linked
+  // blocks in it, for a paste into another drawing.
+  clipboard = model.copyItems(store.doc, selection.ids, store.path || null);
+  clipboard.sheets = geometry.sheetData();
   const count = clipboard.cells.length + clipboard.shapes.length;
   say(`${cut ? "cut" : "copied"} ${count} item(s)`);
   if (cut) deleteSelection({ contents: true });
@@ -43891,14 +44109,24 @@ function copySelection(cut) {
 
 function paste(offset) {
   if (!clipboard) return;
+  const into = store.path || null;
+  const [clip, skipped] = model.clipFor(clipboard, into);
   const step = model.gridStep(store.doc) * (offset === undefined ? 2 : offset);
+  if (Object.keys(clip.sheets || {}).length) useSheets(clip.sheets);
   const added = store.mutate("paste",
-                             (doc) => model.pasteItems(doc, clipboard, step, step));
+                             (doc) => model.pasteItems(doc, clip, step, step, into));
   if (added && added.length) {
     selection.set(added);
     redraw();
     inspector.render();
     say(`pasted ${added.length} item(s)`);
+    // Linked blocks pasted from another drawing are read again from here,
+    // as this drawing will read them next time it opens.
+    if (Object.keys(clip.sheets || {}).length) refreshComponents();
+  }
+  if (skipped) {
+    say(`${skipped} linked block(s) left out: save this drawing first, `
+        + "as a link is kept relative to it", "bad");
   }
 }
 
@@ -43911,16 +44139,7 @@ function nudge(dx, dy, big) {
 
 // Where a ref points, read relative to the drawing that holds it. The server
 // serves one folder, so these stay relative to its root.
-function refPath(fromPath, ref) {
-  const parts = (fromPath || "").split("/").slice(0, -1).concat(ref.split("/"));
-  const out = [];
-  for (const part of parts) {
-    if (!part || part === ".") continue;
-    if (part === ".." && out.length && out[out.length - 1] !== "..") out.pop();
-    else out.push(part);
-  }
-  return out.join("/");
-}
+const refPath = model.refPath;
 
 async function drillInto(cell) {
   const target = refPath(store.path, cell.ref);
@@ -44718,11 +44937,20 @@ function applyAnswer(asked, result, label) {
   return true;
 }
 
+// What a component action did, unless resolving the drawing afterwards found
+// something wrong, which matters more than the success.
+function sayMade(result, note) {
+  const problems = result.problems || [];
+  if (problems.length) say(`${note}, but ${problems[0].where}: ${problems[0].message}`, "bad");
+  else say(note, "good");
+}
+
 // The block symbols the drawing in front needs, kept with its tab too.
 function useSheets(data) {
-  geometry.setSheets(data);
   const tab = findTab(store.path);
-  if (tab) tab.sheets = data;
+  const kept = model.keptSheets(tab ? tab.sheets : geometry.sheetData(), data);
+  geometry.setSheets(kept);
+  if (tab) tab.sheets = kept;
 }
 
 // Create linked component from selection: name it, review the ports the
@@ -44800,7 +45028,7 @@ async function createComponentAsked() {
     selection.set(result.instance ? [result.instance] : []);
     redraw();
     inspector.render();
-    say(`${result.note}; this drawing now has one instance of it`, "good");
+    sayMade(result, `${result.note}; this drawing now has one instance of it`);
   } catch (error) {
     say(error.message, "bad");
   } finally {
@@ -44940,7 +45168,7 @@ async function makeIndependentAsked() {
     if (!applyAnswer(asked, result, "make independent")) return;
     redraw();
     inspector.render();
-    say(result.note, "good");
+    sayMade(result, result.note);
   } catch (error) {
     say(error.message, "bad");
   }
@@ -44994,8 +45222,8 @@ async function refreshUsersOf(path) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc, source: tab.path }),
       });
-      tab.sheets = result.sheets;
       if (tab.path === store.path) useSheets(result.sheets);
+      else tab.sheets = model.keptSheets(tab.sheets, result.sheets);
       lost += model.interfaceProblems(doc, result.sheets).length;
     } catch (error) {
       // The next open or refresh will try again.
@@ -46546,7 +46774,7 @@ export function bindMenus(root, { beforeOpen = () => {} } = {}) {
   });
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/menus.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/model.js lines=1836 sha256=678ac3e66f0a1ec348fcc86ce88ce042605de77037f281e5dc9fb9fb9ca28659 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/model.js lines=1945 sha256=15929ee729860a53f1431c49462a5288f9ba73a25628166fe32709b47b37d586 >>>>>>>>>>
 // The document: state, undo/redo, and every change it can undergo.
 //
 // Usage:
@@ -46853,6 +47081,13 @@ export function itemBounds(doc, item) {
   if (!item) return null;
   if (isContainer(item)) return [item.x, item.y, item.w, item.h];
   if (isShape(item)) {
+    if (item.kind === "text") {
+      // As it is drawn, so a container fitted round a note holds the words,
+      // not the point they start at. Mirrors containers.item_box.
+      const fontScale = Number(((doc.canvas || {}).font || {}).scale) || 1;
+      const written = geometry.textShapeBox(geometry.effectiveStyle(doc.styles, item), fontScale);
+      if (written) return [written[0], written[1], written[2] - written[0], written[3] - written[1]];
+    }
     if (item.points && item.points.length) {
       return geometry.boundsOf(item.points);
     }
@@ -47075,6 +47310,17 @@ export function setTextStyle(doc, ids, part, key, value) {
     if (!isShape(item) && !isContainer(item)) fitCell(doc, item);
   }
   return true;
+}
+
+// ---- linked blocks ----
+
+// The sheet symbols a tab keeps after an answer from the server: what it had,
+// with the answer over it. Replaced outright, they lost every definition the
+// answer did not mention -- and Make independent's answer does not mention
+// the definition the instance used to have, so undoing it brought back a ref
+// with nothing to draw it. A definition the answer does read is fresh.
+export function keptSheets(previous, fresh) {
+  return { ...(previous || {}), ...(fresh || {}) };
 }
 
 // ---- named styles ----
@@ -47452,7 +47698,10 @@ export function distribute(doc, ids, axis) {
 
 // ---- clipboard ----
 
-export function copyItems(doc, ids) {
+// `from` is the path of the drawing copied from, for a clipboard that may be
+// pasted into another; left out (duplicate, Repeat, a drag-copy) it is pasted
+// back into the same drawing.
+export function copyItems(doc, ids, from = undefined) {
   // A container is copied with what it holds.
   ids = withContents(doc, ids);
   const cells = doc.cells.filter((c) => ids.has(c.id));
@@ -47475,12 +47724,72 @@ export function copyItems(doc, ids) {
     .filter((group) => group.members.length > 1
                        && group.members.every((m) => ids.has(m)));
 
-  return JSON.parse(JSON.stringify({ cells, shapes, nets, groups, containers }));
+  // The named styles those items use: a drawing pasted into may not have
+  // them, or may have its own under the same name.
+  const styles = {};
+  for (const item of [...cells, ...shapes, ...containers]) {
+    if (item.styleRef && (doc.styles || {})[item.styleRef]) {
+      styles[item.styleRef] = doc.styles[item.styleRef];
+    }
+  }
+  const clip = JSON.parse(JSON.stringify({ cells, shapes, nets, groups, containers, styles }));
+  if (from !== undefined) clip.from = from;
+  return clip;
 }
 
-export function pasteItems(doc, clip, dx, dy) {
+// Where a ref points, read relative to the drawing that holds it, as a path
+// from the served folder.
+export function refPath(fromPath, ref) {
+  const parts = (fromPath || "").split("/").slice(0, -1).concat(ref.split("/"));
+  const out = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === ".." && out.length && out[out.length - 1] !== "..") out.pop();
+    else out.push(part);
+  }
+  return out.join("/");
+}
+
+// A clipboard ready to paste into the drawing at `into`: [clip, how many
+// linked blocks had to be left out]. Within one drawing it is the clipboard
+// as it is. Into another, each linked block's ref is rewritten to name the
+// same file from there -- components/sm.dlg copied from one folder is
+// ../a/components/sm.dlg pasted into the next -- with its symbol, under the
+// new ref, in `sheets`. A drawing never saved has no folder for a ref to be
+// relative to, so linked blocks are left out of a paste into one, with the
+// wires to them, rather than pasted pointing at nothing in particular.
+export function clipFor(clip, into) {
+  if (clip.from === undefined || clip.from === into) return [{ ...clip, sheets: {} }, 0];
+  const moved = JSON.parse(JSON.stringify(clip));
+  const sheets = {};
+  let skipped = 0;
+  if (!clip.from || !into) {
+    const gone = new Set(moved.cells.filter((c) => c.ref).map((c) => c.id));
+    skipped = gone.size;
+    moved.cells = moved.cells.filter((c) => !gone.has(c.id));
+    moved.nets = moved.nets
+      .filter((net) => !gone.has(net.from && net.from.cell))
+      .map((net) => ({ ...net, to: routing.loadsOf(net).filter((load) => !gone.has(load.cell)) }))
+      .filter((net) => net.to.length);
+    moved.groups = (moved.groups || []).filter((g) => g.members.every((m) => !gone.has(m)));
+  } else {
+    for (const cell of moved.cells) {
+      if (!cell.ref) continue;
+      const ref = relativeRef(into, refPath(clip.from, cell.ref));
+      const symbol = (clip.sheets || {})[`sheet:${cell.ref}`];
+      if (symbol) sheets[`sheet:${ref}`] = symbol;
+      cell.ref = ref;
+    }
+  }
+  moved.sheets = sheets;
+  return [moved, skipped];
+}
+
+// `into` is the path of the drawing pasted into; see copyItems and clipFor.
+export function pasteItems(doc, clip, dx, dy, into = undefined) {
   const remap = new Map();
   const added = [];
+  const same = clip.from === undefined || clip.from === into;
 
   // Containers first, so the things they hold can be pointed at the copies.
   // A copy of something whose container was not copied stays in that same
@@ -47537,12 +47846,40 @@ export function pasteItems(doc, clip, dx, dy) {
     doc.nets.push(net);
   }
 
-  const kept = new Set((doc.containers || []).map((box) => box.id));
+  // An uncopied container is kept only within one drawing. Container ids are
+  // made up per drawing and repeat between them, so a cell copied out of k1
+  // and pasted into another drawing joined whatever that drawing calls k1,
+  // wherever it was, and went with it from then on.
+  const kept = new Set(same ? (doc.containers || []).map((box) => box.id) : []);
   for (const id of added) {
     const item = itemById(doc, id);
     if (!item || item.parentId === undefined) continue;
     if (remap.has(item.parentId)) item.parentId = remap.get(item.parentId);
     else if (!kept.has(item.parentId)) delete item.parentId;
+  }
+
+  // Named styles come too. One this drawing lacks is added; one it has under
+  // the same name with another look is added under a name of its own, so the
+  // copy looks as it did and nothing already here changes. Copied within one
+  // drawing they are the same styles, and nothing happens.
+  const renamed = new Map();
+  for (const [name, spec] of Object.entries(clip.styles || {})) {
+    doc.styles = doc.styles || {};
+    if (!doc.styles[name]) {
+      doc.styles[name] = JSON.parse(JSON.stringify(spec));
+    } else if (JSON.stringify(doc.styles[name]) !== JSON.stringify(spec)) {
+      let fresh = `${name} (pasted)`;
+      for (let n = 2; doc.styles[fresh]
+           && JSON.stringify(doc.styles[fresh]) !== JSON.stringify(spec); n += 1) {
+        fresh = `${name} (pasted ${n})`;
+      }
+      doc.styles[fresh] = JSON.parse(JSON.stringify(spec));
+      renamed.set(name, fresh);
+    }
+  }
+  for (const id of added) {
+    const item = itemById(doc, id);
+    if (item && renamed.has(item.styleRef)) item.styleRef = renamed.get(item.styleRef);
   }
 
   for (const source of clip.groups || []) {
@@ -64690,34 +65027,129 @@ def _whole(bits, nets, label, text):
   "groups": []
 }
 <<<<<<<<<< DLBUNDLE END path=examples/spi_master.dlg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=2823b74ed957647b7eeac4cf617727468c3ae22b03341a9b134e5d4ab9ce175c >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=findings1.md lines=93 sha256=4557b2a86d5f0d29bca95ed5f1c5b0e671fb146754cbc18e662955675d8b7c01 >>>>>>>>>>
+# Drawlogic audit recheck and extended review
+
+Reviewed commit: `e912c74` (unchanged from the original audit). Findings apply to the audited revision. No application code was changed during the review.
+
+## Verdict on the original audit
+
+All six defects remain supported. Fresh Python reproductions confirm findings 1, 2, 5 and 6; fresh JavaScript reproductions confirm 3 and 4. For finding 3, this pass reproduced the Store/geometry state transition and inspected the actual UI integration; it did not repeat the previous audit's Chromium session. The original reproduction scripts were unavailable during the recheck, so fresh focused reproductions were written.
+
+| ID | Severity | Confirmed defect | Evidence from this pass |
+|---|---|---|---|
+| 1 | P1 | Extracting a linked instance breaks its nested relative reference | Reopening reports `error: cell sm0: no such drawing: components/sm.dlg`. |
+| 2 | P2 | Layout contents drifts when owned notes sit above/left of cells | Container origin becomes (50,30), (0,-40), (-50,-110). Reproduced in Row, Column, Grid and Flow. |
+| 3 | P2 | Undo Make independent restores the ref but loses its symbol | After Undo the ref is `components/sm.dlg`, while `geometry.forCell()` returns null. |
+| 4 | P2 | Cross-document paste drops or changes named formatting | Missing destination style removes inherited appearance; same-name red style replaces green. |
+| 5 | P2 | Fit to contents treats text annotations as points | Container becomes 40 units wide while text spans x=100 to x=844. |
+| 6 | P2 | Pinning disables Flow / Top to bottom | Unpinned stages are vertical; pinned case puts b=(400,400), c=(560,400). |
+
+P1 means high priority because a core creation workflow produces a broken saved hierarchy; it does not imply irreversible data loss. P2 means a substantive correctness or performance defect under the documented conditions.
+
+### Refinements to the original recommendations
+
+- **1:** Rebase references against the destination definition folder. Validate using a fresh registry at that destination, not the parent's already-resolved registry. The server's `_write_and_answer` currently ignores resolution issues: include those issues in the response and avoid reporting an invalid creation as successful. Add save/reopen coverage.
+- **2:** Preserve the selected container's anchor while accounting for notes in layout. Do not blindly translate a subtree that contains pinned cells. Test both repeated-run stability and fixed coordinates.
+- **3:** Keep reference resolution consistent with history. Re-resolving restored refs or restoring a suitable sheet registry are options; if asynchronous, reject stale responses after a tab switch or subsequent edit.
+- **4:** Carry used named styles in clipboard metadata and remap conflicting names without overwriting destination styles.
+- **5:** Share effective text-bound measurement across Fit, resize protection and export, in Python and JavaScript. Cell bodies intentionally differ from visible label extents; decide that policy explicitly rather than treating every omitted label as a separate confirmed bug.
+- **6:** Honor vertical direction with fixed cells. A UI limitation message would only be an interim mitigation, not completion of the requested combination.
+
+## Additional confirmed defects
+
+### 7. P2: linked instances pasted between drawings disappear or refer to a different definition
+
+Locations: `drawlogic/web/js/main.js:441`, `drawlogic/web/js/model.js:952`.
+
+Copy a linked instance into another open drawing. Clipboard data preserves its literal `ref`, but carries no source path. Paste does not resolve the new reference. If the destination registry lacks that ref, `geometry.forCell()` returns null and the instance has no drawable symbol. If the destination already resolves the same string, it uses that destination symbol. When drawings are in different folders, `components/sm.dlg` can refer to a different file, or no file at all, after saving/reopening.
+
+This is separate from named-style loss: it changes the component's identity and pins, not just its appearance.
+
+**Fix:** Store the source drawing path in clipboard metadata, rebase references relative to the target drawing, and resolve pasted references before finishing the operation. For an unsaved destination, explicitly handle the missing base path. Keep definitions within the served root. Test same-folder/different-folder copies, a destination with no sheet symbols, and an identical ref string resolving to a different definition.
+
+### 8. P2: cross-document paste silently adopts an unrelated container
+
+Location: `drawlogic/web/js/model.js:991`.
+
+Copy a cell owned by container `k1`, without copying that container. Paste into another document that happens to have its own `k1`. The pasted cell keeps `parentId: k1`, even if that destination container is somewhere else on the page. A later drag/layout/delete-with-contents acts on this unexpected member.
+
+The reproduction pastes at (120,120) into a document whose unrelated `k1` starts at (1000,1000); the pasted cell still belongs to it. IDs such as `k1` are generated locally and commonly repeat between drawings.
+
+**Fix:** Preserve an uncopied parent only for same-document duplication/paste, using stable document identity. Across documents, retain only relationships to copied/remapped containers, or an explicitly chosen destination owner. Test cross-document ID collisions and same-document duplication separately.
+
+### 9. P2: cropped exports cut off text using named font styles
+
+Location: `drawlogic/doc.py:802`.
+
+Create a text annotation `GPU ARCHITECTURE OVERVIEW` at (100,150), with `styleRef: big` and named `style.fontSize: 60`. Rendering resolves the named style, but `content_bbox()` calls `text_shape_box(shape)` on the raw shape, without the named style or document font scale.
+
+Measured rendered bounds are (100,102)-(1030,162). The crop viewBox is `76 114.8 265 62`, ending at x=341 and clipping most of the title and part of its height. This also affects canvas sizing that relies on content bounds. Explicit document font scaling follows the same faulty measurement path.
+
+**Fix:** Measure `styles.effective(doc.styles, shape)` using `doc.font_scale`. Audit other bounds consumers for the same raw/effective-style mismatch. Add a cropped-SVG test asserting the viewBox contains the effective text bounds with margin.
+
+### 10. P2: repeated component hierarchies trigger excessive recursive file reads
+
+Locations: `drawlogic/sheets.py:344`, `drawlogic/sheets.py:352`, `drawlogic/sheets.py:364`.
+
+Each definition in the test places four instances of the same next-level definition. All instances are valid and reuse a small set of files. Resolution deduplicates at depth zero, but recursively walks repeated references at deeper levels; miniature generation also resolves descendants. There is no per-operation parsed-document cache or completed-subtree reuse.
+
+| Unique definition files | Document.load calls |
+|---:|---:|
+| 3 | 7 |
+| 4 | 28 |
+| 5 | 113 |
+| 6 | 454 |
+| 7 | 1,819 |
+| 8 | 7,280 |
+| 9 | 29,125 |
+
+The nine-file case took about 1.29 seconds locally with minimal definitions. Timings vary; the load counts establish the scaling problem. Real definitions add routing/preview work. Deeper repeated hierarchies can make Open, Refresh and export slow despite very few unique files.
+
+**Fix:** Use a request-scoped cache keyed by canonical file path for parsed definitions. Reuse validated subtrees and preview data where their context allows. Keep active recursion-stack cycle detection separate from completed-node caching, and retain confinement/depth checks. Do not use an indefinite cache that makes Refresh stale. Add an instrumented repeated-hierarchy test that bounds read counts, rather than a timing-only assertion.
+
+## Other weaknesses and boundaries
+
+- **Shallow independence is a design limitation, not an additional confirmed defect.** Make independent copies the immediate definition; references inside it remain shared. Documentation promises an immediate-definition copy. Clarify this in the UI for nested GPC/SM designs before considering a separate deep-copy option.
+- **Preview fidelity is limited by design.** Miniatures depict boxes and wires, not the complete styled artwork. This may limit NVIDIA-style presentation, but is not counted as a correctness regression.
+- **The test coverage gap is integration-heavy.** Existing tests cover individual features, but omit cross-document identity/style/reference transfer, undo after registry replacement, layout idempotence with notes and pins, effective-style crop bounds, and repeated hierarchy scaling.
+
+## Validation and artifacts
+
+Existing targeted tests: **72 passed** (57 container/component/editor checks plus 15 style tests). The original report's full-suite result of 625 tests with 5 skips is historical; this pass did not rerun the full suite.
+
+Fresh Python and JavaScript reproductions produced the evidence above. Those scripts and raw outputs were retained as audit-session artifacts and are not included in this repository commit. The Python script printed diagnostic evidence; the JavaScript script also asserted selected failure states. These were defect reproductions, not fixed-behavior regression tests.
+
+Recommended implementation order: reference relocation and clipboard identity; registry/history consistency; text measurement and stable layout; hierarchy caching. Convert each reproduction into an expected-correctness regression test alongside its fix.
+<<<<<<<<<< DLBUNDLE END path=findings1.md >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=e051e33cb926d2ed9630fc39933b1ecb33d4e36a7a4884e24cd43d60165757cc >>>>>>>>>>
 86844009d34ccd786913c5d047f5e75cf14c1873432da49e3c93cd7bef19d099  drawlogic/__init__.py
 dd0c5bff5a05b805b0c08c7db6118605c86deb1d2746ad6d9c9124c4d667b0ee  drawlogic/__main__.py
 b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/authoring.py
 68de8cc30ed580e5ace9fd9ac02f024ff287f80369ac8e723d4944921ebbd9bb  drawlogic/cli.py
-b566b7ea7055ab7310dc058660b780b52392cac9714d5b7b40c7d85b4b079c3d  drawlogic/components.py
-d56c22b61af2c2c593a83aa2f128084e3ccd788aefb149d39b41bd1c609c631f  drawlogic/containers.py
-1d888f4c29105ee6762815ca988c542faab242c2d7fb820f9ee7e2fbd0d53d2e  drawlogic/doc.py
-66234eb055ccea739b3b4152235af63d7e6a2460c25950734e5cf6a874e58b53  drawlogic/drc.py
+1d45d606460828b906518338e046e2c1529d61b5525d7fcac1b4a2542320257d  drawlogic/components.py
+9e8dc9983790d9ae649457aebed1cc02dd33a885e2e6035b8e80e58866b375fe  drawlogic/containers.py
+7e025f5ef9456e395179b32e1e5eef573ffb6716ab8407a2396c8343355cf8bf  drawlogic/doc.py
+c6fede35e529784d29061a5956f13a23df9b1055a934c8f121c6c1e972170d04  drawlogic/drc.py
 dde231e36f130f2efffc7570b31e3745523c948c9439a1361053b70c3bab3990  drawlogic/geometry.py
 dc226a23d4bca7d73e349aa340e94e7319f6811d27d32ec6a1db78d5e80b7e1c  drawlogic/hdl.py
-8e39e5718329f46737c0bf76d333e774f8ed57f76bbdbab4c7dbe36cb560200d  drawlogic/layout.py
-cf168ab719e253cfe26cc9068ae550220c3666ef965da6b29d3ed5008ef31f57  drawlogic/render_svg.py
+ae254ddf8e393d837aac9712a69a385debf7fdcc24f6751c76e12c3bcd2c13f1  drawlogic/layout.py
+99a7d9f5033b48c797e78d652ca6f5a82b08d6201828ae543e4ad3373878c6d7  drawlogic/render_svg.py
 ca619625f71c0a1e5ccef8f3c91daa7182ed3987428c656e4543d089c28a623a  drawlogic/routing.py
 552b3dfca066ab7e512edd6cf95aac1443aa8f277ba72b7fc6ca8d9fd1a9aa02  drawlogic/rtl.py
-7bf84d0ba516880340e184e9830d3d347c7abdae1af76b88364278118790b9a6  drawlogic/server.py
-93215aa9f4f5bc8bf1714bd986487765dd34da60d6ac9b6cad7b00e4a1c0690f  drawlogic/sheets.py
+3fec43596b4033f32ffc4a2d352ddffd6d77297527ba9265f0b7bca86d466fa9  drawlogic/server.py
+5bf0924adf0055eb77baec53e973def22d385f07f8ca47502b5ced0c636ff5b5  drawlogic/sheets.py
 b96fd4db05911a5bf353b1853d09c5401e4a924ee9588214ee3ccb3ae73248da  drawlogic/styles.py
 5c9ba8ecec65914c4efb2053520788de86388f7f62281fb60724857406299010  drawlogic/symbols.json
 6ab26b78c34a19ab36c8a191b033b0648cc52993f1ff812451f4700131ef3208  drawlogic/symbols.py
 e7c23cfa5d99d49ffcd75ddda021bddb61afb6bb3fecf47cc8ab200988afa04b  drawlogic/theme.py
 685aa70cd4753b437eac6b1150e45b9f121437f8d417eedc22da5b91f5cf5465  drawlogic/web/css/app.css
 00fed238979d00998fb16a2f3e3e1ce6a0e01a1715c1511af018f846eadfa9b8  drawlogic/web/index.html
-aee6eed86ff1f46cc1c5324fc881a784f33e111e22610595da2df5ba3229ffd2  drawlogic/web/js/geometry.js
+90dff3b818c8a57cbc426aa6cb88bb2cb5e6c419bae4dca4951f6c174635298f  drawlogic/web/js/geometry.js
 c0fc21fb73261b87f7c837e4d30bffbbf461b96efbb5bc2a07ae6fb74c8e3f12  drawlogic/web/js/guides.js
-c30a75f7a75995fae3cd6716fc49fb509030764bd455747daa3a8c3577ff37ed  drawlogic/web/js/main.js
+21ea31f55cdb6e022adc4904c04b7e4fa308dd848ecf1c4895e1351e440a7ad9  drawlogic/web/js/main.js
 652de8cb6fabdb45bccc9081c8f120aad7add974ea08e2f0ed78a4bbfa2e0c3a  drawlogic/web/js/menus.js
-678ac3e66f0a1ec348fcc86ce88ce042605de77037f281e5dc9fb9fb9ca28659  drawlogic/web/js/model.js
+15929ee729860a53f1431c49462a5288f9ba73a25628166fe32709b47b37d586  drawlogic/web/js/model.js
 0ed5e0220e9b34940eb63bca81f9cab751d1ede6966e651ddc6f7f44a77ff7f5  drawlogic/web/js/panels.js
 fc89b8ff8678e27cc3c7a1396a420c27458a1e86e275dc1446c5d1f499459643  drawlogic/web/js/picture.js
 5cb2c07d2409346288029e9509671ed16a50b4316e605f8575adf5e6a23146f7  drawlogic/web/js/prefs.js
@@ -68035,7 +68467,7 @@ import * as routing from "../../drawlogic/web/js/routing.js";
 
 process.stdout.write(JSON.stringify(routing.currentLimits()));
 <<<<<<<<<< DLBUNDLE END path=tests/js/drc_dump.mjs >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1135 sha256=53c3050317f3495bcfbea11cbf2777009b05502dd575522b65909a55ee11f14e >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1243 sha256=3ed512cfa9e3c174cd780887a4073f75e1505a93a336dfca919272be46a1fb7f >>>>>>>>>>
 // Assertions for the parts of the editor that exist only in JavaScript:
 // drag-time alignment and the Tidy command.
 //
@@ -68087,9 +68519,10 @@ const EXPECTED = [
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
-  ["containers", 27],
+  ["containers", 28],
   ["headings and named styles", 14],
-  ["linked components", 9],
+  ["linked components", 10],
+  ["pasting into another drawing", 12],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -68971,6 +69404,19 @@ section("containers");
         tpc.w === 200 && tpc.h === 112, JSON.stringify([tpc.w, tpc.h]));
   check("and resizing it moves nothing inside", JSON.stringify(sized.cells) === before);
 
+  // A note is as wide as its words, in its named style, not the point they
+  // start at.
+  const noted = nested();
+  noted.styles = { big: { style: { fontSize: 40 } } };
+  noted.shapes = [{ id: "t", kind: "text", parentId: "tpc", x: 140, y: 100,
+                    text: "a long note about this TPC", styleRef: "big" }];
+  model.fitContainer(noted, "tpc");
+  const round = model.containerById(noted, "tpc");
+  const words = geometry.textShapeBox({ ...noted.shapes[0], style: { fontSize: 40 } });
+  check("fitting takes in the whole of a note in its named style",
+        round.x <= words[0] && round.x + round.w >= words[2] && round.y < words[1],
+        JSON.stringify([round.x, round.w, words]));
+
   // The commands.
   const loose = nested();
   check("a container cannot be moved into itself or into something it holds",
@@ -69139,6 +69585,100 @@ section("linked components");
         model.relativeRef("lanes/top.dlg", "lanes/components/sm.dlg") === "components/sm.dlg"
         && model.relativeRef("lanes/top.dlg", "other/x.dlg") === "../other/x.dlg"
         && model.relativeRef("top.dlg", "components/sm.dlg") === "components/sm.dlg");
+
+  // Make independent's answer names only the definitions in use after it;
+  // undo brings back the one it no longer names, which must still draw.
+  const before = geometry.sheetData();
+  const answer = { "sheet:components/sm_2.dlg": before["sheet:components/sm.dlg"] };
+  geometry.setSheets(model.keptSheets(before, answer));
+  check("an answer from the server adds to the sheet symbols, never drops one",
+        geometry.forCell({ type: "sheet", ref: "components/sm.dlg" }) !== null
+        && geometry.forCell({ type: "sheet", ref: "components/sm_2.dlg" }) !== null);
+  geometry.setSheets({});
+}
+
+section("pasting into another drawing");
+//
+// Copy in one drawing, paste in another: ids, style names and refs all mean
+// something only in the drawing they were written in.
+{
+  const sm = { name: "SM", category: "sheets", size: [150, 70],
+               pins: [{ name: "in", x: 0, y: 35, dir: "in", width: 0 }],
+               draw: [{ op: "rect", x: 10, y: 0, w: 130, h: 70, role: "body" }] };
+  geometry.setSheets({ "sheet:components/sm.dlg": sm });
+  const source = () => ({
+    canvas: { width: 1600, height: 900, symbolScale: 1, grid: { size: 5 } },
+    styles: { core: { style: { fill: "#e6f2d3" } } },
+    cells: [{ id: "c1", parentId: "k1", type: "inv", x: 100, y: 100, w: 40, h: 30,
+              rotate: 0, mirror: false, styleRef: "core" },
+            { id: "u1", type: "sheet", ref: "components/sm.dlg", x: 300, y: 100,
+              w: 150, h: 70, rotate: 0, mirror: false }],
+    nets: [{ id: "n1", from: { cell: "c1", pin: "y" }, to: [{ cell: "u1", pin: "in" }] }],
+    shapes: [], groups: [],
+    containers: [{ id: "k1", title: "K", x: 60, y: 40, w: 200, h: 200 }],
+  });
+  const target = () => ({
+    canvas: { width: 1600, height: 900, symbolScale: 1, grid: { size: 5 } },
+    styles: { core: { style: { fill: "#ff0000" } } },
+    cells: [], nets: [], shapes: [], groups: [],
+    containers: [{ id: "k1", title: "Elsewhere", x: 1000, y: 1000, w: 200, h: 200 }],
+  });
+  const from = source();
+  const clip = model.copyItems(from, new Set(["c1", "u1"]), "a/top.dlg");
+  clip.sheets = geometry.sheetData();
+
+  // Within one drawing nothing is different.
+  const same = source();
+  const [own] = model.clipFor(clip, "a/top.dlg");
+  const back = model.pasteItems(same, own, 20, 20, "a/top.dlg");
+  const twin = model.itemById(same, back.find((id) => model.itemById(same, id).type === "inv"));
+  check("pasted in the drawing it came from, a copy stays in the container",
+        twin.parentId === "k1" && twin.styleRef === "core" && Object.keys(same.styles).length === 1);
+
+  // Into a drawing in another folder that has its own k1 and its own "core".
+  const there = target();
+  const [moved, skipped] = model.clipFor(clip, "b/top.dlg");
+  const added = model.pasteItems(there, moved, 0, 0, "b/top.dlg");
+  const cell = model.itemById(there, added.find((id) => model.itemById(there, id).type === "inv"));
+  const block = model.itemById(there, added.find((id) => model.itemById(there, id).ref));
+  check("into another drawing, a container of the same name is not joined",
+        cell.parentId === undefined, String(cell.parentId));
+  check("that drawing's own style of the same name is left as it was",
+        there.styles.core.style.fill === "#ff0000");
+  check("the copy keeps its look, under a name of its own",
+        cell.styleRef === "core (pasted)"
+        && there.styles["core (pasted)"].style.fill === "#e6f2d3", cell.styleRef);
+  check("a linked block names the same file from the new folder",
+        block.ref === "../a/components/sm.dlg" && skipped === 0, block.ref);
+  check("and its symbol comes with it under that name",
+        moved.sheets["sheet:../a/components/sm.dlg"] === sm);
+  check("the wire between them comes too",
+        there.nets.length === 1 && there.nets[0].to[0].cell === block.id);
+
+  // Into a drawing beside it: the same file, the same ref.
+  const [beside] = model.clipFor(clip, "a/other.dlg");
+  check("pasted beside the original, a ref is unchanged",
+        beside.cells.find((c) => c.ref).ref === "components/sm.dlg");
+
+  // A style that is missing is brought; one that matches is not duplicated.
+  const bare = target();
+  delete bare.styles;
+  model.pasteItems(bare, model.clipFor(clip, "b/x.dlg")[0], 0, 0, "b/x.dlg");
+  check("a style the drawing lacks is added as it was",
+        bare.styles.core.style.fill === "#e6f2d3" && Object.keys(bare.styles).length === 1);
+  const matching = target();
+  matching.styles.core = { style: { fill: "#e6f2d3" } };
+  model.pasteItems(matching, model.clipFor(clip, "b/x.dlg")[0], 0, 0, "b/x.dlg");
+  check("and one it has already, the same, is used as it is",
+        Object.keys(matching.styles).length === 1);
+
+  // A drawing never saved has no folder for a ref to be relative to.
+  const unsaved = target();
+  const [left, out] = model.clipFor(clip, null);
+  model.pasteItems(unsaved, left, 0, 0, null);
+  check("into a drawing never saved, a linked block is left out and said so",
+        out === 1 && unsaved.cells.length === 1 && !unsaved.cells[0].ref);
+  check("with the wire to it", unsaved.nets.length === 0);
   geometry.setSheets({});
 }
 
@@ -70279,7 +70819,7 @@ class TestImport(unittest.TestCase):
       code, _, _ = self.run_import(["import", source])
       self.assertIn("bad.v: line 2: cannot read", str(code))
 <<<<<<<<<< DLBUNDLE END path=tests/test_cli.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_components.py lines=344 sha256=d956378f4aaaa34fb6aea6b72ba5cc2238c7cdcad16b878c2970a9b249b968e7 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_components.py lines=384 sha256=c6dc7b53fed686e999e79edee98a128bdfc41b9eb8278766da1fa86e9110f261 >>>>>>>>>>
 """Linked components: part of a drawing defined once and placed many times.
 
 What matters: a selection becomes a drawing of its own with a port for every
@@ -70603,6 +71143,46 @@ class TestThroughTheEditorsServer(unittest.TestCase):
     self.assertEqual(refs[made["instance"]], "components/half.dlg")
     self.assertTrue(os.path.isfile(os.path.join(self.root, "lanes", "components", "half_2.dlg")))
 
+  def linked_top(self, ref):
+    """A drawing holding one linked SM, wired from a port, as the editor
+    would send it."""
+    top = new_document("top")
+    top.cells.append({"id": "sm0", "type": "sheet", "ref": ref, "x": 200, "y": 100})
+    top.cells.append({"id": "p", "type": "port_in", "x": 40, "y": 120, "label": "w"})
+    top.nets.append({"id": "n", "from": {"cell": "p", "pin": "p"},
+                     "to": [{"cell": "sm0", "pin": "warps"}]})
+    return top.ordered()
+
+  def test_a_component_made_of_a_linked_block_reopens_cleanly(self):
+    from tests import ROOT
+    os.makedirs(os.path.join(self.root, "lanes", "components"))
+    shutil.copy(os.path.join(ROOT, "examples", "components", "sm.dlg"),
+                os.path.join(self.root, "lanes", "components", "sm.dlg"))
+    status, made = self.post("/api/component", {
+      "action": "create", "doc": self.linked_top("components/sm.dlg"),
+      "source": "lanes/top.dlg", "ids": ["sm0"], "name": "GPC"})
+    self.assertEqual(status, 200, made)
+    self.assertEqual(made["problems"], [])
+    written = os.path.join(self.root, "lanes", "components", "gpc.dlg")
+    # The SM's ref is now relative to the component, one folder down.
+    self.assertEqual([c.get("ref") for c in Document.load(written).cells if c.get("ref")],
+                     ["sm.dlg"])
+    _doc, _registry, problems = sheets.open_document(written)
+    self.assertEqual(problems, [])
+
+  def test_a_definition_whose_links_would_not_open_is_not_written(self):
+    # The drawing's own link is already broken: the block stands in as a box
+    # saying so, which the selection check accepts, but the definition
+    # written from it could never open.
+    top = self.linked_top("components/gone.dlg")
+    top["nets"] = []
+    status, answer = self.post("/api/component", {
+      "action": "create", "doc": top, "source": "lanes/top.dlg", "ids": ["sm0"],
+      "name": "GPC"})
+    self.assertEqual(status, 422, answer)
+    self.assertIn("would not open", answer.get("error", ""))
+    self.assertFalse(os.path.exists(os.path.join(self.root, "lanes", "components", "gpc.dlg")))
+
   def test_a_component_needs_a_saved_drawing(self):
     status, answer = self.post("/api/component", {
       "action": "plan", "doc": self.doc, "ids": ["a"], "name": "x"})
@@ -70625,7 +71205,7 @@ class TestThroughTheEditorsServer(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_components.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_containers.py lines=669 sha256=26d7e39a89a46256de122c7d4a422745af336725e32641b83877291a386b1b1b >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_containers.py lines=759 sha256=305838f6ed5eba6c9f75f914001c19934e937c8948f2b5889012080ee3dd31fb >>>>>>>>>>
 """Containers: titled boundaries that own part of a drawing.
 
 What matters is that ownership is the `parentId` field and nothing else: it
@@ -70883,6 +71463,96 @@ class TestLayingOut(unittest.TestCase):
 
   def test_the_result_says_what_was_done(self):
     self.assertEqual(str(self.result), "18 cells in 5 containers")
+
+
+class TestLayingOutWithNotes(unittest.TestCase):
+  """A container's notes keep their place and the container keeps its own."""
+
+  def noted(self, mode):
+    doc = new_document("n", 1200, 800)
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 100, "y": 100, "w": 400,
+                               "h": 300, "layout": {"mode": mode}}]
+    doc.cells.extend([{"id": "a", "parentId": "k", "type": "block", "x": 200, "y": 200},
+                      {"id": "b", "parentId": "k", "type": "block", "x": 350, "y": 200}])
+    # Above and left of both blocks.
+    doc.shapes.append({"id": "t", "parentId": "k", "kind": "text", "x": 150, "y": 140,
+                       "text": "a note about these"})
+    doc.normalize()
+    return doc
+
+  def test_laying_out_a_container_again_and_again_leaves_it_where_it_is(self):
+    for mode in ("row", "column", "grid", "flow"):
+      doc = self.noted(mode)
+      layout.arrange(doc, default_registry(), container="k")
+      box = doc.containers[0]
+      self.assertEqual((box["x"], box["y"]), (100, 100), mode)
+      once = doc.dumps()
+      layout.arrange(doc, default_registry(), container="k")
+      self.assertEqual(doc.dumps(), once, mode)
+
+  def test_the_note_stays_inside_and_above_the_blocks(self):
+    from drawlogic import render_svg
+    doc = self.noted("row")
+    layout.arrange(doc, default_registry(), container="k")
+    box = doc.containers[0]
+    x0, y0, x1, y1 = render_svg.note_box(doc, doc.shapes[0])
+    self.assertGreaterEqual(x0, box["x"])
+    self.assertGreaterEqual(y0, box["y"] + containers.header(box))
+    self.assertLessEqual(x1, box["x"] + box["w"])
+    self.assertLess(y1, min(box_of(doc, c)[1] for c in ("a", "b")))
+
+
+class TestTopToBottomWithAPin(unittest.TestCase):
+  """Flow top to bottom keeps its direction when something is pinned."""
+
+  def staged(self, *pins):
+    """Three stages a -> b -> c; each of `pins` is a name, or (name, x, y)
+    to pin it somewhere else first."""
+    doc = new_document("tb", 1200, 900)
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 100, "y": 100, "w": 400,
+                               "h": 300, "layout": {"mode": "flow", "direction": "tb"}}]
+    for i, name in enumerate("abc"):
+      doc.cells.append({"id": name, "parentId": "k", "type": "block",
+                        "x": 200 + 160 * i, "y": 200})
+    doc.nets.append({"id": "n1", "from": {"cell": "a", "pin": "out1"},
+                     "to": [{"cell": "b", "pin": "in1"}]})
+    doc.nets.append({"id": "n2", "from": {"cell": "b", "pin": "out1"},
+                     "to": [{"cell": "c", "pin": "in1"}]})
+    for pin in pins:
+      name = pin if isinstance(pin, str) else pin[0]
+      cell = next(c for c in doc.cells if c["id"] == name)
+      cell["pinned"] = True
+      if not isinstance(pin, str):
+        cell["x"], cell["y"] = pin[1], pin[2]
+    doc.normalize()
+    layout.arrange(doc, default_registry(), container="k")
+    return doc
+
+  def test_the_stages_still_run_down_the_page_round_the_pin(self):
+    for pinned in "abc":
+      doc = self.staged(pinned)
+      boxes = [box_of(doc, name) for name in "abc"]
+      self.assertEqual(len(set(round(b[0], 3) for b in boxes)), 1, (pinned, boxes))
+      self.assertTrue(boxes[0][1] < boxes[1][1] < boxes[2][1], (pinned, boxes))
+      cell = next(c for c in doc.cells if c["id"] == pinned)
+      self.assertEqual((cell["x"], cell["y"]), (200 + 160 * "abc".index(pinned), 200))
+
+  def test_a_row_that_would_land_on_a_second_pin_moves_down_past_it(self):
+    # Where b goes with a alone pinned...
+    b = box_of(self.staged("a"), "b")
+    # ...is where c is pinned too: b cannot go there, and goes below.
+    doc = self.staged("a", ("c", b[0], b[1]))
+    pinned = box_of(doc, "c")
+    self.assertEqual((pinned[0], pinned[1]), (b[0], b[1]))
+    moved = box_of(doc, "b")
+    self.assertGreaterEqual(moved[1], pinned[1] + pinned[3], (moved, pinned))
+    self.assertEqual(round(moved[0], 3), round(pinned[0], 3))
+
+  def test_laying_it_out_twice_changes_nothing(self):
+    doc = self.staged("b")
+    once = doc.dumps()
+    layout.arrange(doc, default_registry(), container="k")
+    self.assertEqual(doc.dumps(), once)
 
 
 class TestLayingOutAroundPins(unittest.TestCase):
@@ -74550,7 +75220,7 @@ class TestWhatTheFirstReviewReported(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_hdl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_editor.py lines=161 sha256=b9c37ab613c25ab5e27e5eba990a48cb71766698425374dd3f93c0102932dbf4 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_editor.py lines=162 sha256=a2d12f8f0a77e89ab9ae590938e82cf937c9bbd8aa11e25a66bc4b6ab67f348e >>>>>>>>>>
 """The editor behaviour that exists only in JavaScript.
 
 Drag-time alignment (`guides.js`) and the Tidy command (`model.tidy`) have no
@@ -74610,6 +75280,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "containers",
     "headings and named styles",
     "linked components",
+    "pasting into another drawing",
   )
 
   def test_alignment_and_tidy(self):
@@ -78841,7 +79512,7 @@ class TestEndpoints(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_server.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_sheets.py lines=329 sha256=9c370034bf61839b8862814b13eb0d8037ae8f3eae247c8eecf5efcd920b012c >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_sheets.py lines=389 sha256=aac59f0358f5fd99c58cd0cb45b9e57786893e85c8a7d13620e834f92318e4f9 >>>>>>>>>>
 """Hierarchy: a cell that stands for another drawing.
 
 The property that matters is that a block's pins are never written down. They
@@ -79051,6 +79722,66 @@ class TestOneDrawingCannotAffectAnother(SheetCase):
     self.assertEqual(names, [["a"], ["zzz"]])
 
 
+class TestARepeatedHierarchyIsReadOnce(unittest.TestCase):
+  """Eight levels, each placing the next four times, all with miniatures:
+  4^7 instances at the bottom, eight files. Every file is read once."""
+
+  LEVELS = 8
+
+  def setUp(self):
+    self.root = tempfile.mkdtemp()
+    for level in range(self.LEVELS):
+      doc = new_document("L%d" % level)
+      doc.cells.append({"id": "p", "type": "port_in", "x": 20, "y": 40, "label": "i"})
+      if level + 1 < self.LEVELS:
+        for n in range(4):
+          doc.cells.append({"id": "u%d" % n, "type": "sheet", "x": 100 + 200 * n,
+                            "y": 100, "ref": "l%d.dlg" % (level + 1), "preview": True})
+      doc.save(os.path.join(self.root, "l%d.dlg" % level))
+    self.reads = []
+    self.real = Document.__dict__["load"]
+    reads, real = self.reads, self.real.__func__
+
+    def counted(cls, path, *args, **kwargs):
+      reads.append(os.path.basename(path))
+      return real(cls, path, *args, **kwargs)
+    Document.load = classmethod(counted)
+
+  def tearDown(self):
+    Document.load = self.real
+    shutil.rmtree(self.root, ignore_errors=True)
+
+  def test_each_file_is_read_once(self):
+    _doc, _registry, problems = sheets.open_document(os.path.join(self.root, "l0.dlg"))
+    self.assertEqual(problems, [])
+    self.assertEqual(sorted(self.reads), ["l%d.dlg" % n for n in range(self.LEVELS)])
+
+  def test_each_subtree_is_walked_once_from_each_place(self):
+    walks = []
+    real = sheets.resolve
+
+    def counted(*args, **kwargs):
+      walks.append(1)
+      return real(*args, **kwargs)
+    sheets.resolve = counted
+    try:
+      sheets.open_document(os.path.join(self.root, "l0.dlg"))
+    finally:
+      sheets.resolve = real
+    # A walk for the drawing and each level below it, and as many again for
+    # the miniatures: in proportion to the files, not to the 4^7 instances.
+    self.assertLess(len(walks), 4 * self.LEVELS * self.LEVELS, len(walks))
+
+  def test_a_fault_deep_down_is_still_reported(self):
+    os.remove(os.path.join(self.root, "l%d.dlg" % (self.LEVELS - 1)))
+    _doc, _registry, problems = sheets.open_document(os.path.join(self.root, "l0.dlg"))
+    self.assertTrue(problems)
+    self.assertTrue(all("no such drawing" in p.message for p in problems), problems)
+    # Reported where it is, once per place it is reached from, not once per
+    # instance on the way down.
+    self.assertLess(len(problems), 16, len(problems))
+
+
 class TestTheShippedExample(unittest.TestCase):
 
   def test_the_top_sheet_resolves_and_routes_straight(self):
@@ -79172,7 +79903,7 @@ class TestConfinement(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_sheets.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_styles.py lines=202 sha256=90a101cd5432e43a3721c1b90c197dd388397b861f44ca463a82c524da506741 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_styles.py lines=239 sha256=62cc996ab6a804df7b3e941a6a2e4c19807d43da93cd54c3f10c3b74a09b0aad >>>>>>>>>>
 """Headings, text styles and named styles.
 
 What matters: a block can carry a bold heading over smaller text without a
@@ -79342,6 +80073,43 @@ class TestNamedStyles(unittest.TestCase):
 
 
 @unittest.skipUnless(NODE, "node is not installed")
+class TestNotesInTheirNamedStyle(unittest.TestCase):
+  """A text note's room is measured as it is drawn: named style, font scale."""
+
+  def titled(self, scale=1.0):
+    doc = new_document("t", 1200, 800)
+    doc.data["styles"] = {"big": {"style": {"fontSize": 60}}}
+    doc.canvas["font"] = {"family": "IBM Plex Sans", "scale": scale}
+    doc.shapes.append({"id": "t", "kind": "text", "x": 100, "y": 150,
+                       "text": "GPU ARCHITECTURE OVERVIEW", "styleRef": "big"})
+    doc.normalize()
+    return doc
+
+  def test_a_cropped_export_holds_the_whole_title(self):
+    for scale in (1.0, 1.5):
+      doc = self.titled(scale)
+      x0, y0, x1, y1 = render_svg.note_box(doc, doc.shapes[0])
+      # 25 characters at 60 * scale: far wider than the 14-unit default.
+      self.assertGreater(x1 - x0, 25 * 60 * scale * 0.6)
+      found = re.search(r'viewBox="([^"]*)"', render_svg.render(doc, crop=True)).group(1)
+      vx, vy, vw, vh = (float(v) for v in found.split())
+      self.assertLessEqual(vx, x0)
+      self.assertLessEqual(vy, y0)
+      self.assertGreaterEqual(vx + vw, x1)
+      self.assertGreaterEqual(vy + vh, y1)
+
+  def test_a_container_fits_round_the_words_not_their_start(self):
+    from drawlogic import containers
+    doc = self.titled()
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 0, "y": 0, "w": 10, "h": 10}]
+    doc.shapes[0]["parentId"] = "k"
+    containers.fit(doc, default_registry(), doc.containers[0])
+    x0, _y0, x1, _y1 = render_svg.note_box(doc, doc.shapes[0])
+    box = doc.containers[0]
+    self.assertLessEqual(box["x"], x0)
+    self.assertGreaterEqual(box["x"] + box["w"], x1)
+
+
 class TestTheEditorSetsTextTheSame(unittest.TestCase):
 
   @classmethod

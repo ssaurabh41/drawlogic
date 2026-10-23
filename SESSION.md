@@ -95,6 +95,28 @@ First attempts worth knowing: a 2-column grid of GPCs and a column-stacked
 TPC both tangled badly; rows of SMs in a column of TPCs, and one column of
 GPCs, read cleanly.
 
+Then findings1.md (an outside review of e912c74, ten findings): all ten
+reproduced and fixed, each with a test that fails without its fix.
+1 extract rebases refs of linked blocks taken into a component
+  (components.rebase); /api/component opens the definition at its target
+  with a fresh registry and refuses to write it if a link would not resolve;
+  answers carry `problems` and the editor shows them (sayMade).
+2/5/9 one note measurement, render_svg.note_box / geometry.textShapeBox
+  (named style + font scale), used by fit, crop, DRC and layout; layout
+  places contents so notes, not blocks, sit at the inner corner (no drift).
+3 the editor merges server sheet answers into the tab's (model.keptSheets)
+  so Undo of Make independent still draws -- verified in Chromium.
+4/7/8 copy records `from`, styles and sheet symbols; paste into another
+  drawing rebases refs (model.clipFor), drops uncopied parentIds, adds or
+  renames ("<name> (pasted)") clashing styles; unsaved target leaves linked
+  blocks out with a message -- verified in Chromium across two folders.
+6 tb flow with pins (_rows_of_ranks anchors on the first pin, pushes rows
+  clear of others).
+10 sheets._Reading: one parse per file and memoised walks per (path, seen,
+  depth) for one resolve; duplicate deep issues reported once.
+Not changed (the review agrees they are design limits): Make independent is
+shallow; miniatures are boxes and wires only.
+
 ## Earlier in the first session (newest first)
 
 | Commit | What |
@@ -140,7 +162,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 625 tests, 0 failed, 5 skipped (~29 s).
+- Suite: `python3 tests/run.py` -> 637 tests, 0 failed, 5 skipped (~30 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.

@@ -294,6 +294,52 @@ class TestLayingOutWithNotes(unittest.TestCase):
     self.assertLess(y1, min(box_of(doc, c)[1] for c in ("a", "b")))
 
 
+class TestNotesBesideAPin(unittest.TestCase):
+  """A pinned cell at the top left and a note: laying out again moves
+  nothing, and the note keeps its place."""
+
+  def pinned(self, mode, nested=False):
+    doc = new_document("pins and notes")
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 100, "y": 100, "w": 600,
+                               "h": 500, "layout": {"mode": mode}}]
+    holder = "k"
+    if nested:
+      # The pin is inside a box of its own, which therefore stays put too.
+      doc.data["containers"].append({"id": "kk", "parentId": "k", "title": "Inner",
+                                     "x": 110, "y": 140, "w": 120, "h": 110})
+      holder = "kk"
+    doc.cells.extend([
+      {"id": "a", "type": "inv", "x": 130, "y": 190 if nested else 152,
+       "parentId": holder, "pinned": True},
+      {"id": "b", "type": "inv", "x": 400, "y": 300, "parentId": "k"}])
+    doc.shapes.append({"id": "note", "kind": "text", "x": 140, "y": 330,
+                       "text": "annotation", "parentId": "k"})
+    doc.normalize()
+    return doc
+
+  def test_laying_out_again_changes_nothing(self):
+    for mode in ("row", "column", "grid", "flow"):
+      for nested in (False, True):
+        doc = self.pinned(mode, nested)
+        pin = dict((c["id"], (c["x"], c["y"])) for c in doc.cells)["a"]
+        layout.arrange(doc, default_registry(), container="k")
+        once = doc.dumps()
+        for _ in range(3):
+          layout.arrange(doc, default_registry(), container="k")
+          self.assertEqual(doc.dumps(), once, (mode, nested))
+        self.assertEqual(dict((c["id"], (c["x"], c["y"])) for c in doc.cells)["a"], pin,
+                         (mode, nested))
+
+  def test_the_note_does_not_walk_down_the_box(self):
+    for mode in ("row", "column", "grid"):
+      doc = self.pinned(mode)
+      # The pin is the top of the contents before and after, so however the
+      # rest is packed, nothing moves the note up or down.
+      for _ in range(4):
+        layout.arrange(doc, default_registry(), container="k")
+        self.assertEqual(doc.shapes[0]["y"], 330, mode)
+
+
 class TestTopToBottomWithAPin(unittest.TestCase):
   """Flow top to bottom keeps its direction when something is pinned."""
 

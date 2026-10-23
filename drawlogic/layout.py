@@ -1690,6 +1690,12 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
     reach = _corner([b for b in notes if b is not None] + list(before.values()))
     if held is not None and reach is not None:
       origin = (origin[0] + held[0] - reach[0], origin[1] + held[1] - reach[1])
+    # Nor does packing start further in than anything pinned: a pinned box
+    # nearer the edge than the padding is where the refit puts the edge, and
+    # packing from the old one moved everything again on the next run.
+    stays = _corner([before[key] for key in fixed if before.get(key)])
+    if stays is not None:
+      origin = (min(origin[0], stays[0]), min(origin[1], stays[1]))
 
   mode, direction, gap, columns = (layout_of(owner) if owner is not None
                                    else ("flow", "lr", None, None))
@@ -1719,9 +1725,14 @@ def _arrange_level(doc, registry, owner, gap_x, gap_y, margin, pinned, result):
       containers.move(doc, {item["id"]}, dx, dy)
 
   # Notes held by this container keep their place relative to its contents.
+  # Before and after are the same things: a pinned node is not in `after`,
+  # since it did not move, so it counts where it stayed. Compared with the
+  # movable nodes alone, a pin at the top left made every run look like a
+  # move down to the next cell, and the notes walked down the box by that
+  # much each time.
   if owner is not None:
     was = _corner(before.values())
-    now = _corner(after.values())
+    now = _corner([after.get(key, box) for key, box in before.items()])
     if was is not None and now is not None and was != now:
       notes = set(s.get("id") for s in doc.shapes if s.get("parentId") == owner_id)
       if notes:

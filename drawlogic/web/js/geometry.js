@@ -109,6 +109,13 @@ export function setSheets(data) {
   Object.assign(library, data || {});
 }
 
+// The sheet symbols in use now, as setSheets takes them.
+export function sheetData() {
+  const found = {};
+  for (const id of Object.keys(library)) if (id.startsWith("sheet:")) found[id] = library[id];
+  return found;
+}
+
 export function get(typeId) {
   return library[typeId] || null;
 }

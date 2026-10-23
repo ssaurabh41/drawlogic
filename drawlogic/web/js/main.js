@@ -1277,9 +1277,10 @@ function sayMade(result, note) {
 
 // The block symbols the drawing in front needs, kept with its tab too.
 function useSheets(data) {
-  geometry.setSheets(data);
   const tab = findTab(store.path);
-  if (tab) tab.sheets = data;
+  const kept = model.keptSheets(tab ? tab.sheets : geometry.sheetData(), data);
+  geometry.setSheets(kept);
+  if (tab) tab.sheets = kept;
 }
 
 // Create linked component from selection: name it, review the ports the
@@ -1551,8 +1552,8 @@ async function refreshUsersOf(path) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc, source: tab.path }),
       });
-      tab.sheets = result.sheets;
       if (tab.path === store.path) useSheets(result.sheets);
+      else tab.sheets = model.keptSheets(tab.sheets, result.sheets);
       lost += model.interfaceProblems(doc, result.sheets).length;
     } catch (error) {
       // The next open or refresh will try again.

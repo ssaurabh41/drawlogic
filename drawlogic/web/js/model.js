@@ -535,6 +535,17 @@ export function setTextStyle(doc, ids, part, key, value) {
   return true;
 }
 
+// ---- linked blocks ----
+
+// The sheet symbols a tab keeps after an answer from the server: what it had,
+// with the answer over it. Replaced outright, they lost every definition the
+// answer did not mention -- and Make independent's answer does not mention
+// the definition the instance used to have, so undoing it brought back a ref
+// with nothing to draw it. A definition the answer does read is fresh.
+export function keptSheets(previous, fresh) {
+  return { ...(previous || {}), ...(fresh || {}) };
+}
+
 // ---- named styles ----
 //
 // A drawing's own table of looks, `doc.styles`, which any cell, shape or

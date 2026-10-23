@@ -51,7 +51,7 @@ const EXPECTED = [
   ["stacking and writing on shapes", 8],
   ["containers", 28],
   ["headings and named styles", 14],
-  ["linked components", 9],
+  ["linked components", 10],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -1114,6 +1114,15 @@ section("linked components");
         model.relativeRef("lanes/top.dlg", "lanes/components/sm.dlg") === "components/sm.dlg"
         && model.relativeRef("lanes/top.dlg", "other/x.dlg") === "../other/x.dlg"
         && model.relativeRef("top.dlg", "components/sm.dlg") === "components/sm.dlg");
+
+  // Make independent's answer names only the definitions in use after it;
+  // undo brings back the one it no longer names, which must still draw.
+  const before = geometry.sheetData();
+  const answer = { "sheet:components/sm_2.dlg": before["sheet:components/sm.dlg"] };
+  geometry.setSheets(model.keptSheets(before, answer));
+  check("an answer from the server adds to the sheet symbols, never drops one",
+        geometry.forCell({ type: "sheet", ref: "components/sm.dlg" }) !== null
+        && geometry.forCell({ type: "sheet", ref: "components/sm_2.dlg" }) !== null);
   geometry.setSheets({});
 }
 

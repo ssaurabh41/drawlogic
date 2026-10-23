@@ -117,6 +117,23 @@ reproduced and fixed, each with a test that fails without its fix.
 Not changed (the review agrees they are design limits): Make independent is
 shallow; miniatures are boxes and wires only.
 
+Then findings2.md (review of those fixes): three more, all reproduced, fixed.
+R1 Ctrl+D pasted through the shared clipboard unmarked; it now pastes its
+  own copy (paste(offset, source)) and only Copy/Cut write the clipboard
+  (test_js_editor.TestOnlyCopyFillsTheClipboard). Verified in Chromium.
+R2 notes walked down a box holding a pinned cell: the after-corner now counts
+  fixed nodes where they stayed, and packing starts no further in than any
+  pinned box.
+R3 (user chose: carry the symbols) components.carry_symbols copies the
+  folder-local symbols a component uses into components/symbols.json, reusing
+  identical entries and renaming the component's copy (custom_sm_2) on a
+  clash; the server checks the component with Handler.base (registry without
+  the served folder's symbols) + that folder's library, as a standalone open.
+Not done (review's "consider" list): canonical style comparison on paste,
+  a lifetime for kept sheet symbols, a message when pins make tb order
+  impossible. Noticed: _opened does not load a subfolder's symbols.json, so
+  the editor and a CLI open can disagree for drawings below the served root.
+
 ## Earlier in the first session (newest first)
 
 | Commit | What |
@@ -162,7 +179,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 637 tests, 0 failed, 5 skipped (~30 s).
+- Suite: `python3 tests/run.py` -> 644 tests, 0 failed, 5 skipped (~30 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.

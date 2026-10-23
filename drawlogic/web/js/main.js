@@ -432,7 +432,10 @@ function choose(title, message, options) {
 
 function copySelection(cut) {
   if (!selection.size) return;
-  clipboard = model.copyItems(store.doc, selection.ids);
+  // Marked with where it came from, and carrying the symbols of the linked
+  // blocks in it, for a paste into another drawing.
+  clipboard = model.copyItems(store.doc, selection.ids, store.path || null);
+  clipboard.sheets = geometry.sheetData();
   const count = clipboard.cells.length + clipboard.shapes.length;
   say(`${cut ? "cut" : "copied"} ${count} item(s)`);
   if (cut) deleteSelection({ contents: true });
@@ -440,14 +443,24 @@ function copySelection(cut) {
 
 function paste(offset) {
   if (!clipboard) return;
+  const into = store.path || null;
+  const [clip, skipped] = model.clipFor(clipboard, into);
   const step = model.gridStep(store.doc) * (offset === undefined ? 2 : offset);
+  if (Object.keys(clip.sheets || {}).length) useSheets(clip.sheets);
   const added = store.mutate("paste",
-                             (doc) => model.pasteItems(doc, clipboard, step, step));
+                             (doc) => model.pasteItems(doc, clip, step, step, into));
   if (added && added.length) {
     selection.set(added);
     redraw();
     inspector.render();
     say(`pasted ${added.length} item(s)`);
+    // Linked blocks pasted from another drawing are read again from here,
+    // as this drawing will read them next time it opens.
+    if (Object.keys(clip.sheets || {}).length) refreshComponents();
+  }
+  if (skipped) {
+    say(`${skipped} linked block(s) left out: save this drawing first, `
+        + "as a link is kept relative to it", "bad");
   }
 }
 
@@ -460,16 +473,7 @@ function nudge(dx, dy, big) {
 
 // Where a ref points, read relative to the drawing that holds it. The server
 // serves one folder, so these stay relative to its root.
-function refPath(fromPath, ref) {
-  const parts = (fromPath || "").split("/").slice(0, -1).concat(ref.split("/"));
-  const out = [];
-  for (const part of parts) {
-    if (!part || part === ".") continue;
-    if (part === ".." && out.length && out[out.length - 1] !== "..") out.pop();
-    else out.push(part);
-  }
-  return out.join("/");
-}
+const refPath = model.refPath;
 
 async function drillInto(cell) {
   const target = refPath(store.path, cell.ref);

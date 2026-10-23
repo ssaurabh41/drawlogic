@@ -52,6 +52,7 @@ const EXPECTED = [
   ["containers", 28],
   ["headings and named styles", 14],
   ["linked components", 10],
+  ["pasting into another drawing", 12],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -1123,6 +1124,91 @@ section("linked components");
   check("an answer from the server adds to the sheet symbols, never drops one",
         geometry.forCell({ type: "sheet", ref: "components/sm.dlg" }) !== null
         && geometry.forCell({ type: "sheet", ref: "components/sm_2.dlg" }) !== null);
+  geometry.setSheets({});
+}
+
+section("pasting into another drawing");
+//
+// Copy in one drawing, paste in another: ids, style names and refs all mean
+// something only in the drawing they were written in.
+{
+  const sm = { name: "SM", category: "sheets", size: [150, 70],
+               pins: [{ name: "in", x: 0, y: 35, dir: "in", width: 0 }],
+               draw: [{ op: "rect", x: 10, y: 0, w: 130, h: 70, role: "body" }] };
+  geometry.setSheets({ "sheet:components/sm.dlg": sm });
+  const source = () => ({
+    canvas: { width: 1600, height: 900, symbolScale: 1, grid: { size: 5 } },
+    styles: { core: { style: { fill: "#e6f2d3" } } },
+    cells: [{ id: "c1", parentId: "k1", type: "inv", x: 100, y: 100, w: 40, h: 30,
+              rotate: 0, mirror: false, styleRef: "core" },
+            { id: "u1", type: "sheet", ref: "components/sm.dlg", x: 300, y: 100,
+              w: 150, h: 70, rotate: 0, mirror: false }],
+    nets: [{ id: "n1", from: { cell: "c1", pin: "y" }, to: [{ cell: "u1", pin: "in" }] }],
+    shapes: [], groups: [],
+    containers: [{ id: "k1", title: "K", x: 60, y: 40, w: 200, h: 200 }],
+  });
+  const target = () => ({
+    canvas: { width: 1600, height: 900, symbolScale: 1, grid: { size: 5 } },
+    styles: { core: { style: { fill: "#ff0000" } } },
+    cells: [], nets: [], shapes: [], groups: [],
+    containers: [{ id: "k1", title: "Elsewhere", x: 1000, y: 1000, w: 200, h: 200 }],
+  });
+  const from = source();
+  const clip = model.copyItems(from, new Set(["c1", "u1"]), "a/top.dlg");
+  clip.sheets = geometry.sheetData();
+
+  // Within one drawing nothing is different.
+  const same = source();
+  const [own] = model.clipFor(clip, "a/top.dlg");
+  const back = model.pasteItems(same, own, 20, 20, "a/top.dlg");
+  const twin = model.itemById(same, back.find((id) => model.itemById(same, id).type === "inv"));
+  check("pasted in the drawing it came from, a copy stays in the container",
+        twin.parentId === "k1" && twin.styleRef === "core" && Object.keys(same.styles).length === 1);
+
+  // Into a drawing in another folder that has its own k1 and its own "core".
+  const there = target();
+  const [moved, skipped] = model.clipFor(clip, "b/top.dlg");
+  const added = model.pasteItems(there, moved, 0, 0, "b/top.dlg");
+  const cell = model.itemById(there, added.find((id) => model.itemById(there, id).type === "inv"));
+  const block = model.itemById(there, added.find((id) => model.itemById(there, id).ref));
+  check("into another drawing, a container of the same name is not joined",
+        cell.parentId === undefined, String(cell.parentId));
+  check("that drawing's own style of the same name is left as it was",
+        there.styles.core.style.fill === "#ff0000");
+  check("the copy keeps its look, under a name of its own",
+        cell.styleRef === "core (pasted)"
+        && there.styles["core (pasted)"].style.fill === "#e6f2d3", cell.styleRef);
+  check("a linked block names the same file from the new folder",
+        block.ref === "../a/components/sm.dlg" && skipped === 0, block.ref);
+  check("and its symbol comes with it under that name",
+        moved.sheets["sheet:../a/components/sm.dlg"] === sm);
+  check("the wire between them comes too",
+        there.nets.length === 1 && there.nets[0].to[0].cell === block.id);
+
+  // Into a drawing beside it: the same file, the same ref.
+  const [beside] = model.clipFor(clip, "a/other.dlg");
+  check("pasted beside the original, a ref is unchanged",
+        beside.cells.find((c) => c.ref).ref === "components/sm.dlg");
+
+  // A style that is missing is brought; one that matches is not duplicated.
+  const bare = target();
+  delete bare.styles;
+  model.pasteItems(bare, model.clipFor(clip, "b/x.dlg")[0], 0, 0, "b/x.dlg");
+  check("a style the drawing lacks is added as it was",
+        bare.styles.core.style.fill === "#e6f2d3" && Object.keys(bare.styles).length === 1);
+  const matching = target();
+  matching.styles.core = { style: { fill: "#e6f2d3" } };
+  model.pasteItems(matching, model.clipFor(clip, "b/x.dlg")[0], 0, 0, "b/x.dlg");
+  check("and one it has already, the same, is used as it is",
+        Object.keys(matching.styles).length === 1);
+
+  // A drawing never saved has no folder for a ref to be relative to.
+  const unsaved = target();
+  const [left, out] = model.clipFor(clip, null);
+  model.pasteItems(unsaved, left, 0, 0, null);
+  check("into a drawing never saved, a linked block is left out and said so",
+        out === 1 && unsaved.cells.length === 1 && !unsaved.cells[0].ref);
+  check("with the wire to it", unsaved.nets.length === 0);
   geometry.setSheets({});
 }
 

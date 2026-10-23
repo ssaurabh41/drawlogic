@@ -1358,6 +1358,18 @@ a prefix and a starting index, so 2 rows by 4 from "SM " and 0 give SM 0 to
 SM 7. Copies of an instance are instances of the same definition; each has
 an id of its own and sits in the same container.
 
+**Copying between drawings.** Ids, style names and refs each mean something
+only in the drawing they were written in, so a paste into another open
+drawing translates them. A linked block's `ref` is rewritten to name the
+same file from the new drawing's folder, and its pins come with it. A named
+style the drawing lacks is added; one it has under the same name with
+another look is added as "<name> (pasted)", so nothing already there changes
+look. A pasted item stays in a container only if the container was copied
+too -- the other drawing may have its own `k1` somewhere else entirely.
+Into a drawing never saved, linked blocks are left out and the message says
+why: a link is kept relative to a saved drawing. Within one drawing, paste
+and duplicate work as they always have.
+
 **Edit component definition** opens the definition in a tab of its own.
 Saving it there reads it again into every open drawing using it, so their
 instances show its pins as they now are, and says "component updated".

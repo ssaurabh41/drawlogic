@@ -921,7 +921,10 @@ export function distribute(doc, ids, axis) {
 
 // ---- clipboard ----
 
-export function copyItems(doc, ids) {
+// `from` is the path of the drawing copied from, for a clipboard that may be
+// pasted into another; left out (duplicate, Repeat, a drag-copy) it is pasted
+// back into the same drawing.
+export function copyItems(doc, ids, from = undefined) {
   // A container is copied with what it holds.
   ids = withContents(doc, ids);
   const cells = doc.cells.filter((c) => ids.has(c.id));
@@ -944,12 +947,72 @@ export function copyItems(doc, ids) {
     .filter((group) => group.members.length > 1
                        && group.members.every((m) => ids.has(m)));
 
-  return JSON.parse(JSON.stringify({ cells, shapes, nets, groups, containers }));
+  // The named styles those items use: a drawing pasted into may not have
+  // them, or may have its own under the same name.
+  const styles = {};
+  for (const item of [...cells, ...shapes, ...containers]) {
+    if (item.styleRef && (doc.styles || {})[item.styleRef]) {
+      styles[item.styleRef] = doc.styles[item.styleRef];
+    }
+  }
+  const clip = JSON.parse(JSON.stringify({ cells, shapes, nets, groups, containers, styles }));
+  if (from !== undefined) clip.from = from;
+  return clip;
 }
 
-export function pasteItems(doc, clip, dx, dy) {
+// Where a ref points, read relative to the drawing that holds it, as a path
+// from the served folder.
+export function refPath(fromPath, ref) {
+  const parts = (fromPath || "").split("/").slice(0, -1).concat(ref.split("/"));
+  const out = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === ".." && out.length && out[out.length - 1] !== "..") out.pop();
+    else out.push(part);
+  }
+  return out.join("/");
+}
+
+// A clipboard ready to paste into the drawing at `into`: [clip, how many
+// linked blocks had to be left out]. Within one drawing it is the clipboard
+// as it is. Into another, each linked block's ref is rewritten to name the
+// same file from there -- components/sm.dlg copied from one folder is
+// ../a/components/sm.dlg pasted into the next -- with its symbol, under the
+// new ref, in `sheets`. A drawing never saved has no folder for a ref to be
+// relative to, so linked blocks are left out of a paste into one, with the
+// wires to them, rather than pasted pointing at nothing in particular.
+export function clipFor(clip, into) {
+  if (clip.from === undefined || clip.from === into) return [{ ...clip, sheets: {} }, 0];
+  const moved = JSON.parse(JSON.stringify(clip));
+  const sheets = {};
+  let skipped = 0;
+  if (!clip.from || !into) {
+    const gone = new Set(moved.cells.filter((c) => c.ref).map((c) => c.id));
+    skipped = gone.size;
+    moved.cells = moved.cells.filter((c) => !gone.has(c.id));
+    moved.nets = moved.nets
+      .filter((net) => !gone.has(net.from && net.from.cell))
+      .map((net) => ({ ...net, to: routing.loadsOf(net).filter((load) => !gone.has(load.cell)) }))
+      .filter((net) => net.to.length);
+    moved.groups = (moved.groups || []).filter((g) => g.members.every((m) => !gone.has(m)));
+  } else {
+    for (const cell of moved.cells) {
+      if (!cell.ref) continue;
+      const ref = relativeRef(into, refPath(clip.from, cell.ref));
+      const symbol = (clip.sheets || {})[`sheet:${cell.ref}`];
+      if (symbol) sheets[`sheet:${ref}`] = symbol;
+      cell.ref = ref;
+    }
+  }
+  moved.sheets = sheets;
+  return [moved, skipped];
+}
+
+// `into` is the path of the drawing pasted into; see copyItems and clipFor.
+export function pasteItems(doc, clip, dx, dy, into = undefined) {
   const remap = new Map();
   const added = [];
+  const same = clip.from === undefined || clip.from === into;
 
   // Containers first, so the things they hold can be pointed at the copies.
   // A copy of something whose container was not copied stays in that same
@@ -1006,12 +1069,40 @@ export function pasteItems(doc, clip, dx, dy) {
     doc.nets.push(net);
   }
 
-  const kept = new Set((doc.containers || []).map((box) => box.id));
+  // An uncopied container is kept only within one drawing. Container ids are
+  // made up per drawing and repeat between them, so a cell copied out of k1
+  // and pasted into another drawing joined whatever that drawing calls k1,
+  // wherever it was, and went with it from then on.
+  const kept = new Set(same ? (doc.containers || []).map((box) => box.id) : []);
   for (const id of added) {
     const item = itemById(doc, id);
     if (!item || item.parentId === undefined) continue;
     if (remap.has(item.parentId)) item.parentId = remap.get(item.parentId);
     else if (!kept.has(item.parentId)) delete item.parentId;
+  }
+
+  // Named styles come too. One this drawing lacks is added; one it has under
+  // the same name with another look is added under a name of its own, so the
+  // copy looks as it did and nothing already here changes. Copied within one
+  // drawing they are the same styles, and nothing happens.
+  const renamed = new Map();
+  for (const [name, spec] of Object.entries(clip.styles || {})) {
+    doc.styles = doc.styles || {};
+    if (!doc.styles[name]) {
+      doc.styles[name] = JSON.parse(JSON.stringify(spec));
+    } else if (JSON.stringify(doc.styles[name]) !== JSON.stringify(spec)) {
+      let fresh = `${name} (pasted)`;
+      for (let n = 2; doc.styles[fresh]
+           && JSON.stringify(doc.styles[fresh]) !== JSON.stringify(spec); n += 1) {
+        fresh = `${name} (pasted ${n})`;
+      }
+      doc.styles[fresh] = JSON.parse(JSON.stringify(spec));
+      renamed.set(name, fresh);
+    }
+  }
+  for (const id of added) {
+    const item = itemById(doc, id);
+    if (item && renamed.has(item.styleRef)) item.styleRef = renamed.get(item.styleRef);
   }
 
   for (const source of clip.groups || []) {

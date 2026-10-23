@@ -441,10 +441,11 @@ function copySelection(cut) {
   if (cut) deleteSelection({ contents: true });
 }
 
-function paste(offset) {
-  if (!clipboard) return;
+// `source` is what to paste: the clipboard, or Duplicate's own copy.
+function paste(offset, source = clipboard) {
+  if (!source) return;
   const into = store.path || null;
-  const [clip, skipped] = model.clipFor(clipboard, into);
+  const [clip, skipped] = model.clipFor(source, into);
   const step = model.gridStep(store.doc) * (offset === undefined ? 2 : offset);
   if (Object.keys(clip.sheets || {}).length) useSheets(clip.sheets);
   const added = store.mutate("paste",
@@ -2724,8 +2725,12 @@ function bindKeyboard() {
         v: () => (event.shiftKey ? pasteStyle(selection.ids, copiedStyle) : paste()),
         d: () => {
           if (!selection.size) return;
-          clipboard = model.copyItems(store.doc, selection.ids);
-          paste();
+          // A copy of its own, pasted straight back here. It used to go
+          // through the clipboard, unmarked, so a paste in another drawing
+          // afterwards took it for a paste into the one it came from --
+          // refs not rewritten, ids of containers joined -- and whatever
+          // had been copied before was gone.
+          paste(undefined, model.copyItems(store.doc, selection.ids));
         },
         g: () => runCommand(event.shiftKey ? "ungroup" : "group"),
         r: () => runCommand(event.shiftKey ? "rotate-ccw" : "rotate-cw"),

@@ -1372,7 +1372,8 @@ look. A pasted item stays in a container only if the container was copied
 too -- the other drawing may have its own `k1` somewhere else entirely.
 Into a drawing never saved, linked blocks are left out and the message says
 why: a link is kept relative to a saved drawing. Within one drawing, paste
-and duplicate work as they always have.
+and duplicate work as they always have, and Duplicate (`Ctrl+D`) leaves the
+clipboard holding whatever you last copied.
 
 **Edit component definition** opens the definition in a tab of its own.
 Saving it there reads it again into every open drawing using it, so their

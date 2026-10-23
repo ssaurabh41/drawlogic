@@ -145,6 +145,22 @@ class TestTheShortcutListMatchesTheManual(unittest.TestCase):
     self.assertEqual(editor, self.rows_in_the_manual())
 
 
+class TestOnlyCopyFillsTheClipboard(unittest.TestCase):
+  """The clipboard is what Copy and Cut put there, marked with the drawing
+  it came from so a paste elsewhere can translate it. Duplicate once wrote
+  it too, unmarked, and a later paste in another drawing took the copy for
+  a paste into its own: refs left pointing at another folder's file, an
+  unrelated container joined. Checked in Chromium when fixed; this holds
+  the shape of the fix, since the suite runs no browser."""
+
+  def test_one_place_writes_the_clipboard(self):
+    import re
+    with open(os.path.join(ROOT, "drawlogic", "web", "js", "main.js")) as handle:
+      source = handle.read()
+    writes = re.findall(r"^\s*clipboard\s*=\s*(.+)$", source, re.M)
+    self.assertEqual(writes, ["model.copyItems(store.doc, selection.ids, store.path || null);"])
+
+
 class TestNoDebuggingLeftIn(unittest.TestCase):
   """A console.log added to chase a bug went out in a commit once already;
   the editor has no logging of its own, so any is left over."""

@@ -1988,8 +1988,8 @@ def _flow_level(doc, registry, nodes, fixed, origin, direction, gap_x, gap_y,
                    # Notes are measured in their named styles.
                    "styles": json.loads(json.dumps(doc.styles))}, doc.path)
 
-  if direction == "tb" and not fixed:
-    _rows_of_ranks(part, stand_ins, gap_x, gap_y)
+  if direction == "tb":
+    _rows_of_ranks(part, stand_ins, gap_x, gap_y, fixed)
   elif fixed:
     found = arrange(part, stand_ins, gap_x, gap_y, margin, turn=False)
     result.feedback += getattr(found, "feedback", 0)
@@ -2012,11 +2012,17 @@ def _flow_level(doc, registry, nodes, fixed, origin, direction, gap_x, gap_y,
   return placed
 
 
-def _rows_of_ranks(part, registry, gap_x, gap_y):
+def _rows_of_ranks(part, registry, gap_x, gap_y, fixed=()):
   """Flow top to bottom: the layered layout's columns, laid out as rows.
 
   The ranking and ordering are the layered layout's own, so what drives what
   still reads in order; each rank becomes a row, centred on the widest.
+
+  `fixed` are the ids of pinned cells, which do not move. The rows are laid
+  out as if they could, lined up so the first pinned cell lands where it
+  is, and any row that would then run into a pinned cell is pushed down
+  past it, with every row below. Pinning used to switch this off and lay
+  the level out left to right, as if the direction had not been asked for.
   """
   cells = part.cells
   edges, _feedback = _edges(part, registry, cells)
@@ -2029,11 +2035,40 @@ def _rows_of_ranks(part, registry, gap_x, gap_y):
     width = sum(b[2] for _c, b in boxes) + gap_x * max(0, len(boxes) - 1)
     rows.append((boxes, width, max(b[3] for _c, b in boxes)))
   widest = max(width for _boxes, width, _h in rows)
+  pinned = [(cell, box) for boxes, _w, _h in rows for cell, box in boxes
+            if cell["id"] in fixed]
+  planned = {}
   y = 0.0
   for boxes, width, height in rows:
     x = (widest - width) / 2.0
     for cell, box in boxes:
-      cell["x"] += x - box[0]
-      cell["y"] += y - box[1]
+      planned[cell["id"]] = (x, y)
       x += box[2] + gap_x
     y += height + gap_y
+  # Where the plan puts the first pinned cell is where it is.
+  dx = dy = 0.0
+  if pinned:
+    anchor, box = pinned[0]
+    dx = box[0] - planned[anchor["id"]][0]
+    dy = box[1] - planned[anchor["id"]][1]
+  stays = [box for _cell, box in pinned]
+  push = 0.0
+  for boxes, _width, _height in rows:
+    movable = [(cell, box) for cell, box in boxes if cell["id"] not in fixed]
+    for _attempt in range(len(stays) + 1):
+      clash = 0.0
+      for cell, box in movable:
+        px, py = planned[cell["id"]]
+        top = py + dy + push
+        for other in stays:
+          left = px + dx
+          if (left < other[0] + other[2] + gap_x and other[0] < left + box[2] + gap_x
+              and top < other[1] + other[3] + gap_y and other[1] < top + box[3] + gap_y):
+            clash = max(clash, other[1] + other[3] + gap_y - top)
+      if clash <= 0:
+        break
+      push += clash
+    for cell, box in movable:
+      px, py = planned[cell["id"]]
+      cell["x"] += px + dx - box[0]
+      cell["y"] += py + dy + push - box[1]

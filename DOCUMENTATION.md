@@ -1585,7 +1585,9 @@ their containers, they would be pulled out of the boxes they sit in.
 A pinned cell never moves, and neither does any container holding one --
 its contents are still arranged round the pin -- and the message after the
 layout names those containers, so a container that did not move is not a
-puzzle. Cells keep the way they face. Shapes a container holds keep their
+puzzle. Top to bottom stays top to bottom round a pin: the rows are lined
+up on the first pinned cell, and a row that would land on another pinned
+cell goes below it. Cells keep the way they face. Shapes a container holds keep their
 place relative to what it holds; shapes on the sheet itself, such as a page
 title or a legend, stay where they are. All of it is one undo step, and the
 Cancel button and the protection against a drawing edited while it was

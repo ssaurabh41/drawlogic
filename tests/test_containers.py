@@ -294,6 +294,59 @@ class TestLayingOutWithNotes(unittest.TestCase):
     self.assertLess(y1, min(box_of(doc, c)[1] for c in ("a", "b")))
 
 
+class TestTopToBottomWithAPin(unittest.TestCase):
+  """Flow top to bottom keeps its direction when something is pinned."""
+
+  def staged(self, *pins):
+    """Three stages a -> b -> c; each of `pins` is a name, or (name, x, y)
+    to pin it somewhere else first."""
+    doc = new_document("tb", 1200, 900)
+    doc.data["containers"] = [{"id": "k", "title": "K", "x": 100, "y": 100, "w": 400,
+                               "h": 300, "layout": {"mode": "flow", "direction": "tb"}}]
+    for i, name in enumerate("abc"):
+      doc.cells.append({"id": name, "parentId": "k", "type": "block",
+                        "x": 200 + 160 * i, "y": 200})
+    doc.nets.append({"id": "n1", "from": {"cell": "a", "pin": "out1"},
+                     "to": [{"cell": "b", "pin": "in1"}]})
+    doc.nets.append({"id": "n2", "from": {"cell": "b", "pin": "out1"},
+                     "to": [{"cell": "c", "pin": "in1"}]})
+    for pin in pins:
+      name = pin if isinstance(pin, str) else pin[0]
+      cell = next(c for c in doc.cells if c["id"] == name)
+      cell["pinned"] = True
+      if not isinstance(pin, str):
+        cell["x"], cell["y"] = pin[1], pin[2]
+    doc.normalize()
+    layout.arrange(doc, default_registry(), container="k")
+    return doc
+
+  def test_the_stages_still_run_down_the_page_round_the_pin(self):
+    for pinned in "abc":
+      doc = self.staged(pinned)
+      boxes = [box_of(doc, name) for name in "abc"]
+      self.assertEqual(len(set(round(b[0], 3) for b in boxes)), 1, (pinned, boxes))
+      self.assertTrue(boxes[0][1] < boxes[1][1] < boxes[2][1], (pinned, boxes))
+      cell = next(c for c in doc.cells if c["id"] == pinned)
+      self.assertEqual((cell["x"], cell["y"]), (200 + 160 * "abc".index(pinned), 200))
+
+  def test_a_row_that_would_land_on_a_second_pin_moves_down_past_it(self):
+    # Where b goes with a alone pinned...
+    b = box_of(self.staged("a"), "b")
+    # ...is where c is pinned too: b cannot go there, and goes below.
+    doc = self.staged("a", ("c", b[0], b[1]))
+    pinned = box_of(doc, "c")
+    self.assertEqual((pinned[0], pinned[1]), (b[0], b[1]))
+    moved = box_of(doc, "b")
+    self.assertGreaterEqual(moved[1], pinned[1] + pinned[3], (moved, pinned))
+    self.assertEqual(round(moved[0], 3), round(pinned[0], 3))
+
+  def test_laying_it_out_twice_changes_nothing(self):
+    doc = self.staged("b")
+    once = doc.dumps()
+    layout.arrange(doc, default_registry(), container="k")
+    self.assertEqual(doc.dumps(), once)
+
+
 class TestLayingOutAroundPins(unittest.TestCase):
 
   def test_a_pinned_cell_and_its_containers_stay(self):

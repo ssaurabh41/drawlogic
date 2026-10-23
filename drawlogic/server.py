@@ -506,6 +506,15 @@ class Handler(BaseHTTPRequestHandler):
     return self._fail(400, "unknown component action %r" % (action,))
 
   def _write_and_answer(self, document, child, target, relative, note, instance):
+    # Opened where it is about to be written, with a registry of its own, as
+    # it will be the next time anyone opens it: a definition whose links
+    # do not resolve from there is refused rather than written and reported
+    # as made.
+    child.path = target
+    found = sheets.resolve(child, self.registry.copy(), confine=self.root)
+    broken = [str(issue) for issue in found if issue.level == "error"]
+    if broken:
+      return self._fail(422, "%s would not open: %s" % (relative, "; ".join(broken[:3])))
     try:
       folder = os.path.dirname(target)
       if folder and not os.path.isdir(folder):
@@ -514,11 +523,12 @@ class Handler(BaseHTTPRequestHandler):
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
     registry = self.registry.copy()
-    sheets.resolve(document, registry, confine=self.root)
+    problems = sheets.resolve(document, registry, confine=self.root)
     document.normalize(registry)
     return self._send_json({"doc": document.ordered(), "path": relative,
                             "sheets": self._sheet_data(registry), "note": note,
-                            "instance": instance})
+                            "instance": instance,
+                            "problems": [_issue_data(p) for p in problems]})
 
   def _save(self, payload):
     relative = self._param("path") or payload.get("path")

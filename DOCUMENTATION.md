@@ -1340,6 +1340,11 @@ container, with every wire from outside reattached to the instance's pin of
 the same name. Names are matched by wire, never by their order in the list,
 so nothing can be attached to the wrong port. A wire with a loose end across
 the edge cannot be represented, and is explained before anything changes.
+A linked block in the selection keeps pointing at the same definition: its
+`ref` is rewritten for the component's folder, so `components/sm.dlg` in
+the drawing becomes `sm.dlg` inside `components/gpc.dlg`. The component is
+opened where it is about to be written, as anyone would next open it, and
+not written at all if a link inside it would not resolve from there.
 The drawing has to have been saved, since the component is kept beside it;
 the definition is written when you confirm, and undo takes the drawing back
 to before (leaving the new file, which is harmless).

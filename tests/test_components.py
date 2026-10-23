@@ -321,6 +321,46 @@ class TestThroughTheEditorsServer(unittest.TestCase):
     self.assertEqual(refs[made["instance"]], "components/half.dlg")
     self.assertTrue(os.path.isfile(os.path.join(self.root, "lanes", "components", "half_2.dlg")))
 
+  def linked_top(self, ref):
+    """A drawing holding one linked SM, wired from a port, as the editor
+    would send it."""
+    top = new_document("top")
+    top.cells.append({"id": "sm0", "type": "sheet", "ref": ref, "x": 200, "y": 100})
+    top.cells.append({"id": "p", "type": "port_in", "x": 40, "y": 120, "label": "w"})
+    top.nets.append({"id": "n", "from": {"cell": "p", "pin": "p"},
+                     "to": [{"cell": "sm0", "pin": "warps"}]})
+    return top.ordered()
+
+  def test_a_component_made_of_a_linked_block_reopens_cleanly(self):
+    from tests import ROOT
+    os.makedirs(os.path.join(self.root, "lanes", "components"))
+    shutil.copy(os.path.join(ROOT, "examples", "components", "sm.dlg"),
+                os.path.join(self.root, "lanes", "components", "sm.dlg"))
+    status, made = self.post("/api/component", {
+      "action": "create", "doc": self.linked_top("components/sm.dlg"),
+      "source": "lanes/top.dlg", "ids": ["sm0"], "name": "GPC"})
+    self.assertEqual(status, 200, made)
+    self.assertEqual(made["problems"], [])
+    written = os.path.join(self.root, "lanes", "components", "gpc.dlg")
+    # The SM's ref is now relative to the component, one folder down.
+    self.assertEqual([c.get("ref") for c in Document.load(written).cells if c.get("ref")],
+                     ["sm.dlg"])
+    _doc, _registry, problems = sheets.open_document(written)
+    self.assertEqual(problems, [])
+
+  def test_a_definition_whose_links_would_not_open_is_not_written(self):
+    # The drawing's own link is already broken: the block stands in as a box
+    # saying so, which the selection check accepts, but the definition
+    # written from it could never open.
+    top = self.linked_top("components/gone.dlg")
+    top["nets"] = []
+    status, answer = self.post("/api/component", {
+      "action": "create", "doc": top, "source": "lanes/top.dlg", "ids": ["sm0"],
+      "name": "GPC"})
+    self.assertEqual(status, 422, answer)
+    self.assertIn("would not open", answer.get("error", ""))
+    self.assertFalse(os.path.exists(os.path.join(self.root, "lanes", "components", "gpc.dlg")))
+
   def test_a_component_needs_a_saved_drawing(self):
     status, answer = self.post("/api/component", {
       "action": "plan", "doc": self.doc, "ids": ["a"], "name": "x"})

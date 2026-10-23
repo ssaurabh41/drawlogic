@@ -34,6 +34,7 @@ Usage:
 
 import copy
 import os
+import posixpath
 import re
 
 from . import containers
@@ -138,7 +139,7 @@ def _end_y(doc, registry, end):
   return at[1] if at else 0.0
 
 
-def extract(doc, registry, ids, name, names=None, parent_path=None):
+def extract(doc, registry, ids, name, names=None):
   """Make the component and put an instance of it where the selection was.
 
   `doc` is changed in place; returns (definition Document, ref, the new
@@ -183,6 +184,7 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
     child.shapes.append(item)
   if boxes:
     child.data["containers"] = copy.deepcopy(boxes)
+  ref = ref_for(name)
   for kind, items in (("cell", child.cells), ("shape", child.shapes),
                       ("container", child.containers)):
     for item in items:
@@ -218,7 +220,6 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
                         "label": port["name"]})
 
   # The instance, where the selection was, in the container that held it.
-  ref = ref_for(name)
   parent = _common_parent(doc, inside)
   instance_id = _fresh_id(doc, slug(name))
   # Shown with a miniature of what it holds: it was made from that.
@@ -258,6 +259,15 @@ def extract(doc, registry, ids, name, names=None, parent_path=None):
   problems = [str(i) for i in child.validate(registry) if i.level == "error"]
   if problems:
     raise ComponentError("the component would not be sound: %s" % "; ".join(problems[:3]))
+  # A linked block taken into the component keeps pointing at the same file:
+  # its ref is relative to the drawing that holds it, and that is now the
+  # component, one folder down -- `components/sm.dlg` from the drawing is
+  # `sm.dlg` from beside it. Rebased only now, as the check above resolves
+  # refs against the drawing's registry; the server opens the result where
+  # it will be written before writing it.
+  for item in child.cells:
+    if item.get("ref"):
+      item["ref"] = rebase(item["ref"], posixpath.dirname(ref))
 
   keep = [n for n in doc.nets if n not in internal and n not in crossing]
   doc.data["nets"] = keep + rewired
@@ -297,6 +307,16 @@ def _fresh_id(doc, base):
   while candidate in used:
     candidate, n = "u_%s_%d" % (base, n), n + 1
   return candidate
+
+
+def rebase(ref, folder):
+  """`ref`, written beside a drawing, as seen from `folder` under it.
+
+  Both are relative to the same drawing's folder, with forward slashes as a
+  ref is stored.
+  """
+  target = posixpath.normpath(ref.replace("\\", "/"))
+  return posixpath.relpath(target, folder or ".")
 
 
 def independent_ref(ref, existing):

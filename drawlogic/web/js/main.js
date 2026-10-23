@@ -1267,6 +1267,14 @@ function applyAnswer(asked, result, label) {
   return true;
 }
 
+// What a component action did, unless resolving the drawing afterwards found
+// something wrong, which matters more than the success.
+function sayMade(result, note) {
+  const problems = result.problems || [];
+  if (problems.length) say(`${note}, but ${problems[0].where}: ${problems[0].message}`, "bad");
+  else say(note, "good");
+}
+
 // The block symbols the drawing in front needs, kept with its tab too.
 function useSheets(data) {
   geometry.setSheets(data);
@@ -1349,7 +1357,7 @@ async function createComponentAsked() {
     selection.set(result.instance ? [result.instance] : []);
     redraw();
     inspector.render();
-    say(`${result.note}; this drawing now has one instance of it`, "good");
+    sayMade(result, `${result.note}; this drawing now has one instance of it`);
   } catch (error) {
     say(error.message, "bad");
   } finally {
@@ -1489,7 +1497,7 @@ async function makeIndependentAsked() {
     if (!applyAnswer(asked, result, "make independent")) return;
     redraw();
     inspector.render();
-    say(result.note, "good");
+    sayMade(result, result.note);
   } catch (error) {
     say(error.message, "bad");
   }

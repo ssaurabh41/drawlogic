@@ -1312,7 +1312,11 @@ is drawn as a labelled empty box saying which. It is drawn rather than left
 out on purpose: a cell you cannot see is a cell you cannot click on to fix.
 
 A drawing can reference another that references a third, to sixteen levels. A
-loop back to a drawing already open above is caught and reported.
+loop back to a drawing already open above is caught and reported. Opening a
+drawing reads each file in its hierarchy once, however many instances of it
+there are, and a fault deep down is reported once, not once per instance on
+the way to it; nothing is kept between opens, so Refresh reads every
+definition fresh.
 
 ### One drawing never affects another
 

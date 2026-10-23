@@ -207,6 +207,66 @@ class TestOneDrawingCannotAffectAnother(SheetCase):
     self.assertEqual(names, [["a"], ["zzz"]])
 
 
+class TestARepeatedHierarchyIsReadOnce(unittest.TestCase):
+  """Eight levels, each placing the next four times, all with miniatures:
+  4^7 instances at the bottom, eight files. Every file is read once."""
+
+  LEVELS = 8
+
+  def setUp(self):
+    self.root = tempfile.mkdtemp()
+    for level in range(self.LEVELS):
+      doc = new_document("L%d" % level)
+      doc.cells.append({"id": "p", "type": "port_in", "x": 20, "y": 40, "label": "i"})
+      if level + 1 < self.LEVELS:
+        for n in range(4):
+          doc.cells.append({"id": "u%d" % n, "type": "sheet", "x": 100 + 200 * n,
+                            "y": 100, "ref": "l%d.dlg" % (level + 1), "preview": True})
+      doc.save(os.path.join(self.root, "l%d.dlg" % level))
+    self.reads = []
+    self.real = Document.__dict__["load"]
+    reads, real = self.reads, self.real.__func__
+
+    def counted(cls, path, *args, **kwargs):
+      reads.append(os.path.basename(path))
+      return real(cls, path, *args, **kwargs)
+    Document.load = classmethod(counted)
+
+  def tearDown(self):
+    Document.load = self.real
+    shutil.rmtree(self.root, ignore_errors=True)
+
+  def test_each_file_is_read_once(self):
+    _doc, _registry, problems = sheets.open_document(os.path.join(self.root, "l0.dlg"))
+    self.assertEqual(problems, [])
+    self.assertEqual(sorted(self.reads), ["l%d.dlg" % n for n in range(self.LEVELS)])
+
+  def test_each_subtree_is_walked_once_from_each_place(self):
+    walks = []
+    real = sheets.resolve
+
+    def counted(*args, **kwargs):
+      walks.append(1)
+      return real(*args, **kwargs)
+    sheets.resolve = counted
+    try:
+      sheets.open_document(os.path.join(self.root, "l0.dlg"))
+    finally:
+      sheets.resolve = real
+    # A walk for the drawing and each level below it, and as many again for
+    # the miniatures: in proportion to the files, not to the 4^7 instances.
+    self.assertLess(len(walks), 4 * self.LEVELS * self.LEVELS, len(walks))
+
+  def test_a_fault_deep_down_is_still_reported(self):
+    os.remove(os.path.join(self.root, "l%d.dlg" % (self.LEVELS - 1)))
+    _doc, _registry, problems = sheets.open_document(os.path.join(self.root, "l0.dlg"))
+    self.assertTrue(problems)
+    self.assertTrue(all("no such drawing" in p.message for p in problems), problems)
+    # Reported where it is, once per place it is reached from, not once per
+    # instance on the way down.
+    self.assertLess(len(problems), 16, len(problems))
+
+
 class TestTheShippedExample(unittest.TestCase):
 
   def test_the_top_sheet_resolves_and_routes_straight(self):

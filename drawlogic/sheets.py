@@ -284,7 +284,36 @@ def open_document(path, base=None, confine=None):
   return doc, registry, issues
 
 
-def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
+class _Reading(object):
+  """What one resolve has already read, so a repeated hierarchy reads once.
+
+  A GPC placed eight times, each of its SMs four times, is the same few
+  files over and over: every instance below the top walked its whole subtree
+  again, and every miniature resolved its own, so the reads grew with the
+  number of instances rather than the number of files -- 7,280 for a chain
+  of eight. This lives for one resolve and no longer, so Refresh still
+  reads every definition fresh.
+  """
+
+  def __init__(self):
+    self.drawings = {}
+    self.walks = {}
+
+  def load(self, path):
+    """The drawing at `path`, parsed once; a failure is remembered too."""
+    if path not in self.drawings:
+      try:
+        self.drawings[path] = Document.load(path)
+      except (DocumentError, OSError, ValueError) as exc:
+        self.drawings[path] = exc
+    found = self.drawings[path]
+    if isinstance(found, Exception):
+      raise found
+    return found
+
+
+def resolve(doc, registry, seen=None, depth=0, confine=None, above=0,
+            reading=None):
   """Add a symbol for each drawing `doc` itself references.
 
   Descendants are walked but not registered: they get their own registry when
@@ -297,7 +326,9 @@ def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
 
   `above` is how many levels up the drawing that asked for this one sits,
   when it is being resolved only to draw its miniature; see _child_registry.
+  `reading` is shared by the calls one resolve makes; see _Reading.
   """
+  reading = reading or _Reading()
   issues = []
   if doc.path is None and any(is_sheet(cell) for cell in doc.cells):
     issues.append(Issue("error", "document",
@@ -349,7 +380,7 @@ def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
       continue
 
     try:
-      child = Document.load(target)
+      child = reading.load(target)
     except (DocumentError, OSError, ValueError) as exc:
       issues.append(Issue("error", where, "cannot read %s: %s" % (ref, exc)))
       stand_in("will not open")
@@ -359,14 +390,28 @@ def resolve(doc, registry, seen=None, depth=0, confine=None, above=0):
       registry.add(Symbol(sheet_symbol_id(ref),
                           describe(ref, child.title, ports(child), child,
                                    _child_registry(child, seen, confine,
-                                                   above + 1))),
+                                                   above + 1, reading))),
                    source=target, listed=False)
-    issues.extend(resolve(child, registry, seen, depth + 1, confine, above))
+    # What walking a drawing finds depends on the drawing and on what is
+    # open above it -- that is how a loop is caught -- so a walk is reused
+    # only from the same place in the hierarchy.
+    key = (target, frozenset(seen), depth + 1 + above)
+    if key not in reading.walks:
+      reading.walks[key] = resolve(child, registry, seen, depth + 1, confine,
+                                   above, reading)
+    # The same fault reached through every instance on the way down is one
+    # fault: reported once, not once per path to it (4,096 of them, eight
+    # levels down a tree four wide).
+    known = set(str(issue) for issue in issues)
+    for issue in reading.walks[key]:
+      if str(issue) not in known:
+        known.add(str(issue))
+        issues.append(issue)
 
   return issues
 
 
-def _child_registry(child, seen, confine, above):
+def _child_registry(child, seen, confine, above, reading=None):
   """The registry a referenced drawing would open with, for its miniature.
 
   A miniature is drawn from the child's own cells, so a child that itself
@@ -382,7 +427,7 @@ def _child_registry(child, seen, confine, above):
   load_folder(registry, os.path.dirname(os.path.abspath(child.path)))
   # Problems down there are the child's to report, and the walk that
   # follows this one reports them; here they only cost the miniature a box.
-  resolve(child, registry, seen, 0, confine, above)
+  resolve(child, registry, seen, 0, confine, above, reading)
   child.normalize(registry)
   return registry
 

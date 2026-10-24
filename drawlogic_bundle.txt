@@ -1,4 +1,4 @@
-<<<<<<<<<< DLBUNDLE v1 part=1/1 files=119 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE v1 part=1/1 files=120 >>>>>>>>>>
 # Rebuild with: python3 unpack_repo.py drawlogic_bundle.txt
 <<<<<<<<<< DLBUNDLE BEGIN path=.claude/settings.json lines=17 sha256=e9432f71414b946515faf8e4107ba9187008922fe846ae767e3a2df6066b4149 >>>>>>>>>>
 {
@@ -111,7 +111,7 @@ benchmarks/.cache/
 # The previous version of a drawing, kept by every save that changes it.
 *.bak
 <<<<<<<<<< DLBUNDLE END path=.gitignore >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=129 sha256=4b044dc54453fa95a7d15e88705cb9677d4bbb4382cf28fc4dd3417df0461dd5 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=129 sha256=f46e2ade549813139ed0d48ff56bbfbd51df4804d5a76fd8b9790721fee532bb >>>>>>>>>>
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -129,7 +129,7 @@ reference, and under Tests, what is and is not covered.
 ## Commands
 
 ```bash
-python3 tests/run.py                       # everything, in parallel (~640 tests, ~30s); one line when green
+python3 tests/run.py                       # everything, in parallel (~650 tests, ~30s); one line when green
 python3 tests/run.py test_layout           # only modules whose name contains this
 python3 -m unittest discover -s tests      # everything, serially (~50s) -- what CI runs
 python3 -m unittest tests.test_drc         # one file
@@ -242,7 +242,7 @@ and writes.
   `Input.dispatchMouseEvent`, not synthetic `new MouseEvent()` — the app
   distinguishes trusted input.
 <<<<<<<<<< DLBUNDLE END path=CLAUDE.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2348 sha256=82d32bacc4e791fa0d4d3aad06a45a9b1d415f7614eb271bf8fb030c10716376 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2371 sha256=7135c64fed712bd910114fe0d3d2cee5f2b9bb20a9a1e305febe6849a1258898 >>>>>>>>>>
 # drawlogic
 
 **Draw logic circuit diagrams, and export them as SVG.**
@@ -772,13 +772,16 @@ resizes as a single object.
 
 Each section of the properties panel folds: click its title. What is folded
 is remembered in this browser, and **Pins** starts folded -- a long list most
-edits never need.
+edits never need. Every field is named by its label: a click on the label
+focuses the field, and a screen reader reads the label as its name. A cell's
+**Outside label** is the name written beside it; what is written inside is
+under **Text inside**.
 
 Ports and the tie cells (`tie0`, `tie1`) have no resize handles: they are
 moved, never resized, and on something that small the handles covered most
 of it. A press anywhere on or just beside one picks it up. The properties
 panel leaves out what such a cell cannot use -- width, height, text inside
-and copies -- and shows only its position, name and pins.
+and stack -- and shows only its position, outside label and pins.
 
 ### Autoshapes
 
@@ -1011,7 +1014,7 @@ purpose stays that size. Switched off, the box keeps its size and text that
 does not fit is cut short with an ellipsis, which the `cell-text-clipped`
 check reports.
 
-**Copies** says how many of the cell there are -- four cores, eight lanes.
+**Stack** says how many of the cell there are -- four cores, eight lanes.
 Two or more draws a copy of the cell's body behind it -- a gate's curve
 behind a gate, a flop's box behind a flop, without the pin stubs -- and a
 `×N` badge on its corner. A cell with no body to copy, such as a tie cell,
@@ -1118,9 +1121,13 @@ version is written beside the old one and moved into place, so a crash or a
 full disk part way through leaves the drawing as it was rather than half
 written. `drawlogic layout`, which rewrites its input, does the same.
 
-`Ctrl+E` exports. **Export is rendered by Python**, the same code path the CLI
-uses, so a file exported from the browser is byte-for-byte what
-`drawlogic export` would produce.
+`Ctrl+E` (or **Export SVG**) downloads the drawing as an SVG file, named
+after it. A download rather than a file written beside the drawing, because
+the editor is often running on another machine from the one whose slide or
+document the picture is for. **File > Save SVG in folder...** writes it into
+the served folder instead, for a folder that keeps its pictures with its
+drawings. **Export is rendered by Python**, the same code path the CLI uses,
+so either file is byte-for-byte what `drawlogic export` would produce.
 
 ### Custom pictures
 
@@ -1157,7 +1164,7 @@ which side a wire leaves from. So a port dropped roughly in the right place is
 moved exactly onto the edge it was nearest -- you do not have to land it on
 the pixel.
 
-The result is written to `symbols.json` in the folder you are serving, in the
+The result is written to `symbols.json` in the drawing's own folder, in the
 same format as the built-in library, so it is a text file you can diff, edit
 by hand, and commit alongside the drawings that use it. Every reader picks it
 up automatically:
@@ -1456,6 +1463,14 @@ by the editor and by every CLI subcommand. That is where
 drawings plus the cells they use is self-contained: clone it and everything
 resolves. `--symbols-dir` is for a library you share across folders.
 
+It is read for the drawings in that folder and no other -- not for those in
+a folder below it. The editor follows the same rule as the command line: a
+drawing in `components/` draws, lays out, checks and exports with
+`components/symbols.json`, whichever folder the editor was started on, and
+the palette offers what the drawing in front can use. Were the served
+folder's file read for it too, the same drawing would look different
+opened from a different place.
+
 Load order is built-ins, then `--symbols-dir` in the order given, then the
 folder's own file -- so the nearest definition wins.
 
@@ -1600,7 +1615,10 @@ Cells drawn with the folder's own symbols (its `symbols.json`) take those
 symbols with them into `components/symbols.json`, since a drawing reads only
 its own folder's: one already there and identical is used as it is, and one
 there under the same name that differs is left alone -- the component's copy
-takes a name of its own, such as `custom_sm_2`, and the message says so.
+takes a name of its own, such as `custom_sm_2`, and the message says so. A
+built-in counts as there: a folder that redefines `inv` gives the component
+an `inv_2`, rather than changing what `inv` means for every drawing already in
+`components/`.
 The drawing has to have been saved, since the component is kept beside it;
 the definition is written when you confirm, and undo takes the drawing back
 to before (leaving the new file, which is harmless).
@@ -1609,8 +1627,11 @@ to before (leaving the new file, which is harmless).
 those in `components/` first. **Repeat...** copies the selected item into a
 grid -- rows, columns, the gap across and down, and names in sequence from
 a prefix and a starting index, so 2 rows by 4 from "SM " and 0 give SM 0 to
-SM 7. Copies of an instance are instances of the same definition; each has
-an id of its own and sits in the same container.
+SM 7. The selected item is the first of them. What is numbered is the outside
+label, the name beside the block; a heading inside it is copied as it is.
+These are separate items, unlike **Stack**, which draws one item as a pile.
+Copies of an instance are instances of the same definition; each has an id
+of its own and sits in the same container.
 
 **Copying between drawings.** Ids, style names and refs each mean something
 only in the drawing they were written in, so a paste into another open
@@ -2575,8 +2596,10 @@ python3 -m unittest tests.test_js_parity
 Stated plainly, so nobody assumes more than exists.
 
 **Anything that needs a real browser.** Pointer input, selection handles, the
-properties panel, tabs, preferences, rename in place, the format painter,
-crash recovery and the Import Verilog dialog all live in the DOM. Each was
+properties panel (its focus kept across a rebuild, its labels naming their
+fields), tabs and the palette that follows them, the SVG download,
+preferences, rename in place, the format painter, crash recovery and the
+Import Verilog dialog all live in the DOM. Each was
 verified by driving the real editor in headless Chromium with trusted input
 events, but none of that is a standing test: a browser in the suite would
 cost the zero-dependency property that makes this installable on a
@@ -2884,7 +2907,7 @@ Each item names what must go red if the change is removed.
 Phase 1 is independently shippable. If Phase 0 says the graphs are mostly
 acyclic, stop after it and measure before deciding on Phase 2.
 <<<<<<<<<< DLBUNDLE END path=ROUTING-CORRIDORS.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=197 sha256=2b3ccd0acced6ade5454b1fb1cbaf6b841c7ddbd531d8233a3359499f34fa8c9 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=220 sha256=9d7b7a269b723ed588f3b4713fac3c2349b7c679017de3dfbb6f36f8f3f54db4 >>>>>>>>>>
 # Session handoff
 
 A summary of one long working session on drawlogic, so a new session can
@@ -3018,8 +3041,31 @@ R3 (user chose: carry the symbols) components.carry_symbols copies the
   the served folder's symbols) + that folder's library, as a standalone open.
 Not done (review's "consider" list): canonical style comparison on paste,
   a lifetime for kept sheet symbols, a message when pins make tb order
-  impossible. Noticed: _opened does not load a subfolder's symbols.json, so
-  the editor and a CLI open can disagree for drawings below the served root.
+  impossible. (The subfolder symbols mismatch noticed here is B2 below.)
+
+Then findings3.md: four bugs, all confirmed, fixed; three of its usability
+ideas done (user said "fix all", and chose the rule for B2).
+B1 carry_symbols checks names against the base registry (built-ins and
+  --symbols) too: a folder's redefined `inv` is carried as `inv_2`, so
+  siblings in components/ keep the built-in. One the base has identically
+  is not copied.
+B2 Rule (user chose): a drawing reads the base + ITS OWN folder's
+  symbols.json, never the served folder's, in the editor as on the CLI.
+  Handler._registry_for(path) for layout/check/export/_opened/component;
+  /api/doc sends "symbols" with the drawing; each tab keeps tab.library and
+  useLibrary() swaps library + palette on switch (palette rebuilt only when
+  it differs). Save as symbol writes beside the drawing (payload.source).
+  plan() now refuses a cell of unknown type (was a 500).
+B3 PlaceTool.pick(type): setTool("place") first, then take the type.
+  editor_check "choosing from the palette".
+B4 Inspector.refresh(): the panel's own rebuilds wait a tick; render()
+  refocuses the same row/field afterwards. test_js_editor guards the shape.
+Ideas: Export SVG/Ctrl+E downloads (File > Save SVG in folder... keeps the
+  old write); "Name" -> "Outside label", "Copies" -> "Stack", Repeat says the
+  outside labels are numbered; panel/form labels are <label for>.
+Not done from findings3 (bigger design work): Repeat live preview, a
+  reorganised panel (common styling first), layout presets for repeated
+  groups, an "add ports" helper, reasons on disabled menu items.
 
 ## Earlier in the first session (newest first)
 
@@ -3066,7 +3112,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 644 tests, 0 failed, 5 skipped (~30 s).
+- Suite: `python3 tests/run.py` -> 650 tests, 0 failed, 5 skipped (~30 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.
@@ -25704,7 +25750,7 @@ def main(argv=None):
 if __name__ == "__main__":
   sys.exit(main())
 <<<<<<<<<< DLBUNDLE END path=drawlogic/cli.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/components.py lines=372 sha256=a36bac6746ff9683ee54a3a75bdbdb5b76cbec4d8e441039d6a1ac3edbf0595e >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/components.py lines=396 sha256=eff04d7e619d1d2aa77697c9f70241c6f4be50d456428ff0ce91c05ed030353b >>>>>>>>>>
 """Linked components: a part of a drawing defined once and placed many times.
 
 A component is an ordinary drawing -- its definition -- and each placed copy
@@ -25818,6 +25864,10 @@ def plan(doc, registry, ids):
   problems = []
   if not any(c.get("id") in inside for c in doc.cells):
     problems.append("select at least one cell to make a component of")
+  # One this drawing has no symbol for has no size or pins to take along.
+  for cell in doc.cells:
+    if cell.get("id") in inside and registry.for_cell(cell) is None:
+      problems.append("%s has an unknown cell type %r" % (cell.get("id"), cell.get("type")))
   _internal, crossing, wire_problems = _crossing(doc, inside)
   problems.extend(wire_problems)
   ports = []
@@ -26017,37 +26067,57 @@ def _fresh_id(doc, base):
   return candidate
 
 
-def carry_symbols(child, registry, existing):
+def _definition(registry, type_id):
+  """`type_id`'s entry exactly as the file it came from has it, or None."""
+  source = registry.source_of(type_id)
+  if not source or not os.path.isfile(source):
+    return None
+  try:
+    with open(source) as handle:
+      definition = json.load(handle).get(type_id)
+  except (OSError, ValueError, AttributeError):
+    return None
+  return definition if isinstance(definition, dict) else None
+
+
+def carry_symbols(child, registry, existing, base):
   """The symbol library the component's folder needs: (library, renames).
 
   A cell drawn with a symbol of the drawing's own folder -- its symbols.json
   -- is copied into a component one folder down, where that file is not
   read, so the component opened as "unknown cell type". Each such symbol's
   definition, exactly as its file has it, goes into the component folder's
-  library, `existing`. One already there and the same is used as it is; one
-  there under the same name that differs is left alone, and the component's
-  copy takes a name of its own, its cells renamed to match -- in `renames`.
-  Built-in symbols are not copied: every drawing reads those.
+  library, `existing`. A name that folder already gives a different symbol
+  is left alone, and the component's copy takes a name of its own, its cells
+  renamed to match -- in `renames`.
+
+  "Already gives" counts `base`, what every drawing reads before its
+  folder's file: the built-in symbols and any library the server was
+  started with. A folder may redefine `inv`, and copied under that name the
+  redefinition would become every sibling drawing's `inv`, taking the pins
+  their wires name. One `base` already has as it is needs no copy.
   """
-  from .symbols import BUILTIN_FILE
   library = dict(existing)
   renames = {}
-  builtin = os.path.abspath(BUILTIN_FILE)
   for type_id in sorted(set(c.get("type") for c in child.cells
                             if c.get("type") and not c.get("ref"))):
-    source = registry.source_of(type_id)
-    if not source or not os.path.isfile(source) or os.path.abspath(source) == builtin:
-      continue
-    try:
-      with open(source) as handle:
-        definition = json.load(handle).get(type_id)
-    except (OSError, ValueError, AttributeError):
-      definition = None
-    if not isinstance(definition, dict):
+    definition = _definition(registry, type_id)
+    if definition is None:
       continue
     name, n = type_id, 2
-    while name in library and library[name] != definition:
+    while True:
+      if name in library:
+        there = library[name]
+      elif name in base:
+        # One whose file cannot be read is a name taken all the same.
+        there = _definition(base, name) or {}
+      else:
+        break
+      if there == definition:
+        break
       name, n = "%s_%d" % (type_id, n), n + 1
+    if name not in library and _definition(base, name) == definition:
+      continue
     library[name] = definition
     if name != type_id:
       renames[type_id] = name
@@ -36304,7 +36374,7 @@ def parameters(text, known=None):
     stream.take()
   return found
 <<<<<<<<<< DLBUNDLE END path=drawlogic/rtl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/server.py lines=846 sha256=f2bb73a78586e3b6b54da43a1b0773ba7e1285149cbb12261bcfed711226544d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/server.py lines=882 sha256=c3ca8b09eea34c8ce90ee6892ef61c7b16d497dceb7aa04f108bac5591b2b6d6 >>>>>>>>>>
 """Local web server for the browser editor.
 
 Binds to the loopback interface and serves exactly one directory of drawings,
@@ -36627,19 +36697,24 @@ class Handler(BaseHTTPRequestHandler):
         return self._fail(404, "no such drawing")
       try:
         document, registry, problems = sheets.open_document(
-          target, self.registry, confine=self.root)
+          target, self._base(), confine=self.root)
       except DocumentError as exc:
         return self._fail(422, str(exc))
       except OSError as exc:
         return self._fail(500, "cannot read: %s" % exc)
       # A block standing in for another drawing belongs to this drawing, not
       # to the library, so it travels with it. The editor merges it in on open.
+      # So do the symbols themselves: the drawing's folder may define its own,
+      # and the editor draws and offers what this drawing reads, not what the
+      # served folder does.
+      data = registry.as_data()
       return self._send_json({
         "path": relative,
         "revision": _revision(target),
         "doc": document.ordered(),
-        "sheets": {type_id: data
-                   for type_id, data in registry.as_data().items()
+        "symbols": {type_id: entry for type_id, entry in data.items()
+                    if not type_id.startswith("sheet:")},
+        "sheets": {type_id: entry for type_id, entry in data.items()
                    if type_id.startswith("sheet:")},
         "problems": [{"level": p.level, "where": p.where, "message": p.message}
                      for p in problems],
@@ -36707,12 +36782,28 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return None, None, None, (400, "source is outside the served directory")
       document.path = resolved
+      registry = self._registry_for(resolved)
       problems = sheets.resolve(document, registry, confine=self.root)
     return document, registry, problems, None
 
   def _sheet_data(self, registry):
     return {type_id: data for type_id, data in registry.as_data().items()
             if type_id.startswith("sheet:")}
+
+  def _base(self):
+    """What every drawing reads before its own folder's symbols.json."""
+    return self.base or default_registry()
+
+  def _registry_for(self, path):
+    """The symbols the drawing at `path` reads: the base, then its folder's.
+
+    Its own folder's and no other, as `drawlogic export` reads them -- the
+    served folder's file is for the drawings beside it. A drawing one folder
+    down that drew with them here would draw differently everywhere else.
+    """
+    registry = self._base().copy()
+    load_folder(registry, os.path.dirname(path))
+    return registry
 
   def _beside(self, source, ref):
     """The served path of `ref`, read relative to the drawing at `source`."""
@@ -36793,7 +36884,8 @@ class Handler(BaseHTTPRequestHandler):
           return self._fail(422, "cannot read %s: %s" % (FOLDER_FILE, exc))
         if not isinstance(existing, dict):
           return self._fail(422, "%s must hold an object of symbols" % FOLDER_FILE)
-      library, renames = components.carry_symbols(child, registry, existing)
+      library, renames = components.carry_symbols(
+        child, registry, existing, self.base or default_registry())
       note = "made component %s" % relative
       if renames:
         note += " (its %s renamed there, as a different symbol has the name)" % (
@@ -36840,7 +36932,7 @@ class Handler(BaseHTTPRequestHandler):
     # reported as made.
     folder = os.path.dirname(target)
     library_path = os.path.join(folder, FOLDER_FILE)
-    fresh = (self.base or default_registry()).copy()
+    fresh = self._base().copy()
     load_folder(fresh, folder)
     for type_id, definition in sorted((library or {}).items()):
       fresh.add(Symbol(type_id, definition), source=library_path)
@@ -36858,7 +36950,7 @@ class Handler(BaseHTTPRequestHandler):
       write_file(target, child.dumps())
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
-    registry = self.registry.copy()
+    registry = self._registry_for(document.path)
     problems = sheets.resolve(document, registry, confine=self.root)
     document.normalize(registry)
     return self._send_json({"doc": document.ordered(), "path": relative,
@@ -36924,7 +37016,7 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
-      registry = self.registry.copy()
+      registry = self._registry_for(resolved)
       # Confined to the served folder: a ref is written by whoever wrote the
       # document, and this one arrived in a request body.
       sheets.resolve(document, registry, confine=self.root)
@@ -36984,7 +37076,7 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
-      registry = self.registry.copy()
+      registry = self._registry_for(resolved)
       issues.extend(sheets.resolve(document, registry, confine=self.root))
 
     issues.extend(document.validate(registry))
@@ -37000,8 +37092,11 @@ class Handler(BaseHTTPRequestHandler):
   def _save_symbol(self, payload):
     """Turn the open drawing into a symbol and add it to the folder's library.
 
-    Written next to the drawings, under the name every reader already looks
-    for, so `drawlogic export` sees it without being told about it.
+    Written next to the drawing, `source`, under the name every reader
+    already looks for, so `drawlogic export` sees it without being told
+    about it -- and the drawings beside it, which read that folder's file
+    and no other, can place it. A drawing not saved yet is the served
+    folder's.
     """
     try:
       document = Document.from_data(payload.get("doc") or {})
@@ -37011,21 +37106,32 @@ class Handler(BaseHTTPRequestHandler):
     symbol_id = str(payload.get("id") or "").strip()
     if not _SYMBOL_ID.match(symbol_id):
       return self._fail(400, "a symbol id is letters, digits and underscores")
+    source = payload.get("source")
+    folder = self.root
+    if source:
+      beside = _safe_join(self.root, source)
+      if beside is None:
+        return self._fail(400, "source is outside the served directory")
+      folder = os.path.dirname(beside)
+    library_path = os.path.join(folder, FOLDER_FILE)
 
     try:
       data = authoring.symbol_from(document, symbol_id,
                                    name=payload.get("name"),
                                    category=payload.get("category") or "custom")
-      authoring.add_to_file(os.path.join(self.root, FOLDER_FILE),
-                            symbol_id, data)
+      authoring.add_to_file(library_path, symbol_id, data)
     except (authoring.AuthoringError, SymbolError) as exc:
       return self._fail(422, str(exc))
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
 
-    self.registry.add(Symbol(symbol_id, data),
-                      source=os.path.join(self.root, FOLDER_FILE))
-    return self._send_json({"id": symbol_id, "symbols": self.registry.as_data()})
+    # The served folder's are kept for drawings not saved yet.
+    if os.path.realpath(folder) == os.path.realpath(self.root):
+      self.registry.add(Symbol(symbol_id, data), source=library_path)
+    symbols = self._registry_for(library_path).as_data()
+    return self._send_json({"id": symbol_id, "symbols": symbols,
+                            "path": os.path.relpath(library_path, self.root)
+                                      .replace(os.sep, "/")})
 
 
   def _import(self, payload):
@@ -37069,7 +37175,7 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
-      registry = self.registry.copy()
+      registry = self._registry_for(resolved)
       # Confined to the served folder: a ref is written by whoever wrote the
       # document, and this one arrived in a request body.
       sheets.resolve(document, registry, confine=self.root)
@@ -41161,7 +41267,7 @@ def as_data():
     "container": CONTAINER,
   }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/theme.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/css/app.css lines=1316 sha256=685aa70cd4753b437eac6b1150e45b9f121437f8d417eedc22da5b91f5cf5465 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/css/app.css lines=1316 sha256=d9dca8156f4ddd2abbcf4f44a57c20ce30675f74e31b6bc8489cb471aa8e2baf >>>>>>>>>>
 /* The chrome follows the system theme; the sheet is always white, because it
    is the document rather than part of the application. */
 
@@ -41660,7 +41766,7 @@ select {
   align-items: center;
   gap: 8px;
 }
-.prow > span { font-size: 11px; color: var(--ink-3); }
+.prow > span, .prow > label { font-size: 11px; color: var(--ink-3); }
 /* A checkbox starts where the fields above it start. Left to the grid, it was
    stretched across the column and the browser drew it in the middle. */
 .prow > .pcheck { justify-self: start; margin: 0; }
@@ -42479,7 +42585,7 @@ textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
 .dialog-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .dialog-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/css/app.css >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/index.html lines=374 sha256=00fed238979d00998fb16a2f3e3e1ce6a0e01a1715c1511af018f846eadfa9b8 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/index.html lines=376 sha256=5316755e2041ce4c6dccf076aed9917fa4084b0ec322e19008eb837bfb5034fa >>>>>>>>>>
 <!doctype html>
 <html lang="en">
 <head>
@@ -42512,6 +42618,8 @@ textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
       <div class="menu-sep" role="separator"></div>
       <button id="btn-symbol" class="menu-item" type="button" role="menuitem"
               title="Turn this drawing into a symbol: its shapes become the artwork, its ports become the pins"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-symbol"/></svg><span>Save as symbol&hellip;</span></button>
+      <button id="btn-export-folder" class="menu-item" type="button" role="menuitem"
+              title="Write the SVG into the served folder, beside the drawings, instead of downloading it"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-export"/></svg><span>Save SVG in folder&hellip;</span></button>
       <button id="btn-png" class="menu-item" type="button" role="menuitem"
               title="Copy the drawing as a picture, ready to paste into a slide"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-picture"/></svg><span>Copy as PNG</span><kbd>Ctrl+Shift+E</kbd></button>
     </div>
@@ -42528,7 +42636,7 @@ textarea.ptext { resize: vertical; min-height: 64px; font-family: var(--mono);
        the two left in view; the rest are once-a-session and live in File. -->
   <div class="bgroup">
     <button id="btn-save" class="action primary with-ico" title="Save (Ctrl+S)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg>Save</button>
-    <button id="btn-export" class="action with-ico" title="Export SVG (Ctrl+E)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-export"/></svg>Export SVG</button>
+    <button id="btn-export" class="action with-ico" title="Download the drawing as an SVG file (Ctrl+E)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-export"/></svg>Export SVG</button>
   </div>
 
   <div class="bgroup">
@@ -43771,7 +43879,7 @@ function boxAlignments(doc, moving, offer) {
   }
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/guides.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/main.js lines=3002 sha256=9d64182b34754c27fd045ac14d8444802c71043481a881ea749c2c216f6c1401 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/main.js lines=3057 sha256=907dc35a0b3c15a28e49d3d64f534dd983301868cc37f5e0c6c08440f5fe2d6e >>>>>>>>>>
 // Boots the editor and wires the pieces together.
 //
 // Usage: loaded by index.html as a module. Talks to the server over
@@ -44579,7 +44687,7 @@ function switchTab(path, { keepTrail = false } = {}) {
   const tab = findTab(path);
   if (!tab || !tab.doc) return;
   captureActive();
-  geometry.setSheets(tab.sheets);
+  useLibrary(tab.library, tab.sheets);
   store.restore(tab);
   // A different drawing: nothing half-done carries over (see openDrawing).
   setTool("select");
@@ -45011,9 +45119,15 @@ function formDialog(title, note, okLabel, build) {
   });
 }
 
+let formFields = 0;
+
 function formRow(body, label, field, after = null) {
   const node = document.createElement("label");
   node.textContent = label;
+  // Named by its label, for a screen reader and for a click on the label.
+  formFields += 1;
+  if (!field.id) field.id = `form-field-${formFields}`;
+  node.htmlFor = field.id;
   body.append(node, field, after || document.createElement("span"));
 }
 
@@ -45052,6 +45166,27 @@ function sayMade(result, note) {
   const problems = result.problems || [];
   if (problems.length) say(`${note}, but ${problems[0].where}: ${problems[0].message}`, "bad");
   else say(note, "good");
+}
+
+// The symbols the served folder reads, from /api/symbols: what a drawing
+// with no folder of its own yet draws with.
+let servedLibrary = {};
+// Which library the palette was last built from, so switching between two
+// drawings of one folder leaves it -- and a search typed into it -- alone.
+let paletteFrom = null;
+
+// The symbols the drawing in front reads, then its blocks. A drawing reads
+// its own folder's symbols.json and no other, as the exporter does, so two
+// tabs from two folders can mean different things by one type.
+function useLibrary(data, sheets) {
+  const library = data || servedLibrary;
+  geometry.setLibrary({ ...library });
+  geometry.setSheets(sheets || {});
+  const key = JSON.stringify(library);
+  if (key !== paletteFrom) {
+    paletteFrom = key;
+    rebuildPalette();
+  }
 }
 
 // The block symbols the drawing in front needs, kept with its tab too.
@@ -45222,8 +45357,9 @@ async function repeatAsked() {
   const fields = {};
   const answer = await formDialog(
     "Repeat",
-    item.ref ? "Each copy is linked to the same definition: editing it changes them all."
-      : "Copies of the selected item, in a grid.",
+    (item.ref ? "Each copy is linked to the same definition: editing it changes them all. "
+      : "Separate copies of the selected item, in a grid. ")
+      + "The selected one is the first of them, and each outside label is numbered.",
     "Repeat",
     (body) => {
       fields.rows = formInput("2", "number");
@@ -45237,7 +45373,7 @@ async function repeatAsked() {
       formRow(body, "Columns", fields.columns);
       formRow(body, "Gap across", fields.gapX);
       formRow(body, "Gap down", fields.gapY);
-      formRow(body, "Name prefix", fields.prefix);
+      formRow(body, "Label prefix", fields.prefix);
       formRow(body, "Starting index", fields.start);
       return () => {
         const value = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.value]));
@@ -45555,12 +45691,13 @@ async function openDrawing(path) {
   try {
     const payload = await api(`/api/doc?path=${encodeURIComponent(path)}`);
     captureActive();
-    // Blocks for the drawings this one references, built from their ports.
-    geometry.setSheets(payload.sheets);
+    // The symbols this drawing reads, and blocks for the drawings it
+    // references, built from their ports.
+    useLibrary(payload.symbols, payload.sheets);
     store.load(payload.doc, payload.path);
     const tab = findTab(payload.path);
-    if (tab) tab.sheets = payload.sheets;
-    else openTabs.push({ path: payload.path, sheets: payload.sheets });
+    if (tab) Object.assign(tab, { library: payload.symbols, sheets: payload.sheets });
+    else openTabs.push({ path: payload.path, library: payload.symbols, sheets: payload.sheets });
     renderTabs();
     selection.clear();
     // A tool keeps state between clicks -- the wire tool holds the pin a wire
@@ -45886,9 +46023,28 @@ function drcNote(text) {
   return note;
 }
 
+// Export hands you the file, the way a download does: the editor is often
+// running somewhere other than the machine whose slide the picture is for,
+// and a file written into the served folder is then one more step away.
 async function exportSvg() {
+  if (!store.doc) return;
+  const name = `${(store.path || "drawing").replace(/\.dlg$/, "").split("/").pop()}.svg`;
+  try {
+    // Rendered by Python, the same code the CLI uses, so this file is
+    // byte-for-byte what `drawlogic export` would produce.
+    const svg = await renderedSvg();
+    picture.download(new Blob([svg], { type: "image/svg+xml" }), name);
+    say(`downloaded ${name} (${svg.length} bytes)`, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
+// The same file written into the served folder instead, beside the drawings,
+// for a folder that keeps its pictures with its sources.
+async function exportSvgInFolder() {
   if (!store.doc || !store.path) return;
-  const target = window.prompt("Export SVG to (relative to the served folder):",
+  const target = window.prompt("Save SVG in the served folder as:",
                                store.path.replace(/\.dlg$/, ".svg"));
   if (!target) return;
   try {
@@ -46039,8 +46195,7 @@ async function autoLayout(containerId = null) {
 function rebuildPalette() {
   buildPalette(ui.paletteBody, {
     onPick: (id) => {
-      tools.place.arm(id);
-      setTool("place");
+      tools.place.pick(id);
       say(`click the canvas to place ${id} (shift-click to keep placing)`);
     },
   });
@@ -46225,12 +46380,18 @@ async function saveAsSymbol() {
     const result = await api("/api/symbol", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: store.doc, id, name: store.doc.title }),
+      body: JSON.stringify({ doc: store.doc, id, name: store.doc.title,
+                             source: store.path }),
     });
-    geometry.setLibrary(result.symbols);
-    rebuildPalette();
-    say(`${result.id} is in the palette now, and in this folder's symbols.json`,
-        "good");
+    // Every open drawing of that folder reads it now.
+    const folder = (path) => (path || "").replace(/[^/]*$/, "");
+    for (const tab of openTabs) {
+      if (folder(tab.path) === folder(store.path)) tab.library = result.symbols;
+    }
+    if (!folder(store.path)) servedLibrary = result.symbols;
+    const tab = findTab(store.path);
+    useLibrary(result.symbols, tab ? tab.sheets : geometry.sheetData());
+    say(`${result.id} is in the palette now, and in ${result.path}`, "good");
   } catch (error) {
     say(error.message, "bad");
   }
@@ -46379,6 +46540,7 @@ function bindControls() {
   });
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
+  ui.btnExportFolder.addEventListener("click", exportSvgInFolder);
   ui.btnPng.addEventListener("click", copyPng);
   ui.btnCheck.addEventListener("click", () => runCheck());
   ui.drcLive.addEventListener("click", () => setLive(!liveOn));
@@ -46656,6 +46818,7 @@ async function start() {
     dirty: $("dirty"),
     btnSave: $("btn-save"),
     btnExport: $("btn-export"),
+    btnExportFolder: $("btn-export-folder"),
     btnPng: $("btn-png"),
     btnSymbol: $("btn-symbol"),
     btnImport: $("btn-import"),
@@ -46747,8 +46910,8 @@ async function start() {
     render.setTheme(theme);
     model.setContainerDefaults(theme.container);
     routing.setLimits(drcLimits);
-    geometry.setLibrary(library);
-    rebuildPalette();
+    servedLibrary = library;
+    useLibrary(library);
 
     for (const file of listing.files) {
       const option = document.createElement("option");
@@ -48834,7 +48997,7 @@ export function busWidth(name) {
   return 1;
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/model.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/panels.js lines=1645 sha256=0ed5e0220e9b34940eb63bca81f9cab751d1ede6966e651ddc6f7f44a77ff7f5 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/panels.js lines=1725 sha256=da70c9150473ccd3eea0283979dd7f36b8ccc2d834fbdf8fc8dd77e37b0db250 >>>>>>>>>>
 // The two side panels: the symbol palette and the properties inspector.
 //
 // Usage:
@@ -49023,9 +49186,28 @@ function headPreview(kind, atStart) {
   return svg;
 }
 
+// A label and the control it names, joined so the label is the control's
+// name to a screen reader and to anything else that finds a field by what it
+// is called -- a click on it focuses the field too. A row holding several
+// controls, a set of buttons, is a group the label names.
+let rowCount = 0;
+
 function row(label, control) {
   const wrap = element("div", "prow");
-  wrap.appendChild(element("span", null, label));
+  const field = /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(control.tagName);
+  const name = element(field ? "label" : "span", null, label);
+  if (label) {
+    rowCount += 1;
+    name.id = `prow-${rowCount}`;
+    if (field) {
+      if (!control.id) control.id = `prow-${rowCount}-field`;
+      name.htmlFor = control.id;
+    } else if (control.querySelector("input, select, textarea, button")) {
+      control.setAttribute("role", "group");
+      control.setAttribute("aria-labelledby", name.id);
+    }
+  }
+  wrap.appendChild(name);
   const isNumber = control.tagName === "INPUT" && control.type === "number";
   wrap.appendChild(isNumber ? stepper(control) : control);
   return wrap;
@@ -49474,6 +49656,9 @@ export function clearPaletteSelection(root) {
 
 // ---- properties ----
 
+// What can hold focus in the panel, in the order Tab visits it.
+const FOCUSABLE = "input, textarea, select, button, [tabindex]";
+
 export class Inspector {
   constructor(root, store, selection, onChange, onRefuse = () => {}) {
     this.root = root;
@@ -49483,9 +49668,65 @@ export class Inspector {
     this.onRefuse = onRefuse;
   }
 
+  // Rebuilt whole, and the field that had focus has it again afterwards --
+  // the one in the same row of the rebuilt panel. Without that, a rebuild
+  // took the field from under the caret: Tab from Heading to Text left focus
+  // on the page, where the next keys typed reached the canvas's shortcuts.
   render() {
+    const focused = this.focusedField();
     this.renderBody();
     foldSections(this.root);
+    if (focused) this.refocus(focused);
+  }
+
+  // A rebuild asked for by an edit made here. Left until the event that made
+  // it is over: a field commits as focus leaves it, and rebuilt at that
+  // moment the field focus was moving to was gone before it arrived. A
+  // moment later focus is in that field and is carried across.
+  refresh() {
+    if (this.pending) return;
+    this.pending = true;
+    setTimeout(() => {
+      this.pending = false;
+      this.render();
+    }, 0);
+  }
+
+  // Where focus is in the panel, as something the rebuilt panel has too:
+  // the row's label and which of its controls, or failing a row, which of
+  // the panel's controls.
+  focusedField() {
+    const active = document.activeElement;
+    if (!active || active === this.root || !this.root.contains(active)) return null;
+    const holder = active.closest(".prow");
+    const within = holder || this.root;
+    const where = {
+      label: holder ? holder.firstChild.textContent : null,
+      index: [...within.querySelectorAll(FOCUSABLE)].indexOf(active),
+    };
+    if (typeof active.selectionStart === "number") {
+      where.range = [active.selectionStart, active.selectionEnd];
+    }
+    return where;
+  }
+
+  refocus({ label, index, range }) {
+    let within = this.root;
+    if (label !== null) {
+      within = [...this.root.querySelectorAll(".prow")]
+        .find((holder) => holder.firstChild.textContent === label);
+      if (!within) return;
+    }
+    const field = [...within.querySelectorAll(FOCUSABLE)][index];
+    if (!field) return;
+    field.focus({ preventScroll: true });
+    if (range && typeof field.setSelectionRange === "function") {
+      try {
+        field.setSelectionRange(range[0], range[1]);
+      } catch (error) {
+        // A number field has no caret to put back.
+      }
+    }
   }
 
   renderBody() {
@@ -49689,7 +49930,7 @@ export class Inspector {
     const setTitle = (key, value, label) => {
       this.store.mutate(label, (d) => model.setTextStyle(d, [box.id], "headingStyle", key, value));
       this.onChange();
-      this.render();
+      this.refresh();
     };
     const size = input((box.headingStyle || {}).fontSize ?? "", "number");
     size.min = "4";
@@ -49725,7 +49966,7 @@ export class Inspector {
       });
       if (!accepted) this.onRefuse(`"${value}" is not a usable value`);
       this.onChange();
-      this.render();
+      this.refresh();
     };
     const select = (options, current, key, label) => {
       const field = document.createElement("select");
@@ -49804,8 +50045,9 @@ export class Inspector {
     }
 
     const name = input(cell.label || "");
+    name.title = "The name written beside the block, outside it -- what Repeat numbers";
     this.bind(name, (doc, value) => model.setLabel(doc, cell.id, value), "rename");
-    root.appendChild(row("Name", name));
+    root.appendChild(row("Outside label", name));
     this.renderInside([cell]);
 
     // A port or a tie cell is moved, never resized, and holds no text: the
@@ -49875,7 +50117,7 @@ export class Inspector {
           this.store.mutate("align text",
                             (doc) => model.setTextAlign(doc, cell.id, key, value));
           this.onChange();
-          this.render();
+          this.refresh();
         });
         group.appendChild(button);
       }
@@ -49901,7 +50143,7 @@ export class Inspector {
       const heading = input(cell.heading || "");
       heading.placeholder = "none";
       this.bind(heading, (doc, value) => model.setHeading(doc, cell.id, value), "heading");
-      heading.addEventListener("change", () => this.render());
+      heading.addEventListener("change", () => this.refresh());
       root.appendChild(row("Heading", heading));
     }
 
@@ -49923,7 +50165,7 @@ export class Inspector {
     });
     this.bind(text, (doc, value) => model.setCellText(doc, cell.id, value), "cell text");
     // The box may have grown to fit, so the size fields above are redrawn.
-    text.addEventListener("change", () => this.render());
+    text.addEventListener("change", () => this.refresh());
     root.appendChild(row("Text", text));
     if (!line) this.renderTextFormat(cell);
     if (align) this.renderTextAlign(cell);
@@ -49953,7 +50195,7 @@ export class Inspector {
       });
       if (!accepted) this.onRefuse(`"${value}" is not a usable value`);
       this.onChange();
-      this.render();
+      this.refresh();
     };
 
     const which = element("div", "seg");
@@ -49964,7 +50206,7 @@ export class Inspector {
                                (this.textTarget === "heading") === (value === "heading"));
       button.addEventListener("click", () => {
         this.textTarget = value;
-        this.render();
+        this.refresh();
       });
       which.appendChild(button);
     }
@@ -50055,7 +50297,7 @@ export class Inspector {
     pick.addEventListener("change", () => {
       this.store.mutate("style", (d) => model.setStyleRef(d, this.selection.ids, pick.value || null));
       this.onChange();
-      this.render();
+      this.refresh();
     });
     root.appendChild(row("Style", pick));
     const actions = element("div", "pactions");
@@ -50084,7 +50326,7 @@ export class Inspector {
     fit.addEventListener("change", () => {
       this.store.mutate("fit text", (doc) => model.setTextFit(doc, cell.id, fit.checked));
       this.onChange();
-      this.render();
+      this.refresh();
     });
     root.appendChild(row("Fit box", fit));
   }
@@ -50094,9 +50336,10 @@ export class Inspector {
     copies.min = "1";
     copies.step = "1";
     copies.placeholder = "1";
-    copies.title = "2 or more draws it as a stack with a count";
+    copies.title = "2 or more draws this one item as a stack with a count -- "
+      + "still one item; Repeat makes separate ones";
     this.bind(copies, (doc, value) => model.setCopies(doc, cell.id, value), "copies");
-    this.root.appendChild(row("Copies", copies));
+    this.root.appendChild(row("Stack", copies));
   }
 
   renderImagePicker(cell) {
@@ -50115,7 +50358,7 @@ export class Inspector {
         this.store.mutate("picture",
                           (doc) => model.setCellImage(doc, cell.id, reader.result));
         this.onChange();
-        this.render();
+        this.refresh();
       };
       reader.readAsDataURL(file);
     });
@@ -50126,7 +50369,7 @@ export class Inspector {
       clear.addEventListener("click", () => {
         this.store.mutate("picture", (doc) => model.setCellImage(doc, cell.id, null));
         this.onChange();
-        this.render();
+        this.refresh();
       });
       root.appendChild(row("", clear));
     }
@@ -50214,7 +50457,7 @@ export class Inspector {
   setShapeStyle(shape, key, value, label) {
     this.store.mutate(label, (doc) => model.setStyle(doc, [shape.id], key, value));
     this.onChange();
-    this.render();
+    this.refresh();
   }
 
   // A wire: what it says on the sheet, what it is called, and how it is drawn.
@@ -50302,7 +50545,7 @@ export class Inspector {
     const apply = (value) => {
       this.store.mutate("wire colour", (d) => model.setNetStyle(d, net.id, "stroke", value));
       this.onChange();
-      this.render();
+      this.refresh();
     };
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -50416,7 +50659,7 @@ export class Inspector {
       this.store.mutate("colour",
                         (doc) => model.setStyle(doc, this.selection.ids, key, value));
       this.onChange();
-      this.render();
+      this.refresh();
     });
 
     button.addEventListener("click", (event) => {
@@ -53708,7 +53951,7 @@ export function fill(table) {
   table.replaceChildren(...rows);
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/shortcuts.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/tools.js lines=983 sha256=1747405609d63894e1a6fd8f10e406a695177ead43b89a3553b8a7aa38e97bd1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/tools.js lines=989 sha256=8569024fc43056ac8eba6c9955a2a6139ac9b1e8afe75496728822af589b4a04 >>>>>>>>>>
 // Pointer behaviour, one class per tool.
 //
 // Usage:
@@ -54345,7 +54588,13 @@ export class PlaceTool {
     this.type = null;
   }
 
-  arm(type) { this.type = type; }
+  // Take up `type` to place. The tool is made the active one first: making
+  // it active puts down whatever it held, so choosing Inverter after Block,
+  // with Block not yet placed, used to leave nothing in hand.
+  pick(type) {
+    this.ctx.setTool("place");
+    this.type = type;
+  }
 
   cursorFor() { return "copy"; }
 
@@ -65383,12 +65632,205 @@ These are design or coverage concerns, not additional confirmed defects:
 
 The supporting scripts and screenshot were retained as review-session artifacts, not added to the application repository. The minimal reproduction and expected outcomes above are sufficient to create regression tests alongside the fixes.
 <<<<<<<<<< DLBUNDLE END path=findings2.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=ee339dd50f0b80cba5f637b83af6f39d18723e64b05c3eacd323503200c015b1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=findings3.md lines=191 sha256=a8bdcd88b62fe943de9f5252de51cdbd6744d21fcd36ff0e49d2af3e33cfaa75 >>>>>>>>>>
+# Findings 3: verified defects and usability review
+
+Reviewed commit: `aca5f90` on main, fetched October 24, 2026. Compared with `69ae6a1`, the findings2 report. No application source was modified.
+
+## Verification of findings2
+
+| Issue | Verification | Result |
+|---|---|---|
+| Duplicate overwrites the shared clipboard with an unmarked copy | Real Chromium input: Copy a linked cell, Duplicate, switch folders/tabs, Paste, Save. Saved ref was `../a/components/sm.dlg`, no unrelated parentId, one rendered cell. | Fixed for the reproduced workflow. Duplicate now uses a private clip and leaves Copy intact. |
+| Packed layout drifts with pinned cells and notes | Repeated Row, Column and Grid four times. Note y stayed 190 on every run; fixed cells stayed fixed. | Fixed for the reproduced workflow. |
+| Extracted custom symbols are unavailable when reopened independently | Invoked the actual component handler, opened the generated definition with a fresh standalone registry, and validated it. | Original standalone-open failure fixed. Browser integration and built-in name conflicts still need work; see B1 and B2. |
+
+Historical full suite in a clean tracked checkout: **644 tests, 0 failures, 5 skips, 63.5 seconds**. The subsequent independent verification audit did not rerun that suite; it reran six focused commands, all completing successfully. These reproduce the four defects below and verify the repaired workflows above. A successful defect reproduction confirms an application bug, not correct behavior.
+
+The independent review strengthened the original evidence by adding explicit pinned-cell coordinate assertions and a fresh browser test of heading focus. An initial browser fixture failed before reaching the heading field; it was corrected to select a block and verify that Heading/Text controls existed before testing Tab. The corrected run reproduced focus landing on BODY. Reviewer inspection accepted the resulting evidence, and tracked application source remained unchanged.
+
+## Confirmed defects
+
+### B1 — P1: copying a custom symbol can break unrelated existing diagrams
+
+Location: `drawlogic/components.py:341` (`carry_symbols`); shared library write in `drawlogic/server.py:553`.
+
+**Reproduction:**
+
+1. The source folder's `symbols.json` overrides the built-in ID `inv` with a custom block whose input is `custom_in`. Local library overrides are supported by the symbol loader.
+2. `components/existing.dlg` already contains ordinary built-in inverters wired via pins `y` and `a`. It has no local library and validates successfully when opened independently.
+3. Extract the source custom block into `components/newpart.dlg`.
+4. Reopen the untouched `components/existing.dlg` independently.
+
+Creation returns 200, but the existing sibling now reports:
+
+```text
+error: net n: from endpoint refers to pin 'y', which inv has no such pin (has: custom_in)
+error: net n: to endpoint refers to pin 'a', which inv has no such pin (has: custom_in)
+```
+
+The sibling's DLG bytes were unchanged. The generated `components/symbols.json` now overrides `inv` for every drawing in that folder.
+
+**Cause:** Collision detection checks only entries already present in the destination JSON file. It ignores names supplied by the destination's built-in/base registry. A missing JSON entry does not mean that symbol ID is unused.
+
+**Fix:** Check against the destination's effective symbol namespace, including built-ins and configured base libraries. Rename the incoming custom definition when its meaning differs; rewrite only the new definition's cells. Preserve sibling diagrams' effective symbols and interfaces. Test an existing wired sibling before and after extraction, not only the new child.
+
+This is a regression risk introduced by the new shared-library copying behavior. It is high priority because an operation on one component can change other diagrams without editing their DLG files.
+
+### B2 — P2: generated definitions with renamed custom symbols are invisible in the editor
+
+Location: `drawlogic/server.py:312` (`GET /api/doc` response), particularly the response that includes only `sheet:` entries; browser library loading in `drawlogic/web/js/main.js`.
+
+**Reproduction:**
+
+1. Source `symbols.json` defines `custom_sm`.
+2. Destination `components/symbols.json` already defines a different `custom_sm`.
+3. Extract a source instance. The new conflict logic correctly copies it as `custom_sm_2` and rewrites the child's type.
+4. Open the generated `components/gpc.dlg` in the browser, as through Edit component definition.
+
+Standalone CLI loading and validation succeed. In Chromium, the child contains one cell but renders **zero**. Browser geometry has `custom_sm` from the served root and lacks `custom_sm_2`.
+
+**Cause:** The server loads the destination's library when reading the document, but sends only resolved sheet symbols to the browser. The browser's ordinary palette/symbol library still comes from the served root. Thus the file fix is not propagated through the editor's document-loading contract. The same underlying problem can misrender an unrenamed folder-local type when its definition differs from the root's.
+
+**Fix:** Deliver and switch the full effective per-document symbol registry, or a complete override set, when opening/switching tabs. Keep different folders' definitions isolated. Audit layout/check/export endpoints for the same source-folder dependency, as several start from the server registry rather than a document-local registry. Test extraction, Edit definition, browser rendering, and tab switching with conflicting local symbol IDs.
+
+Confirmed with the actual component handler, a fresh standalone open, and a real browser session. See `custom-definition-missing.png` and `custom_browser.py` beside this report.
+
+### B3 — P2: changing palette choices before placement silently disables placement
+
+Locations: `drawlogic/web/js/main.js:2267`, `main.js:187`, and `drawlogic/web/js/tools.js:671`.
+
+**User steps:**
+
+1. Start in Select mode.
+2. Click `block` in the symbol palette.
+3. Before placing it, change your mind and click `inv`.
+4. Click the canvas.
+
+No cell is added. The interface still says to click the canvas to place the chosen symbol. Escape, choose a symbol again, then place works.
+
+**Cause:** `onPick` arms the new type before calling `setTool("place")`. If Place is already active, `setTool` calls its `onDeactivate()`, clearing the newly armed type. The tool is active with no type to place.
+
+**Fix:** Activate/deactivate before arming, or avoid deactivating a tool when remaining in that tool while changing its options. Test switching between palette choices, selecting the same symbol twice, and changing choices after Shift-place.
+
+Found while trying to place blocks in the actual editor, then independently reproduced with trusted Chromium mouse input. In the independent empty-drawing test, switching from Block to Inverter and clicking the canvas added zero cells; Escape, choosing Inverter again, and placing added one. Selecting the same symbol twice follows the same source-code path, but that variant was not independently exercised.
+
+### B4 — P2: committing a heading destroys keyboard focus
+
+Locations: `drawlogic/web/js/panels.js:1067` and `panels.js:1089`.
+
+**User steps:**
+
+1. Select a block.
+2. Edit its Heading field in Properties.
+3. Press Tab to continue into Text.
+
+The heading commits, but focus lands on the page body instead of the next field. The measured active element was `{tag: "BODY", cls: ""}`. Clicking Text explicitly and typing then works.
+
+**Cause:** Heading and text change handlers rebuild the inspector while the browser is completing the focus transition. The current and next controls are replaced. This interrupts normal keyboard entry and can leave subsequent keys eligible for canvas shortcuts instead of text input. The focus loss is confirmed; unintended shortcut actions were not needed to establish the finding.
+
+**Fix:** Update geometry/readouts without replacing the editing controls, or restore focus using stable field identity and intended tab direction after a render. Test Heading → Tab → Text, Shift+Tab, clicking directly from Heading to Text, and multiline text commit.
+
+## What I exercised in the editor
+
+Used Chromium with actual mouse and keyboard input rather than changing document state through injected application code:
+
+- Started with a blank drawing, placed a block, and edited its heading and body text.
+- Repeated it into a 2×2 grid, selected the blocks, created and named a container, chose Grid layout, and applied Layout contents.
+- Created a linked component from the selection, opened its definition, edited a block, and saved. The parent reported that it refreshed.
+- Connected an output pin to another block's input, producing one net.
+- Saved and exported SVG successfully to a temporary served-folder path.
+- Separately checked cross-document Copy/Duplicate/Paste and generated custom-symbol definitions.
+
+All fixture files and exports were created in temporary/audit folders. The user's existing diagrams were not edited. Automated locator retries during pin clicking were resolved with actual pointer coordinates; those automation failures are not counted as product defects.
+
+## Usability feedback, separate from bugs
+
+These are task-based observations and recommendations, not claims that a representative human-user study was conducted.
+
+### 1. Make SVG export deliver a file to the user
+
+**Observed:** Export SVG opens a native prompt saying “Export SVG to (relative to the served folder)” and reports a server-side path after success. It does not download the SVG. This is awkward when the editor is running remotely and the user wants a diagram for a slide or document.
+
+**Recommendation:** Make Download SVG the primary action. Keep “Save on server” as a secondary option. Show the resulting filename and offer Open/Download after export. The existing render-without-writing endpoint can support this without a new renderer.
+
+### 2. Give Repeat a small preview and explicit counts
+
+**Observed:** Repeat is a form with Rows, Columns, gaps, prefix and starting index. There is no live preview, final count, or indication of which visible text will be numbered. I had to apply it to see the result.
+
+**Recommendation:** Show “4 total, 3 new” and a simple thumbnail grid as values change. Show a naming example such as “SM 1 … SM 4.” Make clear that the original is included. Preserve one-step undo.
+
+### 3. Clarify Name, Heading, Copies and Repeat
+
+**Observed:** The cell has an external Name and an internal Heading. Repeat numbered the external names while the internal heading stayed `SM`. The inspector's “Copies” control is another concept: a visual stack rather than separate editable instances.
+
+**Recommendation:** Use labels such as “Instance label (outside)” and “Heading (inside).” Rename Copies to “Stack appearance.” Add a concise explanation next to Repeat: “Create separate instances.” These small wording changes avoid surprising results without adding controls.
+
+### 4. Put common architecture styling near the top
+
+**Observed:** On a 1440×1000 viewport, the block inspector opens several sections: Cell, Geometry, Text inside, Appearance and Drawing. Styling requires substantial scrolling; unrelated sheet settings occupy the same panel. Collapsible sections exist and are useful, but the initial arrangement emphasizes coordinates over authoring.
+
+**Recommendation:** Offer a compact common-controls area for label, heading, fill, text size and named style. Keep detailed geometry and sheet settings in collapsible sections or the existing Sheet controls. Remember the user's preference; do not remove precise numeric controls.
+
+### 5. Give repeated architecture groups a useful starting layout
+
+**Observed:** After making a container around an intentionally repeated grid, its default layout mode is Flow by wiring. To preserve a grid on the next layout, I needed to change Arrange to Grid first. This is a reasonable circuit default but an extra step for architecture diagrams.
+
+**Recommendation:** Let container creation preserve/infer a simple existing row/grid, or offer a small choice such as “Keep this grid / Arrange by wires.” Add a few presets like SM grid, pipeline row and memory-bank column, using the existing layout engine.
+
+### 6. Help users create component interfaces
+
+**Observed:** Creating a linked component from unconnected blocks correctly explains that no wires cross the selection, so the component has no ports. A new architecture-diagram user still needs to know how to open the definition and add port cells before connecting the component itself.
+
+**Recommendation:** Keep the existing explanation and add an action such as “Create and add ports” or a short next-step hint in the new instance's inspector. Show Inputs/Outputs in user-facing language alongside the technical port names.
+
+### 7. Associate field labels with their controls
+
+**Observed in the DOM:** Many inspector labels are spans, and the Repeat form's labels lack `for`/input IDs. Visible text is not consistently an accessible name for its field. I did not run a screen-reader session, so this is an accessibility implementation finding rather than a claimed screen-reader experience.
+
+**Recommendation:** Use real labels with stable IDs or `aria-labelledby`. Test accessible names for Heading, Name, Rows, Columns and Gap. This also makes keyboard/automation tests more robust and complements the focus fix.
+
+### 8. Explain contextually disabled actions
+
+**Observed:** Edit component definition and Make independent are disabled for an ordinary block; Layout contents is disabled when cells rather than a container are selected. The distinction makes sense once learned, but the disabled menu does not explain it at the point of use.
+
+**Recommendation:** Provide short reasons such as “Select one linked component” or “Select a container.” Distinguish plain blocks, containers and linked instances clearly in the inspector heading.
+
+## Priorities
+
+1. Prevent symbol copying from changing unrelated diagrams (B1).
+2. Complete per-document symbol handling in the editor (B2).
+3. Fix palette switching and inspector focus (B3/B4): both interrupt routine work.
+4. Improve Download SVG, Repeat feedback, and naming terminology.
+5. Add presets and contextual guidance after the core editing paths are reliable.
+
+Useful existing behavior: Repeat is easy to locate; container creation opens an inline title editor; Grid layout produced a tidy 2×2 group; linked-definition edits refreshed the parent; ordinary Copy/Paste now preserves reference identity. These should remain simple as the issues above are fixed.
+
+## Independent verification record
+
+Audited baseline: `aca5f901722c47f5197afe8d7bc4fce80dda215a`.
+
+| Focused check | Outcome |
+|---|---|
+| Copy, Duplicate, cross-folder Paste and Save in Chromium | Exit 0; correct rebased ref, no unrelated parent, one visible cell. |
+| Repeated packed layout and uncomplicated custom-symbol extraction | Exit 0; stable notes and standalone child validates. |
+| Explicit pinned-coordinate check | Exit 0; pin remains at (120,152) over four runs in each of Row, Column and Grid. |
+| Custom built-in override collision | Exit 0; reproduces missing-pin errors in an otherwise unchanged sibling drawing. |
+| Generated custom-symbol definition in Chromium | Exit 0; reproduces zero rendered cells despite valid standalone loading. |
+| Palette switching and Heading-to-Tab in Chromium | Corrected run exits 0; reproduces both editing failures. |
+
+The original full-suite result is historical, as stated above. No new unsupported bug count was inferred from test success. The usability section remains a set of observed workflow recommendations, not a representative human-user study or additional confirmed defects.
+
+Scripts, command logs, screenshots, a sample SVG and editable fixtures were retained as audit-session artifacts. They are not included in this documentation-only commit. Reproduction steps and expected outcomes are recorded above so regression tests can be implemented alongside the fixes.
+
+This is a targeted audit, not proof that the rest of the application is bug-free. No application code fixes were made during this review.
+<<<<<<<<<< DLBUNDLE END path=findings3.md >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=dbc4306d2fd9c25025821b37ed8b75e492510062ef167a9ede31c8bc6cf96418 >>>>>>>>>>
 86844009d34ccd786913c5d047f5e75cf14c1873432da49e3c93cd7bef19d099  drawlogic/__init__.py
 dd0c5bff5a05b805b0c08c7db6118605c86deb1d2746ad6d9c9124c4d667b0ee  drawlogic/__main__.py
 b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/authoring.py
 68de8cc30ed580e5ace9fd9ac02f024ff287f80369ac8e723d4944921ebbd9bb  drawlogic/cli.py
-a36bac6746ff9683ee54a3a75bdbdb5b76cbec4d8e441039d6a1ac3edbf0595e  drawlogic/components.py
+eff04d7e619d1d2aa77697c9f70241c6f4be50d456428ff0ce91c05ed030353b  drawlogic/components.py
 9e8dc9983790d9ae649457aebed1cc02dd33a885e2e6035b8e80e58866b375fe  drawlogic/containers.py
 7e025f5ef9456e395179b32e1e5eef573ffb6716ab8407a2396c8343355cf8bf  drawlogic/doc.py
 c6fede35e529784d29061a5956f13a23df9b1055a934c8f121c6c1e972170d04  drawlogic/drc.py
@@ -65398,20 +65840,20 @@ dc226a23d4bca7d73e349aa340e94e7319f6811d27d32ec6a1db78d5e80b7e1c  drawlogic/hdl.
 99a7d9f5033b48c797e78d652ca6f5a82b08d6201828ae543e4ad3373878c6d7  drawlogic/render_svg.py
 ca619625f71c0a1e5ccef8f3c91daa7182ed3987428c656e4543d089c28a623a  drawlogic/routing.py
 552b3dfca066ab7e512edd6cf95aac1443aa8f277ba72b7fc6ca8d9fd1a9aa02  drawlogic/rtl.py
-f2bb73a78586e3b6b54da43a1b0773ba7e1285149cbb12261bcfed711226544d  drawlogic/server.py
+c3ca8b09eea34c8ce90ee6892ef61c7b16d497dceb7aa04f108bac5591b2b6d6  drawlogic/server.py
 5bf0924adf0055eb77baec53e973def22d385f07f8ca47502b5ced0c636ff5b5  drawlogic/sheets.py
 b96fd4db05911a5bf353b1853d09c5401e4a924ee9588214ee3ccb3ae73248da  drawlogic/styles.py
 5c9ba8ecec65914c4efb2053520788de86388f7f62281fb60724857406299010  drawlogic/symbols.json
 6ab26b78c34a19ab36c8a191b033b0648cc52993f1ff812451f4700131ef3208  drawlogic/symbols.py
 e7c23cfa5d99d49ffcd75ddda021bddb61afb6bb3fecf47cc8ab200988afa04b  drawlogic/theme.py
-685aa70cd4753b437eac6b1150e45b9f121437f8d417eedc22da5b91f5cf5465  drawlogic/web/css/app.css
-00fed238979d00998fb16a2f3e3e1ce6a0e01a1715c1511af018f846eadfa9b8  drawlogic/web/index.html
+d9dca8156f4ddd2abbcf4f44a57c20ce30675f74e31b6bc8489cb471aa8e2baf  drawlogic/web/css/app.css
+5316755e2041ce4c6dccf076aed9917fa4084b0ec322e19008eb837bfb5034fa  drawlogic/web/index.html
 90dff3b818c8a57cbc426aa6cb88bb2cb5e6c419bae4dca4951f6c174635298f  drawlogic/web/js/geometry.js
 c0fc21fb73261b87f7c837e4d30bffbbf461b96efbb5bc2a07ae6fb74c8e3f12  drawlogic/web/js/guides.js
-9d64182b34754c27fd045ac14d8444802c71043481a881ea749c2c216f6c1401  drawlogic/web/js/main.js
+907dc35a0b3c15a28e49d3d64f534dd983301868cc37f5e0c6c08440f5fe2d6e  drawlogic/web/js/main.js
 652de8cb6fabdb45bccc9081c8f120aad7add974ea08e2f0ed78a4bbfa2e0c3a  drawlogic/web/js/menus.js
 15929ee729860a53f1431c49462a5288f9ba73a25628166fe32709b47b37d586  drawlogic/web/js/model.js
-0ed5e0220e9b34940eb63bca81f9cab751d1ede6966e651ddc6f7f44a77ff7f5  drawlogic/web/js/panels.js
+da70c9150473ccd3eea0283979dd7f36b8ccc2d834fbdf8fc8dd77e37b0db250  drawlogic/web/js/panels.js
 fc89b8ff8678e27cc3c7a1396a420c27458a1e86e275dc1446c5d1f499459643  drawlogic/web/js/picture.js
 5cb2c07d2409346288029e9509671ed16a50b4316e605f8575adf5e6a23146f7  drawlogic/web/js/prefs.js
 09f268a86b57db231f600bd19a57b8005feb784842d48f70c0325d041af59a8a  drawlogic/web/js/recovery.js
@@ -65419,7 +65861,7 @@ eaa7cac510f6b56d406c30474df1214b0a1abb54b85ddd3972be406a6ebb87ba  drawlogic/web/
 7cf1924bc216472f2f615b2b9a9ade75f01eb759052c63ca7889ee03d914f650  drawlogic/web/js/routing.js
 6308e2ed6b84140c92cc93bd3ce94f04cdc282fee2e4e916ef54ba42fb4a7d33  drawlogic/web/js/selection.js
 7098b8fcd142e3c4affc337aec6d3023ee95ca41518acf1ea19e63b53d484eb3  drawlogic/web/js/shortcuts.js
-1747405609d63894e1a6fd8f10e406a695177ead43b89a3553b8a7aa38e97bd1  drawlogic/web/js/tools.js
+8569024fc43056ac8eba6c9955a2a6139ac9b1e8afe75496728822af589b4a04  drawlogic/web/js/tools.js
 da5aa707b992db1eec14ec3601e82a998c235294b6148344482a55df70fbf2fe  drawlogic/web/js/viewport.js
 373bd625182f9c2f05da216745801a29418cf2061aebfe90d3f22d93341732ee  drawlogic/yosys.py
 2b3dd4cf72e777d6bc99897ca5afac87036c7c2720d4dc733ef202b00b814672  sample.txt
@@ -68728,7 +69170,7 @@ import * as routing from "../../drawlogic/web/js/routing.js";
 
 process.stdout.write(JSON.stringify(routing.currentLimits()));
 <<<<<<<<<< DLBUNDLE END path=tests/js/drc_dump.mjs >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1243 sha256=3ed512cfa9e3c174cd780887a4073f75e1505a93a336dfca919272be46a1fb7f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1270 sha256=0eaa56939267ca92e19905b9adc2234353a80045c1b2814d247fca8be2cb285f >>>>>>>>>>
 // Assertions for the parts of the editor that exist only in JavaScript:
 // drag-time alignment and the Tidy command.
 //
@@ -68759,7 +69201,7 @@ import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
 import { Selection } from "../../drawlogic/web/js/selection.js";
-import { SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
+import { PlaceTool, SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -68784,6 +69226,7 @@ const EXPECTED = [
   ["headings and named styles", 14],
   ["linked components", 10],
   ["pasting into another drawing", 12],
+  ["choosing from the palette", 4],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -69943,6 +70386,32 @@ section("pasting into another drawing");
   geometry.setSheets({});
 }
 
+section("choosing from the palette");
+{
+  // The real place tool, with a setTool that does what main.js's does:
+  // whichever tool was active is put down before the named one is taken up.
+  // Choosing Inverter after Block, Block not yet placed, made the tool active
+  // over again after taking up the inverter -- putting it down.
+  const store = new model.Store();
+  store.load(model.blankDocument("p"), "p.dlg");
+  const selection = new Selection(store);
+  let active = "select";
+  let tool = null;
+  const context = { store, selection, drawOverlay() {}, say() {},
+                    setTool(name) { if (active === "place") tool.onDeactivate(); active = name; } };
+  tool = new PlaceTool(context);
+  tool.pick("block");
+  check("a symbol chosen from the palette is in hand", active === "place" && tool.type === "block");
+  tool.pick("inv");
+  check("choosing another before placing puts that one in hand", tool.type === "inv",
+        String(tool.type));
+  tool.pick("inv");
+  check("and choosing the same one twice keeps it", tool.type === "inv", String(tool.type));
+  tool.onPointerDown({ shiftKey: false }, [200, 200]);
+  check("a click then places it", store.doc.cells.length === 1
+        && store.doc.cells[0].type === "inv", JSON.stringify(store.doc.cells.map((c) => c.type)));
+}
+
 // Every area has to have run, and to have run the number of checks it says.
 // This is where deleting a section is caught: its row is still here, and its
 // count comes back zero.
@@ -71080,7 +71549,7 @@ class TestImport(unittest.TestCase):
       code, _, _ = self.run_import(["import", source])
       self.assertIn("bad.v: line 2: cannot read", str(code))
 <<<<<<<<<< DLBUNDLE END path=tests/test_cli.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_components.py lines=482 sha256=ea94a9b2d321e5b2a1c9c99744e6bd51bac67eae4a63ea0fdf20c0e07b7e09ff >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_components.py lines=581 sha256=a191e57843f7007900566ee406e382f17d64935a605936b719573cb7108e0d18 >>>>>>>>>>
 """Linked components: part of a drawing defined once and placed many times.
 
 What matters: a selection becomes a drawing of its own with a port for every
@@ -71532,9 +72001,9 @@ class TestCustomSymbolsTravel(unittest.TestCase):
     self.assertEqual(self.opened()[2], [])
 
   def test_a_component_that_could_not_open_is_not_written(self):
-    # The server read the folder's symbols when it started; the file has
-    # gone since, so there is nothing to carry -- and the component, which
-    # this server can still draw, would open nowhere else.
+    # The folder's symbols file has gone since the drawing was opened, so
+    # its cell has no symbol to take along: refused, and nothing written,
+    # rather than a component that would open nowhere.
     os.remove(os.path.join(self.root, "symbols.json"))
     status, answer = self.make()
     self.assertEqual(status, 422, answer)
@@ -71559,6 +72028,105 @@ class TestCustomSymbolsTravel(unittest.TestCase):
     # And the drawing it came from still draws with the folder's own.
     with open(os.path.join(self.root, "symbols.json")) as handle:
       self.assertEqual(json.load(handle), {"custom_sm": self.SM})
+
+  def test_a_redefined_builtin_does_not_change_the_drawings_beside_it(self):
+    # The folder redefines `inv`. Copied down under that name, it became the
+    # `inv` of every drawing in components/, whose wires name the built-in's
+    # pins -- an existing sibling stopped opening without being touched.
+    from drawlogic.symbols import load_folder
+    mine = dict(self.SM, pins=[{"name": "custom_in", "x": 0, "y": 25, "dir": "in"}])
+    with open(os.path.join(self.root, "symbols.json"), "w") as handle:
+      json.dump({"inv": mine}, handle)
+    registry = default_registry().copy()
+    load_folder(registry, self.root)
+    self.httpd.RequestHandlerClass.registry = registry
+    sibling = new_document("existing")
+    sibling.cells.extend([{"id": "u1", "type": "inv", "x": 0, "y": 0},
+                          {"id": "u2", "type": "inv", "x": 120, "y": 0}])
+    sibling.nets.append({"id": "n", "from": {"cell": "u1", "pin": "y"},
+                         "to": [{"cell": "u2", "pin": "a"}]})
+    os.makedirs(os.path.join(self.root, "components"))
+    sibling_path = os.path.join(self.root, "components", "existing.dlg")
+    sibling.save(sibling_path)
+
+    def sibling_errors():
+      doc, registry, problems = sheets.open_document(sibling_path)
+      return [str(i) for i in problems + doc.validate(registry) if i.level == "error"]
+    self.assertEqual(sibling_errors(), [])
+
+    self.top["cells"][0]["type"] = "inv"
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertIn("inv as inv_2", made["note"])
+    self.assertEqual(self.library(), {"inv_2": mine})
+    self.assertEqual(sibling_errors(), [])
+    doc, registry, errors = self.opened()
+    self.assertEqual(errors, [])
+    self.assertEqual([c["type"] for c in doc.cells if not c["type"].startswith("port")],
+                     ["inv_2"])
+
+  def test_the_editor_draws_it_with_the_symbols_its_folder_has(self):
+    # The component's folder names the carried symbol custom_sm_2, and gives
+    # custom_sm a meaning of its own. The editor drew every drawing with the
+    # served folder's symbols, so the component's one cell had nothing to
+    # draw with, and its custom_sm meant the served folder's instead.
+    other = dict(self.SM, name="Something else", size=[40, 40])
+    os.makedirs(os.path.join(self.root, "components"))
+    with open(os.path.join(self.root, "components", "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": other}, handle)
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    # One the served folder has and the component's does not.
+    from drawlogic.symbols import load_folder
+    with open(os.path.join(self.root, "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": self.SM, "served_only": self.SM}, handle)
+    registry = default_registry().copy()
+    load_folder(registry, self.root)
+    self.httpd.RequestHandlerClass.registry = registry
+    with urlopen(self.base + "/api/doc?path=components/gpc.dlg") as response:
+      opened = json.loads(response.read().decode("utf-8"))
+    self.assertEqual(opened["symbols"]["custom_sm_2"]["size"], [80, 50])
+    self.assertEqual(opened["symbols"]["custom_sm"]["size"], [40, 40])
+    self.assertNotIn("served_only", opened["symbols"])
+    self.assertIn("inv", opened["symbols"])
+    # Checked, laid out and exported from the editor with those symbols too.
+    asked = {"doc": opened["doc"], "source": "components/gpc.dlg"}
+    status, checked = self.post("/api/check", asked)
+    self.assertEqual((status, checked["errors"]), (200, 0), checked)
+    status, laid = self.post("/api/layout", asked)
+    self.assertEqual(status, 200, laid)
+    # And a drawing of the served folder still reads that folder's.
+    with open(os.path.join(self.root, "top.dlg"), "w") as handle:
+      json.dump(self.top, handle)
+    with urlopen(self.base + "/api/doc?path=top.dlg") as response:
+      top = json.loads(response.read().decode("utf-8"))
+    self.assertEqual(top["symbols"]["custom_sm"]["size"], [80, 50])
+    self.assertNotIn("custom_sm_2", top["symbols"])
+    status, checked = self.post("/api/check", {"doc": top["doc"], "source": "top.dlg"})
+    self.assertEqual((status, checked["errors"]), (200, 0), checked)
+
+  def test_a_symbol_saved_from_a_drawing_goes_beside_it(self):
+    os.makedirs(os.path.join(self.root, "components"))
+    art = new_document("Tap")
+    art.shapes.append({"id": "r", "kind": "rect", "x": 0, "y": 0, "w": 40, "h": 30})
+    art.cells.append({"id": "p", "type": "port_in", "x": -40, "y": 10, "label": "i"})
+    status, saved = self.post("/api/symbol", {"doc": art.ordered(), "id": "tap",
+                                              "source": "components/tap.dlg"})
+    self.assertEqual(status, 200, saved)
+    self.assertEqual(saved["path"], "components/symbols.json")
+    self.assertIn("tap", self.library())
+    self.assertIn("tap", saved["symbols"])
+    # The served folder's drawings do not read it.
+    self.assertNotIn("custom_sm", saved["symbols"])
+    with open(os.path.join(self.root, "symbols.json")) as handle:
+      self.assertNotIn("tap", json.load(handle))
+
+  def test_a_builtin_used_as_it_is_is_not_copied(self):
+    # Built-in symbols are read by every drawing; none needs a copy.
+    self.top["cells"][0]["type"] = "inv"
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertFalse(os.path.exists(os.path.join(self.root, "components", "symbols.json")))
 
 
 if __name__ == "__main__":
@@ -75625,7 +76193,7 @@ class TestWhatTheFirstReviewReported(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_hdl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_editor.py lines=178 sha256=5f52e649326b14361562d1bb992637b9f311dfb00d892202f1b3275b99d8f6ca >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_editor.py lines=206 sha256=3917e6fbf97d59442a5814862ce1ad1d6087a9cf9851fa360c728e51579e893a >>>>>>>>>>
 """The editor behaviour that exists only in JavaScript.
 
 Drag-time alignment (`guides.js`) and the Tidy command (`model.tidy`) have no
@@ -75686,6 +76254,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "headings and named styles",
     "linked components",
     "pasting into another drawing",
+    "choosing from the palette",
   )
 
   def test_alignment_and_tidy(self):
@@ -75787,6 +76356,33 @@ class TestOnlyCopyFillsTheClipboard(unittest.TestCase):
       source = handle.read()
     writes = re.findall(r"^\s*clipboard\s*=\s*(.+)$", source, re.M)
     self.assertEqual(writes, ["model.copyItems(store.doc, selection.ids, store.path || null);"])
+
+
+class TestThePanelKeepsFocus(unittest.TestCase):
+  """An edit in the Properties panel rebuilds it. Rebuilt while the edit was
+  being committed -- as focus left the field -- it took away the field focus
+  was moving to: Tab from Heading to Text left focus on the page, where the
+  next keys reached the canvas's shortcuts. The panel's own rebuilds now
+  wait for that event to finish (refresh), and every rebuild puts focus back
+  in the same field. Checked in Chromium when fixed; this holds the shape of
+  the fix, since the suite runs no browser."""
+
+  def source(self):
+    with open(os.path.join(ROOT, "drawlogic", "web", "js", "panels.js")) as handle:
+      return handle.read()
+
+  def test_the_panel_rebuilds_itself_only_once_the_event_is_over(self):
+    source = self.source()
+    inspector = source[source.index("export class Inspector"):]
+    self.assertEqual(inspector.count("this.render()"), 1, "only refresh() calls it")
+    self.assertIn("setTimeout(() => {\n      this.pending = false;\n      this.render();",
+                  inspector)
+
+  def test_a_rebuild_puts_focus_back(self):
+    source = self.source()
+    body = source[source.index("  render() {"):source.index("  refresh() {")]
+    self.assertIn("this.focusedField()", body)
+    self.assertIn("this.refocus(focused)", body)
 
 
 class TestNoDebuggingLeftIn(unittest.TestCase):

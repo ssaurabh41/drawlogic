@@ -131,8 +131,31 @@ R3 (user chose: carry the symbols) components.carry_symbols copies the
   the served folder's symbols) + that folder's library, as a standalone open.
 Not done (review's "consider" list): canonical style comparison on paste,
   a lifetime for kept sheet symbols, a message when pins make tb order
-  impossible. Noticed: _opened does not load a subfolder's symbols.json, so
-  the editor and a CLI open can disagree for drawings below the served root.
+  impossible. (The subfolder symbols mismatch noticed here is B2 below.)
+
+Then findings3.md: four bugs, all confirmed, fixed; three of its usability
+ideas done (user said "fix all", and chose the rule for B2).
+B1 carry_symbols checks names against the base registry (built-ins and
+  --symbols) too: a folder's redefined `inv` is carried as `inv_2`, so
+  siblings in components/ keep the built-in. One the base has identically
+  is not copied.
+B2 Rule (user chose): a drawing reads the base + ITS OWN folder's
+  symbols.json, never the served folder's, in the editor as on the CLI.
+  Handler._registry_for(path) for layout/check/export/_opened/component;
+  /api/doc sends "symbols" with the drawing; each tab keeps tab.library and
+  useLibrary() swaps library + palette on switch (palette rebuilt only when
+  it differs). Save as symbol writes beside the drawing (payload.source).
+  plan() now refuses a cell of unknown type (was a 500).
+B3 PlaceTool.pick(type): setTool("place") first, then take the type.
+  editor_check "choosing from the palette".
+B4 Inspector.refresh(): the panel's own rebuilds wait a tick; render()
+  refocuses the same row/field afterwards. test_js_editor guards the shape.
+Ideas: Export SVG/Ctrl+E downloads (File > Save SVG in folder... keeps the
+  old write); "Name" -> "Outside label", "Copies" -> "Stack", Repeat says the
+  outside labels are numbered; panel/form labels are <label for>.
+Not done from findings3 (bigger design work): Repeat live preview, a
+  reorganised panel (common styling first), layout presets for repeated
+  groups, an "add ports" helper, reasons on disabled menu items.
 
 ## Earlier in the first session (newest first)
 
@@ -179,7 +202,7 @@ avoided and is drawn as a bridge.
 
 ## Things worth knowing
 
-- Suite: `python3 tests/run.py` -> 644 tests, 0 failed, 5 skipped (~30 s).
+- Suite: `python3 tests/run.py` -> 650 tests, 0 failed, 5 skipped (~30 s).
 - After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.

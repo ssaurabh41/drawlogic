@@ -527,13 +527,16 @@ resizes as a single object.
 
 Each section of the properties panel folds: click its title. What is folded
 is remembered in this browser, and **Pins** starts folded -- a long list most
-edits never need.
+edits never need. Every field is named by its label: a click on the label
+focuses the field, and a screen reader reads the label as its name. A cell's
+**Outside label** is the name written beside it; what is written inside is
+under **Text inside**.
 
 Ports and the tie cells (`tie0`, `tie1`) have no resize handles: they are
 moved, never resized, and on something that small the handles covered most
 of it. A press anywhere on or just beside one picks it up. The properties
 panel leaves out what such a cell cannot use -- width, height, text inside
-and copies -- and shows only its position, name and pins.
+and stack -- and shows only its position, outside label and pins.
 
 ### Autoshapes
 
@@ -766,7 +769,7 @@ purpose stays that size. Switched off, the box keeps its size and text that
 does not fit is cut short with an ellipsis, which the `cell-text-clipped`
 check reports.
 
-**Copies** says how many of the cell there are -- four cores, eight lanes.
+**Stack** says how many of the cell there are -- four cores, eight lanes.
 Two or more draws a copy of the cell's body behind it -- a gate's curve
 behind a gate, a flop's box behind a flop, without the pin stubs -- and a
 `×N` badge on its corner. A cell with no body to copy, such as a tie cell,
@@ -873,9 +876,13 @@ version is written beside the old one and moved into place, so a crash or a
 full disk part way through leaves the drawing as it was rather than half
 written. `drawlogic layout`, which rewrites its input, does the same.
 
-`Ctrl+E` exports. **Export is rendered by Python**, the same code path the CLI
-uses, so a file exported from the browser is byte-for-byte what
-`drawlogic export` would produce.
+`Ctrl+E` (or **Export SVG**) downloads the drawing as an SVG file, named
+after it. A download rather than a file written beside the drawing, because
+the editor is often running on another machine from the one whose slide or
+document the picture is for. **File > Save SVG in folder...** writes it into
+the served folder instead, for a folder that keeps its pictures with its
+drawings. **Export is rendered by Python**, the same code path the CLI uses,
+so either file is byte-for-byte what `drawlogic export` would produce.
 
 ### Custom pictures
 
@@ -1375,8 +1382,11 @@ to before (leaving the new file, which is harmless).
 those in `components/` first. **Repeat...** copies the selected item into a
 grid -- rows, columns, the gap across and down, and names in sequence from
 a prefix and a starting index, so 2 rows by 4 from "SM " and 0 give SM 0 to
-SM 7. Copies of an instance are instances of the same definition; each has
-an id of its own and sits in the same container.
+SM 7. The selected item is the first of them. What is numbered is the outside
+label, the name beside the block; a heading inside it is copied as it is.
+These are separate items, unlike **Stack**, which draws one item as a pile.
+Copies of an instance are instances of the same definition; each has an id
+of its own and sits in the same container.
 
 **Copying between drawings.** Ids, style names and refs each mean something
 only in the drawing they were written in, so a paste into another open
@@ -2341,8 +2351,10 @@ python3 -m unittest tests.test_js_parity
 Stated plainly, so nobody assumes more than exists.
 
 **Anything that needs a real browser.** Pointer input, selection handles, the
-properties panel, tabs, preferences, rename in place, the format painter,
-crash recovery and the Import Verilog dialog all live in the DOM. Each was
+properties panel (its focus kept across a rebuild, its labels naming their
+fields), tabs and the palette that follows them, the SVG download,
+preferences, rename in place, the format painter, crash recovery and the
+Import Verilog dialog all live in the DOM. Each was
 verified by driving the real editor in headless Chromium with trusted input
 events, but none of that is a standing test: a browser in the suite would
 cost the zero-dependency property that makes this installable on a

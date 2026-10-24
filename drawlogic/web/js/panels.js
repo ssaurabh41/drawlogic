@@ -186,9 +186,28 @@ function headPreview(kind, atStart) {
   return svg;
 }
 
+// A label and the control it names, joined so the label is the control's
+// name to a screen reader and to anything else that finds a field by what it
+// is called -- a click on it focuses the field too. A row holding several
+// controls, a set of buttons, is a group the label names.
+let rowCount = 0;
+
 function row(label, control) {
   const wrap = element("div", "prow");
-  wrap.appendChild(element("span", null, label));
+  const field = /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(control.tagName);
+  const name = element(field ? "label" : "span", null, label);
+  if (label) {
+    rowCount += 1;
+    name.id = `prow-${rowCount}`;
+    if (field) {
+      if (!control.id) control.id = `prow-${rowCount}-field`;
+      name.htmlFor = control.id;
+    } else if (control.querySelector("input, select, textarea, button")) {
+      control.setAttribute("role", "group");
+      control.setAttribute("aria-labelledby", name.id);
+    }
+  }
+  wrap.appendChild(name);
   const isNumber = control.tagName === "INPUT" && control.type === "number";
   wrap.appendChild(isNumber ? stepper(control) : control);
   return wrap;
@@ -1026,8 +1045,9 @@ export class Inspector {
     }
 
     const name = input(cell.label || "");
+    name.title = "The name written beside the block, outside it -- what Repeat numbers";
     this.bind(name, (doc, value) => model.setLabel(doc, cell.id, value), "rename");
-    root.appendChild(row("Name", name));
+    root.appendChild(row("Outside label", name));
     this.renderInside([cell]);
 
     // A port or a tie cell is moved, never resized, and holds no text: the
@@ -1316,9 +1336,10 @@ export class Inspector {
     copies.min = "1";
     copies.step = "1";
     copies.placeholder = "1";
-    copies.title = "2 or more draws it as a stack with a count";
+    copies.title = "2 or more draws this one item as a stack with a count -- "
+      + "still one item; Repeat makes separate ones";
     this.bind(copies, (doc, value) => model.setCopies(doc, cell.id, value), "copies");
-    this.root.appendChild(row("Copies", copies));
+    this.root.appendChild(row("Stack", copies));
   }
 
   renderImagePicker(cell) {

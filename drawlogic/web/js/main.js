@@ -1237,9 +1237,15 @@ function formDialog(title, note, okLabel, build) {
   });
 }
 
+let formFields = 0;
+
 function formRow(body, label, field, after = null) {
   const node = document.createElement("label");
   node.textContent = label;
+  // Named by its label, for a screen reader and for a click on the label.
+  formFields += 1;
+  if (!field.id) field.id = `form-field-${formFields}`;
+  node.htmlFor = field.id;
   body.append(node, field, after || document.createElement("span"));
 }
 
@@ -1469,8 +1475,9 @@ async function repeatAsked() {
   const fields = {};
   const answer = await formDialog(
     "Repeat",
-    item.ref ? "Each copy is linked to the same definition: editing it changes them all."
-      : "Copies of the selected item, in a grid.",
+    (item.ref ? "Each copy is linked to the same definition: editing it changes them all. "
+      : "Separate copies of the selected item, in a grid. ")
+      + "The selected one is the first of them, and each outside label is numbered.",
     "Repeat",
     (body) => {
       fields.rows = formInput("2", "number");
@@ -1484,7 +1491,7 @@ async function repeatAsked() {
       formRow(body, "Columns", fields.columns);
       formRow(body, "Gap across", fields.gapX);
       formRow(body, "Gap down", fields.gapY);
-      formRow(body, "Name prefix", fields.prefix);
+      formRow(body, "Label prefix", fields.prefix);
       formRow(body, "Starting index", fields.start);
       return () => {
         const value = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.value]));
@@ -2134,9 +2141,28 @@ function drcNote(text) {
   return note;
 }
 
+// Export hands you the file, the way a download does: the editor is often
+// running somewhere other than the machine whose slide the picture is for,
+// and a file written into the served folder is then one more step away.
 async function exportSvg() {
+  if (!store.doc) return;
+  const name = `${(store.path || "drawing").replace(/\.dlg$/, "").split("/").pop()}.svg`;
+  try {
+    // Rendered by Python, the same code the CLI uses, so this file is
+    // byte-for-byte what `drawlogic export` would produce.
+    const svg = await renderedSvg();
+    picture.download(new Blob([svg], { type: "image/svg+xml" }), name);
+    say(`downloaded ${name} (${svg.length} bytes)`, "good");
+  } catch (error) {
+    say(error.message, "bad");
+  }
+}
+
+// The same file written into the served folder instead, beside the drawings,
+// for a folder that keeps its pictures with its sources.
+async function exportSvgInFolder() {
   if (!store.doc || !store.path) return;
-  const target = window.prompt("Export SVG to (relative to the served folder):",
+  const target = window.prompt("Save SVG in the served folder as:",
                                store.path.replace(/\.dlg$/, ".svg"));
   if (!target) return;
   try {
@@ -2632,6 +2658,7 @@ function bindControls() {
   });
   ui.btnSave.addEventListener("click", save);
   ui.btnExport.addEventListener("click", exportSvg);
+  ui.btnExportFolder.addEventListener("click", exportSvgInFolder);
   ui.btnPng.addEventListener("click", copyPng);
   ui.btnCheck.addEventListener("click", () => runCheck());
   ui.drcLive.addEventListener("click", () => setLive(!liveOn));
@@ -2909,6 +2936,7 @@ async function start() {
     dirty: $("dirty"),
     btnSave: $("btn-save"),
     btnExport: $("btn-export"),
+    btnExportFolder: $("btn-export-folder"),
     btnPng: $("btn-png"),
     btnSymbol: $("btn-symbol"),
     btnImport: $("btn-import"),

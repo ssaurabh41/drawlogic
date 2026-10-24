@@ -496,7 +496,7 @@ select {
   align-items: center;
   gap: 8px;
 }
-.prow > span { font-size: 11px; color: var(--ink-3); }
+.prow > span, .prow > label { font-size: 11px; color: var(--ink-3); }
 /* A checkbox starts where the fields above it start. Left to the grid, it was
    stretched across the column and the browser drew it in the middle. */
 .prow > .pcheck { justify-self: start; margin: 0; }

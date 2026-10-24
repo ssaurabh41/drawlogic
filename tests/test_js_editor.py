@@ -162,6 +162,33 @@ class TestOnlyCopyFillsTheClipboard(unittest.TestCase):
     self.assertEqual(writes, ["model.copyItems(store.doc, selection.ids, store.path || null);"])
 
 
+class TestThePanelKeepsFocus(unittest.TestCase):
+  """An edit in the Properties panel rebuilds it. Rebuilt while the edit was
+  being committed -- as focus left the field -- it took away the field focus
+  was moving to: Tab from Heading to Text left focus on the page, where the
+  next keys reached the canvas's shortcuts. The panel's own rebuilds now
+  wait for that event to finish (refresh), and every rebuild puts focus back
+  in the same field. Checked in Chromium when fixed; this holds the shape of
+  the fix, since the suite runs no browser."""
+
+  def source(self):
+    with open(os.path.join(ROOT, "drawlogic", "web", "js", "panels.js")) as handle:
+      return handle.read()
+
+  def test_the_panel_rebuilds_itself_only_once_the_event_is_over(self):
+    source = self.source()
+    inspector = source[source.index("export class Inspector"):]
+    self.assertEqual(inspector.count("this.render()"), 1, "only refresh() calls it")
+    self.assertIn("setTimeout(() => {\n      this.pending = false;\n      this.render();",
+                  inspector)
+
+  def test_a_rebuild_puts_focus_back(self):
+    source = self.source()
+    body = source[source.index("  render() {"):source.index("  refresh() {")]
+    self.assertIn("this.focusedField()", body)
+    self.assertIn("this.refocus(focused)", body)
+
+
 class TestNoDebuggingLeftIn(unittest.TestCase):
   """A console.log added to chase a bug went out in a commit once already;
   the editor has no logging of its own, so any is left over."""

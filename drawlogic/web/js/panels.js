@@ -637,6 +637,9 @@ export function clearPaletteSelection(root) {
 
 // ---- properties ----
 
+// What can hold focus in the panel, in the order Tab visits it.
+const FOCUSABLE = "input, textarea, select, button, [tabindex]";
+
 export class Inspector {
   constructor(root, store, selection, onChange, onRefuse = () => {}) {
     this.root = root;
@@ -646,9 +649,65 @@ export class Inspector {
     this.onRefuse = onRefuse;
   }
 
+  // Rebuilt whole, and the field that had focus has it again afterwards --
+  // the one in the same row of the rebuilt panel. Without that, a rebuild
+  // took the field from under the caret: Tab from Heading to Text left focus
+  // on the page, where the next keys typed reached the canvas's shortcuts.
   render() {
+    const focused = this.focusedField();
     this.renderBody();
     foldSections(this.root);
+    if (focused) this.refocus(focused);
+  }
+
+  // A rebuild asked for by an edit made here. Left until the event that made
+  // it is over: a field commits as focus leaves it, and rebuilt at that
+  // moment the field focus was moving to was gone before it arrived. A
+  // moment later focus is in that field and is carried across.
+  refresh() {
+    if (this.pending) return;
+    this.pending = true;
+    setTimeout(() => {
+      this.pending = false;
+      this.render();
+    }, 0);
+  }
+
+  // Where focus is in the panel, as something the rebuilt panel has too:
+  // the row's label and which of its controls, or failing a row, which of
+  // the panel's controls.
+  focusedField() {
+    const active = document.activeElement;
+    if (!active || active === this.root || !this.root.contains(active)) return null;
+    const holder = active.closest(".prow");
+    const within = holder || this.root;
+    const where = {
+      label: holder ? holder.firstChild.textContent : null,
+      index: [...within.querySelectorAll(FOCUSABLE)].indexOf(active),
+    };
+    if (typeof active.selectionStart === "number") {
+      where.range = [active.selectionStart, active.selectionEnd];
+    }
+    return where;
+  }
+
+  refocus({ label, index, range }) {
+    let within = this.root;
+    if (label !== null) {
+      within = [...this.root.querySelectorAll(".prow")]
+        .find((holder) => holder.firstChild.textContent === label);
+      if (!within) return;
+    }
+    const field = [...within.querySelectorAll(FOCUSABLE)][index];
+    if (!field) return;
+    field.focus({ preventScroll: true });
+    if (range && typeof field.setSelectionRange === "function") {
+      try {
+        field.setSelectionRange(range[0], range[1]);
+      } catch (error) {
+        // A number field has no caret to put back.
+      }
+    }
   }
 
   renderBody() {
@@ -852,7 +911,7 @@ export class Inspector {
     const setTitle = (key, value, label) => {
       this.store.mutate(label, (d) => model.setTextStyle(d, [box.id], "headingStyle", key, value));
       this.onChange();
-      this.render();
+      this.refresh();
     };
     const size = input((box.headingStyle || {}).fontSize ?? "", "number");
     size.min = "4";
@@ -888,7 +947,7 @@ export class Inspector {
       });
       if (!accepted) this.onRefuse(`"${value}" is not a usable value`);
       this.onChange();
-      this.render();
+      this.refresh();
     };
     const select = (options, current, key, label) => {
       const field = document.createElement("select");
@@ -1038,7 +1097,7 @@ export class Inspector {
           this.store.mutate("align text",
                             (doc) => model.setTextAlign(doc, cell.id, key, value));
           this.onChange();
-          this.render();
+          this.refresh();
         });
         group.appendChild(button);
       }
@@ -1064,7 +1123,7 @@ export class Inspector {
       const heading = input(cell.heading || "");
       heading.placeholder = "none";
       this.bind(heading, (doc, value) => model.setHeading(doc, cell.id, value), "heading");
-      heading.addEventListener("change", () => this.render());
+      heading.addEventListener("change", () => this.refresh());
       root.appendChild(row("Heading", heading));
     }
 
@@ -1086,7 +1145,7 @@ export class Inspector {
     });
     this.bind(text, (doc, value) => model.setCellText(doc, cell.id, value), "cell text");
     // The box may have grown to fit, so the size fields above are redrawn.
-    text.addEventListener("change", () => this.render());
+    text.addEventListener("change", () => this.refresh());
     root.appendChild(row("Text", text));
     if (!line) this.renderTextFormat(cell);
     if (align) this.renderTextAlign(cell);
@@ -1116,7 +1175,7 @@ export class Inspector {
       });
       if (!accepted) this.onRefuse(`"${value}" is not a usable value`);
       this.onChange();
-      this.render();
+      this.refresh();
     };
 
     const which = element("div", "seg");
@@ -1127,7 +1186,7 @@ export class Inspector {
                                (this.textTarget === "heading") === (value === "heading"));
       button.addEventListener("click", () => {
         this.textTarget = value;
-        this.render();
+        this.refresh();
       });
       which.appendChild(button);
     }
@@ -1218,7 +1277,7 @@ export class Inspector {
     pick.addEventListener("change", () => {
       this.store.mutate("style", (d) => model.setStyleRef(d, this.selection.ids, pick.value || null));
       this.onChange();
-      this.render();
+      this.refresh();
     });
     root.appendChild(row("Style", pick));
     const actions = element("div", "pactions");
@@ -1247,7 +1306,7 @@ export class Inspector {
     fit.addEventListener("change", () => {
       this.store.mutate("fit text", (doc) => model.setTextFit(doc, cell.id, fit.checked));
       this.onChange();
-      this.render();
+      this.refresh();
     });
     root.appendChild(row("Fit box", fit));
   }
@@ -1278,7 +1337,7 @@ export class Inspector {
         this.store.mutate("picture",
                           (doc) => model.setCellImage(doc, cell.id, reader.result));
         this.onChange();
-        this.render();
+        this.refresh();
       };
       reader.readAsDataURL(file);
     });
@@ -1289,7 +1348,7 @@ export class Inspector {
       clear.addEventListener("click", () => {
         this.store.mutate("picture", (doc) => model.setCellImage(doc, cell.id, null));
         this.onChange();
-        this.render();
+        this.refresh();
       });
       root.appendChild(row("", clear));
     }
@@ -1377,7 +1436,7 @@ export class Inspector {
   setShapeStyle(shape, key, value, label) {
     this.store.mutate(label, (doc) => model.setStyle(doc, [shape.id], key, value));
     this.onChange();
-    this.render();
+    this.refresh();
   }
 
   // A wire: what it says on the sheet, what it is called, and how it is drawn.
@@ -1465,7 +1524,7 @@ export class Inspector {
     const apply = (value) => {
       this.store.mutate("wire colour", (d) => model.setNetStyle(d, net.id, "stroke", value));
       this.onChange();
-      this.render();
+      this.refresh();
     };
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -1579,7 +1638,7 @@ export class Inspector {
       this.store.mutate("colour",
                         (doc) => model.setStyle(doc, this.selection.ids, key, value));
       this.onChange();
-      this.render();
+      this.refresh();
     });
 
     button.addEventListener("click", (event) => {

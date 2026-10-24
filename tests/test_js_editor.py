@@ -58,6 +58,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "headings and named styles",
     "linked components",
     "pasting into another drawing",
+    "choosing from the palette",
   )
 
   def test_alignment_and_tidy(self):

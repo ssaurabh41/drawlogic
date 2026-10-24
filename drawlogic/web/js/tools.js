@@ -634,7 +634,13 @@ export class PlaceTool {
     this.type = null;
   }
 
-  arm(type) { this.type = type; }
+  // Take up `type` to place. The tool is made the active one first: making
+  // it active puts down whatever it held, so choosing Inverter after Block,
+  // with Block not yet placed, used to leave nothing in hand.
+  pick(type) {
+    this.ctx.setTool("place");
+    this.type = type;
+  }
 
   cursorFor() { return "copy"; }
 

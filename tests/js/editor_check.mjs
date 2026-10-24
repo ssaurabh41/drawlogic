@@ -28,7 +28,7 @@ import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
 import { Selection } from "../../drawlogic/web/js/selection.js";
-import { SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
+import { PlaceTool, SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -53,6 +53,7 @@ const EXPECTED = [
   ["headings and named styles", 14],
   ["linked components", 10],
   ["pasting into another drawing", 12],
+  ["choosing from the palette", 4],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -1210,6 +1211,32 @@ section("pasting into another drawing");
         out === 1 && unsaved.cells.length === 1 && !unsaved.cells[0].ref);
   check("with the wire to it", unsaved.nets.length === 0);
   geometry.setSheets({});
+}
+
+section("choosing from the palette");
+{
+  // The real place tool, with a setTool that does what main.js's does:
+  // whichever tool was active is put down before the named one is taken up.
+  // Choosing Inverter after Block, Block not yet placed, made the tool active
+  // over again after taking up the inverter -- putting it down.
+  const store = new model.Store();
+  store.load(model.blankDocument("p"), "p.dlg");
+  const selection = new Selection(store);
+  let active = "select";
+  let tool = null;
+  const context = { store, selection, drawOverlay() {}, say() {},
+                    setTool(name) { if (active === "place") tool.onDeactivate(); active = name; } };
+  tool = new PlaceTool(context);
+  tool.pick("block");
+  check("a symbol chosen from the palette is in hand", active === "place" && tool.type === "block");
+  tool.pick("inv");
+  check("choosing another before placing puts that one in hand", tool.type === "inv",
+        String(tool.type));
+  tool.pick("inv");
+  check("and choosing the same one twice keeps it", tool.type === "inv", String(tool.type));
+  tool.onPointerDown({ shiftKey: false }, [200, 200]);
+  check("a click then places it", store.doc.cells.length === 1
+        && store.doc.cells[0].type === "inv", JSON.stringify(store.doc.cells.map((c) => c.type)));
 }
 
 // Every area has to have run, and to have run the number of checks it says.

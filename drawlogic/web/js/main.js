@@ -2287,8 +2287,7 @@ async function autoLayout(containerId = null) {
 function rebuildPalette() {
   buildPalette(ui.paletteBody, {
     onPick: (id) => {
-      tools.place.arm(id);
-      setTool("place");
+      tools.place.pick(id);
       say(`click the canvas to place ${id} (shift-click to keep placing)`);
     },
   });

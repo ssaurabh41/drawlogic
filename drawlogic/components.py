@@ -111,6 +111,10 @@ def plan(doc, registry, ids):
   problems = []
   if not any(c.get("id") in inside for c in doc.cells):
     problems.append("select at least one cell to make a component of")
+  # One this drawing has no symbol for has no size or pins to take along.
+  for cell in doc.cells:
+    if cell.get("id") in inside and registry.for_cell(cell) is None:
+      problems.append("%s has an unknown cell type %r" % (cell.get("id"), cell.get("type")))
   _internal, crossing, wire_problems = _crossing(doc, inside)
   problems.extend(wire_problems)
   ports = []

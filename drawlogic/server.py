@@ -320,19 +320,24 @@ class Handler(BaseHTTPRequestHandler):
         return self._fail(404, "no such drawing")
       try:
         document, registry, problems = sheets.open_document(
-          target, self.registry, confine=self.root)
+          target, self._base(), confine=self.root)
       except DocumentError as exc:
         return self._fail(422, str(exc))
       except OSError as exc:
         return self._fail(500, "cannot read: %s" % exc)
       # A block standing in for another drawing belongs to this drawing, not
       # to the library, so it travels with it. The editor merges it in on open.
+      # So do the symbols themselves: the drawing's folder may define its own,
+      # and the editor draws and offers what this drawing reads, not what the
+      # served folder does.
+      data = registry.as_data()
       return self._send_json({
         "path": relative,
         "revision": _revision(target),
         "doc": document.ordered(),
-        "sheets": {type_id: data
-                   for type_id, data in registry.as_data().items()
+        "symbols": {type_id: entry for type_id, entry in data.items()
+                    if not type_id.startswith("sheet:")},
+        "sheets": {type_id: entry for type_id, entry in data.items()
                    if type_id.startswith("sheet:")},
         "problems": [{"level": p.level, "where": p.where, "message": p.message}
                      for p in problems],
@@ -400,12 +405,28 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return None, None, None, (400, "source is outside the served directory")
       document.path = resolved
+      registry = self._registry_for(resolved)
       problems = sheets.resolve(document, registry, confine=self.root)
     return document, registry, problems, None
 
   def _sheet_data(self, registry):
     return {type_id: data for type_id, data in registry.as_data().items()
             if type_id.startswith("sheet:")}
+
+  def _base(self):
+    """What every drawing reads before its own folder's symbols.json."""
+    return self.base or default_registry()
+
+  def _registry_for(self, path):
+    """The symbols the drawing at `path` reads: the base, then its folder's.
+
+    Its own folder's and no other, as `drawlogic export` reads them -- the
+    served folder's file is for the drawings beside it. A drawing one folder
+    down that drew with them here would draw differently everywhere else.
+    """
+    registry = self._base().copy()
+    load_folder(registry, os.path.dirname(path))
+    return registry
 
   def _beside(self, source, ref):
     """The served path of `ref`, read relative to the drawing at `source`."""
@@ -534,7 +555,7 @@ class Handler(BaseHTTPRequestHandler):
     # reported as made.
     folder = os.path.dirname(target)
     library_path = os.path.join(folder, FOLDER_FILE)
-    fresh = (self.base or default_registry()).copy()
+    fresh = self._base().copy()
     load_folder(fresh, folder)
     for type_id, definition in sorted((library or {}).items()):
       fresh.add(Symbol(type_id, definition), source=library_path)
@@ -552,7 +573,7 @@ class Handler(BaseHTTPRequestHandler):
       write_file(target, child.dumps())
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
-    registry = self.registry.copy()
+    registry = self._registry_for(document.path)
     problems = sheets.resolve(document, registry, confine=self.root)
     document.normalize(registry)
     return self._send_json({"doc": document.ordered(), "path": relative,
@@ -618,7 +639,7 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
-      registry = self.registry.copy()
+      registry = self._registry_for(resolved)
       # Confined to the served folder: a ref is written by whoever wrote the
       # document, and this one arrived in a request body.
       sheets.resolve(document, registry, confine=self.root)
@@ -678,7 +699,7 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
-      registry = self.registry.copy()
+      registry = self._registry_for(resolved)
       issues.extend(sheets.resolve(document, registry, confine=self.root))
 
     issues.extend(document.validate(registry))
@@ -694,8 +715,11 @@ class Handler(BaseHTTPRequestHandler):
   def _save_symbol(self, payload):
     """Turn the open drawing into a symbol and add it to the folder's library.
 
-    Written next to the drawings, under the name every reader already looks
-    for, so `drawlogic export` sees it without being told about it.
+    Written next to the drawing, `source`, under the name every reader
+    already looks for, so `drawlogic export` sees it without being told
+    about it -- and the drawings beside it, which read that folder's file
+    and no other, can place it. A drawing not saved yet is the served
+    folder's.
     """
     try:
       document = Document.from_data(payload.get("doc") or {})
@@ -705,21 +729,32 @@ class Handler(BaseHTTPRequestHandler):
     symbol_id = str(payload.get("id") or "").strip()
     if not _SYMBOL_ID.match(symbol_id):
       return self._fail(400, "a symbol id is letters, digits and underscores")
+    source = payload.get("source")
+    folder = self.root
+    if source:
+      beside = _safe_join(self.root, source)
+      if beside is None:
+        return self._fail(400, "source is outside the served directory")
+      folder = os.path.dirname(beside)
+    library_path = os.path.join(folder, FOLDER_FILE)
 
     try:
       data = authoring.symbol_from(document, symbol_id,
                                    name=payload.get("name"),
                                    category=payload.get("category") or "custom")
-      authoring.add_to_file(os.path.join(self.root, FOLDER_FILE),
-                            symbol_id, data)
+      authoring.add_to_file(library_path, symbol_id, data)
     except (authoring.AuthoringError, SymbolError) as exc:
       return self._fail(422, str(exc))
     except OSError as exc:
       return self._fail(500, "cannot write: %s" % exc)
 
-    self.registry.add(Symbol(symbol_id, data),
-                      source=os.path.join(self.root, FOLDER_FILE))
-    return self._send_json({"id": symbol_id, "symbols": self.registry.as_data()})
+    # The served folder's are kept for drawings not saved yet.
+    if os.path.realpath(folder) == os.path.realpath(self.root):
+      self.registry.add(Symbol(symbol_id, data), source=library_path)
+    symbols = self._registry_for(library_path).as_data()
+    return self._send_json({"id": symbol_id, "symbols": symbols,
+                            "path": os.path.relpath(library_path, self.root)
+                                      .replace(os.sep, "/")})
 
 
   def _import(self, payload):
@@ -763,7 +798,7 @@ class Handler(BaseHTTPRequestHandler):
       if resolved is None:
         return self._fail(400, "source is outside the served directory")
       document.path = resolved
-      registry = self.registry.copy()
+      registry = self._registry_for(resolved)
       # Confined to the served folder: a ref is written by whoever wrote the
       # document, and this one arrived in a request body.
       sheets.resolve(document, registry, confine=self.root)

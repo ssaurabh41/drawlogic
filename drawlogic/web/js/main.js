@@ -805,7 +805,7 @@ function switchTab(path, { keepTrail = false } = {}) {
   const tab = findTab(path);
   if (!tab || !tab.doc) return;
   captureActive();
-  geometry.setSheets(tab.sheets);
+  useLibrary(tab.library, tab.sheets);
   store.restore(tab);
   // A different drawing: nothing half-done carries over (see openDrawing).
   setTool("select");
@@ -1278,6 +1278,27 @@ function sayMade(result, note) {
   const problems = result.problems || [];
   if (problems.length) say(`${note}, but ${problems[0].where}: ${problems[0].message}`, "bad");
   else say(note, "good");
+}
+
+// The symbols the served folder reads, from /api/symbols: what a drawing
+// with no folder of its own yet draws with.
+let servedLibrary = {};
+// Which library the palette was last built from, so switching between two
+// drawings of one folder leaves it -- and a search typed into it -- alone.
+let paletteFrom = null;
+
+// The symbols the drawing in front reads, then its blocks. A drawing reads
+// its own folder's symbols.json and no other, as the exporter does, so two
+// tabs from two folders can mean different things by one type.
+function useLibrary(data, sheets) {
+  const library = data || servedLibrary;
+  geometry.setLibrary({ ...library });
+  geometry.setSheets(sheets || {});
+  const key = JSON.stringify(library);
+  if (key !== paletteFrom) {
+    paletteFrom = key;
+    rebuildPalette();
+  }
 }
 
 // The block symbols the drawing in front needs, kept with its tab too.
@@ -1781,12 +1802,13 @@ async function openDrawing(path) {
   try {
     const payload = await api(`/api/doc?path=${encodeURIComponent(path)}`);
     captureActive();
-    // Blocks for the drawings this one references, built from their ports.
-    geometry.setSheets(payload.sheets);
+    // The symbols this drawing reads, and blocks for the drawings it
+    // references, built from their ports.
+    useLibrary(payload.symbols, payload.sheets);
     store.load(payload.doc, payload.path);
     const tab = findTab(payload.path);
-    if (tab) tab.sheets = payload.sheets;
-    else openTabs.push({ path: payload.path, sheets: payload.sheets });
+    if (tab) Object.assign(tab, { library: payload.symbols, sheets: payload.sheets });
+    else openTabs.push({ path: payload.path, library: payload.symbols, sheets: payload.sheets });
     renderTabs();
     selection.clear();
     // A tool keeps state between clicks -- the wire tool holds the pin a wire
@@ -2451,12 +2473,18 @@ async function saveAsSymbol() {
     const result = await api("/api/symbol", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: store.doc, id, name: store.doc.title }),
+      body: JSON.stringify({ doc: store.doc, id, name: store.doc.title,
+                             source: store.path }),
     });
-    geometry.setLibrary(result.symbols);
-    rebuildPalette();
-    say(`${result.id} is in the palette now, and in this folder's symbols.json`,
-        "good");
+    // Every open drawing of that folder reads it now.
+    const folder = (path) => (path || "").replace(/[^/]*$/, "");
+    for (const tab of openTabs) {
+      if (folder(tab.path) === folder(store.path)) tab.library = result.symbols;
+    }
+    if (!folder(store.path)) servedLibrary = result.symbols;
+    const tab = findTab(store.path);
+    useLibrary(result.symbols, tab ? tab.sheets : geometry.sheetData());
+    say(`${result.id} is in the palette now, and in ${result.path}`, "good");
   } catch (error) {
     say(error.message, "bad");
   }
@@ -2973,8 +3001,8 @@ async function start() {
     render.setTheme(theme);
     model.setContainerDefaults(theme.container);
     routing.setLimits(drcLimits);
-    geometry.setLibrary(library);
-    rebuildPalette();
+    servedLibrary = library;
+    useLibrary(library);
 
     for (const file of listing.files) {
       const option = document.createElement("option");

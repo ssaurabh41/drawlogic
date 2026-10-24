@@ -912,7 +912,7 @@ which side a wire leaves from. So a port dropped roughly in the right place is
 moved exactly onto the edge it was nearest -- you do not have to land it on
 the pixel.
 
-The result is written to `symbols.json` in the folder you are serving, in the
+The result is written to `symbols.json` in the drawing's own folder, in the
 same format as the built-in library, so it is a text file you can diff, edit
 by hand, and commit alongside the drawings that use it. Every reader picks it
 up automatically:
@@ -1211,6 +1211,14 @@ by the editor and by every CLI subcommand. That is where
 drawings plus the cells they use is self-contained: clone it and everything
 resolves. `--symbols-dir` is for a library you share across folders.
 
+It is read for the drawings in that folder and no other -- not for those in
+a folder below it. The editor follows the same rule as the command line: a
+drawing in `components/` draws, lays out, checks and exports with
+`components/symbols.json`, whichever folder the editor was started on, and
+the palette offers what the drawing in front can use. Were the served
+folder's file read for it too, the same drawing would look different
+opened from a different place.
+
 Load order is built-ins, then `--symbols-dir` in the order given, then the
 folder's own file -- so the nearest definition wins.
 
@@ -1355,7 +1363,10 @@ Cells drawn with the folder's own symbols (its `symbols.json`) take those
 symbols with them into `components/symbols.json`, since a drawing reads only
 its own folder's: one already there and identical is used as it is, and one
 there under the same name that differs is left alone -- the component's copy
-takes a name of its own, such as `custom_sm_2`, and the message says so.
+takes a name of its own, such as `custom_sm_2`, and the message says so. A
+built-in counts as there: a folder that redefines `inv` gives the component
+an `inv_2`, rather than changing what `inv` means for every drawing already in
+`components/`.
 The drawing has to have been saved, since the component is kept beside it;
 the definition is written when you confirm, and undo takes the drawing back
 to before (leaving the new file, which is harmless).

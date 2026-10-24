@@ -449,9 +449,9 @@ class TestCustomSymbolsTravel(unittest.TestCase):
     self.assertEqual(self.opened()[2], [])
 
   def test_a_component_that_could_not_open_is_not_written(self):
-    # The server read the folder's symbols when it started; the file has
-    # gone since, so there is nothing to carry -- and the component, which
-    # this server can still draw, would open nowhere else.
+    # The folder's symbols file has gone since the drawing was opened, so
+    # its cell has no symbol to take along: refused, and nothing written,
+    # rather than a component that would open nowhere.
     os.remove(os.path.join(self.root, "symbols.json"))
     status, answer = self.make()
     self.assertEqual(status, 422, answer)
@@ -512,6 +512,62 @@ class TestCustomSymbolsTravel(unittest.TestCase):
     self.assertEqual(errors, [])
     self.assertEqual([c["type"] for c in doc.cells if not c["type"].startswith("port")],
                      ["inv_2"])
+
+  def test_the_editor_draws_it_with_the_symbols_its_folder_has(self):
+    # The component's folder names the carried symbol custom_sm_2, and gives
+    # custom_sm a meaning of its own. The editor drew every drawing with the
+    # served folder's symbols, so the component's one cell had nothing to
+    # draw with, and its custom_sm meant the served folder's instead.
+    other = dict(self.SM, name="Something else", size=[40, 40])
+    os.makedirs(os.path.join(self.root, "components"))
+    with open(os.path.join(self.root, "components", "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": other}, handle)
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    # One the served folder has and the component's does not.
+    from drawlogic.symbols import load_folder
+    with open(os.path.join(self.root, "symbols.json"), "w") as handle:
+      json.dump({"custom_sm": self.SM, "served_only": self.SM}, handle)
+    registry = default_registry().copy()
+    load_folder(registry, self.root)
+    self.httpd.RequestHandlerClass.registry = registry
+    with urlopen(self.base + "/api/doc?path=components/gpc.dlg") as response:
+      opened = json.loads(response.read().decode("utf-8"))
+    self.assertEqual(opened["symbols"]["custom_sm_2"]["size"], [80, 50])
+    self.assertEqual(opened["symbols"]["custom_sm"]["size"], [40, 40])
+    self.assertNotIn("served_only", opened["symbols"])
+    self.assertIn("inv", opened["symbols"])
+    # Checked, laid out and exported from the editor with those symbols too.
+    asked = {"doc": opened["doc"], "source": "components/gpc.dlg"}
+    status, checked = self.post("/api/check", asked)
+    self.assertEqual((status, checked["errors"]), (200, 0), checked)
+    status, laid = self.post("/api/layout", asked)
+    self.assertEqual(status, 200, laid)
+    # And a drawing of the served folder still reads that folder's.
+    with open(os.path.join(self.root, "top.dlg"), "w") as handle:
+      json.dump(self.top, handle)
+    with urlopen(self.base + "/api/doc?path=top.dlg") as response:
+      top = json.loads(response.read().decode("utf-8"))
+    self.assertEqual(top["symbols"]["custom_sm"]["size"], [80, 50])
+    self.assertNotIn("custom_sm_2", top["symbols"])
+    status, checked = self.post("/api/check", {"doc": top["doc"], "source": "top.dlg"})
+    self.assertEqual((status, checked["errors"]), (200, 0), checked)
+
+  def test_a_symbol_saved_from_a_drawing_goes_beside_it(self):
+    os.makedirs(os.path.join(self.root, "components"))
+    art = new_document("Tap")
+    art.shapes.append({"id": "r", "kind": "rect", "x": 0, "y": 0, "w": 40, "h": 30})
+    art.cells.append({"id": "p", "type": "port_in", "x": -40, "y": 10, "label": "i"})
+    status, saved = self.post("/api/symbol", {"doc": art.ordered(), "id": "tap",
+                                              "source": "components/tap.dlg"})
+    self.assertEqual(status, 200, saved)
+    self.assertEqual(saved["path"], "components/symbols.json")
+    self.assertIn("tap", self.library())
+    self.assertIn("tap", saved["symbols"])
+    # The served folder's drawings do not read it.
+    self.assertNotIn("custom_sm", saved["symbols"])
+    with open(os.path.join(self.root, "symbols.json")) as handle:
+      self.assertNotIn("tap", json.load(handle))
 
   def test_a_builtin_used_as_it_is_is_not_copied(self):
     # Built-in symbols are read by every drawing; none needs a copy.

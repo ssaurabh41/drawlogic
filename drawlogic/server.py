@@ -486,7 +486,8 @@ class Handler(BaseHTTPRequestHandler):
           return self._fail(422, "cannot read %s: %s" % (FOLDER_FILE, exc))
         if not isinstance(existing, dict):
           return self._fail(422, "%s must hold an object of symbols" % FOLDER_FILE)
-      library, renames = components.carry_symbols(child, registry, existing)
+      library, renames = components.carry_symbols(
+        child, registry, existing, self.base or default_registry())
       note = "made component %s" % relative
       if renames:
         note += " (its %s renamed there, as a different symbol has the name)" % (

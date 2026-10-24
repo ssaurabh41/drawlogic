@@ -310,37 +310,57 @@ def _fresh_id(doc, base):
   return candidate
 
 
-def carry_symbols(child, registry, existing):
+def _definition(registry, type_id):
+  """`type_id`'s entry exactly as the file it came from has it, or None."""
+  source = registry.source_of(type_id)
+  if not source or not os.path.isfile(source):
+    return None
+  try:
+    with open(source) as handle:
+      definition = json.load(handle).get(type_id)
+  except (OSError, ValueError, AttributeError):
+    return None
+  return definition if isinstance(definition, dict) else None
+
+
+def carry_symbols(child, registry, existing, base):
   """The symbol library the component's folder needs: (library, renames).
 
   A cell drawn with a symbol of the drawing's own folder -- its symbols.json
   -- is copied into a component one folder down, where that file is not
   read, so the component opened as "unknown cell type". Each such symbol's
   definition, exactly as its file has it, goes into the component folder's
-  library, `existing`. One already there and the same is used as it is; one
-  there under the same name that differs is left alone, and the component's
-  copy takes a name of its own, its cells renamed to match -- in `renames`.
-  Built-in symbols are not copied: every drawing reads those.
+  library, `existing`. A name that folder already gives a different symbol
+  is left alone, and the component's copy takes a name of its own, its cells
+  renamed to match -- in `renames`.
+
+  "Already gives" counts `base`, what every drawing reads before its
+  folder's file: the built-in symbols and any library the server was
+  started with. A folder may redefine `inv`, and copied under that name the
+  redefinition would become every sibling drawing's `inv`, taking the pins
+  their wires name. One `base` already has as it is needs no copy.
   """
-  from .symbols import BUILTIN_FILE
   library = dict(existing)
   renames = {}
-  builtin = os.path.abspath(BUILTIN_FILE)
   for type_id in sorted(set(c.get("type") for c in child.cells
                             if c.get("type") and not c.get("ref"))):
-    source = registry.source_of(type_id)
-    if not source or not os.path.isfile(source) or os.path.abspath(source) == builtin:
-      continue
-    try:
-      with open(source) as handle:
-        definition = json.load(handle).get(type_id)
-    except (OSError, ValueError, AttributeError):
-      definition = None
-    if not isinstance(definition, dict):
+    definition = _definition(registry, type_id)
+    if definition is None:
       continue
     name, n = type_id, 2
-    while name in library and library[name] != definition:
+    while True:
+      if name in library:
+        there = library[name]
+      elif name in base:
+        # One whose file cannot be read is a name taken all the same.
+        there = _definition(base, name) or {}
+      else:
+        break
+      if there == definition:
+        break
       name, n = "%s_%d" % (type_id, n), n + 1
+    if name not in library and _definition(base, name) == definition:
+      continue
     library[name] = definition
     if name != type_id:
       renames[type_id] = name

@@ -477,6 +477,49 @@ class TestCustomSymbolsTravel(unittest.TestCase):
     with open(os.path.join(self.root, "symbols.json")) as handle:
       self.assertEqual(json.load(handle), {"custom_sm": self.SM})
 
+  def test_a_redefined_builtin_does_not_change_the_drawings_beside_it(self):
+    # The folder redefines `inv`. Copied down under that name, it became the
+    # `inv` of every drawing in components/, whose wires name the built-in's
+    # pins -- an existing sibling stopped opening without being touched.
+    from drawlogic.symbols import load_folder
+    mine = dict(self.SM, pins=[{"name": "custom_in", "x": 0, "y": 25, "dir": "in"}])
+    with open(os.path.join(self.root, "symbols.json"), "w") as handle:
+      json.dump({"inv": mine}, handle)
+    registry = default_registry().copy()
+    load_folder(registry, self.root)
+    self.httpd.RequestHandlerClass.registry = registry
+    sibling = new_document("existing")
+    sibling.cells.extend([{"id": "u1", "type": "inv", "x": 0, "y": 0},
+                          {"id": "u2", "type": "inv", "x": 120, "y": 0}])
+    sibling.nets.append({"id": "n", "from": {"cell": "u1", "pin": "y"},
+                         "to": [{"cell": "u2", "pin": "a"}]})
+    os.makedirs(os.path.join(self.root, "components"))
+    sibling_path = os.path.join(self.root, "components", "existing.dlg")
+    sibling.save(sibling_path)
+
+    def sibling_errors():
+      doc, registry, problems = sheets.open_document(sibling_path)
+      return [str(i) for i in problems + doc.validate(registry) if i.level == "error"]
+    self.assertEqual(sibling_errors(), [])
+
+    self.top["cells"][0]["type"] = "inv"
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertIn("inv as inv_2", made["note"])
+    self.assertEqual(self.library(), {"inv_2": mine})
+    self.assertEqual(sibling_errors(), [])
+    doc, registry, errors = self.opened()
+    self.assertEqual(errors, [])
+    self.assertEqual([c["type"] for c in doc.cells if not c["type"].startswith("port")],
+                     ["inv_2"])
+
+  def test_a_builtin_used_as_it_is_is_not_copied(self):
+    # Built-in symbols are read by every drawing; none needs a copy.
+    self.top["cells"][0]["type"] = "inv"
+    status, made = self.make()
+    self.assertEqual(status, 200, made)
+    self.assertFalse(os.path.exists(os.path.join(self.root, "components", "symbols.json")))
+
 
 if __name__ == "__main__":
   unittest.main()

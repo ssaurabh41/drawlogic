@@ -978,6 +978,31 @@ export class ShapeTool {
   onDeactivate() { this.reset(); }
 }
 
+// One drag of a slider is one undo step. "input" fires per tick and each
+// was its own snapshot, so undoing a drag took dozens of Ctrl+Z; "change"
+// fires once, on release (or once per key press), and closes the gesture the
+// first tick opened. The first version of this left the opening call out and
+// still read as if it worked; it lives here, not in main.js, so node can
+// drive it. Losing focus mid-drag ends the step too, rather than leaving the
+// gesture open to swallow whatever is edited next.
+export function bindSlider(element, store, label, apply) {
+  let sliding = false;
+  const end = () => {
+    if (!sliding) return;
+    store.endGesture();
+    sliding = false;
+  };
+  element.addEventListener("input", () => {
+    if (!sliding) {
+      store.beginGesture(label);
+      sliding = true;
+    }
+    apply(Number(element.value));
+  });
+  element.addEventListener("change", end);
+  element.addEventListener("blur", end);
+}
+
 export function makeTools(context) {
   return {
     select: new SelectTool(context),

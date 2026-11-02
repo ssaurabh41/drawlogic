@@ -379,6 +379,34 @@ class TestThroughTheEditorsServer(unittest.TestCase):
     self.assertEqual([p["name"] for p in answer["sheets"]["sheet:components/blk.dlg"]["pins"]],
                      ["go"])
 
+  def test_resolve_reads_a_definition_two_levels_down_fresh(self):
+    # The editor's refresh after a save rests on this: asking about the top
+    # drawing is enough to see an SM port renamed under the GPC it places, so
+    # the GPC does not have to be open for the top drawing to be redrawn.
+    # (Only the SM's ports and title reach that far: the GPC's miniature
+    # draws each SM as a box, not what is inside it.)
+    from tests import ROOT
+    lanes = os.path.join(self.root, "lanes")
+    shutil.copy(os.path.join(ROOT, "examples", "gpu_linked.dlg"), lanes)
+    shutil.copytree(os.path.join(ROOT, "examples", "components"),
+                    os.path.join(lanes, "components"))
+    top = Document.load(os.path.join(lanes, "gpu_linked.dlg")).ordered()
+
+    def resolved():
+      status, answer = self.post("/api/resolve", {"doc": top, "source": "lanes/gpu_linked.dlg"})
+      self.assertEqual(status, 200, answer)
+      return answer["sheets"]
+
+    before = resolved()
+    leaf = os.path.join(lanes, "components", "sm.dlg")
+    sm = Document.load(leaf)
+    port = next(c for c in sm.cells if c.get("type") == "port_in")
+    port["label"] += "_renamed"
+    sm.save(leaf)
+    after = resolved()
+    self.assertNotEqual(before["sheet:components/gpc.dlg"], after["sheet:components/gpc.dlg"])
+    self.assertEqual(before["sheet:components/xbar.dlg"], after["sheet:components/xbar.dlg"])
+
 
 class TestCustomSymbolsTravel(unittest.TestCase):
   """A component made of cells drawn with the folder's own symbols.json takes

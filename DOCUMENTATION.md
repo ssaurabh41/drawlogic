@@ -1404,6 +1404,11 @@ clipboard holding whatever you last copied.
 **Edit component definition** opens the definition in a tab of its own.
 Saving it there reads it again into every open drawing using it, so their
 instances show its pins as they now are, and says "component updated".
+That includes drawings using it through another definition -- rename a port
+of an SM and the open top drawing placing the GPC made of SMs is redrawn
+too, whether or not the GPC is open. A change inside the SM that leaves its
+ports and title alone does not reach that far: the GPC's miniature draws each
+SM as a box.
 After editing a definition some other way, **Refresh components** does the
 same. A port that is renamed or removed leaves any wire still naming it
 exactly as it was, reported as an unresolved interface -- in the message
@@ -2333,8 +2338,9 @@ arrow position.
 
 `test_js_editor.py` covers what exists only in JavaScript and so has no
 Python counterpart to compare against: alignment, Tidy, nets with several
-loads, dragging a wire, auto-connect, undo through a gesture, duplicating a
-group, and a save or layout answer that arrives after the drawing changed. It
+loads, dragging a wire, auto-connect, undo through a gesture (a slider drag
+included), duplicating a group, and a save or layout answer that arrives
+after the drawing changed -- by an edit, an undo or a redo. It
 imports the real editor modules into node, and fails if any of those areas
 stops reporting.
 
@@ -2352,7 +2358,9 @@ Stated plainly, so nobody assumes more than exists.
 
 **Anything that needs a real browser.** Pointer input, selection handles, the
 properties panel (its focus kept across a rebuild, its labels naming their
-fields), tabs and the palette that follows them, the SVG download,
+fields), tabs and the palette that follows them, which open tabs a save
+redraws (its two halves are tested: the server reading a nested definition
+fresh, and the editor's test of which answers changed), the SVG download,
 preferences, rename in place, the format painter, crash recovery and the
 Import Verilog dialog all live in the DOM. Each was
 verified by driving the real editor in headless Chromium with trusted input

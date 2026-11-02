@@ -28,7 +28,7 @@ import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
 import { Selection } from "../../drawlogic/web/js/selection.js";
-import { PlaceTool, SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
+import { PlaceTool, SelectTool, bindSlider, constrainShape } from "../../drawlogic/web/js/tools.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -43,15 +43,15 @@ const EXPECTED = [
   ["auto-connect on drop", 5],
   ["placing onto a pin", 6],
   ["placing onto a wire end", 3],
-  ["undo through a gesture", 8],
+  ["undo through a gesture", 12],
   ["duplicating a group", 8],
-  ["stale answers", 8],
+  ["stale answers", 11],
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
   ["containers", 28],
   ["headings and named styles", 14],
-  ["linked components", 10],
+  ["linked components", 13],
   ["pasting into another drawing", 12],
   ["choosing from the palette", 4],
 ];
@@ -638,6 +638,41 @@ section("undo through a gesture");
   check("a text box made and left empty leaves nothing to undo",
         empty._undo.length === 0 && empty.doc.shapes.length === 0, `${empty._undo.length}`);
   check("and does not mark the drawing unsaved", empty.dirty === false);
+
+  // A slider fires "input" per tick and "change" once, on release -- or once
+  // per key press. Its helper opened no gesture, so a drag of TEXT from 100%
+  // to 210% took a Ctrl+Z per tick to take back.
+  const knob = {
+    value: "100", on: {},
+    addEventListener(type, handler) { this.on[type] = handler; },
+    fire(type, value) {
+      if (value !== undefined) this.value = String(value);
+      if (this.on[type]) this.on[type]();
+    },
+  };
+  const sized = new model.Store();
+  sized.load({ canvas: { font: { scale: 1 } } }, "d.dlg");
+  bindSlider(knob, sized, "text size",
+             (value) => sized.mutate("text size", (d) => { d.canvas.font.scale = value / 100; }));
+  for (const value of [120, 150, 195, 210]) knob.fire("input", value);
+  knob.fire("change");
+  check("one drag of a slider undoes as one step",
+        sized._undo.length === 1 && sized.doc.canvas.font.scale === 2.1, `${sized._undo.length}`);
+  check("all the way back to where the drag began",
+        sized.undo() === "text size" && sized.doc.canvas.font.scale === 1,
+        `${sized.doc.canvas.font.scale}`);
+  knob.fire("input", 110);
+  knob.fire("change");
+  knob.fire("input", 120);
+  knob.fire("change");
+  check("two presses of an arrow key are two steps", sized._undo.length === 2,
+        `${sized._undo.length}`);
+  knob.fire("input", 130);
+  knob.fire("blur");
+  knob.fire("input", 140);
+  knob.fire("change");
+  check("a drag that loses focus before release still ends its step",
+        sized._undo.length === 4, `${sized._undo.length}`);
 }
 
 // ---- duplicating a group ----
@@ -745,6 +780,22 @@ section("stale answers");
         store.matches(onC) === false);
   check("and a save from before that edit does not mark it clean",
         store.markSaved(onC) === false);
+
+  // Undo and redo put a different document in front as surely as an edit
+  // does. They did not move the generation, so a save sent before an undo
+  // came back and marked the undone drawing clean -- the bytes on disk were
+  // the state the undo took away, and the tab closed without a warning.
+  store.mutate("typed", (doc) => { doc.title = "C, typed"; });
+  const beforeUndo = store.stamp();
+  store.undo();
+  check("an answer from before an undo no longer describes the drawing",
+        store.matches(beforeUndo) === false);
+  check("and a save from before it leaves the drawing unsaved",
+        store.markSaved(beforeUndo) === false && store.dirty === true, `dirty=${store.dirty}`);
+  const beforeRedo = store.stamp();
+  store.redo();
+  check("nor is one from before a redo",
+        store.matches(beforeRedo) === false && store.markSaved(beforeRedo) === false);
 }
 
 // ---- drawing a shape with Shift ----
@@ -1126,6 +1177,18 @@ section("linked components");
         geometry.forCell({ type: "sheet", ref: "components/sm.dlg" }) !== null
         && geometry.forCell({ type: "sheet", ref: "components/sm_2.dlg" }) !== null);
   geometry.setSheets({});
+
+  // After a save, a drawing two levels up uses the saved one through a
+  // definition that may not be open at all, so every drawing linking any
+  // component is asked about, and the ones whose answer changed are redrawn.
+  check("a drawing linking any component is read again after a save",
+        model.linksComponents(doc) && !model.linksComponents({ cells: [{ id: "g", type: "inv" }] }));
+  const held = { "sheet:components/gpc.dlg": { size: [300, 200], draw: [{ op: "rect" }] } };
+  check("an answer that draws a definition differently is noticed",
+        model.sheetsChanged(held, { "sheet:components/gpc.dlg":
+                                    { size: [300, 200], draw: [{ op: "rect" }, { op: "text" }] } }));
+  check("and one that draws it the same is not",
+        !model.sheetsChanged(held, JSON.parse(JSON.stringify(held))));
 }
 
 section("pasting into another drawing");

@@ -166,12 +166,17 @@ export class Store {
 
   canRedo() { return this._redo.length > 0; }
 
+  // Both put a different document in front, so both move the generation as
+  // an edit does. They did not, and a save sent before an undo came back
+  // matching: it marked the undone drawing clean while the file held the
+  // state the undo had taken away, and the tab closed without a warning.
   undo() {
     if (!this._undo.length) return false;
     const entry = this._undo.pop();
     this._redo.push({ label: entry.label, doc: this.snapshot() });
     this.doc = entry.doc;
     this.dirty = true;
+    this.generation += 1;
     this.emit("undo");
     return entry.label;
   }
@@ -182,6 +187,7 @@ export class Store {
     this._undo.push({ label: entry.label, doc: this.snapshot() });
     this.doc = entry.doc;
     this.dirty = true;
+    this.generation += 1;
     this.emit("redo");
     return entry.label;
   }
@@ -544,6 +550,21 @@ export function setTextStyle(doc, ids, part, key, value) {
 // with nothing to draw it. A definition the answer does read is fresh.
 export function keptSheets(previous, fresh) {
   return { ...(previous || {}), ...(fresh || {}) };
+}
+
+// Whether a drawing places any linked component -- and so may be using a
+// saved drawing without naming it: the top of gpu_linked.dlg uses sm.dlg
+// through gpc.dlg, which need not be open to tell.
+export function linksComponents(doc) {
+  return !!doc && (doc.cells || []).some((c) => c.ref);
+}
+
+// Whether an answer from the server draws any definition differently from
+// the one held. The answer about a drawing two levels up is the only place
+// a nested save shows, as a changed miniature of the definition between.
+export function sheetsChanged(previous, fresh) {
+  return Object.entries(fresh || {}).some(
+    ([key, symbol]) => JSON.stringify((previous || {})[key]) !== JSON.stringify(symbol));
 }
 
 // ---- named styles ----

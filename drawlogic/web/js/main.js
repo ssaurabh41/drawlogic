@@ -14,7 +14,7 @@ import * as shortcuts from "./shortcuts.js";
 import * as render from "./render.js";
 import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
-import { makeTools, placementPreview } from "./tools.js";
+import { bindSlider, makeTools, placementPreview } from "./tools.js";
 import { Viewport } from "./viewport.js";
 
 const store = new model.Store();
@@ -1572,19 +1572,32 @@ function reportInterface(fine) {
 
 // After a drawing is saved, every open drawing using it as a component is
 // read again, so its instances show the definition as it now is.
+//
+// Using it at any depth, not only naming it: a port renamed in sm.dlg
+// changes the SM boxes in the miniature of the gpc.dlg placing them, and so
+// the top drawing placing that GPC. Picking only the tabs that name the saved file left the top one
+// stale until Refresh components. Which drawings use it indirectly is known
+// only on disk -- the definition between need not be open -- so every open
+// drawing that links a component is asked about (the server reads the whole
+// hierarchy fresh each time), and the ones whose answer changed are the ones
+// it reports as redrawn.
 async function refreshUsersOf(path) {
-  const users = openTabs.filter((tab) => tab.path !== path
-    && (tab.path === store.path ? store.doc : tab.doc)
-    && (tab.path === store.path ? store.doc : tab.doc).cells
-      .some((c) => c.ref && refPath(tab.path, c.ref) === path));
+  const docOf = (tab) => (tab.path === store.path ? store.doc : tab.doc);
+  const candidates = openTabs.filter((tab) => tab.path !== path
+    && model.linksComponents(docOf(tab)));
+  const users = [];
   let lost = 0;
-  for (const tab of users) {
-    const doc = tab.path === store.path ? store.doc : tab.doc;
+  for (const tab of candidates) {
+    const doc = docOf(tab);
+    const direct = doc.cells.some((c) => c.ref && refPath(tab.path, c.ref) === path);
     try {
       const result = await api("/api/resolve", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc, source: tab.path }),
       });
+      const held = tab.path === store.path ? geometry.sheetData() : tab.sheets;
+      if (!direct && !model.sheetsChanged(held, result.sheets)) continue;
+      users.push(tab);
       if (tab.path === store.path) useSheets(result.sheets);
       else tab.sheets = model.keptSheets(tab.sheets, result.sheets);
       lost += model.interfaceProblems(doc, result.sheets).length;
@@ -2622,33 +2635,17 @@ function bindControls() {
   ui.btnFit.addEventListener("click",
                              () => viewport.fit(store.doc.canvas.width, store.doc.canvas.height));
 
-  // One drag of a slider is one undo step. "input" fires per tick and each
-  // was its own snapshot, so undoing a drag took dozens of Ctrl+Z; "change"
-  // fires once, on release, and closes the gesture the first tick opened.
-  const slider = (element, label, apply) => {
-    let sliding = false;
-    element.addEventListener("input", () => {
-      if (!sliding) {
-        // disabled
-        sliding = true;
-      }
-      apply(Number(element.value));
-      redraw();
-    });
-    element.addEventListener("change", () => {
-      store.endGesture();
-      sliding = false;
-    });
-  };
-
-  slider(ui.fontSlider, "text size", (value) => {
+  // One drag, one undo step: see bindSlider.
+  bindSlider(ui.fontSlider, store, "text size", (value) => {
     ui.fontValue.value = `${value}%`;
     store.mutate("text size", (doc) => { doc.canvas.font.scale = value / 100; });
+    redraw();
   });
 
-  slider(ui.symbolSlider, "symbol size", (value) => {
+  bindSlider(ui.symbolSlider, store, "symbol size", (value) => {
     ui.symbolValue.value = `${value}%`;
     store.mutate("symbol size", (doc) => { doc.canvas.symbolScale = value / 100; });
+    redraw();
   });
 
   ui.fileSelect.addEventListener("change", () => {

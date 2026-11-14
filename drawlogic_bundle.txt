@@ -2664,7 +2664,7 @@ the examples and look at them.
 **`--host` has no authentication.** Binding beyond loopback is documented as
 "tunnel instead", but nothing stops it being used on a shared machine.
 <<<<<<<<<< DLBUNDLE END path=DOCUMENTATION.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=220 sha256=9d7b7a269b723ed588f3b4713fac3c2349b7c679017de3dfbb6f36f8f3f54db4 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=224 sha256=5c0a39086e560a0e90c9f55c598401433139ad8efe6a80c137b8015e355e8a27 >>>>>>>>>>
 # Session handoff
 
 A summary of one long working session on drawlogic, so a new session can
@@ -2878,6 +2878,10 @@ avoided and is drawn as a bridge.
 - Screenshots of an exported SVG: load it into a Playwright page with
   `setContent` (navigating to the file hangs on fonts). Chromium is at
   `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+- Commit author: "Peace" (the environment sets GIT_AUTHOR_NAME) with the
+  dummy email peace@example.com -- commit with
+  `GIT_AUTHOR_EMAIL=peace@example.com git commit ...`. Owner's choice
+  (Nov 2026); earlier commits are authored "Claude" and stay so.
 - Push with `git push origin HEAD:main`; check which branch the session is
   on first (`git status -sb`).
 - Editor server processes do not survive between turns here: start

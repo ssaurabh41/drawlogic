@@ -211,6 +211,10 @@ avoided and is drawn as a bridge.
 - Screenshots of an exported SVG: load it into a Playwright page with
   `setContent` (navigating to the file hangs on fonts). Chromium is at
   `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+- Commit author: "Peace" (the environment sets GIT_AUTHOR_NAME) with the
+  dummy email peace@example.com -- commit with
+  `GIT_AUTHOR_EMAIL=peace@example.com git commit ...`. Owner's choice
+  (Nov 2026); earlier commits are authored "Claude" and stay so.
 - Push with `git push origin HEAD:main`; check which branch the session is
   on first (`git status -sb`).
 - Editor server processes do not survive between turns here: start

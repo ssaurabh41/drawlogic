@@ -549,8 +549,35 @@ def _render_copies_badge(box, copies, out):
       ("fill", theme.COLORS["fill"])]), esc(text)))
 
 
-def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
-  """Draw one placed cell: its shapes transformed, its text kept upright."""
+def wired_pins(doc):
+  """The pins a wire reaches, as {cell id: set of pin names}."""
+  found = {}
+  for net in doc.nets:
+    for end in [net.get("from")] + routing.loads_of(net):
+      if isinstance(end, dict) and end.get("cell"):
+        found.setdefault(end["cell"], set()).add(end.get("pin"))
+  return found
+
+
+def stub_pin(symbol, op):
+  """The pin a "pin" role line is the stub of: the one at either of its ends."""
+  if op.get("role") != "pin" or op.get("op") != "line":
+    return None
+  for pin in symbol.pins:
+    for x, y in ((op.get("x1"), op.get("y1")), (op.get("x2"), op.get("y2"))):
+      if x == pin["x"] and y == pin["y"]:
+        return pin["name"]
+  return None
+
+
+def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0, wired=None):
+  """Draw one placed cell: its shapes transformed, its text kept upright.
+
+  `wired` is the set of this cell's pins a wire reaches, or None to draw
+  every pin -- a symbol on its own, as a preview. A pin no wire reaches has
+  its stub left out: on a gate with an input spare, a line running out to
+  nothing looked like a wire that had come loose.
+  """
   _render_stack(symbol, cell, symbol_scale, out)
   matrix = symbol.matrix_for(cell, symbol_scale)
   # Distinct from symbol_scale: this is how much the matrix magnifies, and it
@@ -584,6 +611,10 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
     # A block's miniature of the drawing it stands for, only when asked for.
     if str(op.get("role", "")).startswith("preview") and not cell.get("preview"):
       continue
+    if wired is not None:
+      stub = stub_pin(symbol, op)
+      if stub is not None and stub not in wired:
+        continue
     element = _op_element(
       op, _role_paint(op.get("role", "body"), style, stroke_factor, font_scale))
     if element:
@@ -719,154 +750,31 @@ def _free_pin_label(symbol, cell, pin_name, symbol_scale):
   return matrix.apply(local[0], local[1]), anchor
 
 
-def _walk(points, distance):
-  """The point a given way along a path, and the direction of travel there."""
-  for index in range(len(points) - 1):
-    ax, ay = points[index]
-    bx, by = points[index + 1]
-    length = abs(bx - ax) + abs(by - ay)
-    if length <= 0:
-      continue
-    if distance <= length:
-      ratio = distance / length
-      return ((ax + (bx - ax) * ratio, ay + (by - ay) * ratio),
-              ((bx - ax) / length, (by - ay) / length),
-              min(distance, length - distance))
-    distance -= length
-  return None
+def _arrow_spots(points):
+  """The arrowhead at the end of a wire: [(tip, direction)], or none.
 
-
-def _path_length(points):
-  return sum(abs(points[i + 1][0] - points[i][0])
-             + abs(points[i + 1][1] - points[i][1])
-             for i in range(len(points) - 1))
-
-
-def text_marks(doc, registry, routes, scale, font_scale):
-  """Every name on the sheet, as boxes an arrow should stay out of.
-
-  Public, and the browser has the same function, for the reason arrow_marks
-  is: the parity test has to ask the renderer the question it asks itself,
-  not a reconstruction of it.
+  The tip is the wire's last point -- where it meets the pin it feeds -- and
+  the head lies along the last run into it. One head, at the end and nowhere
+  else: heads spaced along a long wire, or slid off the end to dodge a dot or
+  a name, made a busy drawing busier while saying nothing the one at the pin
+  does not.
   """
-  boxes = []
-  for cell in doc.cells:
-    symbol = registry.for_cell(cell)
-    if symbol is None:
-      continue
-    written = cell_label_box(symbol, cell, scale, font_scale)
-    if written is not None:
-      boxes.append(written)
-  for written in net_label_boxes(doc, registry, routes).values():
-    if written is not None:
-      boxes.append(written)
-  return boxes
+  tip = points[-1]
+  for before in reversed(points[:-1]):
+    dx, dy = tip[0] - before[0], tip[1] - before[1]
+    length = math.hypot(dx, dy)
+    if length > 1e-6:
+      return [((tip[0], tip[1]), (dx / length, dy / length))]
+  return []
 
 
-def arrow_marks(junctions, hop_map):
-  """Everything an arrow has to keep clear of: junction dots and hop bridges.
-
-  Public, and the browser has the same function, because the parity test has
-  to ask what the renderer asks. It used to build its own list and leave the
-  hops out -- and so did the browser, so the two agreed with each other and
-  the test passed while the editor drew an arrow on a bridge the exported
-  file did not have. Two copies matching is not the same as either being
-  right, and only one of them was being rendered.
-  """
-  return list(junctions) + [spot for spots in hop_map.values()
-                            for spot in spots]
-
-
-def _arrow_spots(points, size, spacing=None, junctions=(), text=()):
-  """Where a wire's direction arrows go, and which way each one points.
-
-  One always sits near the receiving end, which is where a reader looks to ask
-  "what drives this?". On a long run that arrow is nowhere near most of the
-  wire, so more are spaced along it -- close enough that the direction reads
-  wherever the eye lands, far enough apart that the wire does not turn into a
-  dotted line. Arrows are kept off corners, where a head pointing into the
-  bend is worse than no head at all.
-
-  They are kept off junction dots too. Both are small solid marks in the same
-  ink, so an arrow on a dot reads as one slightly fatter arrow, and the
-  connection the dot announced is lost. The dot is the more important of the
-  two -- it is the only thing saying these wires are joined -- so the arrow is
-  the one that gives way.
-
-  `text` is every name on the sheet, and the same rule applies to it, only
-  more so: a name is the one thing on a wire that cannot be worked out from
-  looking at the drawing, and an arrowhead through the middle of one costs a
-  reader far more than a missing arrow does. An arrow with nowhere clear to go
-  is not drawn at all.
-  """
-  if len(points) < 2:
-    return []
-
-  spacing = spacing or theme.ARROW_SPACING
-  total = _path_length(points)
-
-  ax, ay = points[-2]
-  bx, by = points[-1]
-  last = abs(bx - ax) + abs(by - ay)
-
-  if last < size * 3:
-    # The final run is too short to hold a head clear of the pin, so the arrow
-    # goes in the middle of the longest run instead.
-    best = None
-    for index in range(len(points) - 1):
-      px, py = points[index]
-      qx, qy = points[index + 1]
-      length = abs(qx - px) + abs(qy - py)
-      if best is None or length > best[0]:
-        best = (length, (px, py), (qx, qy))
-    _, (px, py), (qx, qy) = best
-    length = max(best[0], 1e-6)
-    spots = [(((px + qx) / 2.0, (py + qy) / 2.0),
-              ((qx - px) / length, (qy - py) / length))]
-    keep_clear = total
-  else:
-    # Back off from the pin so the head does not sit on top of it.
-    offset = size * 1.6
-    run = max(last, 1e-6)
-    spots = [((bx - (bx - ax) / run * offset, by - (by - ay) / run * offset),
-              ((bx - ax) / run, (by - ay) / run))]
-    keep_clear = total - offset
-
-  extra = []
-  distance = spacing
-  while distance < keep_clear - spacing * 0.5:
-    found = _walk(points, distance)
-    if found is not None:
-      spot, direction, from_corner = found
-      if from_corner >= size * 2:
-        extra.append((spot, direction))
-    distance += spacing
-
-  found = extra + spots
-  if not junctions and not text:
-    return found
-  # An arrow is the most expendable mark on the sheet. Everything else it
-  # might land on -- a junction dot, a crossing bridge, a name -- carries
-  # something the reader cannot work out for themselves, while the direction
-  # of a wire is usually obvious from the pins at its ends. So the arrow moves
-  # along the wire to somewhere clear, and goes without rather than sit on top
-  # of any of them.
-  clear = []
-  for tip, direction in found:
-    moved = _slide_clear(points, tip, direction, size, junctions, text)
-    if moved is not None:
-      clear.append(moved)
-  return clear
-
-
-def arrow_spots_for(branches, mode, size, junctions=(), text=()):
+def arrow_spots_for(branches, mode):
   """Every arrowhead on one wire, for an arrow mode from routing.ARROW_MODES.
 
-  Per branch: every load wants to know which way the signal reaches it. A
-  wire pointing backward is the same wire walked from the load end, so its
-  heads gather near the driver; "both" is the two together. Branches share
-  their trunk near the driver, so heads walked from that end land on the
-  same spots more than once; there a spot is only drawn the first time.
+  "forward" puts a head on each load, where its branch arrives; "backward"
+  one on the driver, pointing back into it; "both" the two together. Every
+  branch starts at the driver, so heads at that end land on one spot more
+  than once, and a spot is only drawn the first time.
   """
   if mode == "none":
     return []
@@ -881,95 +789,17 @@ def arrow_spots_for(branches, mode, size, junctions=(), text=()):
   found = []
   seen = set()
   for points in walks:
-    for tip, direction in _arrow_spots(points, size, junctions=junctions,
-                                       text=text):
+    for tip, direction in _arrow_spots(points):
       # Floor rather than round(), which rounds halves to even where the
       # browser's copy of this rounds them up.
       key = (math.floor(tip[0] * 10 + 0.5), math.floor(tip[1] * 10 + 0.5),
              math.floor(direction[0] * 1000 + 0.5),
              math.floor(direction[1] * 1000 + 0.5))
-      if key in seen and mode != "forward":
+      if key in seen:
         continue
       seen.add(key)
       found.append((tip, direction))
   return found
-
-
-def _blocked(tip, size, junctions, text):
-  """Whether an arrowhead here would land on something that matters more."""
-  if not _clear_of(tip, junctions, drc.ARROW_TO_JUNCTION):
-    return True
-  half = size / 2.0
-  for x0, y0, x1, y1 in text:
-    if (x0 - half <= tip[0] <= x1 + half
-        and y0 - half <= tip[1] <= y1 + half):
-      return True
-  return False
-
-
-# How far along the wire an arrow will shuffle looking for a clear spot, and
-# in what steps. Far enough to clear a name, short enough that the head stays
-# on the stretch of wire it was describing.
-SLIDE_REACH = 44.0
-SLIDE_STEP = 4.0
-
-
-def _slide_clear(points, tip, direction, size, junctions, text):
-  """Move an arrow along its wire until it sits clear, or give it up.
-
-  Tried where it wanted to be first, then a little either way, so an arrow
-  only moves as far as it has to and a wire with room keeps its head where it
-  reads best -- near the end that receives the signal.
-  """
-  if not _blocked(tip, size, junctions, text):
-    return (tip, direction)
-
-  at = _distance_along(points, tip)
-  if at is None:
-    return None
-  step = SLIDE_STEP
-  while step <= SLIDE_REACH:
-    for away in (-step, step):
-      found = _walk(points, at + away)
-      if found is None:
-        continue
-      spot, heading, from_corner = found
-      if from_corner < size * 2:
-        continue
-      if not _blocked(spot, size, junctions, text):
-        return (spot, heading)
-    step += SLIDE_STEP
-  return None
-
-
-def _distance_along(points, tip):
-  """How far along a path a point sits, or None if it is not on it."""
-  travelled = 0.0
-  for index in range(len(points) - 1):
-    a = points[index]
-    b = points[index + 1]
-    length = abs(b[0] - a[0]) + abs(b[1] - a[1])
-    if length <= 0:
-      continue
-    if _on_segment(tip, a, b):
-      return travelled + abs(tip[0] - a[0]) + abs(tip[1] - a[1])
-    travelled += length
-  return None
-
-
-def _on_segment(point, a, b):
-  slack = 1e-6
-  return (min(a[0], b[0]) - slack <= point[0] <= max(a[0], b[0]) + slack
-          and min(a[1], b[1]) - slack <= point[1] <= max(a[1], b[1]) + slack)
-
-
-def _clear_of(point, others, distance):
-  """True if a point keeps its distance from every one of `others`."""
-  for other in others:
-    if (abs(point[0] - other[0]) < distance
-        and abs(point[1] - other[1]) < distance):
-      return False
-  return True
 
 
 def _net_path(points, hops, radius):
@@ -1346,8 +1176,6 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   routes = routing.route_all(doc, registry)
   hop_map = routing.hop_points(routes) if hops else {}
   junctions = routing.junctions(routes)
-  marks = arrow_marks(junctions, hop_map)
-  names = text_marks(doc, registry, routes, doc.symbol_scale, font_scale)
 
   for net, branches in routes:
     if not branches:
@@ -1392,8 +1220,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
     for net, branches in routes:
       style = net.get("style") or {}
       mode = routing.arrow_mode(doc, net, registry)
-      for tip, direction in arrow_spots_for(branches, mode, theme.ARROW_SIZE,
-                                            junctions=marks, text=names):
+      for tip, direction in arrow_spots_for(branches, mode):
         _render_arrow(tip, direction, theme.ARROW_SIZE,
                       style.get("stroke", theme.COLORS["net"]), out)
 
@@ -1869,6 +1696,7 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
   run = None
   # A drawing with no shapes, or no cells, still has the (empty) group for
   # them where it always was, so what reads an exported file finds it.
+  wired = wired_pins(doc)
   if not doc.shapes:
     out.append('<g class="dl-shapes">')
     out.append("</g>")
@@ -1894,7 +1722,8 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
     elif kind == "cell":
       symbol = registry.for_cell(item)
       if symbol is not None:
-        _render_cell(symbol, item, font_scale, out, doc.symbol_scale)
+        _render_cell(symbol, item, font_scale, out, doc.symbol_scale,
+                     wired.get(item.get("id"), set()))
   if not doc.cells:
     out.append('<g class="dl-cells">')
     out.append("</g>")

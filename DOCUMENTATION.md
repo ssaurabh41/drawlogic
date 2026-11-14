@@ -1177,7 +1177,7 @@ change to `theme.py`.
 | Role | Painted as |
 |---|---|
 | `body` | the cell's fill and stroke |
-| `pin` | stroke only, at wire weight so joints look continuous |
+| `pin` | stroke only, at wire weight so joints look continuous; left out when no wire reaches its pin |
 | `bubble` | filled, for inversion circles |
 | `decor` | stroke only, no fill, for open marks |
 | `ghost` | dashed grey, for placeholders |
@@ -1191,6 +1191,14 @@ change to `theme.py`.
 | `x`, `y` | position in the symbol's own coordinates |
 | `dir` | `in`, `out` or `inout` |
 | `width` | bit width; `0` means "any width" |
+
+**A pin with nothing wired to it is drawn without its stub.** A stub is a
+`pin` role line with one end on the pin, and on a gate with a spare input a
+line running out to nothing looked like a wire that had come loose -- the
+mux's select, left unwired, was the case that was reported. Wire the pin and
+its stub is drawn in full, so the wire meets the body. The pin itself is
+still there: the Wire tool shows it as a target, and a symbol previewed on
+its own (`drawlogic symbols preview`, the palette) draws every stub.
 
 ### Setting default sizes
 
@@ -1700,11 +1708,13 @@ set from the Arrows box when the wire is selected. A wire that meets an
 one is chosen, because "from the driver" means nothing on a signal that goes
 both ways, and an arrow there would say something false.
 
-One always sits near the receiving end,
-which is where a reader looks to ask "what drives this?", and on a long run
-more are spaced along the wire at `theme.ARROW_SPACING` -- a single arrow says
-nothing about a run that is mostly somewhere else. Arrows are kept off
-corners, where a head pointing into a bend reads worse than no head at all.
+Each wire gets one arrowhead at its end and none along the way: forward,
+its tip sits exactly where the wire meets the pin it feeds, so a wire
+fanning out to three loads has three heads, one on each. Backward puts a
+single head on the driver, pointing back into it, and both does the two.
+Heads used to be spaced along long wires as well, and moved about to keep
+off junction dots, bridges and names; on a busy drawing that was too many
+arrows saying no more than the one at the pin does.
 
 Turn them off for a drawing with `"canvas": { "arrows": false }`, for one
 export with `--no-arrows`, or for one net with `"style": { "arrow": "none" }` (`false` still works).
@@ -1889,7 +1899,6 @@ change.
 | `CORRIDOR_STEP` | 10 | how far apart the router tries successive corridors when its first choice is taken |
 | `CORRIDOR_TRIES` | 18 | how many corridors either side before giving up |
 | `WIRE_MIN_JOG` | 8 | the shortest step that reads as going round something rather than as a wobble |
-| `ARROW_TO_JUNCTION` | 12 | how far a direction arrow keeps from a junction dot, since both are small solid marks in the same ink |
 | `LABEL_CLEARANCE` | 5 | clear space demanded around a net name, so a label touching a wire counts as landing on it |
 | `LABEL_HEADROOM` | 20 | room left above a cell for its instance name |
 | `TEXT_TO_WIRE` | 6 | air an instance name needs from a wire |

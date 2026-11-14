@@ -546,33 +546,6 @@ class TestWhatEachRendererActuallyDraws(unittest.TestCase):
       browser["arrows"], exported,
       "the editor and the exported file disagree about arrows at a crossing")
 
-  def test_the_bridge_really_does_move_an_arrow(self):
-    """Otherwise the test above passes on a drawing where nothing is at stake
-    -- two renderers agreeing that there was nothing to move.
-
-    It used to demand that an arrow be *dropped*. An arrow now slides along
-    its wire first and is only given up when the whole run is spoken for, so
-    the bridge usually costs a position rather than an arrow. Either way the
-    marks have to come out somewhere other than where they would have with
-    the bridges ignored, which is the thing worth proving.
-    """
-    doc = _crossing_drawing()
-    routes = routing.route_all(doc, self.registry)
-    hop_map = routing.hop_points(routes)
-    self.assertTrue([s for spots in hop_map.values() for s in spots],
-                    "the fixture has no bridge, so it tests nothing")
-    kept = _exported_arrows(render_svg.render(doc, registry=self.registry))
-    # The same drawing with nothing to bridge over, so nothing for an arrow
-    # to keep clear of. Asked through render rather than of the placer, so
-    # what is compared is what the file actually carries.
-    without = _exported_arrows(
-      render_svg.render(doc, registry=self.registry, hops=False))
-    self.assertTrue(without, "the fixture draws no arrows at all")
-    self.assertNotEqual(
-      kept, without,
-      "the bridges changed nothing about where the arrows went, so both "
-      "renderers could ignore hops and still agree")
-
   def test_every_example_draws_the_same_arrows_in_both(self):
     for name in sorted(os.listdir(EXAMPLES)):
       if not name.endswith(".dlg"):
@@ -583,6 +556,52 @@ class TestWhatEachRendererActuallyDraws(unittest.TestCase):
         exported = _exported_arrows(render_svg.render(doc, registry=registry))
         self.assertEqual(browser["arrows"], exported,
                          "%s draws differently in the editor" % name)
+
+
+def _exported_cell_lines(svg):
+  """How many lines each cell's own artwork draws in the exported file."""
+  found = {}
+  for match in re.finditer(r'<g class="dl-cell" data-id="([^"]+)"', svg):
+    found[match.group(1)] = svg[match.end():svg.index("</g>", match.end())].count("<line")
+  return found
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestPinStubsAgree(unittest.TestCase):
+  """A pin no wire reaches has its stub left out, in the editor as in the file."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def spare_pins(self):
+    doc = new_document("spare")
+    doc.cells.extend([{"id": "a", "type": "port_in", "x": 10, "y": 100},
+                      {"id": "g", "type": "and2", "x": 120, "y": 90},
+                      {"id": "m", "type": "mux2", "x": 260, "y": 80}])
+    doc.nets.extend([
+      {"id": "n1", "from": {"cell": "a", "pin": "p"}, "to": [{"cell": "g", "pin": "a"}]},
+      {"id": "n2", "from": {"cell": "g", "pin": "y"}, "to": [{"cell": "m", "pin": "d0"}]}])
+    doc.normalize(self.registry)
+    return doc
+
+  def test_a_drawing_with_spare_pins_draws_the_same_stubs_in_both(self):
+    doc = self.spare_pins()
+    exported = _exported_cell_lines(render_svg.render(doc, registry=self.registry))
+    self.assertEqual(_browser_render(doc, self.registry)["cellLines"], exported)
+    # And the fixture does leave stubs out: and2 draws three with every pin
+    # wired, the mux four.
+    self.assertEqual((exported["g"], exported["m"]), (2, 1))
+
+  def test_every_example_draws_the_same_stubs_in_both(self):
+    for name in sorted(os.listdir(EXAMPLES)):
+      if not name.endswith(".dlg"):
+        continue
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(os.path.join(EXAMPLES, name))
+        self.assertEqual(
+          _browser_render(doc, registry)["cellLines"],
+          _exported_cell_lines(render_svg.render(doc, registry=registry)),
+          "%s draws its pin stubs differently in the editor" % name)
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -725,7 +744,7 @@ class TestRouterParity(unittest.TestCase):
     spots = [spot
              for _net, branches in routes
              for points in branches if len(points) >= 2
-             for spot in render_svg._arrow_spots(points, theme.ARROW_SIZE)]
+             for spot in render_svg._arrow_spots(points)]
     self.assertTrue(spots, "a wire this long should carry an arrow")
     for tip, way in spots:
       self.assertGreater(

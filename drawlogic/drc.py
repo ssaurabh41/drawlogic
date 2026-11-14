@@ -64,19 +64,6 @@ TOUCHING = 0.5
 # something, so the drawing is clearer with the wire moved to avoid it.
 WIRE_MIN_JOG = 8.0
 
-# How far a direction arrow keeps from a junction dot or a crossing bridge.
-#
-# A dot and an arrowhead are both small solid marks in the same ink, so one
-# drawn on the other reads as a single slightly fatter arrow -- and the
-# connection the dot was there to announce is gone. A bridge is the same
-# problem in the other direction: the arrow sits in the bulge, and the reader
-# cannot see whether the wire hopped or stopped. Both marks say something the
-# arrow does not, so the arrow is the one that moves.
-ARROW_TO_MARK = 12.0
-
-# The old name, kept because it reads better where only dots are meant.
-ARROW_TO_JUNCTION = ARROW_TO_MARK
-
 # ---- text -----------------------------------------------------------------
 
 # Clear space demanded around a net name. A label touching a wire is as bad as
@@ -200,8 +187,6 @@ def as_data():
     "corridorTries": CORRIDOR_TRIES,
     "wireMinJog": WIRE_MIN_JOG,
     "touching": TOUCHING,
-    "arrowToMark": ARROW_TO_MARK,
-    "arrowToJunction": ARROW_TO_JUNCTION,
     "labelClearance": LABEL_CLEARANCE,
     "labelHeadroom": LABEL_HEADROOM,
     "textToWire": TEXT_TO_WIRE,

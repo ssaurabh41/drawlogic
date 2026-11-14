@@ -48,11 +48,11 @@
 <path class="dl-net" data-id="n_ab" d="M732.555 249 L922.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_b" d="M1122.555 249 L1192.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_out" d="M1392.555 249 L1542.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="251.355,249 244.355,252.15 244.355,245.85" fill="#16202b" />
-<polygon points="521.355,249 514.355,252.15 514.355,245.85" fill="#16202b" />
-<polygon points="911.355,249 904.355,252.15 904.355,245.85" fill="#16202b" />
-<polygon points="1181.355,249 1174.355,252.15 1174.355,245.85" fill="#16202b" />
-<polygon points="1531.355,249 1524.355,252.15 1524.355,245.85" fill="#16202b" />
+<polygon points="262.555,249 255.555,252.15 255.555,245.85" fill="#16202b" />
+<polygon points="532.555,249 525.555,252.15 525.555,245.85" fill="#16202b" />
+<polygon points="922.555,249 915.555,252.15 915.555,245.85" fill="#16202b" />
+<polygon points="1192.555,249 1185.555,252.15 1185.555,245.85" fill="#16202b" />
+<polygon points="1542.555,249 1535.555,252.15 1535.555,245.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_a0" data-type="sheet" transform="matrix(1.3333,0,0,1.5714,262.555,194)">

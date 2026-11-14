@@ -26,16 +26,16 @@
 <text x="779" y="138" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
 <text x="779" y="170" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="779" y="202" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
-<polygon points="408.8,142 401.8,145.15 401.8,138.85" fill="#16202b" />
-<polygon points="408.8,174 401.8,177.15 401.8,170.85" fill="#16202b" />
-<polygon points="408.8,206 401.8,209.15 401.8,202.85" fill="#16202b" />
-<polygon points="408.8,238 401.8,241.15 401.8,234.85" fill="#16202b" />
-<polygon points="408.8,270 401.8,273.15 401.8,266.85" fill="#16202b" />
-<polygon points="408.8,302 401.8,305.15 401.8,298.85" fill="#16202b" />
-<polygon points="408.8,334 401.8,337.15 401.8,330.85" fill="#16202b" />
-<polygon points="928.8,142 921.8,145.15 921.8,138.85" fill="#16202b" />
-<polygon points="928.8,174 921.8,177.15 921.8,170.85" fill="#16202b" />
-<polygon points="928.8,206 921.8,209.15 921.8,202.85" fill="#16202b" />
+<polygon points="420,142 413,145.15 413,138.85" fill="#16202b" />
+<polygon points="420,174 413,177.15 413,170.85" fill="#16202b" />
+<polygon points="420,206 413,209.15 413,202.85" fill="#16202b" />
+<polygon points="420,238 413,241.15 413,234.85" fill="#16202b" />
+<polygon points="420,270 413,273.15 413,266.85" fill="#16202b" />
+<polygon points="420,302 413,305.15 413,298.85" fill="#16202b" />
+<polygon points="420,334 413,337.15 413,330.85" fill="#16202b" />
+<polygon points="940,142 933,145.15 933,138.85" fill="#16202b" />
+<polygon points="940,174 933,177.15 933,170.85" fill="#16202b" />
+<polygon points="940,206 933,209.15 933,202.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_fifo" data-type="sheet" transform="matrix(1,0,0,1,420,120)">

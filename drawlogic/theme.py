@@ -103,11 +103,6 @@ PIN_LABEL_INSET = 8.0
 JUNCTION_RADIUS = 3.2
 ARROW_SIZE = 7.0
 
-# How far apart direction arrows sit along a wire. One arrow near the
-# receiving end is enough on a short run and useless on a long one, where most
-# of the wire is nowhere near it.
-ARROW_SPACING = 240.0
-
 # Radius of the little bridge drawn where one wire crosses another
 # without connecting to it.
 HOP_RADIUS = 5.0
@@ -207,7 +202,6 @@ def as_data():
     "fontStacks": FONT_STACKS,
     "junctionRadius": JUNCTION_RADIUS,
     "arrowSize": ARROW_SIZE,
-    "arrowSpacing": ARROW_SPACING,
     "hopRadius": HOP_RADIUS,
     "wireDashes": WIRE_DASHES,
     "cellText": CELL_TEXT,

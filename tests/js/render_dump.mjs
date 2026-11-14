@@ -109,6 +109,12 @@ console.log(JSON.stringify({
                           && !(n.attrs.transform || "").includes("matrix"))
     .map((n) => n.attrs.transform).sort(),
   arrows: arrowsUnder(svg).sort(),
+  // How many lines each cell's own artwork draws, its pin stubs among them:
+  // a stub is left out when no wire reaches its pin.
+  cellLines: Object.fromEntries(all.filter((n) => n.attrs.class === "dl-cell")
+    .map((n) => [n.attrs["data-id"], flatten(n).filter((c) => c.tag === "line"
+      && !flatten(n).some((g) => g.attrs.class === "dl-stack"
+                          && flatten(g).includes(c))).length])),
   junctions: all.filter((n) => n.tag === "circle"
                         && (n.attrs.class || "").includes("dl-junction"))
     .map((n) => [n.attrs.cx, n.attrs.cy]).sort(),

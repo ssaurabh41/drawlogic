@@ -71,19 +71,17 @@
 <path class="dl-net" data-id="n_mc1" d="M1476.74 466 L1531.74 466 L1531.74 500 L1586.74 500" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_h0" d="M1726.74 358 L1876.74 358" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_h1" d="M1726.74 500 L1876.74 500" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="235.54,358 228.54,361.15 228.54,354.85" fill="#16202b" />
-<polygon points="565.54,358 558.54,361.15 558.54,354.85" fill="#16202b" />
-<polygon points="491.74,585 488.59,578 494.89,578" fill="#16202b" />
-<polygon points="565.54,802 558.54,805.15 558.54,798.85" fill="#16202b" />
-<polygon points="865.54,358 858.54,361.15 858.54,354.85" fill="#16202b" />
-<polygon points="865.54,802 858.54,805.15 858.54,798.85" fill="#16202b" />
-<polygon points="1285.54,358 1278.54,361.15 1278.54,354.85" fill="#16202b" />
-<polygon points="1201.74,657 1204.89,664 1198.59,664" fill="#16202b" />
-<polygon points="1285.54,466 1278.54,469.15 1278.54,462.85" fill="#16202b" />
-<polygon points="1575.54,358 1568.54,361.15 1568.54,354.85" fill="#16202b" />
-<polygon points="1575.54,500 1568.54,503.15 1568.54,496.85" fill="#16202b" />
-<polygon points="1865.54,358 1858.54,361.15 1858.54,354.85" fill="#16202b" />
-<polygon points="1865.54,500 1858.54,503.15 1858.54,496.85" fill="#16202b" />
+<polygon points="246.74,358 239.74,361.15 239.74,354.85" fill="#16202b" />
+<polygon points="576.74,358 569.74,361.15 569.74,354.85" fill="#16202b" />
+<polygon points="576.74,802 569.74,805.15 569.74,798.85" fill="#16202b" />
+<polygon points="876.74,358 869.74,361.15 869.74,354.85" fill="#16202b" />
+<polygon points="876.74,802 869.74,805.15 869.74,798.85" fill="#16202b" />
+<polygon points="1296.74,358 1289.74,361.15 1289.74,354.85" fill="#16202b" />
+<polygon points="1296.74,466 1289.74,469.15 1289.74,462.85" fill="#16202b" />
+<polygon points="1586.74,358 1579.74,361.15 1579.74,354.85" fill="#16202b" />
+<polygon points="1586.74,500 1579.74,503.15 1579.74,496.85" fill="#16202b" />
+<polygon points="1876.74,358 1869.74,361.15 1869.74,354.85" fill="#16202b" />
+<polygon points="1876.74,500 1869.74,503.15 1869.74,496.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="sm0" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,576.74,298)">
@@ -108,8 +106,6 @@
 <g class="dl-cell" data-id="sm1" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,576.74,448)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -146,8 +142,6 @@
 <g class="dl-cell" data-id="sm3" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,876.74,448)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -184,8 +178,6 @@
 <g class="dl-cell" data-id="sm5" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,576.74,892)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -222,8 +214,6 @@
 <g class="dl-cell" data-id="sm7" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,876.74,892)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />

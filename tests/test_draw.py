@@ -215,18 +215,12 @@ class TestJunctionsAreNeverHidden(unittest.TestCase):
   """A junction dot is the only mark saying two wires are connected.
 
   Losing one is not a cosmetic problem: the drawing stops claiming a
-  connection that the file still has. Both ways of losing one were reported by
-  a user as "the dot disappears when it is close to a cell, or close to an
-  arrow".
+  connection that the file still has. It was reported by a user as "the dot
+  disappears when it is close to a cell".
   """
 
   def fanout(self, load_x=200, dy=40):
-    """A driver fanning out to two loads, so the split lands near its body.
-
-    The defaults are a case where an arrow would otherwise be drawn on the
-    junction dot, which is what makes the arrow rule testable at all -- with
-    the loads further away the two never collide and the rule does nothing.
-    """
+    """A driver fanning out to two loads, so the split lands near its body."""
     doc = new_document("dot", 700, 420)
     doc.cells.extend([
       {"id": "a", "type": "port_in", "x": 40, "y": 200, "label": "a"},
@@ -257,105 +251,6 @@ class TestJunctionsAreNeverHidden(unittest.TestCase):
     self.assertTrue(routing.junctions(routes), "expected a junction to test")
     svg = render_svg.render(doc)
     self.assertIn("<circle", svg.split('class="dl-junctions"')[1])
-
-  def test_an_arrow_gives_way_to_a_dot(self):
-    """Both are small solid marks in the same ink, so one on the other reads
-    as a single fatter arrow and the connection is lost."""
-    doc = self.fanout()
-    routes = routing.route_all(doc, default_registry())
-    dots = routing.junctions(routes)
-    self.assertTrue(dots)
-
-    for _net, branches in routes:
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, _way in render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                                 junctions=dots):
-          for dot in dots:
-            self.assertFalse(
-              abs(tip[0] - dot[0]) < drc.ARROW_TO_JUNCTION
-              and abs(tip[1] - dot[1]) < drc.ARROW_TO_JUNCTION,
-              "an arrow at %r sits on the junction at %r" % (tip, dot))
-
-  def test_an_arrow_gives_way_to_a_crossing_bridge_too(self):
-    """A bridge is the same problem as a dot in the other direction: the arrow
-    sits in the bulge, and the reader cannot see whether the wire hopped or
-    stopped. Reported as arrows overlapping hops.
-    """
-    doc = build(
-      [port("a", 40, 200), port("y", 620, 200, kind="port_out"),
-       port("b", 300, 40), port("c", 300, 420, kind="port_out")],
-      [wire("h", "a", "p", "y", "p", "h"),
-       wire("v", "b", "p", "c", "p", "v")], width=700, height=500)
-
-    routes = routing.route_all(doc, default_registry())
-    hops = [spot for spots in routing.hop_points(routes).values()
-            for spot in spots]
-    self.assertTrue(hops, "expected a crossing bridge to test")
-    marks = list(routing.junctions(routes)) + hops
-
-    for _net, branches in routes:
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, _way in render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                                 junctions=marks):
-          for hop in hops:
-            self.assertFalse(
-              abs(tip[0] - hop[0]) < drc.ARROW_TO_MARK
-              and abs(tip[1] - hop[1]) < drc.ARROW_TO_MARK,
-              "an arrow at %r sits on the bridge at %r" % (tip, hop))
-
-  def test_no_drawn_arrow_sits_on_a_bridge_in_any_example(self):
-    """The rule above is only worth anything if render() passes the bridges
-    in -- which it did not at first, so every drawn arrow ignored them.
-
-    Asked of the shipped drawings rather than a made-up one, because a
-    collision needs a long wire crossing several others at the right spacing.
-    soc_top had an arrow drawn exactly on a bridge, which is what was
-    reported; a constructed two-wire case never gets near one.
-    """
-    import re
-    for name in ("soc_top", "spi_master", "cdc_fifo", "alu_slice"):
-      with self.subTest(example=name):
-        doc, registry, _ = open_example(
-          os.path.join(ROOT, "examples", name + ".dlg"))
-        routes = routing.route_all(doc, registry)
-        hops = [spot for spots in routing.hop_points(routes).values()
-                for spot in spots]
-        svg = render_svg.render(doc, registry)
-        tips = [(float(m.group(1)), float(m.group(2)))
-                for m in re.finditer(r'<polygon points="([-\d.]+),([-\d.]+)',
-                                     svg)]
-        self.assertTrue(tips, "no arrows were drawn at all")
-        for tip in tips:
-          for hop in hops:
-            self.assertFalse(
-              abs(tip[0] - hop[0]) < drc.ARROW_TO_MARK
-              and abs(tip[1] - hop[1]) < drc.ARROW_TO_MARK,
-              "%s: a drawn arrow at %r sits on the bridge at %r"
-              % (name, tip, hop))
-
-  def test_the_arrow_rule_actually_drops_something(self):
-    """Otherwise the test above passes on a drawing where no arrow was ever
-    near a dot, and would keep passing with the rule deleted."""
-    doc = self.fanout()
-    routes = routing.route_all(doc, default_registry())
-    dots = routing.junctions(routes)
-
-    def count(**kwargs):
-      total = 0
-      for _net, branches in routes:
-        for points in branches:
-          if len(points) >= 2:
-            total += len(render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                                 **kwargs))
-      return total
-
-    kept = count(junctions=dots)
-    self.assertLess(kept, count(), "the rule dropped no arrow here")
-    self.assertGreater(kept, 0, "every arrow was dropped")
 
 
 class TestPortStubs(unittest.TestCase):
@@ -490,6 +385,9 @@ class TestRender(unittest.TestCase):
 
 
 class TestDirectionArrows(unittest.TestCase):
+  """One arrowhead at the end of each wire, its tip where the wire meets the
+  pin it feeds -- and none along the way. Heads spaced along long wires, and
+  slid about to dodge dots and names, were reported as too many arrows."""
 
   def setUp(self):
     self.doc = Document.load(EXAMPLE)
@@ -497,29 +395,68 @@ class TestDirectionArrows(unittest.TestCase):
   def _arrows(self, svg):
     return svg.count("<polygon")
 
+  def _tips(self, svg):
+    return [tuple(float(v) for v in m.group(1).split(" ")[0].split(","))
+            for m in re.finditer(r'<polygon points="([^"]+)"', svg)]
+
+  def pair(self, width=600, gap=300):
+    doc = new_document(width=width)
+    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
+    doc.cells.append({"id": "u2", "type": "inv", "x": gap, "y": 0})
+    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "u2", "pin": "a"}})
+    doc.normalize()
+    return doc
+
+  def pin_at(self, doc, cell_id, pin):
+    cell = doc.cell(cell_id)
+    return default_registry().for_cell(cell).pin_position(cell, pin, doc.symbol_scale)
+
   def test_every_wire_gets_at_least_one_arrow_by_default(self):
     svg = render_svg.render(self.doc)
     self.assertGreaterEqual(self._arrows(svg), len(self.doc.nets))
 
   def test_a_short_wire_gets_exactly_one(self):
-    doc = new_document()
-    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
-    doc.cells.append({"id": "u2", "type": "inv", "x": 140, "y": 0})
-    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
-                     "to": {"cell": "u2", "pin": "a"}})
-    doc.normalize()
-    self.assertEqual(self._arrows(render_svg.render(doc)), 1)
+    self.assertEqual(self._arrows(render_svg.render(self.pair(gap=140))), 1)
 
-  def test_a_long_wire_gets_more_so_direction_reads_along_it(self):
-    # One arrow near the receiving end says nothing about a run that is
-    # mostly somewhere else.
-    doc = new_document(width=2000)
-    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
-    doc.cells.append({"id": "u2", "type": "inv", "x": 1600, "y": 0})
+  def test_a_long_wire_still_gets_exactly_one(self):
+    self.assertEqual(self._arrows(render_svg.render(self.pair(2000, 1600))), 1)
+
+  def test_the_tip_is_where_the_wire_meets_the_load(self):
+    doc = self.pair()
+    (tip,) = self._tips(render_svg.render(doc))
+    x, y = self.pin_at(doc, "u2", "a")
+    self.assertAlmostEqual(tip[0], x, places=1)
+    self.assertAlmostEqual(tip[1], y, places=1)
+
+  def test_each_load_of_a_fanout_gets_its_own(self):
+    doc = new_document()
+    doc.cells.extend([{"id": "u1", "type": "and2", "x": 0, "y": 100},
+                      {"id": "u2", "type": "inv", "x": 300, "y": 20},
+                      {"id": "u3", "type": "inv", "x": 300, "y": 200}])
     doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
-                     "to": {"cell": "u2", "pin": "a"}})
+                     "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
     doc.normalize()
-    self.assertGreater(self._arrows(render_svg.render(doc)), 1)
+    tips = sorted(self._tips(render_svg.render(doc)))
+    self.assertEqual(len(tips), 2)
+    for tip, load in zip(tips, ("u2", "u3")):
+      x, y = self.pin_at(doc, load, "a")
+      self.assertAlmostEqual(tip[0], x, places=1)
+      self.assertAlmostEqual(tip[1], y, places=1)
+
+  def test_backward_puts_one_head_on_the_driver(self):
+    doc = new_document()
+    doc.cells.extend([{"id": "u1", "type": "and2", "x": 0, "y": 100},
+                      {"id": "u2", "type": "inv", "x": 300, "y": 20},
+                      {"id": "u3", "type": "inv", "x": 300, "y": 200}])
+    doc.nets.append({"id": "n1", "style": {"arrow": "backward"},
+                     "from": {"cell": "u1", "pin": "y"},
+                     "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
+    doc.normalize()
+    (tip,) = self._tips(render_svg.render(doc))
+    x, y = self.pin_at(doc, "u1", "y")
+    self.assertAlmostEqual(tip[0], x, places=1)
+    self.assertAlmostEqual(tip[1], y, places=1)
 
   def test_arrows_can_be_switched_off_per_render(self):
     self.assertEqual(self._arrows(render_svg.render(self.doc, arrows=False)), 0)
@@ -530,25 +467,63 @@ class TestDirectionArrows(unittest.TestCase):
 
   def test_a_single_net_can_opt_out(self):
     before = self._arrows(render_svg.render(self.doc))
-    own = sum(len(render_svg._arrow_spots(points, theme.ARROW_SIZE))
+    own = sum(len(render_svg._arrow_spots(points))
               for points in routing.route(self.doc, self.doc.nets[0]))
+    self.assertGreater(own, 0)
     self.doc.nets[0]["style"] = {"arrow": False}
     after = self._arrows(render_svg.render(self.doc))
     self.assertEqual(after, before - own)
 
   def test_arrow_points_from_driver_to_load(self):
-    # n5 runs left to right from FF1.q to the q port, so the arrow's tip must
-    # sit to the right of its base.
-    doc = new_document()
-    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
-    doc.cells.append({"id": "u2", "type": "inv", "x": 300, "y": 0})
-    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
-                     "to": {"cell": "u2", "pin": "a"}})
-    doc.normalize()
-    svg = render_svg.render(doc)
+    svg = render_svg.render(self.pair())
     points = re.search(r'<polygon points="([^"]+)"', svg).group(1)
     xs = [float(p.split(",")[0]) for p in points.split()]
     self.assertGreater(xs[0], xs[1])
+
+
+class TestUnwiredPinsAreHidden(unittest.TestCase):
+  """A pin no wire reaches has no stub drawn; one a wire reaches is drawn in
+  full, so the wire meets the body. A line running out to nothing looked
+  like a wire that had come loose."""
+
+  def cell_lines(self, doc, cell_id):
+    svg = render_svg.render(doc)
+    start = svg.index('<g class="dl-cell" data-id="%s"' % cell_id)
+    return svg[start:svg.index("</g>", start)].count("<line")
+
+  def mux(self, wire_select):
+    doc = new_document()
+    doc.cells.extend([{"id": "a", "type": "port_in", "x": 10, "y": 40},
+                      {"id": "s", "type": "port_in", "x": 10, "y": 200},
+                      {"id": "m", "type": "mux2", "x": 200, "y": 30}])
+    doc.nets.append({"id": "n1", "from": {"cell": "a", "pin": "p"},
+                     "to": [{"cell": "m", "pin": "d0"}]})
+    if wire_select:
+      doc.nets.append({"id": "n2", "from": {"cell": "s", "pin": "p"},
+                       "to": [{"cell": "m", "pin": "s"}]})
+    doc.normalize()
+    return doc
+
+  def test_only_the_wired_pins_have_stubs(self):
+    self.assertEqual(self.cell_lines(self.mux(False), "m"), 1)
+
+  def test_wiring_a_pin_brings_its_stub_back(self):
+    self.assertEqual(self.cell_lines(self.mux(True), "m"), 2)
+
+  def test_a_symbol_previewed_on_its_own_shows_every_pin(self):
+    symbol = default_registry().get("mux2")
+    stubs = sum(1 for op in symbol.draw if render_svg.stub_pin(symbol, op))
+    self.assertEqual(stubs, len(symbol.pins))
+    self.assertEqual(render_svg.render_symbol(symbol).count("<line"), stubs)
+
+  def test_every_stub_belongs_to_a_pin(self):
+    """Otherwise a stub nothing matches would be drawn whatever is wired."""
+    for symbol_id in default_registry().ids():
+      symbol = default_registry().get(symbol_id)
+      for op in symbol.draw:
+        if op.get("role") == "pin":
+          self.assertIsNotNone(render_svg.stub_pin(symbol, op),
+                               "%s has a pin stub at no pin" % symbol_id)
 
 
 class TestEscaping(unittest.TestCase):
@@ -959,103 +934,6 @@ class TestTheTitleKeepsOutOfTheDrawing(unittest.TestCase):
     _x, baseline = self.title_baseline(svg)
     self.assertGreater(baseline - theme.FONT_SIZES["title"], top,
                        "the title is drawn above the top of the viewBox")
-
-
-class TestTheArrowGivesWayToText(unittest.TestCase):
-  """A name outranks the arrowhead that would sit on it.
-
-  An arrow is the most redundant mark on a schematic: which way a wire runs is
-  usually plain from the pins at its ends. A name is the opposite -- it is the
-  one thing a reader cannot work out by looking. So where the two want the
-  same spot the arrow moves along the wire, and where the whole run is spoken
-  for it is not drawn at all.
-  """
-
-  # Long enough that the name's box reaches the arrows spaced along the wire.
-  # A shorter one sits between two of them and collides with neither, which
-  # passes every assertion here with the rule taken out.
-  NAME = "a_very_long_signal_name_that_runs_on"
-
-  def drawing(self):
-    """A long wire whose name lies across where the arrows want to go."""
-    doc = new_document("arrows", 900, 300)
-    doc.cells.append({"id": "a", "type": "port_in", "x": 40, "y": 140,
-                      "label": "src"})
-    doc.cells.append({"id": "b", "type": "port_out", "x": 800, "y": 140,
-                      "label": "dst"})
-    doc.nets.append({"id": "n1", "name": self.NAME, "label": self.NAME,
-                     "width": 1,
-                     "from": {"cell": "a", "pin": "p"},
-                     "to": [{"cell": "b", "pin": "p", "waypoints": []}]})
-    doc.normalize()
-    return doc
-
-  def test_the_fixture_really_does_put_an_arrow_on_the_name(self):
-    """Without this the two tests below prove nothing at all."""
-    doc = self.drawing()
-    registry = default_registry()
-    routes, marks, names = self.marks_and_names(doc, registry)
-    half = theme.ARROW_SIZE / 2.0
-    clashes = sum(
-      1
-      for _net, branches in routes for points in branches
-      if len(points) >= 2
-      for tip, _d in render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                             junctions=marks)
-      for x0, y0, x1, y1 in names
-      if x0 - half <= tip[0] <= x1 + half and y0 - half <= tip[1] <= y1 + half)
-    self.assertGreater(clashes, 0,
-                       "no arrow wanted the name's spot, so this fixture "
-                       "cannot tell whether the rule does anything")
-
-  def marks_and_names(self, doc, registry):
-    routes = routing.route_all(doc, registry)
-    marks = render_svg.arrow_marks(routing.junctions(routes),
-                                   routing.hop_points(routes))
-    names = render_svg.text_marks(doc, registry, routes, doc.symbol_scale,
-                                  doc.font_scale)
-    return routes, marks, names
-
-  def test_no_arrow_is_drawn_on_a_name(self):
-    doc = self.drawing()
-    registry = default_registry()
-    routes, marks, names = self.marks_and_names(doc, registry)
-    self.assertTrue(names, "the fixture wrote no names, so it tests nothing")
-
-    half = theme.ARROW_SIZE / 2.0
-    for _net, branches in routes:
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, _direction in render_svg._arrow_spots(
-            points, theme.ARROW_SIZE, junctions=marks, text=names):
-          for x0, y0, x1, y1 in names:
-            on_it = (x0 - half <= tip[0] <= x1 + half
-                     and y0 - half <= tip[1] <= y1 + half)
-            self.assertFalse(
-              on_it, "an arrow at %s sits on the name in %s"
-              % (tuple(round(v, 1) for v in tip),
-                 tuple(round(v, 1) for v in (x0, y0, x1, y1))))
-
-  def test_it_moves_the_arrow_rather_than_losing_it(self):
-    """Dropping every blocked arrow would pass the test above and be worse."""
-    doc = self.drawing()
-    registry = default_registry()
-    routes, marks, names = self.marks_and_names(doc, registry)
-
-    def count(text):
-      return sum(len(render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                             junctions=marks, text=text))
-                 for _net, branches in routes for points in branches
-                 if len(points) >= 2)
-
-    free = count(())
-    guarded = count(names)
-    self.assertGreater(free, 0, "the fixture draws no arrows at all")
-    self.assertEqual(
-      guarded, free,
-      "the name cost %d arrow(s) on a wire with room to slide along"
-      % (free - guarded))
 
 
 class TestWireLabelsAndStyle(unittest.TestCase):

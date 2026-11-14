@@ -71,36 +71,21 @@
 <path class="dl-net" data-id="n_ddr" d="M1468 669 L1480 669 L1480 789 L1895 789 A5 5 0 0 1 1905 789 L1920 789 L1920 669 L1946 669" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_pcie" d="M1706 669 L1732 669 A5 5 0 0 1 1742 669 L1799 669 L1799 633 L1946 633" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_disp" d="M1230 669 L1242 669 L1242 807 L1900 807 L1900 705 L1915 705 A5 5 0 0 1 1925 705 L1946 705" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="545.5,475.5 538.5,478.65 538.5,472.35" fill="#16202b" />
-<polygon points="785.5,475.5 778.5,478.65 778.5,472.35" fill="#16202b" />
-<polygon points="1058.8,420 1051.8,423.15 1051.8,416.85" fill="#16202b" />
-<polygon points="1034.8,452 1027.8,455.15 1027.8,448.85" fill="#16202b" />
-<polygon points="539,496 532,499.15 532,492.85" fill="#16202b" />
-<polygon points="779,496 772,499.15 772,492.85" fill="#16202b" />
-<polygon points="1058.8,496 1051.8,499.15 1051.8,492.85" fill="#16202b" />
-<polygon points="1058.8,528 1051.8,531.15 1051.8,524.85" fill="#16202b" />
-<polygon points="1114.5,371.5 1121.5,368.35 1121.5,374.65" fill="#16202b" />
-<polygon points="1078.8,271 1071.8,274.15 1071.8,267.85" fill="#16202b" />
-<polygon points="1248,321.25 1251.15,328.25 1244.85,328.25" fill="#16202b" />
-<polygon points="1340,371.5 1333,374.65 1333,368.35" fill="#16202b" />
-<polygon points="1490,452 1483,455.15 1483,448.85" fill="#16202b" />
-<polygon points="1417.5,452 1410.5,455.15 1410.5,448.85" fill="#16202b" />
-<polygon points="1134.5,576.5 1141.5,573.35 1141.5,579.65" fill="#16202b" />
-<polygon points="1058,696.75 1054.85,689.75 1061.15,689.75" fill="#16202b" />
-<polygon points="1071,565 1078,561.85 1078,568.15" fill="#16202b" />
-<polygon points="1292.8,669 1285.8,672.15 1285.8,665.85" fill="#16202b" />
-<polygon points="1490,528 1483,531.15 1483,524.85" fill="#16202b" />
-<polygon points="1493.5,528 1486.5,531.15 1486.5,524.85" fill="#16202b" />
-<polygon points="1071,565 1078,561.85 1078,568.15" fill="#16202b" />
-<polygon points="1078.8,669 1071.8,672.15 1071.8,665.85" fill="#16202b" />
-<polygon points="1588,789 1581,792.15 1581,785.85" fill="#16202b" />
-<polygon points="1828,789 1821,792.15 1821,785.85" fill="#16202b" />
-<polygon points="1934.8,669 1927.8,672.15 1927.8,665.85" fill="#16202b" />
-<polygon points="1934.8,633 1927.8,636.15 1927.8,629.85" fill="#16202b" />
-<polygon points="1332,807 1325,810.15 1325,803.85" fill="#16202b" />
-<polygon points="1572,807 1565,810.15 1565,803.85" fill="#16202b" />
-<polygon points="1812,807 1805,810.15 1805,803.85" fill="#16202b" />
-<polygon points="1934.8,705 1927.8,708.15 1927.8,701.85" fill="#16202b" />
+<polygon points="1070,420 1063,423.15 1063,416.85" fill="#16202b" />
+<polygon points="1070,452 1063,455.15 1063,448.85" fill="#16202b" />
+<polygon points="1070,496 1063,499.15 1063,492.85" fill="#16202b" />
+<polygon points="1070,528 1063,531.15 1063,524.85" fill="#16202b" />
+<polygon points="1090,271 1083,274.15 1083,267.85" fill="#16202b" />
+<polygon points="1260,271 1253,274.15 1253,267.85" fill="#16202b" />
+<polygon points="1430,271 1423,274.15 1423,267.85" fill="#16202b" />
+<polygon points="1600,271 1593,274.15 1593,267.85" fill="#16202b" />
+<polygon points="1070,817 1063,820.15 1063,813.85" fill="#16202b" />
+<polygon points="1304,669 1297,672.15 1297,665.85" fill="#16202b" />
+<polygon points="1542,669 1535,672.15 1535,665.85" fill="#16202b" />
+<polygon points="1090,669 1083,672.15 1083,665.85" fill="#16202b" />
+<polygon points="1946,669 1939,672.15 1939,665.85" fill="#16202b" />
+<polygon points="1946,633 1939,636.15 1939,629.85" fill="#16202b" />
+<polygon points="1946,705 1939,708.15 1939,701.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="core0" data-type="sheet" transform="matrix(2,0,0,2.4286,150,246)">

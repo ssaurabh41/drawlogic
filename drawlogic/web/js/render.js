@@ -182,7 +182,36 @@ export function pinLabelSpot(op, text, cell, matrix, fontScale = 1) {
   return [x, y + size * PIN_LABEL_RISE, "middle"];
 }
 
-function renderCell(symbol, cell, fontScale, scale, into) {
+// The pins a wire reaches, as Map(cell id -> Set of pin names). Mirrors
+// render_svg.wired_pins.
+export function wiredPins(doc) {
+  const found = new Map();
+  for (const net of doc.nets || []) {
+    for (const end of [net.from, ...routing.loadsOf(net)]) {
+      if (!end || typeof end !== "object" || !end.cell) continue;
+      if (!found.has(end.cell)) found.set(end.cell, new Set());
+      found.get(end.cell).add(end.pin);
+    }
+  }
+  return found;
+}
+
+// The pin a "pin" role line is the stub of: the one at either of its ends.
+// Mirrors render_svg.stub_pin.
+export function stubPin(symbol, op) {
+  if (op.role !== "pin" || op.op !== "line") return null;
+  for (const pin of symbol.pins) {
+    if ((op.x1 === pin.x && op.y1 === pin.y) || (op.x2 === pin.x && op.y2 === pin.y)) {
+      return pin.name;
+    }
+  }
+  return null;
+}
+
+// `wired` is the set of this cell's pins a wire reaches, or null to draw every
+// pin -- a palette thumbnail. A pin no wire reaches has its stub left out, as
+// render_svg._render_cell does.
+function renderCell(symbol, cell, fontScale, scale, into, wired = null) {
   const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
   const style = cell.style || {};
@@ -250,6 +279,10 @@ function renderCell(symbol, cell, fontScale, scale, into) {
     if (op.op === "text") continue;
     // A block's miniature of the drawing it stands for, only when asked for.
     if (String(op.role || "").startsWith("preview") && !cell.preview) continue;
+    if (wired) {
+      const stub = stubPin(symbol, op);
+      if (stub !== null && !wired.has(stub)) continue;
+    }
     const node = opElement(op, rolePaint(op.role || "body", style, factor, fontScale));
     if (node) group.appendChild(node);
   }
@@ -369,67 +402,23 @@ function copiesBadge(box, copies, into) {
 }
 
 
-// Direction arrows. Mirrors _arrow_at / _render_arrow in render_svg.py: the
-// head sits near the receiving end, which is where a reader looks to ask
-// "what drives this?".
-// The point a given way along a path, and the direction of travel there.
-function walk(points, distance) {
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const [ax, ay] = points[i];
-    const [bx, by] = points[i + 1];
-    const length = Math.abs(bx - ax) + Math.abs(by - ay);
-    if (length <= 0) continue;
-    if (distance <= length) {
-      const ratio = distance / length;
-      return [[ax + (bx - ax) * ratio, ay + (by - ay) * ratio],
-              [(bx - ax) / length, (by - ay) / length],
-              Math.min(distance, length - distance)];
-    }
-    distance -= length;
+// The arrowhead at the end of a wire: [[tip, direction]], or none. Mirrors
+// render_svg._arrow_spots: the tip is the wire's last point, where it meets
+// the pin it feeds, and the head lies along the last run into it.
+export function arrowSpots(points) {
+  const tip = points[points.length - 1];
+  for (let i = points.length - 2; i >= 0; i -= 1) {
+    const dx = tip[0] - points[i][0];
+    const dy = tip[1] - points[i][1];
+    const length = Math.hypot(dx, dy);
+    if (length > 1e-6) return [[[tip[0], tip[1]], [dx / length, dy / length]]];
   }
-  return null;
+  return [];
 }
 
-function pathLength(points) {
-  let total = 0;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    total += Math.abs(points[i + 1][0] - points[i][0])
-      + Math.abs(points[i + 1][1] - points[i][1]);
-  }
-  return total;
-}
-
-// One arrow always sits near the receiving end, which is where a reader looks
-// to ask "what drives this?". On a long run that arrow is nowhere near most of
-// the wire, so more are spaced along it -- close enough that the direction
-// reads wherever the eye lands, far enough apart that the wire does not turn
-// into a dotted line. Arrows are kept off corners.
-// Arrows are kept off junction dots as well as off corners. Both are small
-// solid marks in the same ink, so an arrow on a dot reads as one slightly
-// fatter arrow and the connection the dot announced is lost. The dot is the
-// more important of the two, so the arrow is the one that gives way.
-// Everything an arrow has to keep clear of: junction dots and crossing
-// bridges alike. Exported because the parity test has to ask the same
-// question the renderer asks -- when it built its own list instead, it left
-// the hops out, agreed with the Python helper doing the same, and reported
-// success while the editor drew an arrow on a bridge that the exported file
-// did not have. A test that recomputes what it is checking can only prove the
-// two copies match, not that either is right.
-export function arrowMarks(junctions, hops) {
-  const spots = [];
-  for (const points of (hops || new Map()).values()) spots.push(...points);
-  return junctions.concat(spots);
-}
-
-
-// Every name on the sheet, as boxes an arrow should stay out of. Mirrors
-// render_svg.text_marks; `spots` is what labelSpots already worked out, so
-// the net names are the ones actually being drawn rather than a second guess.
-export function textMarks(doc, spots, routes, fontScale) {
-  return namedTextMarks(doc, spots, routes, fontScale).map((mark) => mark.box);
-}
-
-// The same boxes, each with whose name it is: { kind, id, box }.
+// Every name on the sheet, each with whose name it is: { kind, id, box }.
+// `spots` is what labelSpots already worked out, so the net names are the
+// ones actually being drawn rather than a second guess.
 function namedTextMarks(doc, spots, routes, fontScale) {
   const scale = routing.symbolScale(doc);
   const boxes = [];
@@ -466,15 +455,10 @@ export function nameAt(doc, point) {
     && point[1] >= box[1] - pad && point[1] <= box[3] + pad) || null;
 }
 
-// How far along the wire an arrow will shuffle looking for a clear spot, and
-// in what steps. Mirrors SLIDE_REACH and SLIDE_STEP in render_svg.py.
-const SLIDE_REACH = 44;
-const SLIDE_STEP = 4;
-
 // Every arrowhead on one wire for an arrow mode. Mirrors
-// render_svg.arrow_spots_for: a backward wire is the same wire walked from the
-// load end, and a spot reached twice from that end is drawn once.
-export function arrowSpotsFor(branches, mode, size, junctions, text) {
+// render_svg.arrow_spots_for: a head on each load going forward, one on the
+// driver going backward, and a spot reached twice drawn once.
+export function arrowSpotsFor(branches, mode) {
   if (mode === "none") return [];
   const walks = [];
   for (const points of branches) {
@@ -485,127 +469,16 @@ export function arrowSpotsFor(branches, mode, size, junctions, text) {
   const found = [];
   const seen = new Set();
   for (const points of walks) {
-    for (const [tip, direction] of arrowSpots(points, size, null, junctions, text)) {
+    for (const [tip, direction] of arrowSpots(points)) {
       const key = [Math.floor(tip[0] * 10 + 0.5), Math.floor(tip[1] * 10 + 0.5),
                    Math.floor(direction[0] * 1000 + 0.5),
                    Math.floor(direction[1] * 1000 + 0.5)].join(",");
-      if (seen.has(key) && mode !== "forward") continue;
+      if (seen.has(key)) continue;
       seen.add(key);
       found.push([tip, direction]);
     }
   }
   return found;
-}
-
-function arrowBlocked(tip, size, junctions, text) {
-  const limit = routing.currentLimits().arrowToJunction;
-  for (const dot of junctions) {
-    if (Math.abs(tip[0] - dot[0]) < limit && Math.abs(tip[1] - dot[1]) < limit) {
-      return true;
-    }
-  }
-  const half = size / 2;
-  for (const [x0, y0, x1, y1] of text) {
-    if (x0 - half <= tip[0] && tip[0] <= x1 + half
-        && y0 - half <= tip[1] && tip[1] <= y1 + half) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function onSegment(point, a, b) {
-  const slack = 1e-6;
-  return Math.min(a[0], b[0]) - slack <= point[0]
-    && point[0] <= Math.max(a[0], b[0]) + slack
-    && Math.min(a[1], b[1]) - slack <= point[1]
-    && point[1] <= Math.max(a[1], b[1]) + slack;
-}
-
-function distanceAlong(points, tip) {
-  let travelled = 0;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const a = points[i];
-    const b = points[i + 1];
-    const length = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
-    if (length <= 0) continue;
-    if (onSegment(tip, a, b)) {
-      return travelled + Math.abs(tip[0] - a[0]) + Math.abs(tip[1] - a[1]);
-    }
-    travelled += length;
-  }
-  return null;
-}
-
-// Move an arrow along its wire until it sits clear, or give it up. See
-// render_svg._slide_clear: everything an arrow might land on carries
-// something the reader cannot work out for themselves, and the direction of a
-// wire usually can be, so the arrow is the one that moves.
-function slideClear(points, tip, direction, size, junctions, text) {
-  if (!arrowBlocked(tip, size, junctions, text)) return [tip, direction];
-  const at = distanceAlong(points, tip);
-  if (at === null) return null;
-  for (let step = SLIDE_STEP; step <= SLIDE_REACH; step += SLIDE_STEP) {
-    for (const away of [-step, step]) {
-      const found = walk(points, at + away);
-      if (!found) continue;
-      const [spot, heading, fromCorner] = found;
-      if (fromCorner < size * 2) continue;
-      if (!arrowBlocked(spot, size, junctions, text)) return [spot, heading];
-    }
-  }
-  return null;
-}
-
-export function arrowSpots(points, size, spacing, junctions = [], text = []) {
-  if (points.length < 2) return [];
-  const step = spacing || theme.arrowSpacing || 240;
-  const total = pathLength(points);
-
-  let [ax, ay] = points[points.length - 2];
-  let [bx, by] = points[points.length - 1];
-  const last = Math.abs(bx - ax) + Math.abs(by - ay);
-
-  const spots = [];
-  let keepClear;
-  if (last < size * 3) {
-    // The final run is too short to hold a head clear of the pin, so the
-    // arrow goes in the middle of the longest run instead.
-    let best = null;
-    for (let i = 0; i < points.length - 1; i += 1) {
-      const [px, py] = points[i];
-      const [qx, qy] = points[i + 1];
-      const length = Math.abs(qx - px) + Math.abs(qy - py);
-      if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
-    }
-    const [length, [px, py], [qx, qy]] = best;
-    const run = Math.max(length, 1e-6);
-    spots.push([[(px + qx) / 2, (py + qy) / 2],
-                [(qx - px) / run, (qy - py) / run]]);
-    keepClear = total;
-  } else {
-    const offset = size * 1.6;
-    const run = Math.max(last, 1e-6);
-    spots.push([[bx - ((bx - ax) / run) * offset, by - ((by - ay) / run) * offset],
-                [(bx - ax) / run, (by - ay) / run]]);
-    keepClear = total - offset;
-  }
-
-  const extra = [];
-  for (let d = step; d < keepClear - step * 0.5; d += step) {
-    const found = walk(points, d);
-    if (!found) continue;
-    const [spot, direction, fromCorner] = found;
-    if (fromCorner >= size * 2) extra.push([spot, direction]);
-  }
-  const found = extra.concat(spots);
-  if (!junctions.length && !text.length) return found;
-  const clear = [];
-  for (const [tip, direction] of found) {
-    const moved = slideClear(points, tip, direction, size, junctions, text);
-    if (moved) clear.push(moved);
-  }
-  return clear;
 }
 
 function arrowElement(tip, direction, size, color) {
@@ -838,7 +711,6 @@ function renderNets(doc, fontScale, into) {
   const hops = (doc.canvas || {}).hops === false
     ? new Map() : routing.hopPoints(routes);
   const junctions = routing.junctions(routes);
-  const marks = arrowMarks(junctions, hops);
 
   for (const { net, branches } of routes) {
     if (!branches.length) continue;
@@ -887,12 +759,10 @@ function renderNets(doc, fontScale, into) {
     into.appendChild(text);
   }
 
-  const names = textMarks(doc, spots, routes, fontScale);
   if ((doc.canvas || {}).arrows !== false) {
     for (const { net, branches } of routes) {
       const mode = routing.arrowMode(doc, net);
-      for (const [tip, direction] of arrowSpotsFor(branches, mode,
-                                                   theme.arrowSize || 7, marks, names)) {
+      for (const [tip, direction] of arrowSpotsFor(branches, mode)) {
         into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                       (net.style || {}).stroke || theme.colors.net));
       }
@@ -1267,6 +1137,7 @@ export function render(svg, doc) {
   // Shapes and cells in one stacking order, the wires among them; see
   // drawOrder. Consecutive shapes share a group, as consecutive cells do.
   const [order, wiresAt] = drawOrder(doc.cells || [], doc.shapes || []);
+  const wired = wiredPins(doc);
   let junctions = [];
   let run = null;
   let group = null;
@@ -1292,7 +1163,7 @@ export function render(svg, doc) {
     if (kind === "shape") renderShape(item, fontScale, group, overCells);
     else if (kind === "cell") {
       const symbol = geometry.forCell(item);
-      if (symbol) renderCell(symbol, item, fontScale, scale, group);
+      if (symbol) renderCell(symbol, item, fontScale, scale, group, wired.get(item.id) || new Set());
     }
   });
   if (!(doc.cells || []).length) content.appendChild(el("g", { class: "dl-cells" }));

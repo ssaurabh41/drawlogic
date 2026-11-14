@@ -28,6 +28,38 @@ disable-model-invocation: true
 
 Restate your last message. Stop using jargon and speak coherently. State it more simply and concisely, like one human talking to another.
 <<<<<<<<<< DLBUNDLE END path=.claude/skills/bro/SKILL.md >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=.claude/skills/grilling/SKILL.md lines=30 sha256=befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15 >>>>>>>>>>
+---
+name: grilling
+description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
+---
+
+Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
+
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
+
+Format a round like so:
+
+```
+❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+
+➡️ <your recommended answer>
+
+---
+
+❓ **Q2** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+
+➡️ <your recommended answer>
+```
+
+Word each question so "yes" accepts your recommended answer.
+
+Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
+
+Finding _facts_ is your job, never the user's. When a frontier question needs a fact from the environment (filesystem, tools, etc.), dispatch a sub-agent to find it; don't ask the user for anything you could look up yourself. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now. The _decisions_ are the user's: put each to them and wait.
+
+The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
+<<<<<<<<<< DLBUNDLE END path=.claude/skills/grilling/SKILL.md >>>>>>>>>>
 <<<<<<<<<< DLBUNDLE BEGIN path=.github/workflows/tests.yml lines=60 sha256=2ca83851b32649bddba2a790d76c02b58712dbb969e5b82d2f5907a9fe3a34fa >>>>>>>>>>
 # The suite, on the oldest Python drawlogic claims to support.
 #
@@ -242,7 +274,7 @@ and writes.
   `Input.dispatchMouseEvent`, not synthetic `new MouseEvent()` — the app
   distinguishes trusted input.
 <<<<<<<<<< DLBUNDLE END path=CLAUDE.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2371 sha256=7135c64fed712bd910114fe0d3d2cee5f2b9bb20a9a1e305febe6849a1258898 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2388 sha256=26201d2b85521e029922ffc008f3818a9639a3d7ba984d73ea779555eb7f35d1 >>>>>>>>>>
 # drawlogic
 
 **Draw logic circuit diagrams, and export them as SVG.**
@@ -1422,7 +1454,7 @@ change to `theme.py`.
 | Role | Painted as |
 |---|---|
 | `body` | the cell's fill and stroke |
-| `pin` | stroke only, at wire weight so joints look continuous |
+| `pin` | stroke only, at wire weight so joints look continuous; left out when no wire reaches its pin |
 | `bubble` | filled, for inversion circles |
 | `decor` | stroke only, no fill, for open marks |
 | `ghost` | dashed grey, for placeholders |
@@ -1436,6 +1468,14 @@ change to `theme.py`.
 | `x`, `y` | position in the symbol's own coordinates |
 | `dir` | `in`, `out` or `inout` |
 | `width` | bit width; `0` means "any width" |
+
+**A pin with nothing wired to it is drawn without its stub.** A stub is a
+`pin` role line with one end on the pin, and on a gate with a spare input a
+line running out to nothing looked like a wire that had come loose -- the
+mux's select, left unwired, was the case that was reported. Wire the pin and
+its stub is drawn in full, so the wire meets the body. The pin itself is
+still there: the Wire tool shows it as a target, and a symbol previewed on
+its own (`drawlogic symbols preview`, the palette) draws every stub.
 
 ### Setting default sizes
 
@@ -1649,6 +1689,11 @@ clipboard holding whatever you last copied.
 **Edit component definition** opens the definition in a tab of its own.
 Saving it there reads it again into every open drawing using it, so their
 instances show its pins as they now are, and says "component updated".
+That includes drawings using it through another definition -- rename a port
+of an SM and the open top drawing placing the GPC made of SMs is redrawn
+too, whether or not the GPC is open. A change inside the SM that leaves its
+ports and title alone does not reach that far: the GPC's miniature draws each
+SM as a box.
 After editing a definition some other way, **Refresh components** does the
 same. A port that is renamed or removed leaves any wire still naming it
 exactly as it was, reported as an unresolved interface -- in the message
@@ -1940,11 +1985,13 @@ set from the Arrows box when the wire is selected. A wire that meets an
 one is chosen, because "from the driver" means nothing on a signal that goes
 both ways, and an arrow there would say something false.
 
-One always sits near the receiving end,
-which is where a reader looks to ask "what drives this?", and on a long run
-more are spaced along the wire at `theme.ARROW_SPACING` -- a single arrow says
-nothing about a run that is mostly somewhere else. Arrows are kept off
-corners, where a head pointing into a bend reads worse than no head at all.
+Each wire gets one arrowhead at its end and none along the way: forward,
+its tip sits exactly where the wire meets the pin it feeds, so a wire
+fanning out to three loads has three heads, one on each. Backward puts a
+single head on the driver, pointing back into it, and both does the two.
+Heads used to be spaced along long wires as well, and moved about to keep
+off junction dots, bridges and names; on a busy drawing that was too many
+arrows saying no more than the one at the pin does.
 
 Turn them off for a drawing with `"canvas": { "arrows": false }`, for one
 export with `--no-arrows`, or for one net with `"style": { "arrow": "none" }` (`false` still works).
@@ -2129,7 +2176,6 @@ change.
 | `CORRIDOR_STEP` | 10 | how far apart the router tries successive corridors when its first choice is taken |
 | `CORRIDOR_TRIES` | 18 | how many corridors either side before giving up |
 | `WIRE_MIN_JOG` | 8 | the shortest step that reads as going round something rather than as a wobble |
-| `ARROW_TO_JUNCTION` | 12 | how far a direction arrow keeps from a junction dot, since both are small solid marks in the same ink |
 | `LABEL_CLEARANCE` | 5 | clear space demanded around a net name, so a label touching a wire counts as landing on it |
 | `LABEL_HEADROOM` | 20 | room left above a cell for its instance name |
 | `TEXT_TO_WIRE` | 6 | air an instance name needs from a wire |
@@ -2578,8 +2624,9 @@ arrow position.
 
 `test_js_editor.py` covers what exists only in JavaScript and so has no
 Python counterpart to compare against: alignment, Tidy, nets with several
-loads, dragging a wire, auto-connect, undo through a gesture, duplicating a
-group, and a save or layout answer that arrives after the drawing changed. It
+loads, dragging a wire, auto-connect, undo through a gesture (a slider drag
+included), duplicating a group, and a save or layout answer that arrives
+after the drawing changed -- by an edit, an undo or a redo. It
 imports the real editor modules into node, and fails if any of those areas
 stops reporting.
 
@@ -2597,7 +2644,9 @@ Stated plainly, so nobody assumes more than exists.
 
 **Anything that needs a real browser.** Pointer input, selection handles, the
 properties panel (its focus kept across a rebuild, its labels naming their
-fields), tabs and the palette that follows them, the SVG download,
+fields), tabs and the palette that follows them, which open tabs a save
+redraws (its two halves are tested: the server reading a nested definition
+fresh, and the editor's test of which answers changed), the SVG download,
 preferences, rename in place, the format painter, crash recovery and the
 Import Verilog dialog all live in the DOM. Each was
 verified by driving the real editor in headless Chromium with trusted input
@@ -2615,298 +2664,6 @@ the examples and look at them.
 **`--host` has no authentication.** Binding beyond loopback is documented as
 "tunnel instead", but nothing stops it being used on a shared machine.
 <<<<<<<<<< DLBUNDLE END path=DOCUMENTATION.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=ROUTING-CORRIDORS.md lines=290 sha256=8a24af9866b954e825f68699f4fdaadd40e5728c25c29266a194f9b3d8f89630 >>>>>>>>>>
-# Getting auto layout to zero DRC errors
-
-A specification, not a change. Nothing here is implemented.
-
-> **Measured since, and the premise no longer holds.** The numbers below were
-> taken before the layout work that followed them. Re-measured on 2026-09-30
-> with `benchmarks/channel_graph.py`:
->
-> | | nets | constraint edges | shorts | cycles |
-> |---|---:|---:|---:|---:|
-> | all ten fixtures | 476 | 9 | 7 | 0 |
->
-> Seven of the 46 errors are left, all `wire-short`, in `05-reconverging` (1)
-> and `10-mixed` (6). The graph is acyclic everywhere, so Phase 2 is not
-> needed. Phase 1 was built anyway as a prototype, since discarded,
-> and made the corpus worse -- errors 7 -> 10, warnings 381 -> 465, wire
-> length +3.8% -- because the remaining shorts are not ordering conflicts.
-> They are **capacity**: in `10-mixed` the gap after the input ports is 72
-> units wide, which holds seven corridors on the 10-unit lattice, and ten
-> unrelated nets have long verticals through it. No assignment of corridors
-> fits ten wires into seven places; only more room does. Section 2's "room is
-> not what is missing" was true of the corpus then and is not true of what is
-> left now. The next step, if any, is in layout, not routing: widen a column
-> gap when the nets crossing it outnumber its corridors.
-
-The goal is the one stated for the benchmark corpus: **zero DRC errors, with
-warnings minimised and without paying for it in area, wire length or runtime.**
-The last clause is what rules out the obvious answer; see *Rejected approaches*.
-
----
-
-## 1. What is actually wrong
-
-Auto layout leaves 46 DRC errors across the ten benchmark fixtures. They are
-not spread evenly and they are not varied:
-
-| rule | count | what it is |
-|---|---:|---|
-| `wire-short` | 31 | two unrelated nets drawn on the same line |
-| `wire-crossing` | ~10 | a crossing the router could not bridge cleanly |
-| `wire-over-cell` | ~5 | a wire run through a gate body |
-
-The shorts dominate, and every one of them has the same shape.
-
-A net routed between two facing pins is a Z: out along the source pin's row,
-down a single **corridor** at some x, then in along the load pin's row.
-
-```
-    source ---------+                      <- horizontal leg, at source row
-                    |                       <- vertical leg, the corridor
-                    +---------- load       <- horizontal leg, at load row
-```
-
-Where one net *leaves* a row and another *arrives* at the same row, both have
-a horizontal leg at that height. They stay apart only if the leaving net's
-corridor is to the left of the arriving net's. Write that as a constraint
-`A < B`. Every pair of nets sharing a row height contributes one.
-
-The router does not solve those constraints. `route_all` walks `doc.nets` in
-document order, and each net calls `_pick_corridor`, which searches outward
-from its own preferred x for a slot no earlier wire has taken. It is greedy
-and it is per-net: it has no view of the constraints the nets still to be
-routed will impose. When it finds nothing free it returns `preferred`
-anyway -- deliberately, so a crowded drawing still produces a wire rather
-than nothing -- and that fallback is the short.
-
-## 2. What was measured, and what it rules out
-
-Four experiments, all reproducible against `benchmarks/auto-layout/`.
-
-**Column width is not the answer.** On `10-mixed`, sweeping the column gap:
-
-| gap | errors | warnings | width |
-|---:|---:|---:|---:|
-| 110 | 14 | 129 | 1010 |
-| 200 | 16 | 64 | 1550 |
-| 320 | 11 | 41 | 2270 |
-| 480 | 11 | 41 | 3230 |
-
-Warnings fall a long way; errors do not, and at gap 200 they get worse. On a
-constructed channel of eight fully crossed nets, four shorts remain at every
-width from 120 to 560. Room is not what is missing.
-
-**No pair is individually impossible.** For each of the 31 shorts, checking
-whether the two nets constrain each other in *both* directions -- a two-cycle,
-which no single-corridor assignment can satisfy -- found **zero**. One case was
-unclassifiable. So for every pair taken alone, a legal ordering exists.
-
-**But order alone does not reach zero.** Re-routing `10-mixed` under twelve
-random net orderings, layout held fixed:
-
-```
-document order   shorts 6   errors 10   warnings 118
-best of twelve   shorts 5   errors  7   warnings 126
-range            shorts 5-7 errors 7-10 warnings 104-145
-```
-
-Order matters and is worth about three errors. It never approaches zero.
-Pairwise-satisfiable does not mean jointly satisfiable: fixing `A < B` can
-break `A < C`. That is the signature of **cycles longer than two** in the
-constraint graph, which the pairwise test cannot see.
-
-**The failure is concentrated.** Seven of the ten fixtures already route with
-zero errors. All 46 are in `02-branching`, `05-reconverging`, `08-dense`,
-`09-crowded` and `10-mixed`.
-
-## 3. The mechanism, named
-
-This is textbook channel routing. The constraints form a **vertical constraint
-graph** (VCG): a node per net crossing a channel, an edge `A -> B` when A's
-corridor must be left of B's. Then:
-
-- If the VCG is **acyclic**, a legal assignment exists and is found by
-  processing nets in topological order -- the left-edge algorithm.
-- If the VCG has a **cycle** of any length, no assignment of one corridor per
-  net can satisfy it. The standard and only remedy is a **dogleg**: splitting
-  one net's vertical run into two corridors joined by a short horizontal jog,
-  which splits its node and breaks the cycle.
-
-The evidence above says this drawing set has no 2-cycles but does not behave
-like an acyclic system. So the honest position is that both parts are probably
-needed, and which matters more is a measurement nobody has taken yet. That
-measurement is Phase 0 and it is cheap.
-
-## 4. Rejected approaches
-
-**Per-channel widening** (implemented, measured, discarded -- see commit
-`5ac4832`). Give each column gap the width its own net density needs. Halves
-warnings on `10-mixed` (129 -> 59) for a third more width, but leaves one more
-error than it started with and breaks the documented property that a second
-layout pass changes nothing. Recorded because the warning result is real and
-may be worth revisiting once errors are zero.
-
-**A lane per net** (`codex/auto-layout-optimization`). Reaches zero errors by
-giving every net its own horizontal track and stacking cells down a staircase.
-It works, and it costs 327x the area and 136x the wire length on
-`02-branching`. This is the approach the "without paying for it" clause exists
-to exclude.
-
-## 5. Phase 0 -- measure the cycle spectrum (prerequisite)
-
-Before writing any router code, build the VCG for each channel of each fixture
-and report, per channel: node count, edge count, whether it is acyclic, and if
-not, the length and number of the cycles.
-
-This is analysis only -- no production change -- and it decides the rest:
-
-- Mostly acyclic: Phase 1 alone may reach zero. Phase 2 becomes contingency.
-- Cycles common: Phase 2 is the substance and Phase 1 is its scaffolding.
-
-Deliverable: a script under `benchmarks/` and a table. Half a day.
-
-## 6. Phase 1 -- assign corridors per channel, not per net
-
-Replace the greedy per-net search with one assignment per channel.
-
-For each channel, collect the nets crossing it. Build the VCG. Take a
-topological order; where the graph is cyclic, break it provisionally (Phase 2
-replaces this with a dogleg). Then run the **left-edge algorithm**: sort nets by
-the left end of their horizontal span and pack them into tracks, each net
-taking the leftmost track whose occupants do not overlap it. The result is an
-assignment using the minimum number of tracks the density allows.
-
-Where it goes:
-
-- New module `drawlogic/channels.py`. Pure function: takes the routed geometry
-  and returns a corridor x per net per channel. No document mutation.
-- `route_all` gains a pre-pass that computes assignments and hands them to
-  `route`, which passes them to `_route_hh` as the preferred corridor.
-- `_pick_corridor` keeps its existing search as the fallback for anything the
-  assignment does not cover -- free endpoints, hierarchy blocks, the `vv` and
-  corner cases. Nothing regresses for drawings that route cleanly today.
-
-Determinism: the assignment must be a pure function of the document. Sort every
-collection by net id, never by iteration order.
-
-## 7. Phase 2 -- doglegs, for the cycles that remain
-
-A dogleg changes the route shape from one corridor to two:
-
-```
-  before:  [a, (x, ay), (x, by), b]
-  after:   [a, (x1, ay), (x1, ym), (x2, ym), (x2, by), b]
-```
-
-The net leaves on corridor `x1`, steps across at an intermediate row `ym`, and
-arrives on corridor `x2`. In VCG terms its node is split, so a constraint that
-demanded the net be both left of and right of another is satisfied by the two
-halves separately.
-
-Rules:
-
-- Apply only to nets on a cycle, and only the minimum number needed to break
-  it. A dogleg costs two bends and a horizontal run; unconditional use would
-  trade shorts for hop and bend warnings.
-- `ym` is chosen from the rows already free in that channel, by the same
-  `Sheet.free` test the corridor search uses. If no row is free the net keeps
-  its single corridor and the error is reported rather than hidden.
-- The jog is a route shape, not a document change. Waypoints, the file format
-  and both renderers are untouched: they already draw whatever point list the
-  router returns.
-
-## 8. Keeping warnings and the other costs down
-
-Zero errors is the gate; it is not the whole goal.
-
-- **Warnings.** Doglegs add bends and can add hops. Budget: total warnings must
-  not rise above today's 558 across the corpus. Measure `bends`, `hops` and
-  `text-to-wire` separately, since those are where a jog shows up.
-- **Wire length and area.** Neither should move measurably. Assignment changes
-  which corridor a net uses, not how far apart the columns are; a dogleg adds
-  one short horizontal run. Budget: +2% wire length, 0% area.
-- **Runtime.** Today a 72-gate layout takes about 75 s, and `drc.check` is 85%
-  of it (1.28 s of every 1.50 s `_score` call). Channel assignment is
-  O(n log n) per channel and runs once per route, not once per candidate, so it
-  should be invisible. Budget: no regression. Worth noting separately that the
-  85% figure is the real runtime target, and it is independent of this work.
-
-## 9. Parity with the browser
-
-`drawlogic/web/js/routing.js` is a hand port of `routing.py` and
-`tests/test_js_parity.py` compares them net for net. This is the project's one
-standing drift risk and the reason to keep the change narrow.
-
-- Phase 1 and Phase 2 both live inside the routing layer, so both must be
-  mirrored: `channels.py` needs a `channels.js`, and `routeHH` needs the same
-  dogleg branch.
-- Write Python first, get it green, then port, and let the parity suite be the
-  acceptance test for the port. Do not develop both at once.
-- `tests/test_js_parity.py` already compares routes, junctions, hops, label and
-  arrow spots. It needs one addition: a fixture with a known cycle, so the
-  dogleg path is exercised on both sides rather than only the common path.
-
-## 10. Test plan
-
-Each item names what must go red if the change is removed.
-
-1. **Left-edge assignment, unit level.** A channel with a known-optimal packing
-   gets that packing. Red if the assignment wastes a track.
-2. **VCG construction.** A hand-built three-net cycle is detected as a cycle; a
-   chain is not. Red if cycle detection is vacuous.
-3. **The constructed channel.** Eight fully crossed nets, the case that holds
-   four shorts at every width today, routes with zero shorts. This is the
-   headline regression test.
-4. **Dogleg shape.** A net on a cycle comes back with six points and two
-   distinct corridor x values; the jog row is clear of other runs.
-5. **Doglegs are not gratuitous.** On a drawing that routes cleanly today,
-   every route still has four points. Red if doglegs fire when unneeded.
-6. **Corpus gate.** All ten fixtures: zero DRC errors, warnings <= 558, wire
-   length within 2%, area unchanged, runtime not worse.
-7. **Determinism.** Two routes of the same document give identical points;
-   shuffling `doc.nets` gives identical geometry. Red if assignment depends on
-   iteration order.
-8. **Parity.** `tests/test_js_parity.py` green, including the new cycle
-   fixture.
-9. **Idempotency.** `arrange` twice changes nothing -- the property the
-   widening experiment broke.
-
-## 11. Risks
-
-- **The corpus is synthetic.** All ten fixtures are generated. Zero errors on
-  them is not zero on a drawing somebody actually made. The seven shipped
-  examples must be measured alongside, and they behave differently: the
-  transpose pass helped the benchmarks and slightly worsened crossings on the
-  examples.
-- **Assignment can move a wire somewhere worse.** A corridor that is legal may
-  still read badly -- through a label, or far from the pins it joins. Warnings
-  are the guard, which is why the budget is stated.
-- **Cycles may be rarer than the plateau suggests.** The shuffle experiment is
-  indirect evidence. If Phase 0 finds few cycles, Phase 2 should be deferred,
-  not built on principle.
-- **The port is where this breaks.** Two implementations of a constraint solver
-  will drift further than two implementations of a greedy search. If Phase 0
-  says the assignment is substantial, it is worth asking whether routing should
-  move behind the existing `/api/layout` call for large drawings rather than
-  being ported at all -- a design question this spec does not settle.
-
-## 12. Order of work
-
-| step | outcome | rough size |
-|---|---|---|
-| Phase 0 | cycle spectrum table; decides scope | half a day |
-| Phase 1 Python | `channels.py`, left-edge assignment, tests 1-3, 6-7 | 2-3 days |
-| Phase 1 port | `channels.js`, parity green | 1 day |
-| Phase 2 Python | doglegs, tests 4-5 | 2 days |
-| Phase 2 port | dogleg branch in `routeHH`, parity fixture | 1 day |
-| Corpus + docs | full gate, DOCUMENTATION updates | 1 day |
-
-Phase 1 is independently shippable. If Phase 0 says the graphs are mostly
-acyclic, stop after it and measure before deciding on Phase 2.
-<<<<<<<<<< DLBUNDLE END path=ROUTING-CORRIDORS.md >>>>>>>>>>
 <<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=220 sha256=9d7b7a269b723ed588f3b4713fac3c2349b7c679017de3dfbb6f36f8f3f54db4 >>>>>>>>>>
 # Session handoff
 
@@ -27498,7 +27255,7 @@ def _containment_issues(doc):
 def load(path):
   return Document.load(path)
 <<<<<<<<<< DLBUNDLE END path=drawlogic/doc.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/drc.py lines=1050 sha256=c6fede35e529784d29061a5956f13a23df9b1055a934c8f121c6c1e972170d04 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/drc.py lines=1035 sha256=c27058785f3f98c839f605b0f314b1660e5027bc72f137a04ed83ab24df2e3c0 >>>>>>>>>>
 """Design rule checks -- the DRCs a drawing has to pass to read well.
 
 A schematic can be correct and still unreadable. Two wires a hair apart read
@@ -27564,19 +27321,6 @@ TOUCHING = 0.5
 # a wobble in a straight wire rather than as a deliberate step around
 # something, so the drawing is clearer with the wire moved to avoid it.
 WIRE_MIN_JOG = 8.0
-
-# How far a direction arrow keeps from a junction dot or a crossing bridge.
-#
-# A dot and an arrowhead are both small solid marks in the same ink, so one
-# drawn on the other reads as a single slightly fatter arrow -- and the
-# connection the dot was there to announce is gone. A bridge is the same
-# problem in the other direction: the arrow sits in the bulge, and the reader
-# cannot see whether the wire hopped or stopped. Both marks say something the
-# arrow does not, so the arrow is the one that moves.
-ARROW_TO_MARK = 12.0
-
-# The old name, kept because it reads better where only dots are meant.
-ARROW_TO_JUNCTION = ARROW_TO_MARK
 
 # ---- text -----------------------------------------------------------------
 
@@ -27701,8 +27445,6 @@ def as_data():
     "corridorTries": CORRIDOR_TRIES,
     "wireMinJog": WIRE_MIN_JOG,
     "touching": TOUCHING,
-    "arrowToMark": ARROW_TO_MARK,
-    "arrowToJunction": ARROW_TO_JUNCTION,
     "labelClearance": LABEL_CLEARANCE,
     "labelHeadroom": LABEL_HEADROOM,
     "textToWire": TEXT_TO_WIRE,
@@ -31756,7 +31498,7 @@ def _rows_of_ranks(part, registry, gap_x, gap_y, fixed=()):
       cell["x"] += px + dx - box[0]
       cell["y"] += py + dy + push - box[1]
 <<<<<<<<<< DLBUNDLE END path=drawlogic/layout.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/render_svg.py lines=1958 sha256=99a7d9f5033b48c797e78d652ca6f5a82b08d6201828ae543e4ad3373878c6d7 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/render_svg.py lines=1787 sha256=a01f4652567c9ee465a1110ec555e0027e5860ce7c4dc3069b1dc3a7277a9199 >>>>>>>>>>
 """Document to SVG.
 
 This is the only place that turns a drawing into a file. The GUI's Export
@@ -32308,8 +32050,35 @@ def _render_copies_badge(box, copies, out):
       ("fill", theme.COLORS["fill"])]), esc(text)))
 
 
-def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
-  """Draw one placed cell: its shapes transformed, its text kept upright."""
+def wired_pins(doc):
+  """The pins a wire reaches, as {cell id: set of pin names}."""
+  found = {}
+  for net in doc.nets:
+    for end in [net.get("from")] + routing.loads_of(net):
+      if isinstance(end, dict) and end.get("cell"):
+        found.setdefault(end["cell"], set()).add(end.get("pin"))
+  return found
+
+
+def stub_pin(symbol, op):
+  """The pin a "pin" role line is the stub of: the one at either of its ends."""
+  if op.get("role") != "pin" or op.get("op") != "line":
+    return None
+  for pin in symbol.pins:
+    for x, y in ((op.get("x1"), op.get("y1")), (op.get("x2"), op.get("y2"))):
+      if x == pin["x"] and y == pin["y"]:
+        return pin["name"]
+  return None
+
+
+def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0, wired=None):
+  """Draw one placed cell: its shapes transformed, its text kept upright.
+
+  `wired` is the set of this cell's pins a wire reaches, or None to draw
+  every pin -- a symbol on its own, as a preview. A pin no wire reaches has
+  its stub left out: on a gate with an input spare, a line running out to
+  nothing looked like a wire that had come loose.
+  """
   _render_stack(symbol, cell, symbol_scale, out)
   matrix = symbol.matrix_for(cell, symbol_scale)
   # Distinct from symbol_scale: this is how much the matrix magnifies, and it
@@ -32343,6 +32112,10 @@ def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0):
     # A block's miniature of the drawing it stands for, only when asked for.
     if str(op.get("role", "")).startswith("preview") and not cell.get("preview"):
       continue
+    if wired is not None:
+      stub = stub_pin(symbol, op)
+      if stub is not None and stub not in wired:
+        continue
     element = _op_element(
       op, _role_paint(op.get("role", "body"), style, stroke_factor, font_scale))
     if element:
@@ -32478,154 +32251,31 @@ def _free_pin_label(symbol, cell, pin_name, symbol_scale):
   return matrix.apply(local[0], local[1]), anchor
 
 
-def _walk(points, distance):
-  """The point a given way along a path, and the direction of travel there."""
-  for index in range(len(points) - 1):
-    ax, ay = points[index]
-    bx, by = points[index + 1]
-    length = abs(bx - ax) + abs(by - ay)
-    if length <= 0:
-      continue
-    if distance <= length:
-      ratio = distance / length
-      return ((ax + (bx - ax) * ratio, ay + (by - ay) * ratio),
-              ((bx - ax) / length, (by - ay) / length),
-              min(distance, length - distance))
-    distance -= length
-  return None
+def _arrow_spots(points):
+  """The arrowhead at the end of a wire: [(tip, direction)], or none.
 
-
-def _path_length(points):
-  return sum(abs(points[i + 1][0] - points[i][0])
-             + abs(points[i + 1][1] - points[i][1])
-             for i in range(len(points) - 1))
-
-
-def text_marks(doc, registry, routes, scale, font_scale):
-  """Every name on the sheet, as boxes an arrow should stay out of.
-
-  Public, and the browser has the same function, for the reason arrow_marks
-  is: the parity test has to ask the renderer the question it asks itself,
-  not a reconstruction of it.
+  The tip is the wire's last point -- where it meets the pin it feeds -- and
+  the head lies along the last run into it. One head, at the end and nowhere
+  else: heads spaced along a long wire, or slid off the end to dodge a dot or
+  a name, made a busy drawing busier while saying nothing the one at the pin
+  does not.
   """
-  boxes = []
-  for cell in doc.cells:
-    symbol = registry.for_cell(cell)
-    if symbol is None:
-      continue
-    written = cell_label_box(symbol, cell, scale, font_scale)
-    if written is not None:
-      boxes.append(written)
-  for written in net_label_boxes(doc, registry, routes).values():
-    if written is not None:
-      boxes.append(written)
-  return boxes
+  tip = points[-1]
+  for before in reversed(points[:-1]):
+    dx, dy = tip[0] - before[0], tip[1] - before[1]
+    length = math.hypot(dx, dy)
+    if length > 1e-6:
+      return [((tip[0], tip[1]), (dx / length, dy / length))]
+  return []
 
 
-def arrow_marks(junctions, hop_map):
-  """Everything an arrow has to keep clear of: junction dots and hop bridges.
-
-  Public, and the browser has the same function, because the parity test has
-  to ask what the renderer asks. It used to build its own list and leave the
-  hops out -- and so did the browser, so the two agreed with each other and
-  the test passed while the editor drew an arrow on a bridge the exported
-  file did not have. Two copies matching is not the same as either being
-  right, and only one of them was being rendered.
-  """
-  return list(junctions) + [spot for spots in hop_map.values()
-                            for spot in spots]
-
-
-def _arrow_spots(points, size, spacing=None, junctions=(), text=()):
-  """Where a wire's direction arrows go, and which way each one points.
-
-  One always sits near the receiving end, which is where a reader looks to ask
-  "what drives this?". On a long run that arrow is nowhere near most of the
-  wire, so more are spaced along it -- close enough that the direction reads
-  wherever the eye lands, far enough apart that the wire does not turn into a
-  dotted line. Arrows are kept off corners, where a head pointing into the
-  bend is worse than no head at all.
-
-  They are kept off junction dots too. Both are small solid marks in the same
-  ink, so an arrow on a dot reads as one slightly fatter arrow, and the
-  connection the dot announced is lost. The dot is the more important of the
-  two -- it is the only thing saying these wires are joined -- so the arrow is
-  the one that gives way.
-
-  `text` is every name on the sheet, and the same rule applies to it, only
-  more so: a name is the one thing on a wire that cannot be worked out from
-  looking at the drawing, and an arrowhead through the middle of one costs a
-  reader far more than a missing arrow does. An arrow with nowhere clear to go
-  is not drawn at all.
-  """
-  if len(points) < 2:
-    return []
-
-  spacing = spacing or theme.ARROW_SPACING
-  total = _path_length(points)
-
-  ax, ay = points[-2]
-  bx, by = points[-1]
-  last = abs(bx - ax) + abs(by - ay)
-
-  if last < size * 3:
-    # The final run is too short to hold a head clear of the pin, so the arrow
-    # goes in the middle of the longest run instead.
-    best = None
-    for index in range(len(points) - 1):
-      px, py = points[index]
-      qx, qy = points[index + 1]
-      length = abs(qx - px) + abs(qy - py)
-      if best is None or length > best[0]:
-        best = (length, (px, py), (qx, qy))
-    _, (px, py), (qx, qy) = best
-    length = max(best[0], 1e-6)
-    spots = [(((px + qx) / 2.0, (py + qy) / 2.0),
-              ((qx - px) / length, (qy - py) / length))]
-    keep_clear = total
-  else:
-    # Back off from the pin so the head does not sit on top of it.
-    offset = size * 1.6
-    run = max(last, 1e-6)
-    spots = [((bx - (bx - ax) / run * offset, by - (by - ay) / run * offset),
-              ((bx - ax) / run, (by - ay) / run))]
-    keep_clear = total - offset
-
-  extra = []
-  distance = spacing
-  while distance < keep_clear - spacing * 0.5:
-    found = _walk(points, distance)
-    if found is not None:
-      spot, direction, from_corner = found
-      if from_corner >= size * 2:
-        extra.append((spot, direction))
-    distance += spacing
-
-  found = extra + spots
-  if not junctions and not text:
-    return found
-  # An arrow is the most expendable mark on the sheet. Everything else it
-  # might land on -- a junction dot, a crossing bridge, a name -- carries
-  # something the reader cannot work out for themselves, while the direction
-  # of a wire is usually obvious from the pins at its ends. So the arrow moves
-  # along the wire to somewhere clear, and goes without rather than sit on top
-  # of any of them.
-  clear = []
-  for tip, direction in found:
-    moved = _slide_clear(points, tip, direction, size, junctions, text)
-    if moved is not None:
-      clear.append(moved)
-  return clear
-
-
-def arrow_spots_for(branches, mode, size, junctions=(), text=()):
+def arrow_spots_for(branches, mode):
   """Every arrowhead on one wire, for an arrow mode from routing.ARROW_MODES.
 
-  Per branch: every load wants to know which way the signal reaches it. A
-  wire pointing backward is the same wire walked from the load end, so its
-  heads gather near the driver; "both" is the two together. Branches share
-  their trunk near the driver, so heads walked from that end land on the
-  same spots more than once; there a spot is only drawn the first time.
+  "forward" puts a head on each load, where its branch arrives; "backward"
+  one on the driver, pointing back into it; "both" the two together. Every
+  branch starts at the driver, so heads at that end land on one spot more
+  than once, and a spot is only drawn the first time.
   """
   if mode == "none":
     return []
@@ -32640,95 +32290,17 @@ def arrow_spots_for(branches, mode, size, junctions=(), text=()):
   found = []
   seen = set()
   for points in walks:
-    for tip, direction in _arrow_spots(points, size, junctions=junctions,
-                                       text=text):
+    for tip, direction in _arrow_spots(points):
       # Floor rather than round(), which rounds halves to even where the
       # browser's copy of this rounds them up.
       key = (math.floor(tip[0] * 10 + 0.5), math.floor(tip[1] * 10 + 0.5),
              math.floor(direction[0] * 1000 + 0.5),
              math.floor(direction[1] * 1000 + 0.5))
-      if key in seen and mode != "forward":
+      if key in seen:
         continue
       seen.add(key)
       found.append((tip, direction))
   return found
-
-
-def _blocked(tip, size, junctions, text):
-  """Whether an arrowhead here would land on something that matters more."""
-  if not _clear_of(tip, junctions, drc.ARROW_TO_JUNCTION):
-    return True
-  half = size / 2.0
-  for x0, y0, x1, y1 in text:
-    if (x0 - half <= tip[0] <= x1 + half
-        and y0 - half <= tip[1] <= y1 + half):
-      return True
-  return False
-
-
-# How far along the wire an arrow will shuffle looking for a clear spot, and
-# in what steps. Far enough to clear a name, short enough that the head stays
-# on the stretch of wire it was describing.
-SLIDE_REACH = 44.0
-SLIDE_STEP = 4.0
-
-
-def _slide_clear(points, tip, direction, size, junctions, text):
-  """Move an arrow along its wire until it sits clear, or give it up.
-
-  Tried where it wanted to be first, then a little either way, so an arrow
-  only moves as far as it has to and a wire with room keeps its head where it
-  reads best -- near the end that receives the signal.
-  """
-  if not _blocked(tip, size, junctions, text):
-    return (tip, direction)
-
-  at = _distance_along(points, tip)
-  if at is None:
-    return None
-  step = SLIDE_STEP
-  while step <= SLIDE_REACH:
-    for away in (-step, step):
-      found = _walk(points, at + away)
-      if found is None:
-        continue
-      spot, heading, from_corner = found
-      if from_corner < size * 2:
-        continue
-      if not _blocked(spot, size, junctions, text):
-        return (spot, heading)
-    step += SLIDE_STEP
-  return None
-
-
-def _distance_along(points, tip):
-  """How far along a path a point sits, or None if it is not on it."""
-  travelled = 0.0
-  for index in range(len(points) - 1):
-    a = points[index]
-    b = points[index + 1]
-    length = abs(b[0] - a[0]) + abs(b[1] - a[1])
-    if length <= 0:
-      continue
-    if _on_segment(tip, a, b):
-      return travelled + abs(tip[0] - a[0]) + abs(tip[1] - a[1])
-    travelled += length
-  return None
-
-
-def _on_segment(point, a, b):
-  slack = 1e-6
-  return (min(a[0], b[0]) - slack <= point[0] <= max(a[0], b[0]) + slack
-          and min(a[1], b[1]) - slack <= point[1] <= max(a[1], b[1]) + slack)
-
-
-def _clear_of(point, others, distance):
-  """True if a point keeps its distance from every one of `others`."""
-  for other in others:
-    if (abs(point[0] - other[0]) < distance
-        and abs(point[1] - other[1]) < distance):
-      return False
-  return True
 
 
 def _net_path(points, hops, radius):
@@ -33105,8 +32677,6 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
   routes = routing.route_all(doc, registry)
   hop_map = routing.hop_points(routes) if hops else {}
   junctions = routing.junctions(routes)
-  marks = arrow_marks(junctions, hop_map)
-  names = text_marks(doc, registry, routes, doc.symbol_scale, font_scale)
 
   for net, branches in routes:
     if not branches:
@@ -33151,8 +32721,7 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
     for net, branches in routes:
       style = net.get("style") or {}
       mode = routing.arrow_mode(doc, net, registry)
-      for tip, direction in arrow_spots_for(branches, mode, theme.ARROW_SIZE,
-                                            junctions=marks, text=names):
+      for tip, direction in arrow_spots_for(branches, mode):
         _render_arrow(tip, direction, theme.ARROW_SIZE,
                       style.get("stroke", theme.COLORS["net"]), out)
 
@@ -33628,6 +33197,7 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
   run = None
   # A drawing with no shapes, or no cells, still has the (empty) group for
   # them where it always was, so what reads an exported file finds it.
+  wired = wired_pins(doc)
   if not doc.shapes:
     out.append('<g class="dl-shapes">')
     out.append("</g>")
@@ -33653,7 +33223,8 @@ def render(doc, registry=None, zoom=1.0, width=None, margin=None,
     elif kind == "cell":
       symbol = registry.for_cell(item)
       if symbol is not None:
-        _render_cell(symbol, item, font_scale, out, doc.symbol_scale)
+        _render_cell(symbol, item, font_scale, out, doc.symbol_scale,
+                     wired.get(item.get("id"), set()))
   if not doc.cells:
     out.append('<g class="dl-cells">')
     out.append("</g>")
@@ -41043,7 +40614,7 @@ def default_registry():
     _default = load_registry()
   return _default
 <<<<<<<<<< DLBUNDLE END path=drawlogic/symbols.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/theme.py lines=222 sha256=e7c23cfa5d99d49ffcd75ddda021bddb61afb6bb3fecf47cc8ab200988afa04b >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/theme.py lines=216 sha256=07b1ded95f11b4285154fab27d487e4a1063f6bc0485a56cfe420cb3e1df6b38 >>>>>>>>>>
 """Default visual constants.
 
 Documents override any of these per element; these are only the fallbacks.
@@ -41149,11 +40720,6 @@ PIN_LABEL_INSET = 8.0
 JUNCTION_RADIUS = 3.2
 ARROW_SIZE = 7.0
 
-# How far apart direction arrows sit along a wire. One arrow near the
-# receiving end is enough on a short run and useless on a long one, where most
-# of the wire is nowhere near it.
-ARROW_SPACING = 240.0
-
 # Radius of the little bridge drawn where one wire crosses another
 # without connecting to it.
 HOP_RADIUS = 5.0
@@ -41253,7 +40819,6 @@ def as_data():
     "fontStacks": FONT_STACKS,
     "junctionRadius": JUNCTION_RADIUS,
     "arrowSize": ARROW_SIZE,
-    "arrowSpacing": ARROW_SPACING,
     "hopRadius": HOP_RADIUS,
     "wireDashes": WIRE_DASHES,
     "cellText": CELL_TEXT,
@@ -43879,7 +43444,7 @@ function boxAlignments(doc, moving, offer) {
   }
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/guides.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/main.js lines=3057 sha256=907dc35a0b3c15a28e49d3d64f534dd983301868cc37f5e0c6c08440f5fe2d6e >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/main.js lines=3054 sha256=919a5e98989a42f399b80fc7daa94b5149fe2c747731560a5749796182a30527 >>>>>>>>>>
 // Boots the editor and wires the pieces together.
 //
 // Usage: loaded by index.html as a module. Talks to the server over
@@ -43896,7 +43461,7 @@ import * as shortcuts from "./shortcuts.js";
 import * as render from "./render.js";
 import * as routing from "./routing.js";
 import { Selection, drawHandles } from "./selection.js";
-import { makeTools, placementPreview } from "./tools.js";
+import { bindSlider, makeTools, placementPreview } from "./tools.js";
 import { Viewport } from "./viewport.js";
 
 const store = new model.Store();
@@ -45454,19 +45019,32 @@ function reportInterface(fine) {
 
 // After a drawing is saved, every open drawing using it as a component is
 // read again, so its instances show the definition as it now is.
+//
+// Using it at any depth, not only naming it: a port renamed in sm.dlg
+// changes the SM boxes in the miniature of the gpc.dlg placing them, and so
+// the top drawing placing that GPC. Picking only the tabs that name the saved file left the top one
+// stale until Refresh components. Which drawings use it indirectly is known
+// only on disk -- the definition between need not be open -- so every open
+// drawing that links a component is asked about (the server reads the whole
+// hierarchy fresh each time), and the ones whose answer changed are the ones
+// it reports as redrawn.
 async function refreshUsersOf(path) {
-  const users = openTabs.filter((tab) => tab.path !== path
-    && (tab.path === store.path ? store.doc : tab.doc)
-    && (tab.path === store.path ? store.doc : tab.doc).cells
-      .some((c) => c.ref && refPath(tab.path, c.ref) === path));
+  const docOf = (tab) => (tab.path === store.path ? store.doc : tab.doc);
+  const candidates = openTabs.filter((tab) => tab.path !== path
+    && model.linksComponents(docOf(tab)));
+  const users = [];
   let lost = 0;
-  for (const tab of users) {
-    const doc = tab.path === store.path ? store.doc : tab.doc;
+  for (const tab of candidates) {
+    const doc = docOf(tab);
+    const direct = doc.cells.some((c) => c.ref && refPath(tab.path, c.ref) === path);
     try {
       const result = await api("/api/resolve", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc, source: tab.path }),
       });
+      const held = tab.path === store.path ? geometry.sheetData() : tab.sheets;
+      if (!direct && !model.sheetsChanged(held, result.sheets)) continue;
+      users.push(tab);
       if (tab.path === store.path) useSheets(result.sheets);
       else tab.sheets = model.keptSheets(tab.sheets, result.sheets);
       lost += model.interfaceProblems(doc, result.sheets).length;
@@ -46504,33 +46082,17 @@ function bindControls() {
   ui.btnFit.addEventListener("click",
                              () => viewport.fit(store.doc.canvas.width, store.doc.canvas.height));
 
-  // One drag of a slider is one undo step. "input" fires per tick and each
-  // was its own snapshot, so undoing a drag took dozens of Ctrl+Z; "change"
-  // fires once, on release, and closes the gesture the first tick opened.
-  const slider = (element, label, apply) => {
-    let sliding = false;
-    element.addEventListener("input", () => {
-      if (!sliding) {
-        // disabled
-        sliding = true;
-      }
-      apply(Number(element.value));
-      redraw();
-    });
-    element.addEventListener("change", () => {
-      store.endGesture();
-      sliding = false;
-    });
-  };
-
-  slider(ui.fontSlider, "text size", (value) => {
+  // One drag, one undo step: see bindSlider.
+  bindSlider(ui.fontSlider, store, "text size", (value) => {
     ui.fontValue.value = `${value}%`;
     store.mutate("text size", (doc) => { doc.canvas.font.scale = value / 100; });
+    redraw();
   });
 
-  slider(ui.symbolSlider, "symbol size", (value) => {
+  bindSlider(ui.symbolSlider, store, "symbol size", (value) => {
     ui.symbolValue.value = `${value}%`;
     store.mutate("symbol size", (doc) => { doc.canvas.symbolScale = value / 100; });
+    redraw();
   });
 
   ui.fileSelect.addEventListener("change", () => {
@@ -47050,7 +46612,7 @@ export function bindMenus(root, { beforeOpen = () => {} } = {}) {
   });
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/menus.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/model.js lines=1945 sha256=15929ee729860a53f1431c49462a5288f9ba73a25628166fe32709b47b37d586 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/model.js lines=1966 sha256=ee3b08576c7d69d32cdce22c1b2c18d8943682e6ed38a1ea53f776f1c99ca501 >>>>>>>>>>
 // The document: state, undo/redo, and every change it can undergo.
 //
 // Usage:
@@ -47219,12 +46781,17 @@ export class Store {
 
   canRedo() { return this._redo.length > 0; }
 
+  // Both put a different document in front, so both move the generation as
+  // an edit does. They did not, and a save sent before an undo came back
+  // matching: it marked the undone drawing clean while the file held the
+  // state the undo had taken away, and the tab closed without a warning.
   undo() {
     if (!this._undo.length) return false;
     const entry = this._undo.pop();
     this._redo.push({ label: entry.label, doc: this.snapshot() });
     this.doc = entry.doc;
     this.dirty = true;
+    this.generation += 1;
     this.emit("undo");
     return entry.label;
   }
@@ -47235,6 +46802,7 @@ export class Store {
     this._undo.push({ label: entry.label, doc: this.snapshot() });
     this.doc = entry.doc;
     this.dirty = true;
+    this.generation += 1;
     this.emit("redo");
     return entry.label;
   }
@@ -47597,6 +47165,21 @@ export function setTextStyle(doc, ids, part, key, value) {
 // with nothing to draw it. A definition the answer does read is fresh.
 export function keptSheets(previous, fresh) {
   return { ...(previous || {}), ...(fresh || {}) };
+}
+
+// Whether a drawing places any linked component -- and so may be using a
+// saved drawing without naming it: the top of gpu_linked.dlg uses sm.dlg
+// through gpc.dlg, which need not be open to tell.
+export function linksComponents(doc) {
+  return !!doc && (doc.cells || []).some((c) => c.ref);
+}
+
+// Whether an answer from the server draws any definition differently from
+// the one held. The answer about a drawing two levels up is the only place
+// a nested save shows, as a changed miniature of the definition between.
+export function sheetsChanged(previous, fresh) {
+  return Object.entries(fresh || {}).some(
+    ([key, symbol]) => JSON.stringify((previous || {})[key]) !== JSON.stringify(symbol));
 }
 
 // ---- named styles ----
@@ -50985,7 +50568,7 @@ export function watch(store, onFull) {
   });
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/recovery.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/render.js lines=1350 sha256=eaa7cac510f6b56d406c30474df1214b0a1abb54b85ddd3972be406a6ebb87ba >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/render.js lines=1221 sha256=d6c420473dc2fc57540f04382856f87c54d43e5f20fe1dbbc54b87c333c1bc18 >>>>>>>>>>
 // Draws a document into live SVG DOM.
 //
 // The on-screen canvas only has to look right while you work; every file that
@@ -51170,7 +50753,36 @@ export function pinLabelSpot(op, text, cell, matrix, fontScale = 1) {
   return [x, y + size * PIN_LABEL_RISE, "middle"];
 }
 
-function renderCell(symbol, cell, fontScale, scale, into) {
+// The pins a wire reaches, as Map(cell id -> Set of pin names). Mirrors
+// render_svg.wired_pins.
+export function wiredPins(doc) {
+  const found = new Map();
+  for (const net of doc.nets || []) {
+    for (const end of [net.from, ...routing.loadsOf(net)]) {
+      if (!end || typeof end !== "object" || !end.cell) continue;
+      if (!found.has(end.cell)) found.set(end.cell, new Set());
+      found.get(end.cell).add(end.pin);
+    }
+  }
+  return found;
+}
+
+// The pin a "pin" role line is the stub of: the one at either of its ends.
+// Mirrors render_svg.stub_pin.
+export function stubPin(symbol, op) {
+  if (op.role !== "pin" || op.op !== "line") return null;
+  for (const pin of symbol.pins) {
+    if ((op.x1 === pin.x && op.y1 === pin.y) || (op.x2 === pin.x && op.y2 === pin.y)) {
+      return pin.name;
+    }
+  }
+  return null;
+}
+
+// `wired` is the set of this cell's pins a wire reaches, or null to draw every
+// pin -- a palette thumbnail. A pin no wire reaches has its stub left out, as
+// render_svg._render_cell does.
+function renderCell(symbol, cell, fontScale, scale, into, wired = null) {
   const matrix = geometry.matrixFor(symbol, cell, scale);
   const factor = matrix.scaleFactor();
   const style = cell.style || {};
@@ -51238,6 +50850,10 @@ function renderCell(symbol, cell, fontScale, scale, into) {
     if (op.op === "text") continue;
     // A block's miniature of the drawing it stands for, only when asked for.
     if (String(op.role || "").startsWith("preview") && !cell.preview) continue;
+    if (wired) {
+      const stub = stubPin(symbol, op);
+      if (stub !== null && !wired.has(stub)) continue;
+    }
     const node = opElement(op, rolePaint(op.role || "body", style, factor, fontScale));
     if (node) group.appendChild(node);
   }
@@ -51357,67 +50973,23 @@ function copiesBadge(box, copies, into) {
 }
 
 
-// Direction arrows. Mirrors _arrow_at / _render_arrow in render_svg.py: the
-// head sits near the receiving end, which is where a reader looks to ask
-// "what drives this?".
-// The point a given way along a path, and the direction of travel there.
-function walk(points, distance) {
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const [ax, ay] = points[i];
-    const [bx, by] = points[i + 1];
-    const length = Math.abs(bx - ax) + Math.abs(by - ay);
-    if (length <= 0) continue;
-    if (distance <= length) {
-      const ratio = distance / length;
-      return [[ax + (bx - ax) * ratio, ay + (by - ay) * ratio],
-              [(bx - ax) / length, (by - ay) / length],
-              Math.min(distance, length - distance)];
-    }
-    distance -= length;
+// The arrowhead at the end of a wire: [[tip, direction]], or none. Mirrors
+// render_svg._arrow_spots: the tip is the wire's last point, where it meets
+// the pin it feeds, and the head lies along the last run into it.
+export function arrowSpots(points) {
+  const tip = points[points.length - 1];
+  for (let i = points.length - 2; i >= 0; i -= 1) {
+    const dx = tip[0] - points[i][0];
+    const dy = tip[1] - points[i][1];
+    const length = Math.hypot(dx, dy);
+    if (length > 1e-6) return [[[tip[0], tip[1]], [dx / length, dy / length]]];
   }
-  return null;
+  return [];
 }
 
-function pathLength(points) {
-  let total = 0;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    total += Math.abs(points[i + 1][0] - points[i][0])
-      + Math.abs(points[i + 1][1] - points[i][1]);
-  }
-  return total;
-}
-
-// One arrow always sits near the receiving end, which is where a reader looks
-// to ask "what drives this?". On a long run that arrow is nowhere near most of
-// the wire, so more are spaced along it -- close enough that the direction
-// reads wherever the eye lands, far enough apart that the wire does not turn
-// into a dotted line. Arrows are kept off corners.
-// Arrows are kept off junction dots as well as off corners. Both are small
-// solid marks in the same ink, so an arrow on a dot reads as one slightly
-// fatter arrow and the connection the dot announced is lost. The dot is the
-// more important of the two, so the arrow is the one that gives way.
-// Everything an arrow has to keep clear of: junction dots and crossing
-// bridges alike. Exported because the parity test has to ask the same
-// question the renderer asks -- when it built its own list instead, it left
-// the hops out, agreed with the Python helper doing the same, and reported
-// success while the editor drew an arrow on a bridge that the exported file
-// did not have. A test that recomputes what it is checking can only prove the
-// two copies match, not that either is right.
-export function arrowMarks(junctions, hops) {
-  const spots = [];
-  for (const points of (hops || new Map()).values()) spots.push(...points);
-  return junctions.concat(spots);
-}
-
-
-// Every name on the sheet, as boxes an arrow should stay out of. Mirrors
-// render_svg.text_marks; `spots` is what labelSpots already worked out, so
-// the net names are the ones actually being drawn rather than a second guess.
-export function textMarks(doc, spots, routes, fontScale) {
-  return namedTextMarks(doc, spots, routes, fontScale).map((mark) => mark.box);
-}
-
-// The same boxes, each with whose name it is: { kind, id, box }.
+// Every name on the sheet, each with whose name it is: { kind, id, box }.
+// `spots` is what labelSpots already worked out, so the net names are the
+// ones actually being drawn rather than a second guess.
 function namedTextMarks(doc, spots, routes, fontScale) {
   const scale = routing.symbolScale(doc);
   const boxes = [];
@@ -51454,15 +51026,10 @@ export function nameAt(doc, point) {
     && point[1] >= box[1] - pad && point[1] <= box[3] + pad) || null;
 }
 
-// How far along the wire an arrow will shuffle looking for a clear spot, and
-// in what steps. Mirrors SLIDE_REACH and SLIDE_STEP in render_svg.py.
-const SLIDE_REACH = 44;
-const SLIDE_STEP = 4;
-
 // Every arrowhead on one wire for an arrow mode. Mirrors
-// render_svg.arrow_spots_for: a backward wire is the same wire walked from the
-// load end, and a spot reached twice from that end is drawn once.
-export function arrowSpotsFor(branches, mode, size, junctions, text) {
+// render_svg.arrow_spots_for: a head on each load going forward, one on the
+// driver going backward, and a spot reached twice drawn once.
+export function arrowSpotsFor(branches, mode) {
   if (mode === "none") return [];
   const walks = [];
   for (const points of branches) {
@@ -51473,127 +51040,16 @@ export function arrowSpotsFor(branches, mode, size, junctions, text) {
   const found = [];
   const seen = new Set();
   for (const points of walks) {
-    for (const [tip, direction] of arrowSpots(points, size, null, junctions, text)) {
+    for (const [tip, direction] of arrowSpots(points)) {
       const key = [Math.floor(tip[0] * 10 + 0.5), Math.floor(tip[1] * 10 + 0.5),
                    Math.floor(direction[0] * 1000 + 0.5),
                    Math.floor(direction[1] * 1000 + 0.5)].join(",");
-      if (seen.has(key) && mode !== "forward") continue;
+      if (seen.has(key)) continue;
       seen.add(key);
       found.push([tip, direction]);
     }
   }
   return found;
-}
-
-function arrowBlocked(tip, size, junctions, text) {
-  const limit = routing.currentLimits().arrowToJunction;
-  for (const dot of junctions) {
-    if (Math.abs(tip[0] - dot[0]) < limit && Math.abs(tip[1] - dot[1]) < limit) {
-      return true;
-    }
-  }
-  const half = size / 2;
-  for (const [x0, y0, x1, y1] of text) {
-    if (x0 - half <= tip[0] && tip[0] <= x1 + half
-        && y0 - half <= tip[1] && tip[1] <= y1 + half) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function onSegment(point, a, b) {
-  const slack = 1e-6;
-  return Math.min(a[0], b[0]) - slack <= point[0]
-    && point[0] <= Math.max(a[0], b[0]) + slack
-    && Math.min(a[1], b[1]) - slack <= point[1]
-    && point[1] <= Math.max(a[1], b[1]) + slack;
-}
-
-function distanceAlong(points, tip) {
-  let travelled = 0;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const a = points[i];
-    const b = points[i + 1];
-    const length = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
-    if (length <= 0) continue;
-    if (onSegment(tip, a, b)) {
-      return travelled + Math.abs(tip[0] - a[0]) + Math.abs(tip[1] - a[1]);
-    }
-    travelled += length;
-  }
-  return null;
-}
-
-// Move an arrow along its wire until it sits clear, or give it up. See
-// render_svg._slide_clear: everything an arrow might land on carries
-// something the reader cannot work out for themselves, and the direction of a
-// wire usually can be, so the arrow is the one that moves.
-function slideClear(points, tip, direction, size, junctions, text) {
-  if (!arrowBlocked(tip, size, junctions, text)) return [tip, direction];
-  const at = distanceAlong(points, tip);
-  if (at === null) return null;
-  for (let step = SLIDE_STEP; step <= SLIDE_REACH; step += SLIDE_STEP) {
-    for (const away of [-step, step]) {
-      const found = walk(points, at + away);
-      if (!found) continue;
-      const [spot, heading, fromCorner] = found;
-      if (fromCorner < size * 2) continue;
-      if (!arrowBlocked(spot, size, junctions, text)) return [spot, heading];
-    }
-  }
-  return null;
-}
-
-export function arrowSpots(points, size, spacing, junctions = [], text = []) {
-  if (points.length < 2) return [];
-  const step = spacing || theme.arrowSpacing || 240;
-  const total = pathLength(points);
-
-  let [ax, ay] = points[points.length - 2];
-  let [bx, by] = points[points.length - 1];
-  const last = Math.abs(bx - ax) + Math.abs(by - ay);
-
-  const spots = [];
-  let keepClear;
-  if (last < size * 3) {
-    // The final run is too short to hold a head clear of the pin, so the
-    // arrow goes in the middle of the longest run instead.
-    let best = null;
-    for (let i = 0; i < points.length - 1; i += 1) {
-      const [px, py] = points[i];
-      const [qx, qy] = points[i + 1];
-      const length = Math.abs(qx - px) + Math.abs(qy - py);
-      if (!best || length > best[0]) best = [length, points[i], points[i + 1]];
-    }
-    const [length, [px, py], [qx, qy]] = best;
-    const run = Math.max(length, 1e-6);
-    spots.push([[(px + qx) / 2, (py + qy) / 2],
-                [(qx - px) / run, (qy - py) / run]]);
-    keepClear = total;
-  } else {
-    const offset = size * 1.6;
-    const run = Math.max(last, 1e-6);
-    spots.push([[bx - ((bx - ax) / run) * offset, by - ((by - ay) / run) * offset],
-                [(bx - ax) / run, (by - ay) / run]]);
-    keepClear = total - offset;
-  }
-
-  const extra = [];
-  for (let d = step; d < keepClear - step * 0.5; d += step) {
-    const found = walk(points, d);
-    if (!found) continue;
-    const [spot, direction, fromCorner] = found;
-    if (fromCorner >= size * 2) extra.push([spot, direction]);
-  }
-  const found = extra.concat(spots);
-  if (!junctions.length && !text.length) return found;
-  const clear = [];
-  for (const [tip, direction] of found) {
-    const moved = slideClear(points, tip, direction, size, junctions, text);
-    if (moved) clear.push(moved);
-  }
-  return clear;
 }
 
 function arrowElement(tip, direction, size, color) {
@@ -51826,7 +51282,6 @@ function renderNets(doc, fontScale, into) {
   const hops = (doc.canvas || {}).hops === false
     ? new Map() : routing.hopPoints(routes);
   const junctions = routing.junctions(routes);
-  const marks = arrowMarks(junctions, hops);
 
   for (const { net, branches } of routes) {
     if (!branches.length) continue;
@@ -51875,12 +51330,10 @@ function renderNets(doc, fontScale, into) {
     into.appendChild(text);
   }
 
-  const names = textMarks(doc, spots, routes, fontScale);
   if ((doc.canvas || {}).arrows !== false) {
     for (const { net, branches } of routes) {
       const mode = routing.arrowMode(doc, net);
-      for (const [tip, direction] of arrowSpotsFor(branches, mode,
-                                                   theme.arrowSize || 7, marks, names)) {
+      for (const [tip, direction] of arrowSpotsFor(branches, mode)) {
         into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                       (net.style || {}).stroke || theme.colors.net));
       }
@@ -52255,6 +51708,7 @@ export function render(svg, doc) {
   // Shapes and cells in one stacking order, the wires among them; see
   // drawOrder. Consecutive shapes share a group, as consecutive cells do.
   const [order, wiresAt] = drawOrder(doc.cells || [], doc.shapes || []);
+  const wired = wiredPins(doc);
   let junctions = [];
   let run = null;
   let group = null;
@@ -52280,7 +51734,7 @@ export function render(svg, doc) {
     if (kind === "shape") renderShape(item, fontScale, group, overCells);
     else if (kind === "cell") {
       const symbol = geometry.forCell(item);
-      if (symbol) renderCell(symbol, item, fontScale, scale, group);
+      if (symbol) renderCell(symbol, item, fontScale, scale, group, wired.get(item.id) || new Set());
     }
   });
   if (!(doc.cells || []).length) content.appendChild(el("g", { class: "dl-cells" }));
@@ -52337,7 +51791,7 @@ export function symbolThumbnail(symbol, boxSize = 34, maxHeight = null) {
   return svg;
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/render.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/routing.js lines=1235 sha256=7cf1924bc216472f2f615b2b9a9ade75f01eb759052c63ca7889ee03d914f650 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/routing.js lines=1234 sha256=460f8e1b2f0507519695c55586daf9a07c4dcc8c2cf3eefb3576827775067e89 >>>>>>>>>>
 // Wire routing. A port of drawlogic/routing.py.
 //
 // Endpoints are pin references, never coordinates, so a wire is re-resolved
@@ -52369,7 +51823,6 @@ let limits = {
   wireGap: 18,
   touching: 0.5,
   wireMinJog: 8,
-  arrowToJunction: 12,
   pinGrid: 5,
   hopGap: 17,
   hopFlat: 12,
@@ -53951,7 +53404,7 @@ export function fill(table) {
   table.replaceChildren(...rows);
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/shortcuts.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/tools.js lines=989 sha256=8569024fc43056ac8eba6c9955a2a6139ac9b1e8afe75496728822af589b4a04 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/tools.js lines=1014 sha256=69135d526a59d38af9955f5f886f75b26a5a933babbf9f991bd35664d8a73847 >>>>>>>>>>
 // Pointer behaviour, one class per tool.
 //
 // Usage:
@@ -54930,6 +54383,31 @@ export class ShapeTool {
   }
 
   onDeactivate() { this.reset(); }
+}
+
+// One drag of a slider is one undo step. "input" fires per tick and each
+// was its own snapshot, so undoing a drag took dozens of Ctrl+Z; "change"
+// fires once, on release (or once per key press), and closes the gesture the
+// first tick opened. The first version of this left the opening call out and
+// still read as if it worked; it lives here, not in main.js, so node can
+// drive it. Losing focus mid-drag ends the step too, rather than leaving the
+// gesture open to swallow whatever is edited next.
+export function bindSlider(element, store, label, apply) {
+  let sliding = false;
+  const end = () => {
+    if (!sliding) return;
+    store.endGesture();
+    sliding = false;
+  };
+  element.addEventListener("input", () => {
+    if (!sliding) {
+      store.beginGesture(label);
+      sliding = true;
+    }
+    apply(Number(element.value));
+  });
+  element.addEventListener("change", end);
+  element.addEventListener("blur", end);
 }
 
 export function makeTools(context) {
@@ -65825,7 +65303,7 @@ Scripts, command logs, screenshots, a sample SVG and editable fixtures were reta
 
 This is a targeted audit, not proof that the rest of the application is bug-free. No application code fixes were made during this review.
 <<<<<<<<<< DLBUNDLE END path=findings3.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=dbc4306d2fd9c25025821b37ed8b75e492510062ef167a9ede31c8bc6cf96418 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=3c3cb4a8dd94adcd248e99aba501a2eece236bb6f3af9a94b35c45aff0c9f3f1 >>>>>>>>>>
 86844009d34ccd786913c5d047f5e75cf14c1873432da49e3c93cd7bef19d099  drawlogic/__init__.py
 dd0c5bff5a05b805b0c08c7db6118605c86deb1d2746ad6d9c9124c4d667b0ee  drawlogic/__main__.py
 b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/authoring.py
@@ -65833,11 +65311,11 @@ b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/auth
 eff04d7e619d1d2aa77697c9f70241c6f4be50d456428ff0ce91c05ed030353b  drawlogic/components.py
 9e8dc9983790d9ae649457aebed1cc02dd33a885e2e6035b8e80e58866b375fe  drawlogic/containers.py
 7e025f5ef9456e395179b32e1e5eef573ffb6716ab8407a2396c8343355cf8bf  drawlogic/doc.py
-c6fede35e529784d29061a5956f13a23df9b1055a934c8f121c6c1e972170d04  drawlogic/drc.py
+c27058785f3f98c839f605b0f314b1660e5027bc72f137a04ed83ab24df2e3c0  drawlogic/drc.py
 dde231e36f130f2efffc7570b31e3745523c948c9439a1361053b70c3bab3990  drawlogic/geometry.py
 dc226a23d4bca7d73e349aa340e94e7319f6811d27d32ec6a1db78d5e80b7e1c  drawlogic/hdl.py
 65db563f209f789a369457998afd7c16198dd455e4c475055aab31ee3d21beac  drawlogic/layout.py
-99a7d9f5033b48c797e78d652ca6f5a82b08d6201828ae543e4ad3373878c6d7  drawlogic/render_svg.py
+a01f4652567c9ee465a1110ec555e0027e5860ce7c4dc3069b1dc3a7277a9199  drawlogic/render_svg.py
 ca619625f71c0a1e5ccef8f3c91daa7182ed3987428c656e4543d089c28a623a  drawlogic/routing.py
 552b3dfca066ab7e512edd6cf95aac1443aa8f277ba72b7fc6ca8d9fd1a9aa02  drawlogic/rtl.py
 c3ca8b09eea34c8ce90ee6892ef61c7b16d497dceb7aa04f108bac5591b2b6d6  drawlogic/server.py
@@ -65845,23 +65323,23 @@ c3ca8b09eea34c8ce90ee6892ef61c7b16d497dceb7aa04f108bac5591b2b6d6  drawlogic/serv
 b96fd4db05911a5bf353b1853d09c5401e4a924ee9588214ee3ccb3ae73248da  drawlogic/styles.py
 5c9ba8ecec65914c4efb2053520788de86388f7f62281fb60724857406299010  drawlogic/symbols.json
 6ab26b78c34a19ab36c8a191b033b0648cc52993f1ff812451f4700131ef3208  drawlogic/symbols.py
-e7c23cfa5d99d49ffcd75ddda021bddb61afb6bb3fecf47cc8ab200988afa04b  drawlogic/theme.py
+07b1ded95f11b4285154fab27d487e4a1063f6bc0485a56cfe420cb3e1df6b38  drawlogic/theme.py
 d9dca8156f4ddd2abbcf4f44a57c20ce30675f74e31b6bc8489cb471aa8e2baf  drawlogic/web/css/app.css
 5316755e2041ce4c6dccf076aed9917fa4084b0ec322e19008eb837bfb5034fa  drawlogic/web/index.html
 90dff3b818c8a57cbc426aa6cb88bb2cb5e6c419bae4dca4951f6c174635298f  drawlogic/web/js/geometry.js
 c0fc21fb73261b87f7c837e4d30bffbbf461b96efbb5bc2a07ae6fb74c8e3f12  drawlogic/web/js/guides.js
-907dc35a0b3c15a28e49d3d64f534dd983301868cc37f5e0c6c08440f5fe2d6e  drawlogic/web/js/main.js
+919a5e98989a42f399b80fc7daa94b5149fe2c747731560a5749796182a30527  drawlogic/web/js/main.js
 652de8cb6fabdb45bccc9081c8f120aad7add974ea08e2f0ed78a4bbfa2e0c3a  drawlogic/web/js/menus.js
-15929ee729860a53f1431c49462a5288f9ba73a25628166fe32709b47b37d586  drawlogic/web/js/model.js
+ee3b08576c7d69d32cdce22c1b2c18d8943682e6ed38a1ea53f776f1c99ca501  drawlogic/web/js/model.js
 da70c9150473ccd3eea0283979dd7f36b8ccc2d834fbdf8fc8dd77e37b0db250  drawlogic/web/js/panels.js
 fc89b8ff8678e27cc3c7a1396a420c27458a1e86e275dc1446c5d1f499459643  drawlogic/web/js/picture.js
 5cb2c07d2409346288029e9509671ed16a50b4316e605f8575adf5e6a23146f7  drawlogic/web/js/prefs.js
 09f268a86b57db231f600bd19a57b8005feb784842d48f70c0325d041af59a8a  drawlogic/web/js/recovery.js
-eaa7cac510f6b56d406c30474df1214b0a1abb54b85ddd3972be406a6ebb87ba  drawlogic/web/js/render.js
-7cf1924bc216472f2f615b2b9a9ade75f01eb759052c63ca7889ee03d914f650  drawlogic/web/js/routing.js
+d6c420473dc2fc57540f04382856f87c54d43e5f20fe1dbbc54b87c333c1bc18  drawlogic/web/js/render.js
+460f8e1b2f0507519695c55586daf9a07c4dcc8c2cf3eefb3576827775067e89  drawlogic/web/js/routing.js
 6308e2ed6b84140c92cc93bd3ce94f04cdc282fee2e4e916ef54ba42fb4a7d33  drawlogic/web/js/selection.js
 7098b8fcd142e3c4affc337aec6d3023ee95ca41518acf1ea19e63b53d484eb3  drawlogic/web/js/shortcuts.js
-8569024fc43056ac8eba6c9955a2a6139ac9b1e8afe75496728822af589b4a04  drawlogic/web/js/tools.js
+69135d526a59d38af9955f5f886f75b26a5a933babbf9f991bd35664d8a73847  drawlogic/web/js/tools.js
 da5aa707b992db1eec14ec3601e82a998c235294b6148344482a55df70fbf2fe  drawlogic/web/js/viewport.js
 373bd625182f9c2f05da216745801a29418cf2061aebfe90d3f22d93341732ee  drawlogic/yosys.py
 2b3dd4cf72e777d6bc99897ca5afac87036c7c2720d4dc733ef202b00b814672  sample.txt
@@ -66371,7 +65849,7 @@ def open_example(path):
   "groups": []
 }
 <<<<<<<<<< DLBUNDLE END path=tests/fixtures/crowded_port.dlg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/alu_slice.svg lines=155 sha256=b60f23538f76b3933cd86eddcda7269b20b2e18f14554b1ce8b2fc8fe0d73f36 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/alu_slice.svg lines=143 sha256=ac04c23fab99d89b014ce0b59cbf93b8879de221194ebda3530e512dddf62258 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>alu_slice</title>
@@ -66398,37 +65876,25 @@ def open_example(path):
 <text x="502.5" y="306" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a&amp;b</text>
 <text x="502.5" y="446" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a|b</text>
 <text x="772.5" y="696" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">sel[1:0]</text>
-<polygon points="298.8,150 291.8,153.15 291.8,146.85" fill="#16202b" />
-<polygon points="298.8,300 291.8,303.15 291.8,296.85" fill="#16202b" />
-<polygon points="207,273 203.85,266 210.15,266" fill="#16202b" />
-<polygon points="298.8,440 291.8,443.15 291.8,436.85" fill="#16202b" />
-<polygon points="298.8,170 291.8,173.15 291.8,166.85" fill="#16202b" />
-<polygon points="298.8,320 291.8,323.15 291.8,316.85" fill="#16202b" />
-<polygon points="187,343 183.85,336 190.15,336" fill="#16202b" />
-<polygon points="298.8,460 291.8,463.15 291.8,456.85" fill="#16202b" />
-<polygon points="528.8,180 521.8,183.15 521.8,176.85" fill="#16202b" />
-<polygon points="455,323 451.85,316 458.15,316" fill="#16202b" />
-<polygon points="528.8,560 521.8,563.15 521.8,556.85" fill="#16202b" />
-<polygon points="590,140 583,143.15 583,136.85" fill="#16202b" />
-<polygon points="619,140 612,143.15 612,136.85" fill="#16202b" />
-<polygon points="528.8,200 521.8,203.15 521.8,196.85" fill="#16202b" />
-<polygon points="334,250 327,253.15 327,246.85" fill="#16202b" />
-<polygon points="392,428 388.85,421 395.15,421" fill="#16202b" />
-<polygon points="528.8,580 521.8,583.15 521.8,576.85" fill="#16202b" />
-<polygon points="888.8,230 881.8,233.15 881.8,226.85" fill="#16202b" />
-<polygon points="602,310 595,313.15 595,306.85" fill="#16202b" />
-<polygon points="888.8,280 881.8,283.15 881.8,276.85" fill="#16202b" />
-<polygon points="615,545 611.85,538 618.15,538" fill="#16202b" />
-<polygon points="728.8,590 721.8,593.15 721.8,586.85" fill="#16202b" />
-<polygon points="602,450 595,453.15 595,446.85" fill="#16202b" />
-<polygon points="730,330 723,333.15 723,326.85" fill="#16202b" />
-<polygon points="888.8,330 881.8,333.15 881.8,326.85" fill="#16202b" />
-<polygon points="840,700 833,703.15 833,696.85" fill="#16202b" />
-<polygon points="945,565 948.15,572 941.85,572" fill="#16202b" />
-<polygon points="945,366.2 948.15,373.2 941.85,373.2" fill="#16202b" />
-<polygon points="1088.8,280 1081.8,283.15 1081.8,276.85" fill="#16202b" />
-<polygon points="728.8,610 721.8,613.15 721.8,606.85" fill="#16202b" />
-<polygon points="1088.8,600 1081.8,603.15 1081.8,596.85" fill="#16202b" />
+<polygon points="310,150 303,153.15 303,146.85" fill="#16202b" />
+<polygon points="310,300 303,303.15 303,296.85" fill="#16202b" />
+<polygon points="310,440 303,443.15 303,436.85" fill="#16202b" />
+<polygon points="310,170 303,173.15 303,166.85" fill="#16202b" />
+<polygon points="310,320 303,323.15 303,316.85" fill="#16202b" />
+<polygon points="310,460 303,463.15 303,456.85" fill="#16202b" />
+<polygon points="540,180 533,183.15 533,176.85" fill="#16202b" />
+<polygon points="540,560 533,563.15 533,556.85" fill="#16202b" />
+<polygon points="900,180 893,183.15 893,176.85" fill="#16202b" />
+<polygon points="540,200 533,203.15 533,196.85" fill="#16202b" />
+<polygon points="540,580 533,583.15 533,576.85" fill="#16202b" />
+<polygon points="900,230 893,233.15 893,226.85" fill="#16202b" />
+<polygon points="900,280 893,283.15 893,276.85" fill="#16202b" />
+<polygon points="740,590 733,593.15 733,586.85" fill="#16202b" />
+<polygon points="900,330 893,333.15 893,326.85" fill="#16202b" />
+<polygon points="945,355 948.15,362 941.85,362" fill="#16202b" />
+<polygon points="1100,280 1093,283.15 1093,276.85" fill="#16202b" />
+<polygon points="740,610 733,613.15 733,606.85" fill="#16202b" />
+<polygon points="1100,600 1093,603.15 1093,596.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_a" data-type="port_in" transform="matrix(1,0,0,1,70,145)">
@@ -66528,7 +65994,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">alu_slice</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/alu_slice.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/arch_mini.svg lines=122 sha256=062656a9c4be22ee8e2b84c20b4ed088edbb3ecc9b342cfa80ef3cd29ce1c87d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/arch_mini.svg lines=122 sha256=003e658866fdfe8effde1eea5d30a1528d60acf63c961e83958f7359b100d25d >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1659" height="434" viewBox="0 0 1659 434" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>Two clusters of linked cores</title>
@@ -66579,11 +66045,11 @@ def open_example(path):
 <path class="dl-net" data-id="n_ab" d="M732.555 249 L922.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_b" d="M1122.555 249 L1192.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_out" d="M1392.555 249 L1542.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="251.355,249 244.355,252.15 244.355,245.85" fill="#16202b" />
-<polygon points="521.355,249 514.355,252.15 514.355,245.85" fill="#16202b" />
-<polygon points="911.355,249 904.355,252.15 904.355,245.85" fill="#16202b" />
-<polygon points="1181.355,249 1174.355,252.15 1174.355,245.85" fill="#16202b" />
-<polygon points="1531.355,249 1524.355,252.15 1524.355,245.85" fill="#16202b" />
+<polygon points="262.555,249 255.555,252.15 255.555,245.85" fill="#16202b" />
+<polygon points="532.555,249 525.555,252.15 525.555,245.85" fill="#16202b" />
+<polygon points="922.555,249 915.555,252.15 915.555,245.85" fill="#16202b" />
+<polygon points="1192.555,249 1185.555,252.15 1185.555,245.85" fill="#16202b" />
+<polygon points="1542.555,249 1535.555,252.15 1535.555,245.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_a0" data-type="sheet" transform="matrix(1.3333,0,0,1.5714,262.555,194)">
@@ -66652,7 +66118,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">Two clusters of linked cores</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/arch_mini.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cdc_fifo.svg lines=246 sha256=e47b1f5a81d3a4d0211bd758b6d1335d2f7d019020bc3bcf619ae6c94dea8135 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cdc_fifo.svg lines=222 sha256=370edc3de608ab44afb50363c521885260c4fc8997b636a2c571d5753d37b222 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>cdc_fifo</title>
@@ -66708,56 +66174,32 @@ def open_example(path):
 <text x="575" y="761" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rptr_g_sync[8:0]</text>
 <text x="235" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="1530.8" y="721" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
-<polygon points="380,180 373,183.15 373,176.85" fill="#16202b" />
-<polygon points="620,180 613,183.15 613,176.85" fill="#16202b" />
-<polygon points="778.8,180 771.8,183.15 771.8,176.85" fill="#16202b" />
-<polygon points="318.8,420 311.8,423.15 311.8,416.85" fill="#16202b" />
-<polygon points="318.8,465 311.8,468.15 311.8,461.85" fill="#16202b" />
-<polygon points="318.8,510 311.8,513.15 311.8,506.85" fill="#16202b" />
-<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
-<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
-<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
-<polygon points="722,880 715,883.15 715,876.85" fill="#16202b" />
-<polygon points="841.2,795 848.2,791.85 848.2,798.15" fill="#16202b" />
-<polygon points="210,680 206.85,673 213.15,673" fill="#16202b" />
-<polygon points="250,880 243,883.15 243,876.85" fill="#16202b" />
-<polygon points="490,880 483,883.15 483,876.85" fill="#16202b" />
-<polygon points="721.2,795 728.2,791.85 728.2,798.15" fill="#16202b" />
-<polygon points="660,310 663.15,317 656.85,317" fill="#16202b" />
-<polygon points="778.8,220 771.8,223.15 771.8,216.85" fill="#16202b" />
-<polygon points="680,375 683.15,382 676.85,382" fill="#16202b" />
-<polygon points="778.8,260 771.8,263.15 771.8,256.85" fill="#16202b" />
-<polygon points="1250,180 1243,183.15 1243,176.85" fill="#16202b" />
-<polygon points="1490,180 1483,183.15 1483,176.85" fill="#16202b" />
-<polygon points="1648.8,180 1641.8,183.15 1641.8,176.85" fill="#16202b" />
-<polygon points="1481.2,420 1488.2,416.85 1488.2,423.15" fill="#16202b" />
-<polygon points="1481.2,465 1488.2,461.85 1488.2,468.15" fill="#16202b" />
-<polygon points="1481.2,510 1488.2,506.85 1488.2,513.15" fill="#16202b" />
-<polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
-<polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
-<polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
-<polygon points="1078,880 1085,876.85 1085,883.15" fill="#16202b" />
-<polygon points="958.8,795 951.8,798.15 951.8,791.85" fill="#16202b" />
-<polygon points="1590,680 1586.85,673 1593.15,673" fill="#16202b" />
-<polygon points="1550,880 1557,876.85 1557,883.15" fill="#16202b" />
-<polygon points="1310,880 1317,876.85 1317,883.15" fill="#16202b" />
-<polygon points="1078.8,795 1071.8,798.15 1071.8,791.85" fill="#16202b" />
-<polygon points="1140,310 1143.15,317 1136.85,317" fill="#16202b" />
-<polygon points="1021.2,220 1028.2,216.85 1028.2,223.15" fill="#16202b" />
-<polygon points="1120,375 1123.15,382 1116.85,382" fill="#16202b" />
-<polygon points="1021.2,260 1028.2,256.85 1028.2,263.15" fill="#16202b" />
-<polygon points="521.2,725 528.2,721.85 528.2,728.15" fill="#16202b" />
-<polygon points="680,600 673,603.15 673,596.85" fill="#16202b" />
-<polygon points="920,600 913,603.15 913,596.85" fill="#16202b" />
-<polygon points="958.8,765 951.8,768.15 951.8,761.85" fill="#16202b" />
-<polygon points="1278.8,725 1271.8,728.15 1271.8,721.85" fill="#16202b" />
-<polygon points="1080,560 1087,556.85 1087,563.15" fill="#16202b" />
-<polygon points="860,580 856.85,573 863.15,573" fill="#16202b" />
-<polygon points="841.2,765 848.2,761.85 848.2,768.15" fill="#16202b" />
-<polygon points="1078.8,765 1071.8,768.15 1071.8,761.85" fill="#16202b" />
-<polygon points="721.2,765 728.2,761.85 728.2,768.15" fill="#16202b" />
-<polygon points="151.2,725 158.2,721.85 158.2,728.15" fill="#16202b" />
-<polygon points="1648.8,725 1641.8,728.15 1641.8,721.85" fill="#16202b" />
+<polygon points="790,180 783,183.15 783,176.85" fill="#16202b" />
+<polygon points="330,420 323,423.15 323,416.85" fill="#16202b" />
+<polygon points="330,465 323,468.15 323,461.85" fill="#16202b" />
+<polygon points="330,510 323,513.15 323,506.85" fill="#16202b" />
+<polygon points="830,795 837,791.85 837,798.15" fill="#16202b" />
+<polygon points="710,795 717,791.85 717,798.15" fill="#16202b" />
+<polygon points="790,220 783,223.15 783,216.85" fill="#16202b" />
+<polygon points="790,260 783,263.15 783,256.85" fill="#16202b" />
+<polygon points="1660,180 1653,183.15 1653,176.85" fill="#16202b" />
+<polygon points="1470,420 1477,416.85 1477,423.15" fill="#16202b" />
+<polygon points="1470,465 1477,461.85 1477,468.15" fill="#16202b" />
+<polygon points="1470,510 1477,506.85 1477,513.15" fill="#16202b" />
+<polygon points="970,795 963,798.15 963,791.85" fill="#16202b" />
+<polygon points="1090,795 1083,798.15 1083,791.85" fill="#16202b" />
+<polygon points="1010,220 1017,216.85 1017,223.15" fill="#16202b" />
+<polygon points="1010,260 1017,256.85 1017,263.15" fill="#16202b" />
+<polygon points="510,725 517,721.85 517,728.15" fill="#16202b" />
+<polygon points="970,765 963,768.15 963,761.85" fill="#16202b" />
+<polygon points="1290,725 1283,728.15 1283,721.85" fill="#16202b" />
+<polygon points="830,765 837,761.85 837,768.15" fill="#16202b" />
+<polygon points="1090,765 1083,768.15 1083,761.85" fill="#16202b" />
+<polygon points="1290,765 1283,768.15 1283,761.85" fill="#16202b" />
+<polygon points="710,765 717,761.85 717,768.15" fill="#16202b" />
+<polygon points="510,765 517,761.85 517,768.15" fill="#16202b" />
+<polygon points="140,725 147,721.85 147,728.15" fill="#16202b" />
+<polygon points="1660,725 1653,728.15 1653,721.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="mem" data-type="ram_dp" transform="matrix(1,0,0,1,790,150)">
@@ -66900,7 +66342,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">cdc_fifo</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/cdc_fifo.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cpu_arch.svg lines=352 sha256=5c372affdad6442cb65a7d23df3faee93d8a055e3b65888591957aa07513ec7b >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cpu_arch.svg lines=337 sha256=b631b49c0cefc9cee0597b46b2dd439ed6ecbbe6d5df46602580104a47e8d1c3 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="2075" height="1012" viewBox="0 0 2075 1012" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>CPU architecture -- a quad-core SoC built from linked cores</title>
@@ -66974,36 +66416,21 @@ def open_example(path):
 <path class="dl-net" data-id="n_ddr" d="M1468 669 L1480 669 L1480 789 L1895 789 A5 5 0 0 1 1905 789 L1920 789 L1920 669 L1946 669" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_pcie" d="M1706 669 L1732 669 A5 5 0 0 1 1742 669 L1799 669 L1799 633 L1946 633" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_disp" d="M1230 669 L1242 669 L1242 807 L1900 807 L1900 705 L1915 705 A5 5 0 0 1 1925 705 L1946 705" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="545.5,475.5 538.5,478.65 538.5,472.35" fill="#16202b" />
-<polygon points="785.5,475.5 778.5,478.65 778.5,472.35" fill="#16202b" />
-<polygon points="1058.8,420 1051.8,423.15 1051.8,416.85" fill="#16202b" />
-<polygon points="1034.8,452 1027.8,455.15 1027.8,448.85" fill="#16202b" />
-<polygon points="539,496 532,499.15 532,492.85" fill="#16202b" />
-<polygon points="779,496 772,499.15 772,492.85" fill="#16202b" />
-<polygon points="1058.8,496 1051.8,499.15 1051.8,492.85" fill="#16202b" />
-<polygon points="1058.8,528 1051.8,531.15 1051.8,524.85" fill="#16202b" />
-<polygon points="1114.5,371.5 1121.5,368.35 1121.5,374.65" fill="#16202b" />
-<polygon points="1078.8,271 1071.8,274.15 1071.8,267.85" fill="#16202b" />
-<polygon points="1248,321.25 1251.15,328.25 1244.85,328.25" fill="#16202b" />
-<polygon points="1340,371.5 1333,374.65 1333,368.35" fill="#16202b" />
-<polygon points="1490,452 1483,455.15 1483,448.85" fill="#16202b" />
-<polygon points="1417.5,452 1410.5,455.15 1410.5,448.85" fill="#16202b" />
-<polygon points="1134.5,576.5 1141.5,573.35 1141.5,579.65" fill="#16202b" />
-<polygon points="1058,696.75 1054.85,689.75 1061.15,689.75" fill="#16202b" />
-<polygon points="1071,565 1078,561.85 1078,568.15" fill="#16202b" />
-<polygon points="1292.8,669 1285.8,672.15 1285.8,665.85" fill="#16202b" />
-<polygon points="1490,528 1483,531.15 1483,524.85" fill="#16202b" />
-<polygon points="1493.5,528 1486.5,531.15 1486.5,524.85" fill="#16202b" />
-<polygon points="1071,565 1078,561.85 1078,568.15" fill="#16202b" />
-<polygon points="1078.8,669 1071.8,672.15 1071.8,665.85" fill="#16202b" />
-<polygon points="1588,789 1581,792.15 1581,785.85" fill="#16202b" />
-<polygon points="1828,789 1821,792.15 1821,785.85" fill="#16202b" />
-<polygon points="1934.8,669 1927.8,672.15 1927.8,665.85" fill="#16202b" />
-<polygon points="1934.8,633 1927.8,636.15 1927.8,629.85" fill="#16202b" />
-<polygon points="1332,807 1325,810.15 1325,803.85" fill="#16202b" />
-<polygon points="1572,807 1565,810.15 1565,803.85" fill="#16202b" />
-<polygon points="1812,807 1805,810.15 1805,803.85" fill="#16202b" />
-<polygon points="1934.8,705 1927.8,708.15 1927.8,701.85" fill="#16202b" />
+<polygon points="1070,420 1063,423.15 1063,416.85" fill="#16202b" />
+<polygon points="1070,452 1063,455.15 1063,448.85" fill="#16202b" />
+<polygon points="1070,496 1063,499.15 1063,492.85" fill="#16202b" />
+<polygon points="1070,528 1063,531.15 1063,524.85" fill="#16202b" />
+<polygon points="1090,271 1083,274.15 1083,267.85" fill="#16202b" />
+<polygon points="1260,271 1253,274.15 1253,267.85" fill="#16202b" />
+<polygon points="1430,271 1423,274.15 1423,267.85" fill="#16202b" />
+<polygon points="1600,271 1593,274.15 1593,267.85" fill="#16202b" />
+<polygon points="1070,817 1063,820.15 1063,813.85" fill="#16202b" />
+<polygon points="1304,669 1297,672.15 1297,665.85" fill="#16202b" />
+<polygon points="1542,669 1535,672.15 1535,665.85" fill="#16202b" />
+<polygon points="1090,669 1083,672.15 1083,665.85" fill="#16202b" />
+<polygon points="1946,669 1939,672.15 1939,665.85" fill="#16202b" />
+<polygon points="1946,633 1939,636.15 1939,629.85" fill="#16202b" />
+<polygon points="1946,705 1939,708.15 1939,701.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="core0" data-type="sheet" transform="matrix(2,0,0,2.4286,150,246)">
@@ -67254,7 +66681,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">CPU architecture -- a quad-core SoC built from linked cores</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/cpu_arch.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/dff_slice.svg lines=91 sha256=ee504de53dbe66287c361c4edef08b81e4af7ff9c4e9d26dc3dfc64b6fa037fe >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/dff_slice.svg lines=90 sha256=c3678100cd208c427402d0f2c9dc4531f5fffe3ddfc831371f8d07d5264830b2 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>dff_slice</title>
@@ -67276,15 +66703,14 @@ def open_example(path):
 <text x="575" y="121" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">q_int</text>
 <text x="655" y="276" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">qb</text>
 <text x="138.5" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">d[7:0]</text>
-<polygon points="208.8,130 201.8,133.15 201.8,126.85" fill="#16202b" />
-<polygon points="208.8,150 201.8,153.15 201.8,146.85" fill="#16202b" />
-<polygon points="368.8,125 361.8,128.15 361.8,121.85" fill="#16202b" />
-<polygon points="297,327 300.15,334 293.85,334" fill="#16202b" />
-<polygon points="368.8,155 361.8,158.15 361.8,151.85" fill="#16202b" />
-<polygon points="688.8,125 681.8,128.15 681.8,121.85" fill="#16202b" />
-<polygon points="548.8,280 541.8,283.15 541.8,276.85" fill="#16202b" />
-<polygon points="688.8,280 681.8,283.15 681.8,276.85" fill="#16202b" />
-<polygon points="288.8,425 281.8,428.15 281.8,421.85" fill="#16202b" />
+<polygon points="220,130 213,133.15 213,126.85" fill="#16202b" />
+<polygon points="220,150 213,153.15 213,146.85" fill="#16202b" />
+<polygon points="380,125 373,128.15 373,121.85" fill="#16202b" />
+<polygon points="380,155 373,158.15 373,151.85" fill="#16202b" />
+<polygon points="700,125 693,128.15 693,121.85" fill="#16202b" />
+<polygon points="560,280 553,283.15 553,276.85" fill="#16202b" />
+<polygon points="700,280 693,283.15 693,276.85" fill="#16202b" />
+<polygon points="300,425 293,428.15 293,421.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="pa" data-type="port_in" transform="matrix(1,0,0,1,60,105)">
@@ -67347,7 +66773,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">dff_slice</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/dff_slice.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/fifo_top.svg lines=110 sha256=b2a610faab3c5c8cd2a6d0d2f8562edbb67d2d183de1b93cdc02d43e338f3868 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/fifo_top.svg lines=110 sha256=55b9e5cf48a5dd258d95da2e27ecb59781ad7f0bd19be56a0e85efa2e3d9cee8 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>fifo_top</title>
@@ -67376,16 +66802,16 @@ def open_example(path):
 <text x="779" y="138" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
 <text x="779" y="170" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="779" y="202" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
-<polygon points="408.8,142 401.8,145.15 401.8,138.85" fill="#16202b" />
-<polygon points="408.8,174 401.8,177.15 401.8,170.85" fill="#16202b" />
-<polygon points="408.8,206 401.8,209.15 401.8,202.85" fill="#16202b" />
-<polygon points="408.8,238 401.8,241.15 401.8,234.85" fill="#16202b" />
-<polygon points="408.8,270 401.8,273.15 401.8,266.85" fill="#16202b" />
-<polygon points="408.8,302 401.8,305.15 401.8,298.85" fill="#16202b" />
-<polygon points="408.8,334 401.8,337.15 401.8,330.85" fill="#16202b" />
-<polygon points="928.8,142 921.8,145.15 921.8,138.85" fill="#16202b" />
-<polygon points="928.8,174 921.8,177.15 921.8,170.85" fill="#16202b" />
-<polygon points="928.8,206 921.8,209.15 921.8,202.85" fill="#16202b" />
+<polygon points="420,142 413,145.15 413,138.85" fill="#16202b" />
+<polygon points="420,174 413,177.15 413,170.85" fill="#16202b" />
+<polygon points="420,206 413,209.15 413,202.85" fill="#16202b" />
+<polygon points="420,238 413,241.15 413,234.85" fill="#16202b" />
+<polygon points="420,270 413,273.15 413,266.85" fill="#16202b" />
+<polygon points="420,302 413,305.15 413,298.85" fill="#16202b" />
+<polygon points="420,334 413,337.15 413,330.85" fill="#16202b" />
+<polygon points="940,142 933,145.15 933,138.85" fill="#16202b" />
+<polygon points="940,174 933,177.15 933,170.85" fill="#16202b" />
+<polygon points="940,206 933,209.15 933,202.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_fifo" data-type="sheet" transform="matrix(1,0,0,1,420,120)">
@@ -67459,7 +66885,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">fifo_top</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/fifo_top.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_arch.svg lines=278 sha256=104dd1b75699612a41d0ab11526d945aa4410fc8e223c83e09e03428428c1cdf >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_arch.svg lines=268 sha256=9dd3203142fd4729f361c1bceca02396afbd83c5934270a6ff733758945b6e7d >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1993" height="1182" viewBox="0 0 1993 1182" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>GPU architecture -- containers, styles and linked SMs</title>
@@ -67533,19 +66959,17 @@ def open_example(path):
 <path class="dl-net" data-id="n_mc1" d="M1476.74 466 L1531.74 466 L1531.74 500 L1586.74 500" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_h0" d="M1726.74 358 L1876.74 358" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_h1" d="M1726.74 500 L1876.74 500" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="235.54,358 228.54,361.15 228.54,354.85" fill="#16202b" />
-<polygon points="565.54,358 558.54,361.15 558.54,354.85" fill="#16202b" />
-<polygon points="491.74,585 488.59,578 494.89,578" fill="#16202b" />
-<polygon points="565.54,802 558.54,805.15 558.54,798.85" fill="#16202b" />
-<polygon points="865.54,358 858.54,361.15 858.54,354.85" fill="#16202b" />
-<polygon points="865.54,802 858.54,805.15 858.54,798.85" fill="#16202b" />
-<polygon points="1285.54,358 1278.54,361.15 1278.54,354.85" fill="#16202b" />
-<polygon points="1201.74,657 1204.89,664 1198.59,664" fill="#16202b" />
-<polygon points="1285.54,466 1278.54,469.15 1278.54,462.85" fill="#16202b" />
-<polygon points="1575.54,358 1568.54,361.15 1568.54,354.85" fill="#16202b" />
-<polygon points="1575.54,500 1568.54,503.15 1568.54,496.85" fill="#16202b" />
-<polygon points="1865.54,358 1858.54,361.15 1858.54,354.85" fill="#16202b" />
-<polygon points="1865.54,500 1858.54,503.15 1858.54,496.85" fill="#16202b" />
+<polygon points="246.74,358 239.74,361.15 239.74,354.85" fill="#16202b" />
+<polygon points="576.74,358 569.74,361.15 569.74,354.85" fill="#16202b" />
+<polygon points="576.74,802 569.74,805.15 569.74,798.85" fill="#16202b" />
+<polygon points="876.74,358 869.74,361.15 869.74,354.85" fill="#16202b" />
+<polygon points="876.74,802 869.74,805.15 869.74,798.85" fill="#16202b" />
+<polygon points="1296.74,358 1289.74,361.15 1289.74,354.85" fill="#16202b" />
+<polygon points="1296.74,466 1289.74,469.15 1289.74,462.85" fill="#16202b" />
+<polygon points="1586.74,358 1579.74,361.15 1579.74,354.85" fill="#16202b" />
+<polygon points="1586.74,500 1579.74,503.15 1579.74,496.85" fill="#16202b" />
+<polygon points="1876.74,358 1869.74,361.15 1869.74,354.85" fill="#16202b" />
+<polygon points="1876.74,500 1869.74,503.15 1869.74,496.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="sm0" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,576.74,298)">
@@ -67570,8 +66994,6 @@ def open_example(path):
 <g class="dl-cell" data-id="sm1" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,576.74,448)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -67608,8 +67030,6 @@ def open_example(path):
 <g class="dl-cell" data-id="sm3" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,876.74,448)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -67646,8 +67066,6 @@ def open_example(path):
 <g class="dl-cell" data-id="sm5" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,576.74,892)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -67684,8 +67102,6 @@ def open_example(path):
 <g class="dl-cell" data-id="sm7" data-type="sheet" transform="matrix(1.5333,0,0,1.7143,876.74,892)">
   <rect x="10" y="0" width="130" height="70" fill="#e6f2d3" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="14" y="4" width="122" height="62" fill="none" stroke="#6b8f2a" stroke-width="0.739" />
-  <line x1="0" y1="35" x2="10" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
-  <line x1="150" y1="35" x2="140" y2="35" stroke="#6b8f2a" stroke-width="0.985" />
   <rect x="20" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="50.22" y="19.104" width="16.923" height="10.879" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
   <rect x="80.44" y="19.225" width="19.341" height="14.505" fill="none" stroke="#8a9ba4" stroke-width="0.493" />
@@ -67739,7 +67155,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">GPU architecture -- containers, styles and linked SMs</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/gpu_arch.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_linked.svg lines=566 sha256=3d3c7a4513d1a716df1dfebac4e7b77ca39c39f3e740f9a7a9188f7d1bb98d81 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_linked.svg lines=518 sha256=6adaa6131e56116b57ac66f3d569c9ea918ad80c6ef5e4bdccd8c8eb4c42e41c >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="2220" height="1574" viewBox="0 0 2220 1574" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>GPU built from linked GPCs -- each GPC is a drawing of linked SMs</title>
@@ -67787,94 +67203,46 @@ def open_example(path):
 <path class="dl-net" data-id="n_g5" d="M1348.48 1084.263 L1398.48 1084.263 A5 5 0 0 1 1408.48 1084.263 L1413.48 1084.263 L1413.48 494.263 L1420.98 494.263 A2.5 2.5 0 0 1 1425.98 494.263 L1430.98 494.263 A2.5 2.5 0 0 1 1435.98 494.263 L1451.48 494.263 A5 5 0 0 1 1461.48 494.263 L1478.48 494.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_g6" d="M1348.48 1234.263 L1403.48 1234.263 L1403.48 526.263 L1410.98 526.263 A2.5 2.5 0 0 1 1415.98 526.263 L1420.98 526.263 A2.5 2.5 0 0 1 1425.98 526.263 L1430.98 526.263 A2.5 2.5 0 0 1 1435.98 526.263 L1451.48 526.263 A5 5 0 0 1 1461.48 526.263 L1478.48 526.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_g7" d="M1348.48 1384.263 L1443.48 1384.263 L1443.48 558.263 L1451.48 558.263 A5 5 0 0 1 1461.48 558.263 L1478.48 558.263" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="252.28,491 245.28,494.15 245.28,487.85" fill="#16202b" />
-<polygon points="252.28,531 245.28,534.15 245.28,527.85" fill="#16202b" />
-<polygon points="277.78,349 270.78,352.15 270.78,345.85" fill="#16202b" />
-<polygon points="373.48,618.263 366.48,621.413 366.48,615.113" fill="#16202b" />
-<polygon points="613.48,618.263 606.48,621.413 606.48,615.113" fill="#16202b" />
-<polygon points="853.48,618.263 846.48,621.413 846.48,615.113" fill="#16202b" />
-<polygon points="1077.48,594.263 1080.63,601.263 1074.33,601.263" fill="#16202b" />
-<polygon points="1077.48,374.263 1080.63,381.263 1074.33,381.263" fill="#16202b" />
-<polygon points="1166.48,211.263 1159.48,214.413 1159.48,208.113" fill="#16202b" />
-<polygon points="1406.48,211.263 1399.48,214.413 1399.48,208.113" fill="#16202b" />
-<polygon points="1646.48,211.263 1639.48,214.413 1639.48,208.113" fill="#16202b" />
-<polygon points="1725.08,380.663 1721.93,373.663 1728.23,373.663" fill="#16202b" />
-<polygon points="1780.88,618.263 1773.88,621.413 1773.88,615.113" fill="#16202b" />
-<polygon points="553.28,309 546.28,312.15 546.28,305.85" fill="#16202b" />
-<polygon points="553.28,349 546.28,352.15 546.28,345.85" fill="#16202b" />
-<polygon points="553.28,167 546.28,170.15 546.28,163.85" fill="#16202b" />
-<polygon points="803.28,309 796.28,312.15 796.28,305.85" fill="#16202b" />
-<polygon points="1097.28,309 1090.28,312.15 1090.28,305.85" fill="#16202b" />
-<polygon points="1097.28,459 1090.28,462.15 1090.28,455.85" fill="#16202b" />
-<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
-<polygon points="1097.28,609 1090.28,612.15 1090.28,605.85" fill="#16202b" />
-<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
-<polygon points="1097.28,759 1090.28,762.15 1090.28,755.85" fill="#16202b" />
-<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
-<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
-<polygon points="1097.28,909 1090.28,912.15 1090.28,905.85" fill="#16202b" />
-<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
-<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
-<polygon points="1043.48,972 1040.33,965 1046.63,965" fill="#16202b" />
-<polygon points="1097.28,1059 1090.28,1062.15 1090.28,1055.85" fill="#16202b" />
-<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
-<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
-<polygon points="1043.48,972 1040.33,965 1046.63,965" fill="#16202b" />
-<polygon points="1097.28,1209 1090.28,1212.15 1090.28,1205.85" fill="#16202b" />
-<polygon points="1043.48,484 1040.33,477 1046.63,477" fill="#16202b" />
-<polygon points="1043.48,724 1040.33,717 1046.63,717" fill="#16202b" />
-<polygon points="1043.48,972 1040.33,965 1046.63,965" fill="#16202b" />
-<polygon points="1043.48,1196 1040.33,1189 1046.63,1189" fill="#16202b" />
-<polygon points="1097.28,1359 1090.28,1362.15 1090.28,1355.85" fill="#16202b" />
-<polygon points="1097.28,359.526 1090.28,362.676 1090.28,356.376" fill="#16202b" />
-<polygon points="1097.28,509.526 1090.28,512.676 1090.28,506.376" fill="#16202b" />
-<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
-<polygon points="1097.28,659.526 1090.28,662.676 1090.28,656.376" fill="#16202b" />
-<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
-<polygon points="1097.28,809.526 1090.28,812.676 1090.28,806.376" fill="#16202b" />
-<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
-<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
-<polygon points="1097.28,959.526 1090.28,962.676 1090.28,956.376" fill="#16202b" />
-<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
-<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
-<polygon points="1023.48,1024 1020.33,1017 1026.63,1017" fill="#16202b" />
-<polygon points="1097.28,1109.526 1090.28,1112.676 1090.28,1106.376" fill="#16202b" />
-<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
-<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
-<polygon points="1023.48,1024 1020.33,1017 1026.63,1017" fill="#16202b" />
-<polygon points="1097.28,1259.526 1090.28,1262.676 1090.28,1256.376" fill="#16202b" />
-<polygon points="1023.48,544 1020.33,537 1026.63,537" fill="#16202b" />
-<polygon points="1023.48,784 1020.33,777 1026.63,777" fill="#16202b" />
-<polygon points="1023.48,1024 1020.33,1017 1026.63,1017" fill="#16202b" />
-<polygon points="1023.48,1272 1020.33,1265 1026.63,1265" fill="#16202b" />
-<polygon points="1097.28,1409.526 1090.28,1412.676 1090.28,1406.376" fill="#16202b" />
-<polygon points="902.848,208.632 895.848,211.782 895.848,205.482" fill="#16202b" />
-<polygon points="1142.848,208.632 1135.848,211.782 1135.848,205.482" fill="#16202b" />
-<polygon points="1382.848,208.632 1375.848,211.782 1375.848,205.482" fill="#16202b" />
-<polygon points="1456.48,379 1453.33,372 1459.63,372" fill="#16202b" />
-<polygon points="1467.28,590.263 1460.28,593.413 1460.28,587.113" fill="#16202b" />
-<polygon points="1808.08,690.263 1815.08,687.113 1815.08,693.413" fill="#16202b" />
-<polygon points="1568.08,690.263 1575.08,687.113 1575.08,693.413" fill="#16202b" />
-<polygon points="1710.28,690.263 1717.28,687.113 1717.28,693.413" fill="#16202b" />
-<polygon points="1768.88,334.263 1761.88,337.413 1761.88,331.113" fill="#16202b" />
-<polygon points="1777.38,476.263 1770.38,479.413 1770.38,473.113" fill="#16202b" />
-<polygon points="1701.08,607.263 1697.93,600.263 1704.23,600.263" fill="#16202b" />
-<polygon points="1780.88,658.263 1773.88,661.413 1773.88,655.113" fill="#16202b" />
-<polygon points="2062.88,658.263 2055.88,661.413 2055.88,655.113" fill="#16202b" />
-<polygon points="2062.88,476.263 2055.88,479.413 2055.88,473.113" fill="#16202b" />
-<polygon points="2062.88,334.263 2055.88,337.413 2055.88,331.113" fill="#16202b" />
-<polygon points="1443.28,334.263 1436.28,337.413 1436.28,331.113" fill="#16202b" />
-<polygon points="1443.28,366.263 1436.28,369.413 1436.28,363.113" fill="#16202b" />
-<polygon points="1393.48,589.263 1396.63,596.263 1390.33,596.263" fill="#16202b" />
-<polygon points="1423.48,769.263 1426.63,776.263 1420.33,776.263" fill="#16202b" />
-<polygon points="1413.48,909.263 1416.63,916.263 1410.33,916.263" fill="#16202b" />
-<polygon points="1413.48,669.263 1416.63,676.263 1410.33,676.263" fill="#16202b" />
-<polygon points="1403.48,1049.263 1406.63,1056.263 1400.33,1056.263" fill="#16202b" />
-<polygon points="1403.48,809.263 1406.63,816.263 1400.33,816.263" fill="#16202b" />
-<polygon points="1443.48,1239.263 1446.63,1246.263 1440.33,1246.263" fill="#16202b" />
-<polygon points="1443.48,999.263 1446.63,1006.263 1440.33,1006.263" fill="#16202b" />
-<polygon points="1443.48,759.263 1446.63,766.263 1440.33,766.263" fill="#16202b" />
-<polygon points="1443.48,574.463 1446.63,581.463 1440.33,581.463" fill="#16202b" />
+<polygon points="263.48,491 256.48,494.15 256.48,487.85" fill="#16202b" />
+<polygon points="263.48,531 256.48,534.15 256.48,527.85" fill="#16202b" />
+<polygon points="288.98,349 281.98,352.15 281.98,345.85" fill="#16202b" />
+<polygon points="1792.08,618.263 1785.08,621.413 1785.08,615.113" fill="#16202b" />
+<polygon points="564.48,309 557.48,312.15 557.48,305.85" fill="#16202b" />
+<polygon points="564.48,349 557.48,352.15 557.48,345.85" fill="#16202b" />
+<polygon points="564.48,167 557.48,170.15 557.48,163.85" fill="#16202b" />
+<polygon points="814.48,309 807.48,312.15 807.48,305.85" fill="#16202b" />
+<polygon points="1108.48,309 1101.48,312.15 1101.48,305.85" fill="#16202b" />
+<polygon points="1108.48,459 1101.48,462.15 1101.48,455.85" fill="#16202b" />
+<polygon points="1108.48,609 1101.48,612.15 1101.48,605.85" fill="#16202b" />
+<polygon points="1108.48,759 1101.48,762.15 1101.48,755.85" fill="#16202b" />
+<polygon points="1108.48,909 1101.48,912.15 1101.48,905.85" fill="#16202b" />
+<polygon points="1108.48,1059 1101.48,1062.15 1101.48,1055.85" fill="#16202b" />
+<polygon points="1108.48,1209 1101.48,1212.15 1101.48,1205.85" fill="#16202b" />
+<polygon points="1108.48,1359 1101.48,1362.15 1101.48,1355.85" fill="#16202b" />
+<polygon points="1108.48,359.526 1101.48,362.676 1101.48,356.376" fill="#16202b" />
+<polygon points="1108.48,509.526 1101.48,512.676 1101.48,506.376" fill="#16202b" />
+<polygon points="1108.48,659.526 1101.48,662.676 1101.48,656.376" fill="#16202b" />
+<polygon points="1108.48,809.526 1101.48,812.676 1101.48,806.376" fill="#16202b" />
+<polygon points="1108.48,959.526 1101.48,962.676 1101.48,956.376" fill="#16202b" />
+<polygon points="1108.48,1109.526 1101.48,1112.676 1101.48,1106.376" fill="#16202b" />
+<polygon points="1108.48,1259.526 1101.48,1262.676 1101.48,1256.376" fill="#16202b" />
+<polygon points="1108.48,1409.526 1101.48,1412.676 1101.48,1406.376" fill="#16202b" />
+<polygon points="1478.48,590.263 1471.48,593.413 1471.48,587.113" fill="#16202b" />
+<polygon points="1478.48,622.263 1471.48,625.413 1471.48,619.113" fill="#16202b" />
+<polygon points="1780.08,334.263 1773.08,337.413 1773.08,331.113" fill="#16202b" />
+<polygon points="1788.58,476.263 1781.58,479.413 1781.58,473.113" fill="#16202b" />
+<polygon points="1792.08,658.263 1785.08,661.413 1785.08,655.113" fill="#16202b" />
+<polygon points="2074.08,658.263 2067.08,661.413 2067.08,655.113" fill="#16202b" />
+<polygon points="2074.08,476.263 2067.08,479.413 2067.08,473.113" fill="#16202b" />
+<polygon points="2074.08,334.263 2067.08,337.413 2067.08,331.113" fill="#16202b" />
+<polygon points="1478.48,334.263 1471.48,337.413 1471.48,331.113" fill="#16202b" />
+<polygon points="1478.48,366.263 1471.48,369.413 1471.48,363.113" fill="#16202b" />
+<polygon points="1478.48,398.263 1471.48,401.413 1471.48,395.113" fill="#16202b" />
+<polygon points="1478.48,430.263 1471.48,433.413 1471.48,427.113" fill="#16202b" />
+<polygon points="1478.48,462.263 1471.48,465.413 1471.48,459.113" fill="#16202b" />
+<polygon points="1478.48,494.263 1471.48,497.413 1471.48,491.113" fill="#16202b" />
+<polygon points="1478.48,526.263 1471.48,529.413 1471.48,523.113" fill="#16202b" />
+<polygon points="1478.48,558.263 1471.48,561.413 1471.48,555.113" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="gpc0" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,274.2632)">
@@ -68307,7 +67675,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">GPU built from linked GPCs -- each GPC is a drawing of linked SMs</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/gpu_linked.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_top.svg lines=315 sha256=0a92efc5c5470a006ce5911a8d09da2e43dfefa2eeafa7056be5e0a0c3be0826 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_top.svg lines=290 sha256=eb52051a2bdf62bcb78133c59bf4cd1a8177f99c5ebd01f7f5eac4ea000f77db >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="2340" height="990" viewBox="0 0 2340 990" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>gpu_top</title>
@@ -68407,58 +67775,33 @@ def open_example(path):
 <text x="1170" y="146" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">pclk</text>
 <text x="610" y="351" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">dma</text>
 <text x="880" y="231" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">work</text>
-<polygon points="208.8,195 201.8,198.15 201.8,191.85" fill="#16202b" />
-<polygon points="208.8,235 201.8,238.15 201.8,231.85" fill="#16202b" />
-<polygon points="208.8,315 201.8,318.15 201.8,311.85" fill="#16202b" />
-<polygon points="208.8,355 201.8,358.15 201.8,351.85" fill="#16202b" />
-<polygon points="208.8,505 201.8,508.15 201.8,501.85" fill="#16202b" />
-<polygon points="635,150 628,153.15 628,146.85" fill="#16202b" />
-<polygon points="875,150 868,153.15 868,146.85" fill="#16202b" />
-<polygon points="1115,150 1108,153.15 1108,146.85" fill="#16202b" />
-<polygon points="1355,150 1348,153.15 1348,146.85" fill="#16202b" />
-<polygon points="1595,150 1588,153.15 1588,146.85" fill="#16202b" />
-<polygon points="1908.8,195 1901.8,198.15 1901.8,191.85" fill="#16202b" />
-<polygon points="488.8,235 481.8,238.15 481.8,231.85" fill="#16202b" />
-<polygon points="460,315 453,318.15 453,311.85" fill="#16202b" />
-<polygon points="768.8,355 761.8,358.15 761.8,351.85" fill="#16202b" />
-<polygon points="1048.8,235 1041.8,238.15 1041.8,231.85" fill="#16202b" />
-<polygon points="768.8,315 761.8,318.15 761.8,311.85" fill="#16202b" />
-<polygon points="1048.8,315 1041.8,318.15 1041.8,311.85" fill="#16202b" />
-<polygon points="1150,425 1143,428.15 1143,421.85" fill="#16202b" />
-<polygon points="1390,425 1383,428.15 1383,421.85" fill="#16202b" />
-<polygon points="1708.8,425 1701.8,428.15 1701.8,421.85" fill="#16202b" />
-<polygon points="1328.8,235 1321.8,238.15 1321.8,231.85" fill="#16202b" />
-<polygon points="1328.8,315 1321.8,318.15 1321.8,311.85" fill="#16202b" />
-<polygon points="1708.8,235 1701.8,238.15 1701.8,231.85" fill="#16202b" />
-<polygon points="1708.8,315 1701.8,318.15 1701.8,311.85" fill="#16202b" />
-<polygon points="680,505 673,508.15 673,501.85" fill="#16202b" />
-<polygon points="920,505 913,508.15 913,501.85" fill="#16202b" />
-<polygon points="1160,505 1153,508.15 1153,501.85" fill="#16202b" />
-<polygon points="1400,505 1393,508.15 1393,501.85" fill="#16202b" />
-<polygon points="1708.8,505 1701.8,508.15 1701.8,501.85" fill="#16202b" />
-<polygon points="1908.8,235 1901.8,238.15 1901.8,231.85" fill="#16202b" />
-<polygon points="1908.8,345 1901.8,348.15 1901.8,341.85" fill="#16202b" />
-<polygon points="1908.8,425 1901.8,428.15 1901.8,421.85" fill="#16202b" />
-<polygon points="1780,625 1787,621.85 1787,628.15" fill="#16202b" />
-<polygon points="1540,625 1547,621.85 1547,628.15" fill="#16202b" />
-<polygon points="1300,625 1307,621.85 1307,628.15" fill="#16202b" />
-<polygon points="1060,625 1067,621.85 1067,628.15" fill="#16202b" />
-<polygon points="820,625 827,621.85 827,628.15" fill="#16202b" />
-<polygon points="580,625 587,621.85 587,628.15" fill="#16202b" />
-<polygon points="340,625 347,621.85 347,628.15" fill="#16202b" />
-<polygon points="208.8,545 201.8,548.15 201.8,541.85" fill="#16202b" />
-<polygon points="630,595 623,598.15 623,591.85" fill="#16202b" />
-<polygon points="870,595 863,598.15 863,591.85" fill="#16202b" />
-<polygon points="1110,595 1103,598.15 1103,591.85" fill="#16202b" />
-<polygon points="1350,595 1343,598.15 1343,591.85" fill="#16202b" />
-<polygon points="1590,595 1583,598.15 1583,591.85" fill="#16202b" />
-<polygon points="1830,595 1823,598.15 1823,591.85" fill="#16202b" />
-<polygon points="2070,595 2063,598.15 2063,591.85" fill="#16202b" />
-<polygon points="2228.8,595 2221.8,598.15 2221.8,591.85" fill="#16202b" />
-<polygon points="2228.8,195 2221.8,198.15 2221.8,191.85" fill="#16202b" />
-<polygon points="2228.8,235 2221.8,238.15 2221.8,231.85" fill="#16202b" />
-<polygon points="2228.8,345 2221.8,348.15 2221.8,341.85" fill="#16202b" />
-<polygon points="2228.8,425 2221.8,428.15 2221.8,421.85" fill="#16202b" />
+<polygon points="220,195 213,198.15 213,191.85" fill="#16202b" />
+<polygon points="220,235 213,238.15 213,231.85" fill="#16202b" />
+<polygon points="220,315 213,318.15 213,311.85" fill="#16202b" />
+<polygon points="220,355 213,358.15 213,351.85" fill="#16202b" />
+<polygon points="220,505 213,508.15 213,501.85" fill="#16202b" />
+<polygon points="1920,195 1913,198.15 1913,191.85" fill="#16202b" />
+<polygon points="500,235 493,238.15 493,231.85" fill="#16202b" />
+<polygon points="500,275 493,278.15 493,271.85" fill="#16202b" />
+<polygon points="780,355 773,358.15 773,351.85" fill="#16202b" />
+<polygon points="1060,235 1053,238.15 1053,231.85" fill="#16202b" />
+<polygon points="780,315 773,318.15 773,311.85" fill="#16202b" />
+<polygon points="1060,315 1053,318.15 1053,311.85" fill="#16202b" />
+<polygon points="1720,425 1713,428.15 1713,421.85" fill="#16202b" />
+<polygon points="1340,235 1333,238.15 1333,231.85" fill="#16202b" />
+<polygon points="1340,315 1333,318.15 1333,311.85" fill="#16202b" />
+<polygon points="1720,235 1713,238.15 1713,231.85" fill="#16202b" />
+<polygon points="1720,315 1713,318.15 1713,311.85" fill="#16202b" />
+<polygon points="1720,505 1713,508.15 1713,501.85" fill="#16202b" />
+<polygon points="1920,235 1913,238.15 1913,231.85" fill="#16202b" />
+<polygon points="1920,345 1913,348.15 1913,341.85" fill="#16202b" />
+<polygon points="1920,425 1913,428.15 1913,421.85" fill="#16202b" />
+<polygon points="220,545 213,548.15 213,541.85" fill="#16202b" />
+<polygon points="2240,595 2233,598.15 2233,591.85" fill="#16202b" />
+<polygon points="2240,195 2233,198.15 2233,191.85" fill="#16202b" />
+<polygon points="2240,235 2233,238.15 2233,231.85" fill="#16202b" />
+<polygon points="2240,345 2233,348.15 2233,341.85" fill="#16202b" />
+<polygon points="2240,425 2233,428.15 2233,421.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_clk" data-type="block" transform="matrix(1.5714,0,0,1,220,170)">
@@ -68624,7 +67967,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">gpu_top</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/gpu_top.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/shift_reg4.svg lines=109 sha256=ab1e828faf6858be2e54df7be854288eb0190c219b840337a69ea622a7a274b4 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/shift_reg4.svg lines=106 sha256=884607d84b81a39ba36687fc5e2ef830d58ea05a49d519a660377dfa588a2e51 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="860" height="290" viewBox="0 0 860 290" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>shift_reg4</title>
@@ -68638,21 +67981,18 @@ def open_example(path):
 <path class="dl-net" data-id="n4" d="M380 155 L405 155 L405 75 M380 155 L480 155" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n5" d="M550 155 L575 155 L575 75 M550 155 L650 155" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n6" d="M720 155 L745 155 L745 75" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="128.8,155 121.8,158.15 121.8,151.85" fill="#16202b" />
-<polygon points="92.5,220 85.5,223.15 85.5,216.85" fill="#16202b" />
-<polygon points="177.5,220 170.5,223.15 170.5,216.85" fill="#16202b" />
-<polygon points="308,220 301,223.15 301,216.85" fill="#16202b" />
-<polygon points="262.5,220 255.5,223.15 255.5,216.85" fill="#16202b" />
-<polygon points="308,220 301,223.15 301,216.85" fill="#16202b" />
-<polygon points="540,220 533,223.15 533,216.85" fill="#16202b" />
-<polygon points="347.5,220 340.5,223.15 340.5,216.85" fill="#16202b" />
-<polygon points="235,86.2 238.15,93.2 231.85,93.2" fill="#16202b" />
-<polygon points="298.8,155 291.8,158.15 291.8,151.85" fill="#16202b" />
-<polygon points="405,86.2 408.15,93.2 401.85,93.2" fill="#16202b" />
-<polygon points="468.8,155 461.8,158.15 461.8,151.85" fill="#16202b" />
-<polygon points="575,86.2 578.15,93.2 571.85,93.2" fill="#16202b" />
-<polygon points="638.8,155 631.8,158.15 631.8,151.85" fill="#16202b" />
-<polygon points="745,86.2 748.15,93.2 741.85,93.2" fill="#16202b" />
+<polygon points="140,155 133,158.15 133,151.85" fill="#16202b" />
+<polygon points="140,185 133,188.15 133,181.85" fill="#16202b" />
+<polygon points="310,185 303,188.15 303,181.85" fill="#16202b" />
+<polygon points="480,185 473,188.15 473,181.85" fill="#16202b" />
+<polygon points="650,185 643,188.15 643,181.85" fill="#16202b" />
+<polygon points="235,75 238.15,82 231.85,82" fill="#16202b" />
+<polygon points="310,155 303,158.15 303,151.85" fill="#16202b" />
+<polygon points="405,75 408.15,82 401.85,82" fill="#16202b" />
+<polygon points="480,155 473,158.15 473,151.85" fill="#16202b" />
+<polygon points="575,75 578.15,82 571.85,82" fill="#16202b" />
+<polygon points="650,155 643,158.15 643,151.85" fill="#16202b" />
+<polygon points="745,75 748.15,82 741.85,82" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_din" data-type="port_in" transform="matrix(1,0,0,1,40,150)">
@@ -68735,7 +68075,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">shift_reg4</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/shift_reg4.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/soc_top.svg lines=237 sha256=29117841282e1648b7c642f13c3795c88cc5c510bc59f8f2e7af048d9e9713d1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/soc_top.svg lines=209 sha256=ec83902c3afb5f3d631097345dee74f7a7c2fa4b4ae7e7388158bac512254baa >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1780" height="820" viewBox="0 0 1780 820" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>soc_top</title>
@@ -68775,58 +68115,30 @@ def open_example(path):
 <text x="1455" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="1475" y="406" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
 <text x="500" y="696" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">clk</text>
-<polygon points="277,397 280.15,404 273.85,404" fill="#16202b" />
-<polygon points="328.8,298 321.8,301.15 321.8,294.85" fill="#16202b" />
-<polygon points="892,394 895.15,401 888.85,401" fill="#16202b" />
-<polygon points="968.8,254 961.8,257.15 961.8,250.85" fill="#16202b" />
-<polygon points="912,442 915.15,449 908.85,449" fill="#16202b" />
-<polygon points="968.8,286 961.8,289.15 961.8,282.85" fill="#16202b" />
-<polygon points="932,502 935.15,509 928.85,509" fill="#16202b" />
-<polygon points="968.8,318 961.8,321.15 961.8,314.85" fill="#16202b" />
-<polygon points="952,562 955.15,569 948.85,569" fill="#16202b" />
-<polygon points="968.8,350 961.8,353.15 961.8,346.85" fill="#16202b" />
-<polygon points="1302,372 1305.15,379 1298.85,379" fill="#16202b" />
-<polygon points="1368.8,158 1361.8,161.15 1361.8,154.85" fill="#16202b" />
-<polygon points="1322,428 1325.15,435 1318.85,435" fill="#16202b" />
-<polygon points="1368.8,190 1361.8,193.15 1361.8,186.85" fill="#16202b" />
-<polygon points="1342,492 1345.15,499 1338.85,499" fill="#16202b" />
-<polygon points="1368.8,286 1361.8,289.15 1361.8,282.85" fill="#16202b" />
-<polygon points="328.8,222 321.8,225.15 321.8,218.85" fill="#16202b" />
-<polygon points="328.8,254 321.8,257.15 321.8,250.85" fill="#16202b" />
-<polygon points="648.8,222 641.8,225.15 641.8,218.85" fill="#16202b" />
-<polygon points="968.8,222 961.8,225.15 961.8,218.85" fill="#16202b" />
-<polygon points="1368.8,222 1361.8,225.15 1361.8,218.85" fill="#16202b" />
-<polygon points="1648.8,222 1641.8,225.15 1641.8,218.85" fill="#16202b" />
-<polygon points="1648.8,254 1641.8,257.15 1641.8,250.85" fill="#16202b" />
-<polygon points="1648.8,158 1641.8,161.15 1641.8,154.85" fill="#16202b" />
-<polygon points="1648.8,190 1641.8,193.15 1641.8,186.85" fill="#16202b" />
-<polygon points="580,434 576.85,427 583.15,427" fill="#16202b" />
-<polygon points="774,480 767,483.15 767,476.85" fill="#16202b" />
-<polygon points="1014,480 1007,483.15 1007,476.85" fill="#16202b" />
-<polygon points="1254,480 1247,483.15 1247,476.85" fill="#16202b" />
-<polygon points="1494,480 1487,483.15 1487,476.85" fill="#16202b" />
-<polygon points="1648.8,480 1641.8,483.15 1641.8,476.85" fill="#16202b" />
-<polygon points="1250,422 1246.85,415 1253.15,415" fill="#16202b" />
-<polygon points="1480,440 1473,443.15 1473,436.85" fill="#16202b" />
-<polygon points="1648.8,440 1641.8,443.15 1641.8,436.85" fill="#16202b" />
-<polygon points="1648.8,410 1641.8,413.15 1641.8,406.85" fill="#16202b" />
-<polygon points="297,617 300.15,624 293.85,624" fill="#16202b" />
-<polygon points="328.8,330 321.8,333.15 321.8,326.85" fill="#16202b" />
-<polygon points="380,700 373,703.15 373,696.85" fill="#16202b" />
-<polygon points="620,700 613,703.15 613,696.85" fill="#16202b" />
-<polygon points="860,460 863.15,467 856.85,467" fill="#16202b" />
-<polygon points="968.8,382 961.8,385.15 961.8,378.85" fill="#16202b" />
-<polygon points="380,700 373,703.15 373,696.85" fill="#16202b" />
-<polygon points="620,700 613,703.15 613,696.85" fill="#16202b" />
-<polygon points="848,700 841,703.15 841,696.85" fill="#16202b" />
-<polygon points="900,500 903.15,507 896.85,507" fill="#16202b" />
-<polygon points="968.8,414 961.8,417.15 961.8,410.85" fill="#16202b" />
-<polygon points="380,700 373,703.15 373,696.85" fill="#16202b" />
-<polygon points="620,700 613,703.15 613,696.85" fill="#16202b" />
-<polygon points="848,700 841,703.15 841,696.85" fill="#16202b" />
-<polygon points="1100,700 1093,703.15 1093,696.85" fill="#16202b" />
-<polygon points="1340,460 1343.15,467 1336.85,467" fill="#16202b" />
-<polygon points="1368.8,254 1361.8,257.15 1361.8,250.85" fill="#16202b" />
+<polygon points="340,298 333,301.15 333,294.85" fill="#16202b" />
+<polygon points="980,254 973,257.15 973,250.85" fill="#16202b" />
+<polygon points="980,286 973,289.15 973,282.85" fill="#16202b" />
+<polygon points="980,318 973,321.15 973,314.85" fill="#16202b" />
+<polygon points="980,350 973,353.15 973,346.85" fill="#16202b" />
+<polygon points="1380,158 1373,161.15 1373,154.85" fill="#16202b" />
+<polygon points="1380,190 1373,193.15 1373,186.85" fill="#16202b" />
+<polygon points="1380,286 1373,289.15 1373,282.85" fill="#16202b" />
+<polygon points="340,222 333,225.15 333,218.85" fill="#16202b" />
+<polygon points="340,254 333,257.15 333,250.85" fill="#16202b" />
+<polygon points="660,222 653,225.15 653,218.85" fill="#16202b" />
+<polygon points="980,222 973,225.15 973,218.85" fill="#16202b" />
+<polygon points="1380,222 1373,225.15 1373,218.85" fill="#16202b" />
+<polygon points="1660,222 1653,225.15 1653,218.85" fill="#16202b" />
+<polygon points="1660,254 1653,257.15 1653,250.85" fill="#16202b" />
+<polygon points="1660,158 1653,161.15 1653,154.85" fill="#16202b" />
+<polygon points="1660,190 1653,193.15 1653,186.85" fill="#16202b" />
+<polygon points="1660,480 1653,483.15 1653,476.85" fill="#16202b" />
+<polygon points="1660,440 1653,443.15 1653,436.85" fill="#16202b" />
+<polygon points="1660,410 1653,413.15 1653,406.85" fill="#16202b" />
+<polygon points="340,330 333,333.15 333,326.85" fill="#16202b" />
+<polygon points="980,382 973,385.15 973,378.85" fill="#16202b" />
+<polygon points="980,414 973,417.15 973,410.85" fill="#16202b" />
+<polygon points="1380,254 1373,257.15 1373,250.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_mac" data-type="block8" transform="matrix(1,0,0,1,340,196)">
@@ -68974,7 +68286,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">soc_top</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/soc_top.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/spi_master.svg lines=180 sha256=a1de6834624b03353cfd4424efa544e3e0a31bf0bcd3658b9342352e6a8c4776 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/spi_master.svg lines=162 sha256=b54dc4e20810eda7f10dea4d0afdddc4e01589c758f846b41dd35866d0221267 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1220" height="880" viewBox="0 0 1220 880" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>spi_master</title>
@@ -69015,43 +68327,25 @@ def open_example(path):
 <text x="680" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">q[7:0]</text>
 <text x="980" y="556" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">mosi</text>
 <text x="585" y="686" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">shifted[7:0]</text>
-<polygon points="208.8,760 201.8,763.15 201.8,756.85" fill="#16202b" />
-<polygon points="208.8,800 201.8,803.15 201.8,796.85" fill="#16202b" />
-<polygon points="600,760 593,763.15 593,756.85" fill="#16202b" />
-<polygon points="840,760 833,763.15 833,756.85" fill="#16202b" />
-<polygon points="1088.8,760 1081.8,763.15 1081.8,756.85" fill="#16202b" />
-<polygon points="488.8,620 481.8,623.15 481.8,616.85" fill="#16202b" />
-<polygon points="390,602 393.15,609 386.85,609" fill="#16202b" />
-<polygon points="390,350 393.15,357 386.85,357" fill="#16202b" />
-<polygon points="408.8,202 401.8,205.15 401.8,198.85" fill="#16202b" />
-<polygon points="600,800 593,803.15 593,796.85" fill="#16202b" />
-<polygon points="690,650 693.15,657 686.85,657" fill="#16202b" />
-<polygon points="748.8,420 741.8,423.15 741.8,416.85" fill="#16202b" />
-<polygon points="408.8,170 401.8,173.15 401.8,166.85" fill="#16202b" />
-<polygon points="408.8,278 401.8,281.15 401.8,274.85" fill="#16202b" />
-<polygon points="200,408 196.85,401 203.15,401" fill="#16202b" />
-<polygon points="378,470 371,473.15 371,466.85" fill="#16202b" />
-<polygon points="618,470 611,473.15 611,466.85" fill="#16202b" />
-<polygon points="450,470 443,473.15 443,466.85" fill="#16202b" />
-<polygon points="832,246 825,249.15 825,242.85" fill="#16202b" />
-<polygon points="1088.8,246 1081.8,249.15 1081.8,242.85" fill="#16202b" />
-<polygon points="832,278 825,281.15 825,274.85" fill="#16202b" />
-<polygon points="1088.8,278 1081.8,281.15 1081.8,274.85" fill="#16202b" />
-<polygon points="748.8,380 741.8,383.15 741.8,376.85" fill="#16202b" />
-<polygon points="940,180 943.15,187 936.85,187" fill="#16202b" />
-<polygon points="770,110 777,106.85 777,113.15" fill="#16202b" />
-<polygon points="530,110 537,106.85 537,113.15" fill="#16202b" />
-<polygon points="408.8,246 401.8,249.15 401.8,242.85" fill="#16202b" />
-<polygon points="670,340 666.85,333 673.15,333" fill="#16202b" />
-<polygon points="670,580 666.85,573 673.15,573" fill="#16202b" />
-<polygon points="570,720 577,716.85 577,723.15" fill="#16202b" />
-<polygon points="335,653.7 338.15,660.7 331.85,660.7" fill="#16202b" />
-<polygon points="288.8,560 281.8,563.15 281.8,556.85" fill="#16202b" />
-<polygon points="1088.8,560 1081.8,563.15 1081.8,556.85" fill="#16202b" />
-<polygon points="790,690 797,686.85 797,693.15" fill="#16202b" />
-<polygon points="538,690 545,686.85 545,693.15" fill="#16202b" />
-<polygon points="310,690 317,686.85 317,693.15" fill="#16202b" />
-<polygon points="288.8,615 281.8,618.15 281.8,611.85" fill="#16202b" />
+<polygon points="220,760 213,763.15 213,756.85" fill="#16202b" />
+<polygon points="220,800 213,803.15 213,796.85" fill="#16202b" />
+<polygon points="1100,760 1093,763.15 1093,756.85" fill="#16202b" />
+<polygon points="500,620 493,623.15 493,616.85" fill="#16202b" />
+<polygon points="420,202 413,205.15 413,198.85" fill="#16202b" />
+<polygon points="760,420 753,423.15 753,416.85" fill="#16202b" />
+<polygon points="420,170 413,173.15 413,166.85" fill="#16202b" />
+<polygon points="420,278 413,281.15 413,274.85" fill="#16202b" />
+<polygon points="720,600 713,603.15 713,596.85" fill="#16202b" />
+<polygon points="1100,246 1093,249.15 1093,242.85" fill="#16202b" />
+<polygon points="1100,278 1093,281.15 1093,274.85" fill="#16202b" />
+<polygon points="760,380 753,383.15 753,376.85" fill="#16202b" />
+<polygon points="420,246 413,249.15 413,242.85" fill="#16202b" />
+<polygon points="335,642.5 338.15,649.5 331.85,649.5" fill="#16202b" />
+<polygon points="300,560 293,563.15 293,556.85" fill="#16202b" />
+<polygon points="500,560 493,563.15 493,556.85" fill="#16202b" />
+<polygon points="720,560 713,563.15 713,556.85" fill="#16202b" />
+<polygon points="1100,560 1093,563.15 1093,556.85" fill="#16202b" />
+<polygon points="300,615 293,618.15 293,611.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_clk" data-type="port_in" transform="matrix(1,0,0,1,70,755)">
@@ -69170,7 +68464,7 @@ import * as routing from "../../drawlogic/web/js/routing.js";
 
 process.stdout.write(JSON.stringify(routing.currentLimits()));
 <<<<<<<<<< DLBUNDLE END path=tests/js/drc_dump.mjs >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1270 sha256=0eaa56939267ca92e19905b9adc2234353a80045c1b2814d247fca8be2cb285f >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1333 sha256=08c1fd40733f66d1d022cec269dbb1c869de779b25d87050456034fccfe6d34d >>>>>>>>>>
 // Assertions for the parts of the editor that exist only in JavaScript:
 // drag-time alignment and the Tidy command.
 //
@@ -69201,7 +68495,7 @@ import * as guides from "../../drawlogic/web/js/guides.js";
 import * as model from "../../drawlogic/web/js/model.js";
 import * as routing from "../../drawlogic/web/js/routing.js";
 import { Selection } from "../../drawlogic/web/js/selection.js";
-import { PlaceTool, SelectTool, constrainShape } from "../../drawlogic/web/js/tools.js";
+import { PlaceTool, SelectTool, bindSlider, constrainShape } from "../../drawlogic/web/js/tools.js";
 
 geometry.setLibrary(JSON.parse(readFileSync(process.argv[2], "utf8")));
 
@@ -69216,15 +68510,15 @@ const EXPECTED = [
   ["auto-connect on drop", 5],
   ["placing onto a pin", 6],
   ["placing onto a wire end", 3],
-  ["undo through a gesture", 8],
+  ["undo through a gesture", 12],
   ["duplicating a group", 8],
-  ["stale answers", 8],
+  ["stale answers", 11],
   ["drawing a shape with Shift", 7],
   ["carrying a placed cell to a pin", 5],
   ["stacking and writing on shapes", 8],
   ["containers", 28],
   ["headings and named styles", 14],
-  ["linked components", 10],
+  ["linked components", 13],
   ["pasting into another drawing", 12],
   ["choosing from the palette", 4],
 ];
@@ -69811,6 +69105,41 @@ section("undo through a gesture");
   check("a text box made and left empty leaves nothing to undo",
         empty._undo.length === 0 && empty.doc.shapes.length === 0, `${empty._undo.length}`);
   check("and does not mark the drawing unsaved", empty.dirty === false);
+
+  // A slider fires "input" per tick and "change" once, on release -- or once
+  // per key press. Its helper opened no gesture, so a drag of TEXT from 100%
+  // to 210% took a Ctrl+Z per tick to take back.
+  const knob = {
+    value: "100", on: {},
+    addEventListener(type, handler) { this.on[type] = handler; },
+    fire(type, value) {
+      if (value !== undefined) this.value = String(value);
+      if (this.on[type]) this.on[type]();
+    },
+  };
+  const sized = new model.Store();
+  sized.load({ canvas: { font: { scale: 1 } } }, "d.dlg");
+  bindSlider(knob, sized, "text size",
+             (value) => sized.mutate("text size", (d) => { d.canvas.font.scale = value / 100; }));
+  for (const value of [120, 150, 195, 210]) knob.fire("input", value);
+  knob.fire("change");
+  check("one drag of a slider undoes as one step",
+        sized._undo.length === 1 && sized.doc.canvas.font.scale === 2.1, `${sized._undo.length}`);
+  check("all the way back to where the drag began",
+        sized.undo() === "text size" && sized.doc.canvas.font.scale === 1,
+        `${sized.doc.canvas.font.scale}`);
+  knob.fire("input", 110);
+  knob.fire("change");
+  knob.fire("input", 120);
+  knob.fire("change");
+  check("two presses of an arrow key are two steps", sized._undo.length === 2,
+        `${sized._undo.length}`);
+  knob.fire("input", 130);
+  knob.fire("blur");
+  knob.fire("input", 140);
+  knob.fire("change");
+  check("a drag that loses focus before release still ends its step",
+        sized._undo.length === 4, `${sized._undo.length}`);
 }
 
 // ---- duplicating a group ----
@@ -69918,6 +69247,22 @@ section("stale answers");
         store.matches(onC) === false);
   check("and a save from before that edit does not mark it clean",
         store.markSaved(onC) === false);
+
+  // Undo and redo put a different document in front as surely as an edit
+  // does. They did not move the generation, so a save sent before an undo
+  // came back and marked the undone drawing clean -- the bytes on disk were
+  // the state the undo took away, and the tab closed without a warning.
+  store.mutate("typed", (doc) => { doc.title = "C, typed"; });
+  const beforeUndo = store.stamp();
+  store.undo();
+  check("an answer from before an undo no longer describes the drawing",
+        store.matches(beforeUndo) === false);
+  check("and a save from before it leaves the drawing unsaved",
+        store.markSaved(beforeUndo) === false && store.dirty === true, `dirty=${store.dirty}`);
+  const beforeRedo = store.stamp();
+  store.redo();
+  check("nor is one from before a redo",
+        store.matches(beforeRedo) === false && store.markSaved(beforeRedo) === false);
 }
 
 // ---- drawing a shape with Shift ----
@@ -70299,6 +69644,18 @@ section("linked components");
         geometry.forCell({ type: "sheet", ref: "components/sm.dlg" }) !== null
         && geometry.forCell({ type: "sheet", ref: "components/sm_2.dlg" }) !== null);
   geometry.setSheets({});
+
+  // After a save, a drawing two levels up uses the saved one through a
+  // definition that may not be open at all, so every drawing linking any
+  // component is asked about, and the ones whose answer changed are redrawn.
+  check("a drawing linking any component is read again after a save",
+        model.linksComponents(doc) && !model.linksComponents({ cells: [{ id: "g", type: "inv" }] }));
+  const held = { "sheet:components/gpc.dlg": { size: [300, 200], draw: [{ op: "rect" }] } };
+  check("an answer that draws a definition differently is noticed",
+        model.sheetsChanged(held, { "sheet:components/gpc.dlg":
+                                    { size: [300, 200], draw: [{ op: "rect" }, { op: "text" }] } }));
+  check("and one that draws it the same is not",
+        !model.sheetsChanged(held, JSON.parse(JSON.stringify(held))));
 }
 
 section("pasting into another drawing");
@@ -70442,7 +69799,7 @@ if (failures) {
 // the table's total, not the tally -- so the two sides can disagree.
 console.log(`DONE ${ran}/${TOTAL}`);
 <<<<<<<<<< DLBUNDLE END path=tests/js/editor_check.mjs >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/render_dump.mjs lines=175 sha256=d0b45b0cf598840bf7e950cc5df73623158ac550824db0fbc4c8931abc104cb6 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/render_dump.mjs lines=181 sha256=b37bba5711701b90711adf3252b4f48cce3ab90aa78c95e7b32e9ebd716f59c3 >>>>>>>>>>
 // Render a drawing with the browser renderer and print the primitives it
 // actually produced, for tests/test_js_parity.py to compare against the SVG
 // render_svg.py produces from the same drawing.
@@ -70554,6 +69911,12 @@ console.log(JSON.stringify({
                           && !(n.attrs.transform || "").includes("matrix"))
     .map((n) => n.attrs.transform).sort(),
   arrows: arrowsUnder(svg).sort(),
+  // How many lines each cell's own artwork draws, its pin stubs among them:
+  // a stub is left out when no wire reaches its pin.
+  cellLines: Object.fromEntries(all.filter((n) => n.attrs.class === "dl-cell")
+    .map((n) => [n.attrs["data-id"], flatten(n).filter((c) => c.tag === "line"
+      && !flatten(n).some((g) => g.attrs.class === "dl-stack"
+                          && flatten(g).includes(c))).length])),
   junctions: all.filter((n) => n.tag === "circle"
                         && (n.attrs.class || "").includes("dl-junction"))
     .map((n) => [n.attrs.cx, n.attrs.cy]).sort(),
@@ -70619,7 +69982,7 @@ console.log(JSON.stringify({
     .map((n) => [n.attrs["data-id"], n.attrs.d]).sort(),
 }));
 <<<<<<<<<< DLBUNDLE END path=tests/js/render_dump.mjs >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/route_dump.mjs lines=60 sha256=a496ffa84c61edcab6871d2751d072a6b59d3390abb208466886555516f124cb >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/route_dump.mjs lines=53 sha256=be07786376d620f6e5df81bf61387ffc47073d36e2b9a08a5fb368d93204fe18 >>>>>>>>>>
 // Print every net's route for one drawing, using the browser router.
 //
 // Run by tests/test_js_parity.py, which compares the output against the same
@@ -70667,17 +70030,10 @@ process.stdout.write(JSON.stringify({
   junctions: routing.junctions(routes),
   hops: [...hops.entries()],
   labels: [...labels.entries()],
-  // The exclusion set comes from render.arrowMarks -- the renderer's own
-  // function -- rather than being rebuilt here. Rebuilt, it left the crossing
-  // bridges out, which is a set of arrows neither renderer draws, and the
-  // comparison passed while the two renderers disagreed on screen.
   arrows: routes.map(({ net, branches }) => [
     net.id,
     branches.filter((points) => points.length >= 2)
-      .map((points) => render.arrowSpots(
-        points, theme.arrowSize || 7, null,
-        render.arrowMarks(routing.junctions(routes),
-                          routing.hopPoints(routes)))),
+      .map((points) => render.arrowSpots(points)),
   ]),
 }));
 <<<<<<<<<< DLBUNDLE END path=tests/js/route_dump.mjs >>>>>>>>>>
@@ -71549,7 +70905,7 @@ class TestImport(unittest.TestCase):
       code, _, _ = self.run_import(["import", source])
       self.assertIn("bad.v: line 2: cannot read", str(code))
 <<<<<<<<<< DLBUNDLE END path=tests/test_cli.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_components.py lines=581 sha256=a191e57843f7007900566ee406e382f17d64935a605936b719573cb7108e0d18 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_components.py lines=609 sha256=99ee1655f8ef40b78c3362f7e74f35a4feba5d81a12c823b2b096b8e48dffb4d >>>>>>>>>>
 """Linked components: part of a drawing defined once and placed many times.
 
 What matters: a selection becomes a drawing of its own with a port for every
@@ -71930,6 +71286,34 @@ class TestThroughTheEditorsServer(unittest.TestCase):
     self.assertEqual(status, 200, answer)
     self.assertEqual([p["name"] for p in answer["sheets"]["sheet:components/blk.dlg"]["pins"]],
                      ["go"])
+
+  def test_resolve_reads_a_definition_two_levels_down_fresh(self):
+    # The editor's refresh after a save rests on this: asking about the top
+    # drawing is enough to see an SM port renamed under the GPC it places, so
+    # the GPC does not have to be open for the top drawing to be redrawn.
+    # (Only the SM's ports and title reach that far: the GPC's miniature
+    # draws each SM as a box, not what is inside it.)
+    from tests import ROOT
+    lanes = os.path.join(self.root, "lanes")
+    shutil.copy(os.path.join(ROOT, "examples", "gpu_linked.dlg"), lanes)
+    shutil.copytree(os.path.join(ROOT, "examples", "components"),
+                    os.path.join(lanes, "components"))
+    top = Document.load(os.path.join(lanes, "gpu_linked.dlg")).ordered()
+
+    def resolved():
+      status, answer = self.post("/api/resolve", {"doc": top, "source": "lanes/gpu_linked.dlg"})
+      self.assertEqual(status, 200, answer)
+      return answer["sheets"]
+
+    before = resolved()
+    leaf = os.path.join(lanes, "components", "sm.dlg")
+    sm = Document.load(leaf)
+    port = next(c for c in sm.cells if c.get("type") == "port_in")
+    port["label"] += "_renamed"
+    sm.save(leaf)
+    after = resolved()
+    self.assertNotEqual(before["sheet:components/gpc.dlg"], after["sheet:components/gpc.dlg"])
+    self.assertEqual(before["sheet:components/xbar.dlg"], after["sheet:components/xbar.dlg"])
 
 
 class TestCustomSymbolsTravel(unittest.TestCase):
@@ -72939,7 +72323,7 @@ class TestTheEditorDrawsTheSame(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_containers.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_draw.py lines=1660 sha256=7b6c3fade78120ed78039a6627c33f141375bca63b3d2007edf0b1b9a621b5e4 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_draw.py lines=1538 sha256=afd4ee83f116681606071025a844c1f158ad2190e5fb90cd7e5777eec86e48b1 >>>>>>>>>>
 """Wire routing and SVG rendering."""
 
 import os
@@ -73157,18 +72541,12 @@ class TestJunctionsAreNeverHidden(unittest.TestCase):
   """A junction dot is the only mark saying two wires are connected.
 
   Losing one is not a cosmetic problem: the drawing stops claiming a
-  connection that the file still has. Both ways of losing one were reported by
-  a user as "the dot disappears when it is close to a cell, or close to an
-  arrow".
+  connection that the file still has. It was reported by a user as "the dot
+  disappears when it is close to a cell".
   """
 
   def fanout(self, load_x=200, dy=40):
-    """A driver fanning out to two loads, so the split lands near its body.
-
-    The defaults are a case where an arrow would otherwise be drawn on the
-    junction dot, which is what makes the arrow rule testable at all -- with
-    the loads further away the two never collide and the rule does nothing.
-    """
+    """A driver fanning out to two loads, so the split lands near its body."""
     doc = new_document("dot", 700, 420)
     doc.cells.extend([
       {"id": "a", "type": "port_in", "x": 40, "y": 200, "label": "a"},
@@ -73199,105 +72577,6 @@ class TestJunctionsAreNeverHidden(unittest.TestCase):
     self.assertTrue(routing.junctions(routes), "expected a junction to test")
     svg = render_svg.render(doc)
     self.assertIn("<circle", svg.split('class="dl-junctions"')[1])
-
-  def test_an_arrow_gives_way_to_a_dot(self):
-    """Both are small solid marks in the same ink, so one on the other reads
-    as a single fatter arrow and the connection is lost."""
-    doc = self.fanout()
-    routes = routing.route_all(doc, default_registry())
-    dots = routing.junctions(routes)
-    self.assertTrue(dots)
-
-    for _net, branches in routes:
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, _way in render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                                 junctions=dots):
-          for dot in dots:
-            self.assertFalse(
-              abs(tip[0] - dot[0]) < drc.ARROW_TO_JUNCTION
-              and abs(tip[1] - dot[1]) < drc.ARROW_TO_JUNCTION,
-              "an arrow at %r sits on the junction at %r" % (tip, dot))
-
-  def test_an_arrow_gives_way_to_a_crossing_bridge_too(self):
-    """A bridge is the same problem as a dot in the other direction: the arrow
-    sits in the bulge, and the reader cannot see whether the wire hopped or
-    stopped. Reported as arrows overlapping hops.
-    """
-    doc = build(
-      [port("a", 40, 200), port("y", 620, 200, kind="port_out"),
-       port("b", 300, 40), port("c", 300, 420, kind="port_out")],
-      [wire("h", "a", "p", "y", "p", "h"),
-       wire("v", "b", "p", "c", "p", "v")], width=700, height=500)
-
-    routes = routing.route_all(doc, default_registry())
-    hops = [spot for spots in routing.hop_points(routes).values()
-            for spot in spots]
-    self.assertTrue(hops, "expected a crossing bridge to test")
-    marks = list(routing.junctions(routes)) + hops
-
-    for _net, branches in routes:
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, _way in render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                                 junctions=marks):
-          for hop in hops:
-            self.assertFalse(
-              abs(tip[0] - hop[0]) < drc.ARROW_TO_MARK
-              and abs(tip[1] - hop[1]) < drc.ARROW_TO_MARK,
-              "an arrow at %r sits on the bridge at %r" % (tip, hop))
-
-  def test_no_drawn_arrow_sits_on_a_bridge_in_any_example(self):
-    """The rule above is only worth anything if render() passes the bridges
-    in -- which it did not at first, so every drawn arrow ignored them.
-
-    Asked of the shipped drawings rather than a made-up one, because a
-    collision needs a long wire crossing several others at the right spacing.
-    soc_top had an arrow drawn exactly on a bridge, which is what was
-    reported; a constructed two-wire case never gets near one.
-    """
-    import re
-    for name in ("soc_top", "spi_master", "cdc_fifo", "alu_slice"):
-      with self.subTest(example=name):
-        doc, registry, _ = open_example(
-          os.path.join(ROOT, "examples", name + ".dlg"))
-        routes = routing.route_all(doc, registry)
-        hops = [spot for spots in routing.hop_points(routes).values()
-                for spot in spots]
-        svg = render_svg.render(doc, registry)
-        tips = [(float(m.group(1)), float(m.group(2)))
-                for m in re.finditer(r'<polygon points="([-\d.]+),([-\d.]+)',
-                                     svg)]
-        self.assertTrue(tips, "no arrows were drawn at all")
-        for tip in tips:
-          for hop in hops:
-            self.assertFalse(
-              abs(tip[0] - hop[0]) < drc.ARROW_TO_MARK
-              and abs(tip[1] - hop[1]) < drc.ARROW_TO_MARK,
-              "%s: a drawn arrow at %r sits on the bridge at %r"
-              % (name, tip, hop))
-
-  def test_the_arrow_rule_actually_drops_something(self):
-    """Otherwise the test above passes on a drawing where no arrow was ever
-    near a dot, and would keep passing with the rule deleted."""
-    doc = self.fanout()
-    routes = routing.route_all(doc, default_registry())
-    dots = routing.junctions(routes)
-
-    def count(**kwargs):
-      total = 0
-      for _net, branches in routes:
-        for points in branches:
-          if len(points) >= 2:
-            total += len(render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                                 **kwargs))
-      return total
-
-    kept = count(junctions=dots)
-    self.assertLess(kept, count(), "the rule dropped no arrow here")
-    self.assertGreater(kept, 0, "every arrow was dropped")
 
 
 class TestPortStubs(unittest.TestCase):
@@ -73432,6 +72711,9 @@ class TestRender(unittest.TestCase):
 
 
 class TestDirectionArrows(unittest.TestCase):
+  """One arrowhead at the end of each wire, its tip where the wire meets the
+  pin it feeds -- and none along the way. Heads spaced along long wires, and
+  slid about to dodge dots and names, were reported as too many arrows."""
 
   def setUp(self):
     self.doc = Document.load(EXAMPLE)
@@ -73439,29 +72721,68 @@ class TestDirectionArrows(unittest.TestCase):
   def _arrows(self, svg):
     return svg.count("<polygon")
 
+  def _tips(self, svg):
+    return [tuple(float(v) for v in m.group(1).split(" ")[0].split(","))
+            for m in re.finditer(r'<polygon points="([^"]+)"', svg)]
+
+  def pair(self, width=600, gap=300):
+    doc = new_document(width=width)
+    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
+    doc.cells.append({"id": "u2", "type": "inv", "x": gap, "y": 0})
+    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "u2", "pin": "a"}})
+    doc.normalize()
+    return doc
+
+  def pin_at(self, doc, cell_id, pin):
+    cell = doc.cell(cell_id)
+    return default_registry().for_cell(cell).pin_position(cell, pin, doc.symbol_scale)
+
   def test_every_wire_gets_at_least_one_arrow_by_default(self):
     svg = render_svg.render(self.doc)
     self.assertGreaterEqual(self._arrows(svg), len(self.doc.nets))
 
   def test_a_short_wire_gets_exactly_one(self):
-    doc = new_document()
-    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
-    doc.cells.append({"id": "u2", "type": "inv", "x": 140, "y": 0})
-    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
-                     "to": {"cell": "u2", "pin": "a"}})
-    doc.normalize()
-    self.assertEqual(self._arrows(render_svg.render(doc)), 1)
+    self.assertEqual(self._arrows(render_svg.render(self.pair(gap=140))), 1)
 
-  def test_a_long_wire_gets_more_so_direction_reads_along_it(self):
-    # One arrow near the receiving end says nothing about a run that is
-    # mostly somewhere else.
-    doc = new_document(width=2000)
-    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
-    doc.cells.append({"id": "u2", "type": "inv", "x": 1600, "y": 0})
+  def test_a_long_wire_still_gets_exactly_one(self):
+    self.assertEqual(self._arrows(render_svg.render(self.pair(2000, 1600))), 1)
+
+  def test_the_tip_is_where_the_wire_meets_the_load(self):
+    doc = self.pair()
+    (tip,) = self._tips(render_svg.render(doc))
+    x, y = self.pin_at(doc, "u2", "a")
+    self.assertAlmostEqual(tip[0], x, places=1)
+    self.assertAlmostEqual(tip[1], y, places=1)
+
+  def test_each_load_of_a_fanout_gets_its_own(self):
+    doc = new_document()
+    doc.cells.extend([{"id": "u1", "type": "and2", "x": 0, "y": 100},
+                      {"id": "u2", "type": "inv", "x": 300, "y": 20},
+                      {"id": "u3", "type": "inv", "x": 300, "y": 200}])
     doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
-                     "to": {"cell": "u2", "pin": "a"}})
+                     "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
     doc.normalize()
-    self.assertGreater(self._arrows(render_svg.render(doc)), 1)
+    tips = sorted(self._tips(render_svg.render(doc)))
+    self.assertEqual(len(tips), 2)
+    for tip, load in zip(tips, ("u2", "u3")):
+      x, y = self.pin_at(doc, load, "a")
+      self.assertAlmostEqual(tip[0], x, places=1)
+      self.assertAlmostEqual(tip[1], y, places=1)
+
+  def test_backward_puts_one_head_on_the_driver(self):
+    doc = new_document()
+    doc.cells.extend([{"id": "u1", "type": "and2", "x": 0, "y": 100},
+                      {"id": "u2", "type": "inv", "x": 300, "y": 20},
+                      {"id": "u3", "type": "inv", "x": 300, "y": 200}])
+    doc.nets.append({"id": "n1", "style": {"arrow": "backward"},
+                     "from": {"cell": "u1", "pin": "y"},
+                     "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
+    doc.normalize()
+    (tip,) = self._tips(render_svg.render(doc))
+    x, y = self.pin_at(doc, "u1", "y")
+    self.assertAlmostEqual(tip[0], x, places=1)
+    self.assertAlmostEqual(tip[1], y, places=1)
 
   def test_arrows_can_be_switched_off_per_render(self):
     self.assertEqual(self._arrows(render_svg.render(self.doc, arrows=False)), 0)
@@ -73472,25 +72793,63 @@ class TestDirectionArrows(unittest.TestCase):
 
   def test_a_single_net_can_opt_out(self):
     before = self._arrows(render_svg.render(self.doc))
-    own = sum(len(render_svg._arrow_spots(points, theme.ARROW_SIZE))
+    own = sum(len(render_svg._arrow_spots(points))
               for points in routing.route(self.doc, self.doc.nets[0]))
+    self.assertGreater(own, 0)
     self.doc.nets[0]["style"] = {"arrow": False}
     after = self._arrows(render_svg.render(self.doc))
     self.assertEqual(after, before - own)
 
   def test_arrow_points_from_driver_to_load(self):
-    # n5 runs left to right from FF1.q to the q port, so the arrow's tip must
-    # sit to the right of its base.
-    doc = new_document()
-    doc.cells.append({"id": "u1", "type": "and2", "x": 0, "y": 0})
-    doc.cells.append({"id": "u2", "type": "inv", "x": 300, "y": 0})
-    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
-                     "to": {"cell": "u2", "pin": "a"}})
-    doc.normalize()
-    svg = render_svg.render(doc)
+    svg = render_svg.render(self.pair())
     points = re.search(r'<polygon points="([^"]+)"', svg).group(1)
     xs = [float(p.split(",")[0]) for p in points.split()]
     self.assertGreater(xs[0], xs[1])
+
+
+class TestUnwiredPinsAreHidden(unittest.TestCase):
+  """A pin no wire reaches has no stub drawn; one a wire reaches is drawn in
+  full, so the wire meets the body. A line running out to nothing looked
+  like a wire that had come loose."""
+
+  def cell_lines(self, doc, cell_id):
+    svg = render_svg.render(doc)
+    start = svg.index('<g class="dl-cell" data-id="%s"' % cell_id)
+    return svg[start:svg.index("</g>", start)].count("<line")
+
+  def mux(self, wire_select):
+    doc = new_document()
+    doc.cells.extend([{"id": "a", "type": "port_in", "x": 10, "y": 40},
+                      {"id": "s", "type": "port_in", "x": 10, "y": 200},
+                      {"id": "m", "type": "mux2", "x": 200, "y": 30}])
+    doc.nets.append({"id": "n1", "from": {"cell": "a", "pin": "p"},
+                     "to": [{"cell": "m", "pin": "d0"}]})
+    if wire_select:
+      doc.nets.append({"id": "n2", "from": {"cell": "s", "pin": "p"},
+                       "to": [{"cell": "m", "pin": "s"}]})
+    doc.normalize()
+    return doc
+
+  def test_only_the_wired_pins_have_stubs(self):
+    self.assertEqual(self.cell_lines(self.mux(False), "m"), 1)
+
+  def test_wiring_a_pin_brings_its_stub_back(self):
+    self.assertEqual(self.cell_lines(self.mux(True), "m"), 2)
+
+  def test_a_symbol_previewed_on_its_own_shows_every_pin(self):
+    symbol = default_registry().get("mux2")
+    stubs = sum(1 for op in symbol.draw if render_svg.stub_pin(symbol, op))
+    self.assertEqual(stubs, len(symbol.pins))
+    self.assertEqual(render_svg.render_symbol(symbol).count("<line"), stubs)
+
+  def test_every_stub_belongs_to_a_pin(self):
+    """Otherwise a stub nothing matches would be drawn whatever is wired."""
+    for symbol_id in default_registry().ids():
+      symbol = default_registry().get(symbol_id)
+      for op in symbol.draw:
+        if op.get("role") == "pin":
+          self.assertIsNotNone(render_svg.stub_pin(symbol, op),
+                               "%s has a pin stub at no pin" % symbol_id)
 
 
 class TestEscaping(unittest.TestCase):
@@ -73901,103 +73260,6 @@ class TestTheTitleKeepsOutOfTheDrawing(unittest.TestCase):
     _x, baseline = self.title_baseline(svg)
     self.assertGreater(baseline - theme.FONT_SIZES["title"], top,
                        "the title is drawn above the top of the viewBox")
-
-
-class TestTheArrowGivesWayToText(unittest.TestCase):
-  """A name outranks the arrowhead that would sit on it.
-
-  An arrow is the most redundant mark on a schematic: which way a wire runs is
-  usually plain from the pins at its ends. A name is the opposite -- it is the
-  one thing a reader cannot work out by looking. So where the two want the
-  same spot the arrow moves along the wire, and where the whole run is spoken
-  for it is not drawn at all.
-  """
-
-  # Long enough that the name's box reaches the arrows spaced along the wire.
-  # A shorter one sits between two of them and collides with neither, which
-  # passes every assertion here with the rule taken out.
-  NAME = "a_very_long_signal_name_that_runs_on"
-
-  def drawing(self):
-    """A long wire whose name lies across where the arrows want to go."""
-    doc = new_document("arrows", 900, 300)
-    doc.cells.append({"id": "a", "type": "port_in", "x": 40, "y": 140,
-                      "label": "src"})
-    doc.cells.append({"id": "b", "type": "port_out", "x": 800, "y": 140,
-                      "label": "dst"})
-    doc.nets.append({"id": "n1", "name": self.NAME, "label": self.NAME,
-                     "width": 1,
-                     "from": {"cell": "a", "pin": "p"},
-                     "to": [{"cell": "b", "pin": "p", "waypoints": []}]})
-    doc.normalize()
-    return doc
-
-  def test_the_fixture_really_does_put_an_arrow_on_the_name(self):
-    """Without this the two tests below prove nothing at all."""
-    doc = self.drawing()
-    registry = default_registry()
-    routes, marks, names = self.marks_and_names(doc, registry)
-    half = theme.ARROW_SIZE / 2.0
-    clashes = sum(
-      1
-      for _net, branches in routes for points in branches
-      if len(points) >= 2
-      for tip, _d in render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                             junctions=marks)
-      for x0, y0, x1, y1 in names
-      if x0 - half <= tip[0] <= x1 + half and y0 - half <= tip[1] <= y1 + half)
-    self.assertGreater(clashes, 0,
-                       "no arrow wanted the name's spot, so this fixture "
-                       "cannot tell whether the rule does anything")
-
-  def marks_and_names(self, doc, registry):
-    routes = routing.route_all(doc, registry)
-    marks = render_svg.arrow_marks(routing.junctions(routes),
-                                   routing.hop_points(routes))
-    names = render_svg.text_marks(doc, registry, routes, doc.symbol_scale,
-                                  doc.font_scale)
-    return routes, marks, names
-
-  def test_no_arrow_is_drawn_on_a_name(self):
-    doc = self.drawing()
-    registry = default_registry()
-    routes, marks, names = self.marks_and_names(doc, registry)
-    self.assertTrue(names, "the fixture wrote no names, so it tests nothing")
-
-    half = theme.ARROW_SIZE / 2.0
-    for _net, branches in routes:
-      for points in branches:
-        if len(points) < 2:
-          continue
-        for tip, _direction in render_svg._arrow_spots(
-            points, theme.ARROW_SIZE, junctions=marks, text=names):
-          for x0, y0, x1, y1 in names:
-            on_it = (x0 - half <= tip[0] <= x1 + half
-                     and y0 - half <= tip[1] <= y1 + half)
-            self.assertFalse(
-              on_it, "an arrow at %s sits on the name in %s"
-              % (tuple(round(v, 1) for v in tip),
-                 tuple(round(v, 1) for v in (x0, y0, x1, y1))))
-
-  def test_it_moves_the_arrow_rather_than_losing_it(self):
-    """Dropping every blocked arrow would pass the test above and be worse."""
-    doc = self.drawing()
-    registry = default_registry()
-    routes, marks, names = self.marks_and_names(doc, registry)
-
-    def count(text):
-      return sum(len(render_svg._arrow_spots(points, theme.ARROW_SIZE,
-                                             junctions=marks, text=text))
-                 for _net, branches in routes for points in branches
-                 if len(points) >= 2)
-
-    free = count(())
-    guarded = count(names)
-    self.assertGreater(free, 0, "the fixture draws no arrows at all")
-    self.assertEqual(
-      guarded, free,
-      "the name cost %d arrow(s) on a wire with room to slide along"
-      % (free - guarded))
 
 
 class TestWireLabelsAndStyle(unittest.TestCase):
@@ -76401,7 +75663,7 @@ class TestNoDebuggingLeftIn(unittest.TestCase):
               found.append("%s:%d" % (name, number))
     self.assertEqual(found, [])
 <<<<<<<<<< DLBUNDLE END path=tests/test_js_editor.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_parity.py lines=867 sha256=1297f6d7702665a741f6c1b65b58e23b0416f6e55f4a8a2d4034896ff6b4c8fe >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_parity.py lines=886 sha256=87d1fdbc4aff1fe1194739555e14cef48a2fd6ef12478d29daca03e035edbad1 >>>>>>>>>>
 """The browser router must agree with the Python one, net for net.
 
 drawlogic/web/js/routing.js is a hand-written port of drawlogic/routing.py.
@@ -76950,33 +76212,6 @@ class TestWhatEachRendererActuallyDraws(unittest.TestCase):
       browser["arrows"], exported,
       "the editor and the exported file disagree about arrows at a crossing")
 
-  def test_the_bridge_really_does_move_an_arrow(self):
-    """Otherwise the test above passes on a drawing where nothing is at stake
-    -- two renderers agreeing that there was nothing to move.
-
-    It used to demand that an arrow be *dropped*. An arrow now slides along
-    its wire first and is only given up when the whole run is spoken for, so
-    the bridge usually costs a position rather than an arrow. Either way the
-    marks have to come out somewhere other than where they would have with
-    the bridges ignored, which is the thing worth proving.
-    """
-    doc = _crossing_drawing()
-    routes = routing.route_all(doc, self.registry)
-    hop_map = routing.hop_points(routes)
-    self.assertTrue([s for spots in hop_map.values() for s in spots],
-                    "the fixture has no bridge, so it tests nothing")
-    kept = _exported_arrows(render_svg.render(doc, registry=self.registry))
-    # The same drawing with nothing to bridge over, so nothing for an arrow
-    # to keep clear of. Asked through render rather than of the placer, so
-    # what is compared is what the file actually carries.
-    without = _exported_arrows(
-      render_svg.render(doc, registry=self.registry, hops=False))
-    self.assertTrue(without, "the fixture draws no arrows at all")
-    self.assertNotEqual(
-      kept, without,
-      "the bridges changed nothing about where the arrows went, so both "
-      "renderers could ignore hops and still agree")
-
   def test_every_example_draws_the_same_arrows_in_both(self):
     for name in sorted(os.listdir(EXAMPLES)):
       if not name.endswith(".dlg"):
@@ -76987,6 +76222,52 @@ class TestWhatEachRendererActuallyDraws(unittest.TestCase):
         exported = _exported_arrows(render_svg.render(doc, registry=registry))
         self.assertEqual(browser["arrows"], exported,
                          "%s draws differently in the editor" % name)
+
+
+def _exported_cell_lines(svg):
+  """How many lines each cell's own artwork draws in the exported file."""
+  found = {}
+  for match in re.finditer(r'<g class="dl-cell" data-id="([^"]+)"', svg):
+    found[match.group(1)] = svg[match.end():svg.index("</g>", match.end())].count("<line")
+  return found
+
+
+@unittest.skipUnless(NODE, "node is not installed")
+class TestPinStubsAgree(unittest.TestCase):
+  """A pin no wire reaches has its stub left out, in the editor as in the file."""
+
+  def setUp(self):
+    self.registry = default_registry()
+
+  def spare_pins(self):
+    doc = new_document("spare")
+    doc.cells.extend([{"id": "a", "type": "port_in", "x": 10, "y": 100},
+                      {"id": "g", "type": "and2", "x": 120, "y": 90},
+                      {"id": "m", "type": "mux2", "x": 260, "y": 80}])
+    doc.nets.extend([
+      {"id": "n1", "from": {"cell": "a", "pin": "p"}, "to": [{"cell": "g", "pin": "a"}]},
+      {"id": "n2", "from": {"cell": "g", "pin": "y"}, "to": [{"cell": "m", "pin": "d0"}]}])
+    doc.normalize(self.registry)
+    return doc
+
+  def test_a_drawing_with_spare_pins_draws_the_same_stubs_in_both(self):
+    doc = self.spare_pins()
+    exported = _exported_cell_lines(render_svg.render(doc, registry=self.registry))
+    self.assertEqual(_browser_render(doc, self.registry)["cellLines"], exported)
+    # And the fixture does leave stubs out: and2 draws three with every pin
+    # wired, the mux four.
+    self.assertEqual((exported["g"], exported["m"]), (2, 1))
+
+  def test_every_example_draws_the_same_stubs_in_both(self):
+    for name in sorted(os.listdir(EXAMPLES)):
+      if not name.endswith(".dlg"):
+        continue
+      with self.subTest(example=name):
+        doc, registry, _ = open_example(os.path.join(EXAMPLES, name))
+        self.assertEqual(
+          _browser_render(doc, registry)["cellLines"],
+          _exported_cell_lines(render_svg.render(doc, registry=registry)),
+          "%s draws its pin stubs differently in the editor" % name)
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -77129,7 +76410,7 @@ class TestRouterParity(unittest.TestCase):
     spots = [spot
              for _net, branches in routes
              for points in branches if len(points) >= 2
-             for spot in render_svg._arrow_spots(points, theme.ARROW_SIZE)]
+             for spot in render_svg._arrow_spots(points)]
     self.assertTrue(spots, "a wire this long should carry an arrow")
     for tip, way in spots:
       self.assertGreater(

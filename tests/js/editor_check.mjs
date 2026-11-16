@@ -54,6 +54,7 @@ const EXPECTED = [
   ["linked components", 13],
   ["pasting into another drawing", 12],
   ["choosing from the palette", 4],
+  ["routing looks only at nearby wires", 3],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -1300,6 +1301,35 @@ section("choosing from the palette");
   tool.onPointerDown({ shiftKey: false }, [200, 200]);
   check("a click then places it", store.doc.cells.length === 1
         && store.doc.cells[0].type === "inv", JSON.stringify(store.doc.cells.map((c) => c.type)));
+}
+
+section("routing looks only at nearby wires");
+{
+  // A sheet files the wires it has placed by where they run, and asks only
+  // those near a line whether it is free. Asking every wire placed so far
+  // made a full redraw of a 60-net drawing take most of a second, so a drop
+  // from the palette lagged; routing.py has always done it this way. Here
+  // the list of every wire is made to throw, so the check can only pass
+  // when the answers come from the filed ones -- and they must still be right.
+  const sheet = new routing.Sheet();
+  sheet.reserve(new Set(["a.y"]), [[0, 100], [400, 100]], "n1");
+  sheet.reserve(new Set(["b.y"]), [[200, 0], [200, 300]], "n2");
+  const view = sheet.forNet([], new Set(["c.y"]), "n3");
+  Object.defineProperty(view, "runs", { get() { throw new Error("every wire was asked"); } });
+  let answers = null;
+  try {
+    answers = [view.free(true, 104, 0, 150, true),
+               view.free(true, 600, 0, 150, true),
+               view.free(true, 150, 100, 300, true)];
+  } catch (error) {
+    answers = error.message;
+  }
+  check("a line beside a placed wire is not free", Array.isArray(answers) && answers[0] === false,
+        String(answers));
+  check("a line far from every wire is", Array.isArray(answers) && answers[1] === true,
+        String(answers));
+  check("and one across a placed wire is not, crossings counted",
+        Array.isArray(answers) && answers[2] === false, String(answers));
 }
 
 // Every area has to have run, and to have run the number of checks it says.

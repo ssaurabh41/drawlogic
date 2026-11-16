@@ -2664,7 +2664,7 @@ the examples and look at them.
 **`--host` has no authentication.** Binding beyond loopback is documented as
 "tunnel instead", but nothing stops it being used on a shared machine.
 <<<<<<<<<< DLBUNDLE END path=DOCUMENTATION.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=224 sha256=5c0a39086e560a0e90c9f55c598401433139ad8efe6a80c137b8015e355e8a27 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=233 sha256=0670e540ffcd5463ed518047702116b001298e494d55229e6a283fc3b4e58f99 >>>>>>>>>>
 # Session handoff
 
 A summary of one long working session on drawlogic, so a new session can
@@ -2823,6 +2823,15 @@ Ideas: Export SVG/Ctrl+E downloads (File > Save SVG in folder... keeps the
 Not done from findings3 (bigger design work): Repeat live preview, a
   reorganised panel (common styling first), layout presets for repeated
   groups, an "add ports" helper, reasons on disabled menu items.
+
+Later (Nov 2026): unwired pins drawn without their stub, one arrowhead at
+each wire end (spacing/dodging removed), ROUTING-CORRIDORS.md deleted.
+Palette drop lag on benchmarks/auto-layout/01-linear.dlg: a full redraw
+routed every wire with routing.js Sheet.free scanning every run placed so
+far (~790 ms); routing.py had filed runs in RUN_BUCKET buckets all along.
+Ported to routing.js (sheet.lines): 148 ms, identical routes; the drop went
+from ~1 s to ~0.25 s in Chromium. Guarded by editor_check "routing looks
+only at nearby wires".
 
 ## Earlier in the first session (newest first)
 
@@ -51795,7 +51804,7 @@ export function symbolThumbnail(symbol, boxSize = 34, maxHeight = null) {
   return svg;
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/render.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/routing.js lines=1234 sha256=460f8e1b2f0507519695c55586daf9a07c4dcc8c2cf3eefb3576827775067e89 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/routing.js lines=1260 sha256=cc36c6df2fc1f342a84490a3af61046e7d141127905f62c33fc8b210d70ba493 >>>>>>>>>>
 // Wire routing. A port of drawlogic/routing.py.
 //
 // Endpoints are pin references, never coordinates, so a wire is re-resolved
@@ -51806,6 +51815,9 @@ import * as geometry from "./geometry.js";
 
 const STUB = 12;
 const EPSILON = 1e-6;
+// How finely a sheet files the runs it has reserved, in drawing units.
+// Mirrors RUN_BUCKET in routing.py.
+const RUN_BUCKET = 32;
 // One more line of a wrapped instance name; routing.py's LABEL_LINE.
 const LABEL_LINE = 16;
 
@@ -52023,6 +52035,8 @@ export class Sheet {
     this.boxes = boxes;
     this.own = own;
     this.runs = [];
+    // The same runs filed by orientation and position -- see free().
+    this.lines = new Map();
     this.keys = new Set();
     this.net = null;
     // Container outlines, as [horizontal, fixed, lo, hi]; see routing.py.
@@ -52044,19 +52058,25 @@ export class Sheet {
     for (let i = 0; i < points.length - 1; i += 1) {
       const a = points[i];
       const b = points[i + 1];
+      let run;
       if (Math.abs(a[1] - b[1]) < EPSILON) {
-        this.runs.push([netId, keys, true, a[1],
-                        Math.min(a[0], b[0]), Math.max(a[0], b[0])]);
+        run = [netId, keys, true, a[1], Math.min(a[0], b[0]), Math.max(a[0], b[0])];
       } else if (Math.abs(a[0] - b[0]) < EPSILON) {
-        this.runs.push([netId, keys, false, a[0],
-                        Math.min(a[1], b[1]), Math.max(a[1], b[1])]);
+        run = [netId, keys, false, a[0], Math.min(a[1], b[1]), Math.max(a[1], b[1])];
+      } else {
+        continue;
       }
+      this.runs.push(run);
+      const key = `${run[2]}|${Math.floor(run[3] / RUN_BUCKET)}`;
+      if (!this.lines.has(key)) this.lines.set(key, []);
+      this.lines.get(key).push(run);
     }
   }
 
   forNet(boxes, keys, netId = null, own = []) {
     const view = new Sheet(boxes, own);
     view.runs = this.runs;
+    view.lines = this.lines;
     view.borders = this.borders;
     view.keys = keys;
     view.net = netId;
@@ -52082,7 +52102,22 @@ export class Sheet {
       if (hi + EPSILON < borderLo || lo - EPSILON > borderHi) continue;
       return false;
     }
-    return !this.runs.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
+    // Only runs that could answer "no" are looked at: those lying within
+    // `gap` of this line, and those running across its span. The answer is
+    // the same as asking every run; see routing.py. Asking every run was most
+    // of the time a large drawing took to draw.
+    const nearby = [];
+    for (let key = Math.floor((fixed - gap) / RUN_BUCKET);
+         key <= Math.floor((fixed + gap) / RUN_BUCKET); key += 1) {
+      const found = this.lines.get(`${horizontal}|${key}`);
+      if (found) nearby.push(...found);
+    }
+    for (let key = Math.floor((lo - limits.touching) / RUN_BUCKET);
+         key <= Math.floor((hi + limits.touching) / RUN_BUCKET); key += 1) {
+      const found = this.lines.get(`${!horizontal}|${key}`);
+      if (found) nearby.push(...found);
+    }
+    return !nearby.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
       // A net never crowds itself, and neither does anything sharing a pin
       // with it: two wires off one pin are one signal, drawn as one rail.
       if (netId !== null && netId === this.net) return false;
@@ -65307,7 +65342,7 @@ Scripts, command logs, screenshots, a sample SVG and editable fixtures were reta
 
 This is a targeted audit, not proof that the rest of the application is bug-free. No application code fixes were made during this review.
 <<<<<<<<<< DLBUNDLE END path=findings3.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=3c3cb4a8dd94adcd248e99aba501a2eece236bb6f3af9a94b35c45aff0c9f3f1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=71af891e2d0f101e54b51b4d5c71d956209bb23c123c23061f3e9ee25239a28a >>>>>>>>>>
 86844009d34ccd786913c5d047f5e75cf14c1873432da49e3c93cd7bef19d099  drawlogic/__init__.py
 dd0c5bff5a05b805b0c08c7db6118605c86deb1d2746ad6d9c9124c4d667b0ee  drawlogic/__main__.py
 b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/authoring.py
@@ -65340,7 +65375,7 @@ fc89b8ff8678e27cc3c7a1396a420c27458a1e86e275dc1446c5d1f499459643  drawlogic/web/
 5cb2c07d2409346288029e9509671ed16a50b4316e605f8575adf5e6a23146f7  drawlogic/web/js/prefs.js
 09f268a86b57db231f600bd19a57b8005feb784842d48f70c0325d041af59a8a  drawlogic/web/js/recovery.js
 d6c420473dc2fc57540f04382856f87c54d43e5f20fe1dbbc54b87c333c1bc18  drawlogic/web/js/render.js
-460f8e1b2f0507519695c55586daf9a07c4dcc8c2cf3eefb3576827775067e89  drawlogic/web/js/routing.js
+cc36c6df2fc1f342a84490a3af61046e7d141127905f62c33fc8b210d70ba493  drawlogic/web/js/routing.js
 6308e2ed6b84140c92cc93bd3ce94f04cdc282fee2e4e916ef54ba42fb4a7d33  drawlogic/web/js/selection.js
 7098b8fcd142e3c4affc337aec6d3023ee95ca41518acf1ea19e63b53d484eb3  drawlogic/web/js/shortcuts.js
 69135d526a59d38af9955f5f886f75b26a5a933babbf9f991bd35664d8a73847  drawlogic/web/js/tools.js
@@ -68468,7 +68503,7 @@ import * as routing from "../../drawlogic/web/js/routing.js";
 
 process.stdout.write(JSON.stringify(routing.currentLimits()));
 <<<<<<<<<< DLBUNDLE END path=tests/js/drc_dump.mjs >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1333 sha256=08c1fd40733f66d1d022cec269dbb1c869de779b25d87050456034fccfe6d34d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/js/editor_check.mjs lines=1363 sha256=94b740cdcd5429e94427513140c9867a19fd58d103e034a4365db8ea7fe59328 >>>>>>>>>>
 // Assertions for the parts of the editor that exist only in JavaScript:
 // drag-time alignment and the Tidy command.
 //
@@ -68525,6 +68560,7 @@ const EXPECTED = [
   ["linked components", 13],
   ["pasting into another drawing", 12],
   ["choosing from the palette", 4],
+  ["routing looks only at nearby wires", 3],
 ];
 const TOTAL = EXPECTED.reduce((sum, [, n]) => sum + n, 0);
 
@@ -69771,6 +69807,35 @@ section("choosing from the palette");
   tool.onPointerDown({ shiftKey: false }, [200, 200]);
   check("a click then places it", store.doc.cells.length === 1
         && store.doc.cells[0].type === "inv", JSON.stringify(store.doc.cells.map((c) => c.type)));
+}
+
+section("routing looks only at nearby wires");
+{
+  // A sheet files the wires it has placed by where they run, and asks only
+  // those near a line whether it is free. Asking every wire placed so far
+  // made a full redraw of a 60-net drawing take most of a second, so a drop
+  // from the palette lagged; routing.py has always done it this way. Here
+  // the list of every wire is made to throw, so the check can only pass
+  // when the answers come from the filed ones -- and they must still be right.
+  const sheet = new routing.Sheet();
+  sheet.reserve(new Set(["a.y"]), [[0, 100], [400, 100]], "n1");
+  sheet.reserve(new Set(["b.y"]), [[200, 0], [200, 300]], "n2");
+  const view = sheet.forNet([], new Set(["c.y"]), "n3");
+  Object.defineProperty(view, "runs", { get() { throw new Error("every wire was asked"); } });
+  let answers = null;
+  try {
+    answers = [view.free(true, 104, 0, 150, true),
+               view.free(true, 600, 0, 150, true),
+               view.free(true, 150, 100, 300, true)];
+  } catch (error) {
+    answers = error.message;
+  }
+  check("a line beside a placed wire is not free", Array.isArray(answers) && answers[0] === false,
+        String(answers));
+  check("a line far from every wire is", Array.isArray(answers) && answers[1] === true,
+        String(answers));
+  check("and one across a placed wire is not, crossings counted",
+        Array.isArray(answers) && answers[2] === false, String(answers));
 }
 
 // Every area has to have run, and to have run the number of checks it says.
@@ -75459,7 +75524,7 @@ class TestWhatTheFirstReviewReported(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_hdl.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_editor.py lines=206 sha256=3917e6fbf97d59442a5814862ce1ad1d6087a9cf9851fa360c728e51579e893a >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_js_editor.py lines=207 sha256=351a09c84954c27c0c1025b0043085a450c3032cebc6efa16ce4ea4c32de9c83 >>>>>>>>>>
 """The editor behaviour that exists only in JavaScript.
 
 Drag-time alignment (`guides.js`) and the Tidy command (`model.tidy`) have no
@@ -75521,6 +75586,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "linked components",
     "pasting into another drawing",
     "choosing from the palette",
+    "routing looks only at nearby wires",
   )
 
   def test_alignment_and_tidy(self):

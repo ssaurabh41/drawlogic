@@ -157,6 +157,15 @@ Not done from findings3 (bigger design work): Repeat live preview, a
   reorganised panel (common styling first), layout presets for repeated
   groups, an "add ports" helper, reasons on disabled menu items.
 
+Later (Nov 2026): unwired pins drawn without their stub, one arrowhead at
+each wire end (spacing/dodging removed), ROUTING-CORRIDORS.md deleted.
+Palette drop lag on benchmarks/auto-layout/01-linear.dlg: a full redraw
+routed every wire with routing.js Sheet.free scanning every run placed so
+far (~790 ms); routing.py had filed runs in RUN_BUCKET buckets all along.
+Ported to routing.js (sheet.lines): 148 ms, identical routes; the drop went
+from ~1 s to ~0.25 s in Chromium. Guarded by editor_check "routing looks
+only at nearby wires".
+
 ## Earlier in the first session (newest first)
 
 | Commit | What |

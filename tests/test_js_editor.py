@@ -59,6 +59,7 @@ class TestEditorBehaviour(unittest.TestCase):
     "linked components",
     "pasting into another drawing",
     "choosing from the palette",
+    "routing looks only at nearby wires",
   )
 
   def test_alignment_and_tidy(self):

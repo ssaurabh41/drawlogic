@@ -8,6 +8,9 @@ import * as geometry from "./geometry.js";
 
 const STUB = 12;
 const EPSILON = 1e-6;
+// How finely a sheet files the runs it has reserved, in drawing units.
+// Mirrors RUN_BUCKET in routing.py.
+const RUN_BUCKET = 32;
 // One more line of a wrapped instance name; routing.py's LABEL_LINE.
 const LABEL_LINE = 16;
 
@@ -225,6 +228,8 @@ export class Sheet {
     this.boxes = boxes;
     this.own = own;
     this.runs = [];
+    // The same runs filed by orientation and position -- see free().
+    this.lines = new Map();
     this.keys = new Set();
     this.net = null;
     // Container outlines, as [horizontal, fixed, lo, hi]; see routing.py.
@@ -246,19 +251,25 @@ export class Sheet {
     for (let i = 0; i < points.length - 1; i += 1) {
       const a = points[i];
       const b = points[i + 1];
+      let run;
       if (Math.abs(a[1] - b[1]) < EPSILON) {
-        this.runs.push([netId, keys, true, a[1],
-                        Math.min(a[0], b[0]), Math.max(a[0], b[0])]);
+        run = [netId, keys, true, a[1], Math.min(a[0], b[0]), Math.max(a[0], b[0])];
       } else if (Math.abs(a[0] - b[0]) < EPSILON) {
-        this.runs.push([netId, keys, false, a[0],
-                        Math.min(a[1], b[1]), Math.max(a[1], b[1])]);
+        run = [netId, keys, false, a[0], Math.min(a[1], b[1]), Math.max(a[1], b[1])];
+      } else {
+        continue;
       }
+      this.runs.push(run);
+      const key = `${run[2]}|${Math.floor(run[3] / RUN_BUCKET)}`;
+      if (!this.lines.has(key)) this.lines.set(key, []);
+      this.lines.get(key).push(run);
     }
   }
 
   forNet(boxes, keys, netId = null, own = []) {
     const view = new Sheet(boxes, own);
     view.runs = this.runs;
+    view.lines = this.lines;
     view.borders = this.borders;
     view.keys = keys;
     view.net = netId;
@@ -284,7 +295,22 @@ export class Sheet {
       if (hi + EPSILON < borderLo || lo - EPSILON > borderHi) continue;
       return false;
     }
-    return !this.runs.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
+    // Only runs that could answer "no" are looked at: those lying within
+    // `gap` of this line, and those running across its span. The answer is
+    // the same as asking every run; see routing.py. Asking every run was most
+    // of the time a large drawing took to draw.
+    const nearby = [];
+    for (let key = Math.floor((fixed - gap) / RUN_BUCKET);
+         key <= Math.floor((fixed + gap) / RUN_BUCKET); key += 1) {
+      const found = this.lines.get(`${horizontal}|${key}`);
+      if (found) nearby.push(...found);
+    }
+    for (let key = Math.floor((lo - limits.touching) / RUN_BUCKET);
+         key <= Math.floor((hi + limits.touching) / RUN_BUCKET); key += 1) {
+      const found = this.lines.get(`${!horizontal}|${key}`);
+      if (found) nearby.push(...found);
+    }
+    return !nearby.some(([netId, keys, runH, runFixed, runLo, runHi]) => {
       // A net never crowds itself, and neither does anything sharing a pin
       // with it: two wires off one pin are one signal, drawn as one rail.
       if (netId !== null && netId === this.net) return false;

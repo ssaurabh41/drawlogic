@@ -134,9 +134,8 @@ function drawlogic { python -m drawlogic @args }
 
 `python3` is often not a command there; `python` is. Take the repository whole
 rather than file by file -- if you have had to copy files across one at a
-time, run `verify.ps1` before anything else, because a mixed copy fails in
-ways that look like bugs. See
-[Checking the files themselves](#checking-the-files-themselves).
+time, run `drawlogic doctor` before anything else, because a mixed copy fails
+in ways that look like bugs.
 
 Where cloning is not possible but pasting text is, the whole repository goes
 across as one file. On a machine that has it:
@@ -338,7 +337,6 @@ none is written. A parse error names its line.
 
 ```bash
 drawlogic doctor                   # is this copy sound?
-drawlogic doctor --write-manifest  # record what it should be
 ```
 
 Answers one question: do the pieces of this copy of drawlogic still fit each
@@ -356,10 +354,6 @@ clone`, or download and unzip
 `https://github.com/ssaurabh41/drawlogic/archive/refs/heads/main.zip` --
 rather than copying files across one at a time.
 
-It also checks this copy against `manifest.txt`, which is the one thing
-reading the code cannot tell you: whether a file is the version the rest of
-the project was written against.
-
 ```
 ok    route a wire
 ok    check the rules
@@ -367,18 +361,9 @@ ok    lay it out
 ok    render to SVG
 39 built-in symbols
 ok     15 browser modules, 0 import mismatches
-ok     39 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
-
-`--write-manifest` regenerates `manifest.txt` and does nothing else. Run it
-after changing anything under `drawlogic/` -- the test suite fails until you
-do, so this is not something to remember.
-
-A manifest is usually a bad idea for two good reasons, and both had to be
-answered before this one earned its place. See
-[Checking the files themselves](#checking-the-files-themselves).
 
 ### symbols
 
@@ -2083,73 +2068,18 @@ look nothing like the cause: a canvas that never appears, empty icons,
 them. Every file reads correctly on its own. Nothing in the code can tell you,
 because the code is not what is wrong.
 
-`manifest.txt` at the top of the repository is a hash of every file that has
-to be right:
+`drawlogic doctor` is the check. It cannot compare a file with the version it
+should be -- there is no list of hashes to compare against -- but a mixed copy
+rarely gets as far as that question: a browser module importing a name its
+neighbour no longer exports, or Python that no longer routes, checks or
+renders, is what one looks like, and doctor finds both. When it reports a
+problem, take the whole repository again rather than mending one file.
 
-```
-<64 hex digits>  drawlogic/__init__.py
-<64 hex digits>  drawlogic/web/js/main.js
-```
-
-Three ways to check a copy against it:
-
-```bash
-drawlogic doctor                    # part of what doctor already reports
-python3 -m drawlogic doctor         # same, without the alias
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File verify.ps1
-```
-
-`verify.ps1` is for Windows, where the trouble usually is, and needs nothing
-installed -- not even a working Python, which matters because a copy too
-broken to run is exactly the copy you want to check. It reports `MISSING`,
-`MISMATCH`, `EXTRA` or `UNREADABLE` per file, exits 0 when the copy is sound,
-1 when it is not and 2 when it cannot find a manifest to read. It takes
-`-Root` if you run it from somewhere else. Tested on PowerShell 7.4 and
-written to the subset Windows PowerShell 5.1 also accepts.
-
-`EXTRA` is worth as much as the other three. A file the manifest has never
-heard of is usually left over from an older version, and Python will import it
-in preference to nothing at all.
-
-### The two reasons not to do this, and what answers them
-
-An earlier version of this document said a manifest was deliberately absent,
-for two reasons. Both were right. Neither is a reason to go without one; they
-are the two things a manifest has to get past first.
-
-**It fails on line endings.** Git rewrites them on checkout on Windows by
-default, so a byte-for-byte manifest calls every file in a perfectly healthy
-clone broken. This is not hypothetical -- the first one handed over did exactly
-that, all 28 files "mismatched" and not one of them actually different. A
-checker that cries wolf is worse than none, because the next real mismatch is
-ignored along with the noise. So the hash is not of the bytes on disk: the text
-is read as UTF-8, any byte order mark dropped, CRLF and lone CR folded to LF,
-and *that* is hashed. `verify.ps1` does the same thing in the same order.
-Whitespace inside a line still counts; only the invisible differences are
-forgiven.
-
-**It goes stale.** A manifest is only maintained until the first person who
-forgets, after which it is a liar. So it is not maintained. It is generated:
-
-```bash
-drawlogic doctor --write-manifest
-```
-
-and `tests/test_manifest.py` fails the moment the committed one stops
-describing the tree. Change a file in `drawlogic/` without regenerating, and
-the suite goes red and tells you the command to run. Forgetting is not
-available.
-
-That test is also what lets `verify.ps1` be trusted without running it here:
-the suite checks that every path it will parse matches the regular expression
-the script parses with, that no path needs quoting or escaping, and that the
-script still normalises the same way. The script itself was run against
-PowerShell 7.4 on a clean tree, on a copy with every file rewritten CRLF and a
-byte order mark added, and on trees with a changed file, a deleted file and a
-leftover file.
+There used to be a `manifest.txt` of every file's hash, checked by doctor and
+by a `verify.ps1` for Windows. It was removed because keeping it current was a
+step after every change to `drawlogic/`, and the copies it guarded against now
+come from a clone or a bundle, each of which carries its own check
+(`tools/unpack_repo.py` verifies every file's hash as it unpacks).
 
 ---
 
@@ -2197,10 +2127,7 @@ tests/            unittest, a golden-file regression suite, a JS parity check
                   routing.js and render.js produce for parity to compare
 examples/         worked schematics, including a CDC FIFO, GPU and CPU block diagrams;
   components/     the definitions the architecture examples place as linked instances
-manifest.txt      a hash of every file above; generated, never hand-edited
 .github/          one CI workflow: the suite on the oldest supported Python
-sample.txt        a plain file to edit when trying verify.ps1 out by hand
-verify.ps1        checks a copy against it on Windows, without Python
 ```
 
 ### One renderer for every exported file
@@ -2295,7 +2222,6 @@ python3 -m unittest tests.test_regression
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
 | `tests/test_hdl.py` | Verilog import: netlists, RTL lowered to gates, Yosys, errors |
-| `tests/test_manifest.py` | `manifest.txt` still describes the files here |
 | `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
 | `tests/test_bundle.py` | packing the repository into one text file and back, byte for byte, and a damaged paste naming the file it broke |
 

@@ -1,9 +1,9 @@
 """tools/pack_repo.py and tools/unpack_repo.py: the repository as one text file.
 
 For a workstation that cannot clone the repository but can take a pasted file.
-What matters is that the tree comes back byte for byte -- doctor checks every
-file against manifest.txt -- and that a paste that damaged something says
-which file, rather than leaving a quietly broken copy.
+What matters is that the tree comes back byte for byte, and that a paste
+that damaged something says which file, rather than leaving a quietly broken
+copy.
 """
 
 import os
@@ -51,7 +51,7 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(result.returncode, 0, result.stdout)
     checked = 0
     for rel in ("drawlogic/render_svg.py", "drawlogic/symbols.json",
-                "manifest.txt", "tools/unpack_repo.py", "examples/soc_top.dlg"):
+                "DOCUMENTATION.md", "tools/unpack_repo.py", "examples/soc_top.dlg"):
       with open(os.path.join(ROOT, rel), "rb") as a, \
            open(os.path.join(dest, rel), "rb") as b:
         self.assertEqual(a.read(), b.read(), rel)

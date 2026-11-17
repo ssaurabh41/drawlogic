@@ -22,7 +22,6 @@ python3 -m unittest tests.test_drc         # one file
 python3 -m unittest tests.test_drc.TestHops.test_min_spacing   # one test
 
 python3 -m drawlogic doctor                # is this copy internally consistent?
-python3 -m drawlogic doctor --write-manifest   # regenerate manifest.txt after touching drawlogic/
 python3 -m drawlogic validate examples/dff_slice.dlg   # references + DRCs, exits non-zero on error
 python3 -m drawlogic export examples/dff_slice.dlg -o out.svg
 python3 -m drawlogic serve examples/dff_slice.dlg      # browser editor
@@ -34,10 +33,7 @@ python3 -m unittest tests.test_js_parity   # routing.js/render.js vs the Python 
 Iterate on the module you touched (`tests/run.py test_drc`); run the whole
 suite once before committing. `test_layout` and `test_hdl` are the biggest share of its time.
 
-After changing anything under `drawlogic/`, run `doctor --write-manifest` —
-`test_manifest.py` (and two `test_cli` doctor tests) fail until
-`manifest.txt` is regenerated; those failures mean only that. After a
-deliberate rendering/routing change, regenerate goldens with
+After a deliberate rendering/routing change, regenerate goldens with
 `DRAWLOGIC_REGOLD=1 python3 -m unittest tests.test_regression` and **read the
 diff** (`git diff tests/golden/`) before committing it — a golden updated
 without being read is worse than no golden.

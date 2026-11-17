@@ -11,8 +11,7 @@ directory tree.
   python3 tools/pack_repo.py --exclude 'benchmarks/*' --exclude 'tests/golden/*'
 
 Which files: everything git tracks (`git ls-files`), so the copy is the same
-project the repository is -- manifest.txt lists the files `drawlogic doctor`
-checks, and a bundle missing some would fail it. Without git, every file under
+project the repository is. Without git, every file under
 the root except the usual junk (.git, __pycache__, ...). Binary files are
 skipped with a warning; this project has none.
 

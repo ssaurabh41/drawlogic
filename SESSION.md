@@ -212,7 +212,6 @@ avoided and is drawn as a bridge.
 ## Things worth knowing
 
 - Suite: `python3 tests/run.py` -> 650 tests, 0 failed, 5 skipped (~30 s).
-- After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.
 - Clear `__pycache__` before a deliberate-breakage check; a stale cache once

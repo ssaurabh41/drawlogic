@@ -208,6 +208,42 @@ export function stubPin(symbol, op) {
   return null;
 }
 
+// Where a pin's stub meets the symbol's body, in sheet coordinates; null when
+// the pin has no stub. Mirrors render_svg.stub_body_end.
+export function stubBodyEnd(symbol, cell, pinName, scale = 1) {
+  const pin = geometry.findPin(symbol, pinName);
+  if (!pin) return null;
+  for (const op of symbol.draw) {
+    if (stubPin(symbol, op) !== pinName) continue;
+    let inner = [op.x2, op.y2];
+    if (op.x2 === pin.x && op.y2 === pin.y) inner = [op.x1, op.y1];
+    return geometry.matrixFor(symbol, cell, scale).apply(inner[0], inner[1]);
+  }
+  return null;
+}
+
+function pointKey(point) {
+  return `${Math.floor(point[0] * 10 + 0.5)},${Math.floor(point[1] * 10 + 0.5)}`;
+}
+
+// Each pin of a wire that has a stub: Map(pin point key -> where it meets the
+// body). Mirrors render_svg.stub_ends: a head is drawn touching the body, not
+// at the stub's outer end, where it looked as if it stopped short of the gate.
+export function stubEnds(doc, net) {
+  const scale = routing.symbolScale(doc);
+  const found = new Map();
+  for (const end of [net.from, ...routing.loadsOf(net)]) {
+    if (!end || typeof end !== "object" || !end.cell) continue;
+    const cell = (doc.cells || []).find((c) => c.id === end.cell);
+    const symbol = cell ? geometry.forCell(cell) : null;
+    if (!symbol) continue;
+    const at = geometry.pinPosition(symbol, cell, end.pin, scale);
+    const body = stubBodyEnd(symbol, cell, end.pin, scale);
+    if (at && body) found.set(pointKey(at), body);
+  }
+  return found;
+}
+
 // `wired` is the set of this cell's pins a wire reaches, or null to draw every
 // pin -- a palette thumbnail. A pin no wire reaches has its stub left out, as
 // render_svg._render_cell does.
@@ -457,8 +493,9 @@ export function nameAt(doc, point) {
 
 // Every arrowhead on one wire for an arrow mode. Mirrors
 // render_svg.arrow_spots_for: a head on each load going forward, one on the
-// driver going backward, and a spot reached twice drawn once.
-export function arrowSpotsFor(branches, mode) {
+// driver going backward, and a spot reached twice drawn once. `bodies` is
+// stubEnds for the wire: a head ending on a stubbed pin is carried to the body.
+export function arrowSpotsFor(branches, mode, bodies = null) {
   if (mode === "none") return [];
   const walks = [];
   for (const points of branches) {
@@ -469,9 +506,16 @@ export function arrowSpotsFor(branches, mode) {
   const found = [];
   const seen = new Set();
   for (const points of walks) {
-    for (const [tip, direction] of arrowSpots(points)) {
-      const key = [Math.floor(tip[0] * 10 + 0.5), Math.floor(tip[1] * 10 + 0.5),
-                   Math.floor(direction[0] * 1000 + 0.5),
+    for (let [tip, direction] of arrowSpots(points)) {
+      const body = bodies ? bodies.get(pointKey(tip)) : undefined;
+      if (body) {
+        const dx = body[0] - tip[0];
+        const dy = body[1] - tip[1];
+        const length = Math.hypot(dx, dy);
+        if (length > 1e-6) direction = [dx / length, dy / length];
+        tip = [body[0], body[1]];
+      }
+      const key = [pointKey(tip), Math.floor(direction[0] * 1000 + 0.5),
                    Math.floor(direction[1] * 1000 + 0.5)].join(",");
       if (seen.has(key)) continue;
       seen.add(key);
@@ -762,7 +806,8 @@ function renderNets(doc, fontScale, into) {
   if ((doc.canvas || {}).arrows !== false) {
     for (const { net, branches } of routes) {
       const mode = routing.arrowMode(doc, net);
-      for (const [tip, direction] of arrowSpotsFor(branches, mode)) {
+      const bodies = stubEnds(doc, net);
+      for (const [tip, direction] of arrowSpotsFor(branches, mode, bodies)) {
         into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                       (net.style || {}).stroke || theme.colors.net));
       }

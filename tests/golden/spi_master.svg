@@ -41,7 +41,7 @@
 <polygon points="220,760 213,763.15 213,756.85" fill="#16202b" />
 <polygon points="220,800 213,803.15 213,796.85" fill="#16202b" />
 <polygon points="1100,760 1093,763.15 1093,756.85" fill="#16202b" />
-<polygon points="500,620 493,623.15 493,616.85" fill="#16202b" />
+<polygon points="520,620 513,623.15 513,616.85" fill="#16202b" />
 <polygon points="420,202 413,205.15 413,198.85" fill="#16202b" />
 <polygon points="760,420 753,423.15 753,416.85" fill="#16202b" />
 <polygon points="420,170 413,173.15 413,166.85" fill="#16202b" />
@@ -51,12 +51,12 @@
 <polygon points="1100,278 1093,281.15 1093,274.85" fill="#16202b" />
 <polygon points="760,380 753,383.15 753,376.85" fill="#16202b" />
 <polygon points="420,246 413,249.15 413,242.85" fill="#16202b" />
-<polygon points="335,642.5 338.15,649.5 331.85,649.5" fill="#16202b" />
-<polygon points="300,560 293,563.15 293,556.85" fill="#16202b" />
-<polygon points="500,560 493,563.15 493,556.85" fill="#16202b" />
+<polygon points="335,619.583 338.15,626.583 331.85,626.583" fill="#16202b" />
+<polygon points="314,560 307,563.15 307,556.85" fill="#16202b" />
+<polygon points="520,560 513,563.15 513,556.85" fill="#16202b" />
 <polygon points="720,560 713,563.15 713,556.85" fill="#16202b" />
 <polygon points="1100,560 1093,563.15 1093,556.85" fill="#16202b" />
-<polygon points="300,615 293,618.15 293,611.85" fill="#16202b" />
+<polygon points="314,615 307,618.15 307,611.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_clk" data-type="port_in" transform="matrix(1,0,0,1,70,755)">

@@ -570,6 +570,55 @@ def stub_pin(symbol, op):
   return None
 
 
+def stub_body_end(symbol, cell, pin_name, scale=1.0):
+  """Where a pin's stub meets the symbol's body, in sheet coordinates.
+
+  None when the pin has no stub -- a port or a block, whose pin is already on
+  its outline.
+  """
+  pin = symbol.pin(pin_name)
+  if pin is None:
+    return None
+  for op in symbol.draw:
+    if stub_pin(symbol, op) != pin_name:
+      continue
+    outer = (pin["x"], pin["y"])
+    inner = (op.get("x2"), op.get("y2"))
+    if (op.get("x2"), op.get("y2")) == outer:
+      inner = (op.get("x1"), op.get("y1"))
+    return symbol.matrix_for(cell, scale).apply(inner[0], inner[1])
+  return None
+
+
+def _point_key(point):
+  # Floor rather than round(), which rounds halves to even where the
+  # browser's copy of this rounds them up.
+  return (math.floor(point[0] * 10 + 0.5), math.floor(point[1] * 10 + 0.5))
+
+
+def stub_ends(doc, net, registry=None):
+  """Each pin of a wire that has a stub: {pin point key: where it meets the body}.
+
+  An arrowhead is drawn with its tip there rather than at the pin. A reader
+  takes a gate's pin to be where its stub meets the body, so a head at the
+  stub's outer end looked as if it stopped short of the gate.
+  """
+  registry = registry or default_registry()
+  found = {}
+  for end in [net.get("from")] + routing.loads_of(net):
+    if not isinstance(end, dict) or not end.get("cell"):
+      continue
+    cell = doc.cell(end["cell"])
+    symbol = registry.for_cell(cell) if cell is not None else None
+    if symbol is None:
+      continue
+    at = symbol.pin_position(cell, end.get("pin"), doc.symbol_scale)
+    body = stub_body_end(symbol, cell, end.get("pin"), doc.symbol_scale)
+    if at is not None and body is not None:
+      found[_point_key(at)] = body
+  return found
+
+
 def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0, wired=None):
   """Draw one placed cell: its shapes transformed, its text kept upright.
 
@@ -753,7 +802,8 @@ def _free_pin_label(symbol, cell, pin_name, symbol_scale):
 def _arrow_spots(points):
   """The arrowhead at the end of a wire: [(tip, direction)], or none.
 
-  The tip is the wire's last point -- where it meets the pin it feeds -- and
+  The tip is the wire's last point -- where it meets the pin it feeds; see
+  stub_ends for how it then reaches a gate's body -- and
   the head lies along the last run into it. One head, at the end and nowhere
   else: heads spaced along a long wire, or slid off the end to dodge a dot or
   a name, made a busy drawing busier while saying nothing the one at the pin
@@ -768,13 +818,16 @@ def _arrow_spots(points):
   return []
 
 
-def arrow_spots_for(branches, mode):
+def arrow_spots_for(branches, mode, bodies=None):
   """Every arrowhead on one wire, for an arrow mode from routing.ARROW_MODES.
 
   "forward" puts a head on each load, where its branch arrives; "backward"
   one on the driver, pointing back into it; "both" the two together. Every
   branch starts at the driver, so heads at that end land on one spot more
   than once, and a spot is only drawn the first time.
+
+  `bodies` is stub_ends for the wire: a head ending on a pin with a stub is
+  carried along the stub to touch the body.
   """
   if mode == "none":
     return []
@@ -790,11 +843,15 @@ def arrow_spots_for(branches, mode):
   seen = set()
   for points in walks:
     for tip, direction in _arrow_spots(points):
-      # Floor rather than round(), which rounds halves to even where the
-      # browser's copy of this rounds them up.
-      key = (math.floor(tip[0] * 10 + 0.5), math.floor(tip[1] * 10 + 0.5),
-             math.floor(direction[0] * 1000 + 0.5),
-             math.floor(direction[1] * 1000 + 0.5))
+      body = (bodies or {}).get(_point_key(tip))
+      if body is not None:
+        dx, dy = body[0] - tip[0], body[1] - tip[1]
+        length = math.hypot(dx, dy)
+        if length > 1e-6:
+          direction = (dx / length, dy / length)
+        tip = (body[0], body[1])
+      key = _point_key(tip) + (math.floor(direction[0] * 1000 + 0.5),
+                               math.floor(direction[1] * 1000 + 0.5))
       if key in seen:
         continue
       seen.add(key)
@@ -1220,7 +1277,8 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
     for net, branches in routes:
       style = net.get("style") or {}
       mode = routing.arrow_mode(doc, net, registry)
-      for tip, direction in arrow_spots_for(branches, mode):
+      bodies = stub_ends(doc, net, registry)
+      for tip, direction in arrow_spots_for(branches, mode, bodies):
         _render_arrow(tip, direction, theme.ARROW_SIZE,
                       style.get("stroke", theme.COLORS["net"]), out)
 

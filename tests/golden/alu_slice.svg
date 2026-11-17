@@ -24,24 +24,24 @@
 <text x="502.5" y="306" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a&amp;b</text>
 <text x="502.5" y="446" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a|b</text>
 <text x="772.5" y="696" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">sel[1:0]</text>
-<polygon points="310,150 303,153.15 303,146.85" fill="#16202b" />
-<polygon points="310,300 303,303.15 303,296.85" fill="#16202b" />
-<polygon points="310,440 303,443.15 303,436.85" fill="#16202b" />
-<polygon points="310,170 303,173.15 303,166.85" fill="#16202b" />
-<polygon points="310,320 303,323.15 303,316.85" fill="#16202b" />
-<polygon points="310,460 303,463.15 303,456.85" fill="#16202b" />
-<polygon points="540,180 533,183.15 533,176.85" fill="#16202b" />
-<polygon points="540,560 533,563.15 533,556.85" fill="#16202b" />
-<polygon points="900,180 893,183.15 893,176.85" fill="#16202b" />
-<polygon points="540,200 533,203.15 533,196.85" fill="#16202b" />
-<polygon points="540,580 533,583.15 533,576.85" fill="#16202b" />
-<polygon points="900,230 893,233.15 893,226.85" fill="#16202b" />
-<polygon points="900,280 893,283.15 893,276.85" fill="#16202b" />
-<polygon points="740,590 733,593.15 733,586.85" fill="#16202b" />
-<polygon points="900,330 893,333.15 893,326.85" fill="#16202b" />
-<polygon points="945,355 948.15,362 941.85,362" fill="#16202b" />
+<polygon points="327,150 320,153.15 320,146.85" fill="#16202b" />
+<polygon points="320,300 313,303.15 313,296.85" fill="#16202b" />
+<polygon points="326,440 319,443.15 319,436.85" fill="#16202b" />
+<polygon points="327,170 320,173.15 320,166.85" fill="#16202b" />
+<polygon points="320,320 313,323.15 313,316.85" fill="#16202b" />
+<polygon points="326,460 319,463.15 319,456.85" fill="#16202b" />
+<polygon points="557,180 550,183.15 550,176.85" fill="#16202b" />
+<polygon points="550,560 543,563.15 543,556.85" fill="#16202b" />
+<polygon points="915,180 908,183.15 908,176.85" fill="#16202b" />
+<polygon points="557,200 550,203.15 550,196.85" fill="#16202b" />
+<polygon points="550,580 543,583.15 543,576.85" fill="#16202b" />
+<polygon points="915,230 908,233.15 908,226.85" fill="#16202b" />
+<polygon points="915,280 908,283.15 908,276.85" fill="#16202b" />
+<polygon points="756,590 749,593.15 749,586.85" fill="#16202b" />
+<polygon points="915,330 908,333.15 908,326.85" fill="#16202b" />
+<polygon points="945,325 948.15,332 941.85,332" fill="#16202b" />
 <polygon points="1100,280 1093,283.15 1093,276.85" fill="#16202b" />
-<polygon points="740,610 733,613.15 733,606.85" fill="#16202b" />
+<polygon points="756,610 749,613.15 749,606.85" fill="#16202b" />
 <polygon points="1100,600 1093,603.15 1093,596.85" fill="#16202b" />
 </g>
 <g class="dl-cells">

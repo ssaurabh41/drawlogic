@@ -26,13 +26,13 @@
 <text x="779" y="138" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
 <text x="779" y="170" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="779" y="202" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
-<polygon points="420,142 413,145.15 413,138.85" fill="#16202b" />
-<polygon points="420,174 413,177.15 413,170.85" fill="#16202b" />
-<polygon points="420,206 413,209.15 413,202.85" fill="#16202b" />
-<polygon points="420,238 413,241.15 413,234.85" fill="#16202b" />
-<polygon points="420,270 413,273.15 413,266.85" fill="#16202b" />
-<polygon points="420,302 413,305.15 413,298.85" fill="#16202b" />
-<polygon points="420,334 413,337.15 413,330.85" fill="#16202b" />
+<polygon points="430,142 423,145.15 423,138.85" fill="#16202b" />
+<polygon points="430,174 423,177.15 423,170.85" fill="#16202b" />
+<polygon points="430,206 423,209.15 423,202.85" fill="#16202b" />
+<polygon points="430,238 423,241.15 423,234.85" fill="#16202b" />
+<polygon points="430,270 423,273.15 423,266.85" fill="#16202b" />
+<polygon points="430,302 423,305.15 423,298.85" fill="#16202b" />
+<polygon points="430,334 423,337.15 423,330.85" fill="#16202b" />
 <polygon points="940,142 933,145.15 933,138.85" fill="#16202b" />
 <polygon points="940,174 933,177.15 933,170.85" fill="#16202b" />
 <polygon points="940,206 933,209.15 933,202.85" fill="#16202b" />

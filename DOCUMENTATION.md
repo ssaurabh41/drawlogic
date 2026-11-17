@@ -1709,9 +1709,14 @@ one is chosen, because "from the driver" means nothing on a signal that goes
 both ways, and an arrow there would say something false.
 
 Each wire gets one arrowhead at its end and none along the way: forward,
-its tip sits exactly where the wire meets the pin it feeds, so a wire
-fanning out to three loads has three heads, one on each. Backward puts a
-single head on the driver, pointing back into it, and both does the two.
+its tip touches the body of the gate it feeds, so a wire fanning out to
+three loads has three heads, one on each. Backward puts a single head on
+the driver, pointing back into it, and both does the two.
+
+The tip is where a pin's stub meets the body, not the stub's outer end where
+the wire is attached: a reader takes that to be the pin, and a head at the
+far end of the stub looked as if it stopped short of the gate. A symbol
+drawn with no stub -- a port, a block -- is entered at its pin.
 Heads used to be spaced along long wires as well, and moved about to keep
 off junction dots, bridges and names; on a busy drawing that was too many
 arrows saying no more than the one at the pin does.

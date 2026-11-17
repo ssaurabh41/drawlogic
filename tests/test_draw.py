@@ -385,9 +385,14 @@ class TestRender(unittest.TestCase):
 
 
 class TestDirectionArrows(unittest.TestCase):
-  """One arrowhead at the end of each wire, its tip where the wire meets the
-  pin it feeds -- and none along the way. Heads spaced along long wires, and
-  slid about to dodge dots and names, were reported as too many arrows."""
+  """One arrowhead at the end of each wire, its tip touching the body of the
+  symbol it feeds -- and none along the way. Heads spaced along long wires,
+  and slid about to dodge dots and names, were reported as too many arrows.
+
+  The tip is at the body, not at the pin's outer end. A gate's pin is drawn
+  as a short stub, and a reader takes the pin to be where that stub meets the
+  body; a head at the stub's far end looked like it stopped short of the
+  gate. A symbol with no stub (a port, a block) is entered at its pin."""
 
   def setUp(self):
     self.doc = Document.load(EXAMPLE)
@@ -422,12 +427,45 @@ class TestDirectionArrows(unittest.TestCase):
   def test_a_long_wire_still_gets_exactly_one(self):
     self.assertEqual(self._arrows(render_svg.render(self.pair(2000, 1600))), 1)
 
-  def test_the_tip_is_where_the_wire_meets_the_load(self):
+  def test_the_tip_touches_the_body_of_the_load(self):
     doc = self.pair()
     (tip,) = self._tips(render_svg.render(doc))
-    x, y = self.pin_at(doc, "u2", "a")
+    # inv at x=300: its input pin is at 300, its stub runs in to the body at 310.
+    self.assertEqual(self.pin_at(doc, "u2", "a"), (300.0, 20.0))
+    self.assertAlmostEqual(tip[0], 310.0, places=1)
+    self.assertAlmostEqual(tip[1], 20.0, places=1)
+
+  def test_a_turned_symbol_is_entered_at_its_body_too(self):
+    doc = self.pair()
+    doc.cell("u2")["rotate"] = 90
+    (tip,) = self._tips(render_svg.render(doc))
+    pin = self.pin_at(doc, "u2", "a")
+    cell = doc.cell("u2")
+    body = default_registry().for_cell(cell).matrix_for(cell).apply(10, 20)
+    self.assertNotEqual((round(pin[0], 1), round(pin[1], 1)),
+                        (round(body[0], 1), round(body[1], 1)))
+    self.assertAlmostEqual(tip[0], body[0], places=1)
+    self.assertAlmostEqual(tip[1], body[1], places=1)
+
+  def test_a_symbol_with_no_stub_is_entered_at_its_pin(self):
+    doc = new_document()
+    doc.cells.extend([{"id": "u1", "type": "inv", "x": 0, "y": 0},
+                      {"id": "q", "type": "port_out", "x": 200, "y": 15}])
+    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "q", "pin": "p"}})
+    doc.normalize()
+    (tip,) = self._tips(render_svg.render(doc))
+    x, y = self.pin_at(doc, "q", "p")
     self.assertAlmostEqual(tip[0], x, places=1)
     self.assertAlmostEqual(tip[1], y, places=1)
+
+  def test_a_free_end_gets_its_head_at_the_end(self):
+    doc = new_document()
+    doc.nets.append({"id": "n1", "from": {"x": 50, "y": 50},
+                     "to": [{"x": 250, "y": 50}]})
+    doc.normalize()
+    (tip,) = self._tips(render_svg.render(doc))
+    self.assertEqual(tip, (250.0, 50.0))
 
   def test_each_load_of_a_fanout_gets_its_own(self):
     doc = new_document()
@@ -438,11 +476,8 @@ class TestDirectionArrows(unittest.TestCase):
                      "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
     doc.normalize()
     tips = sorted(self._tips(render_svg.render(doc)))
-    self.assertEqual(len(tips), 2)
-    for tip, load in zip(tips, ("u2", "u3")):
-      x, y = self.pin_at(doc, load, "a")
-      self.assertAlmostEqual(tip[0], x, places=1)
-      self.assertAlmostEqual(tip[1], y, places=1)
+    # Each inv's input stub meets its body 10 to the right of the pin.
+    self.assertEqual(tips, [(310.0, 40.0), (310.0, 220.0)])
 
   def test_backward_puts_one_head_on_the_driver(self):
     doc = new_document()
@@ -454,9 +489,9 @@ class TestDirectionArrows(unittest.TestCase):
                      "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
     doc.normalize()
     (tip,) = self._tips(render_svg.render(doc))
-    x, y = self.pin_at(doc, "u1", "y")
-    self.assertAlmostEqual(tip[0], x, places=1)
-    self.assertAlmostEqual(tip[1], y, places=1)
+    # and2's output pin is at x=60; its stub meets the body at x=50.
+    self.assertEqual(self.pin_at(doc, "u1", "y"), (60.0, 120.0))
+    self.assertEqual(tip, (50.0, 120.0))
 
   def test_arrows_can_be_switched_off_per_render(self):
     self.assertEqual(self._arrows(render_svg.render(self.doc, arrows=False)), 0)

@@ -11,17 +11,17 @@
 <path class="dl-net" data-id="n4" d="M380 155 L405 155 L405 75 M380 155 L480 155" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n5" d="M550 155 L575 155 L575 75 M550 155 L650 155" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n6" d="M720 155 L745 155 L745 75" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="140,155 133,158.15 133,151.85" fill="#16202b" />
-<polygon points="140,185 133,188.15 133,181.85" fill="#16202b" />
-<polygon points="310,185 303,188.15 303,181.85" fill="#16202b" />
-<polygon points="480,185 473,188.15 473,181.85" fill="#16202b" />
-<polygon points="650,185 643,188.15 643,181.85" fill="#16202b" />
+<polygon points="150,155 143,158.15 143,151.85" fill="#16202b" />
+<polygon points="150,185 143,188.15 143,181.85" fill="#16202b" />
+<polygon points="320,185 313,188.15 313,181.85" fill="#16202b" />
+<polygon points="490,185 483,188.15 483,181.85" fill="#16202b" />
+<polygon points="660,185 653,188.15 653,181.85" fill="#16202b" />
 <polygon points="235,75 238.15,82 231.85,82" fill="#16202b" />
-<polygon points="310,155 303,158.15 303,151.85" fill="#16202b" />
+<polygon points="320,155 313,158.15 313,151.85" fill="#16202b" />
 <polygon points="405,75 408.15,82 401.85,82" fill="#16202b" />
-<polygon points="480,155 473,158.15 473,151.85" fill="#16202b" />
+<polygon points="490,155 483,158.15 483,151.85" fill="#16202b" />
 <polygon points="575,75 578.15,82 571.85,82" fill="#16202b" />
-<polygon points="650,155 643,158.15 643,151.85" fill="#16202b" />
+<polygon points="660,155 653,158.15 653,151.85" fill="#16202b" />
 <polygon points="745,75 748.15,82 741.85,82" fill="#16202b" />
 </g>
 <g class="dl-cells">

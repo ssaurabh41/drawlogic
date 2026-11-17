@@ -1,4 +1,4 @@
-<<<<<<<<<< DLBUNDLE v1 part=1/1 files=120 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE v1 part=1/1 files=116 >>>>>>>>>>
 # Rebuild with: python3 unpack_repo.py drawlogic_bundle.txt
 <<<<<<<<<< DLBUNDLE BEGIN path=.claude/settings.json lines=17 sha256=e9432f71414b946515faf8e4107ba9187008922fe846ae767e3a2df6066b4149 >>>>>>>>>>
 {
@@ -143,7 +143,7 @@ benchmarks/.cache/
 # The previous version of a drawing, kept by every save that changes it.
 *.bak
 <<<<<<<<<< DLBUNDLE END path=.gitignore >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=129 sha256=f46e2ade549813139ed0d48ff56bbfbd51df4804d5a76fd8b9790721fee532bb >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=CLAUDE.md lines=125 sha256=897286b5f6c6e1327f6b8193116eb1de71fa2dbf72cc505c27bf2e75423a6cd4 >>>>>>>>>>
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -168,7 +168,6 @@ python3 -m unittest tests.test_drc         # one file
 python3 -m unittest tests.test_drc.TestHops.test_min_spacing   # one test
 
 python3 -m drawlogic doctor                # is this copy internally consistent?
-python3 -m drawlogic doctor --write-manifest   # regenerate manifest.txt after touching drawlogic/
 python3 -m drawlogic validate examples/dff_slice.dlg   # references + DRCs, exits non-zero on error
 python3 -m drawlogic export examples/dff_slice.dlg -o out.svg
 python3 -m drawlogic serve examples/dff_slice.dlg      # browser editor
@@ -180,10 +179,7 @@ python3 -m unittest tests.test_js_parity   # routing.js/render.js vs the Python 
 Iterate on the module you touched (`tests/run.py test_drc`); run the whole
 suite once before committing. `test_layout` and `test_hdl` are the biggest share of its time.
 
-After changing anything under `drawlogic/`, run `doctor --write-manifest` —
-`test_manifest.py` (and two `test_cli` doctor tests) fail until
-`manifest.txt` is regenerated; those failures mean only that. After a
-deliberate rendering/routing change, regenerate goldens with
+After a deliberate rendering/routing change, regenerate goldens with
 `DRAWLOGIC_REGOLD=1 python3 -m unittest tests.test_regression` and **read the
 diff** (`git diff tests/golden/`) before committing it — a golden updated
 without being read is worse than no golden.
@@ -274,7 +270,7 @@ and writes.
   `Input.dispatchMouseEvent`, not synthetic `new MouseEvent()` — the app
   distinguishes trusted input.
 <<<<<<<<<< DLBUNDLE END path=CLAUDE.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2388 sha256=26201d2b85521e029922ffc008f3818a9639a3d7ba984d73ea779555eb7f35d1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=DOCUMENTATION.md lines=2319 sha256=a453c844a1ac0a2a1f34a3270606eff145481e7acc6a5dbf771c71474aef9db7 >>>>>>>>>>
 # drawlogic
 
 **Draw logic circuit diagrams, and export them as SVG.**
@@ -411,9 +407,8 @@ function drawlogic { python -m drawlogic @args }
 
 `python3` is often not a command there; `python` is. Take the repository whole
 rather than file by file -- if you have had to copy files across one at a
-time, run `verify.ps1` before anything else, because a mixed copy fails in
-ways that look like bugs. See
-[Checking the files themselves](#checking-the-files-themselves).
+time, run `drawlogic doctor` before anything else, because a mixed copy fails
+in ways that look like bugs.
 
 Where cloning is not possible but pasting text is, the whole repository goes
 across as one file. On a machine that has it:
@@ -615,7 +610,6 @@ none is written. A parse error names its line.
 
 ```bash
 drawlogic doctor                   # is this copy sound?
-drawlogic doctor --write-manifest  # record what it should be
 ```
 
 Answers one question: do the pieces of this copy of drawlogic still fit each
@@ -633,10 +627,6 @@ clone`, or download and unzip
 `https://github.com/ssaurabh41/drawlogic/archive/refs/heads/main.zip` --
 rather than copying files across one at a time.
 
-It also checks this copy against `manifest.txt`, which is the one thing
-reading the code cannot tell you: whether a file is the version the rest of
-the project was written against.
-
 ```
 ok    route a wire
 ok    check the rules
@@ -644,18 +634,9 @@ ok    lay it out
 ok    render to SVG
 39 built-in symbols
 ok     15 browser modules, 0 import mismatches
-ok     39 files against manifest.txt, 0 differ
 
 this copy is consistent with itself
 ```
-
-`--write-manifest` regenerates `manifest.txt` and does nothing else. Run it
-after changing anything under `drawlogic/` -- the test suite fails until you
-do, so this is not something to remember.
-
-A manifest is usually a bad idea for two good reasons, and both had to be
-answered before this one earned its place. See
-[Checking the files themselves](#checking-the-files-themselves).
 
 ### symbols
 
@@ -1986,9 +1967,14 @@ one is chosen, because "from the driver" means nothing on a signal that goes
 both ways, and an arrow there would say something false.
 
 Each wire gets one arrowhead at its end and none along the way: forward,
-its tip sits exactly where the wire meets the pin it feeds, so a wire
-fanning out to three loads has three heads, one on each. Backward puts a
-single head on the driver, pointing back into it, and both does the two.
+its tip touches the body of the gate it feeds, so a wire fanning out to
+three loads has three heads, one on each. Backward puts a single head on
+the driver, pointing back into it, and both does the two.
+
+The tip is where a pin's stub meets the body, not the stub's outer end where
+the wire is attached: a reader takes that to be the pin, and a head at the
+far end of the stub looked as if it stopped short of the gate. A symbol
+drawn with no stub -- a port, a block -- is entered at its pin.
 Heads used to be spaced along long wires as well, and moved about to keep
 off junction dots, bridges and names; on a busy drawing that was too many
 arrows saying no more than the one at the pin does.
@@ -2355,73 +2341,18 @@ look nothing like the cause: a canvas that never appears, empty icons,
 them. Every file reads correctly on its own. Nothing in the code can tell you,
 because the code is not what is wrong.
 
-`manifest.txt` at the top of the repository is a hash of every file that has
-to be right:
+`drawlogic doctor` is the check. It cannot compare a file with the version it
+should be -- there is no list of hashes to compare against -- but a mixed copy
+rarely gets as far as that question: a browser module importing a name its
+neighbour no longer exports, or Python that no longer routes, checks or
+renders, is what one looks like, and doctor finds both. When it reports a
+problem, take the whole repository again rather than mending one file.
 
-```
-<64 hex digits>  drawlogic/__init__.py
-<64 hex digits>  drawlogic/web/js/main.js
-```
-
-Three ways to check a copy against it:
-
-```bash
-drawlogic doctor                    # part of what doctor already reports
-python3 -m drawlogic doctor         # same, without the alias
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File verify.ps1
-```
-
-`verify.ps1` is for Windows, where the trouble usually is, and needs nothing
-installed -- not even a working Python, which matters because a copy too
-broken to run is exactly the copy you want to check. It reports `MISSING`,
-`MISMATCH`, `EXTRA` or `UNREADABLE` per file, exits 0 when the copy is sound,
-1 when it is not and 2 when it cannot find a manifest to read. It takes
-`-Root` if you run it from somewhere else. Tested on PowerShell 7.4 and
-written to the subset Windows PowerShell 5.1 also accepts.
-
-`EXTRA` is worth as much as the other three. A file the manifest has never
-heard of is usually left over from an older version, and Python will import it
-in preference to nothing at all.
-
-### The two reasons not to do this, and what answers them
-
-An earlier version of this document said a manifest was deliberately absent,
-for two reasons. Both were right. Neither is a reason to go without one; they
-are the two things a manifest has to get past first.
-
-**It fails on line endings.** Git rewrites them on checkout on Windows by
-default, so a byte-for-byte manifest calls every file in a perfectly healthy
-clone broken. This is not hypothetical -- the first one handed over did exactly
-that, all 28 files "mismatched" and not one of them actually different. A
-checker that cries wolf is worse than none, because the next real mismatch is
-ignored along with the noise. So the hash is not of the bytes on disk: the text
-is read as UTF-8, any byte order mark dropped, CRLF and lone CR folded to LF,
-and *that* is hashed. `verify.ps1` does the same thing in the same order.
-Whitespace inside a line still counts; only the invisible differences are
-forgiven.
-
-**It goes stale.** A manifest is only maintained until the first person who
-forgets, after which it is a liar. So it is not maintained. It is generated:
-
-```bash
-drawlogic doctor --write-manifest
-```
-
-and `tests/test_manifest.py` fails the moment the committed one stops
-describing the tree. Change a file in `drawlogic/` without regenerating, and
-the suite goes red and tells you the command to run. Forgetting is not
-available.
-
-That test is also what lets `verify.ps1` be trusted without running it here:
-the suite checks that every path it will parse matches the regular expression
-the script parses with, that no path needs quoting or escaping, and that the
-script still normalises the same way. The script itself was run against
-PowerShell 7.4 on a clean tree, on a copy with every file rewritten CRLF and a
-byte order mark added, and on trees with a changed file, a deleted file and a
-leftover file.
+There used to be a `manifest.txt` of every file's hash, checked by doctor and
+by a `verify.ps1` for Windows. It was removed because keeping it current was a
+step after every change to `drawlogic/`, and the copies it guarded against now
+come from a clone or a bundle, each of which carries its own check
+(`tools/unpack_repo.py` verifies every file's hash as it unpacks).
 
 ---
 
@@ -2469,10 +2400,7 @@ tests/            unittest, a golden-file regression suite, a JS parity check
                   routing.js and render.js produce for parity to compare
 examples/         worked schematics, including a CDC FIFO, GPU and CPU block diagrams;
   components/     the definitions the architecture examples place as linked instances
-manifest.txt      a hash of every file above; generated, never hand-edited
 .github/          one CI workflow: the suite on the oldest supported Python
-sample.txt        a plain file to edit when trying verify.ps1 out by hand
-verify.ps1        checks a copy against it on Windows, without Python
 ```
 
 ### One renderer for every exported file
@@ -2567,7 +2495,6 @@ python3 -m unittest tests.test_regression
 | `tests/test_nets.py` | one driver and many loads, and the v1 upgrade |
 | `tests/test_authoring.py` | turning a drawing into a symbol |
 | `tests/test_hdl.py` | Verilog import: netlists, RTL lowered to gates, Yosys, errors |
-| `tests/test_manifest.py` | `manifest.txt` still describes the files here |
 | `tests/test_python_floor.py` | the code stays inside the oldest Python supported |
 | `tests/test_bundle.py` | packing the repository into one text file and back, byte for byte, and a damaged paste naming the file it broke |
 
@@ -2664,7 +2591,7 @@ the examples and look at them.
 **`--host` has no authentication.** Binding beyond loopback is documented as
 "tunnel instead", but nothing stops it being used on a shared machine.
 <<<<<<<<<< DLBUNDLE END path=DOCUMENTATION.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=233 sha256=0670e540ffcd5463ed518047702116b001298e494d55229e6a283fc3b4e58f99 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=SESSION.md lines=232 sha256=b03251568a77330ad1fd8ecbdb27fc0ab38b5a47a83d071b614b20c75fb1366a >>>>>>>>>>
 # Session handoff
 
 A summary of one long working session on drawlogic, so a new session can
@@ -2879,7 +2806,6 @@ avoided and is drawn as a bridge.
 ## Things worth knowing
 
 - Suite: `python3 tests/run.py` -> 650 tests, 0 failed, 5 skipped (~30 s).
-- After touching `drawlogic/`: `python3 -m drawlogic doctor --write-manifest`.
 - After a rendering change: `DRAWLOGIC_REGOLD=1 python3 -m unittest
   tests.test_regression`, then read `git diff tests/golden/`.
 - Clear `__pycache__` before a deliberate-breakage check; a stale cache once
@@ -24677,7 +24603,7 @@ def _add_to_file(path, symbol_id, data):
   write_file(path, json.dumps(library, indent=2, sort_keys=True) + "\n")
   return library
 <<<<<<<<<< DLBUNDLE END path=drawlogic/authoring.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/cli.py lines=841 sha256=68de8cc30ed580e5ace9fd9ac02f024ff287f80369ac8e723d4944921ebbd9bb >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/cli.py lines=690 sha256=e73f6185582d8b81e80f20c1994f89a0d0f3fe4b9e34c1c569b5d5a15acf46db >>>>>>>>>>
 """Command line entry points.
 
 Usage:
@@ -24697,7 +24623,6 @@ Run with nothing, or with --help, for the same overview.
 """
 
 import argparse
-import hashlib
 import os
 import re
 import sys
@@ -24965,19 +24890,7 @@ def cmd_doctor(args):
   the pieces still fit each other, which is what this does: run the Python end
   to end on a drawing built here, then read every browser module and check
   that each thing it imports is really exported by the file it names.
-
-  It also hashes this copy against manifest.txt. That used to say "deliberately
-  not a checksum against a manifest", for two good reasons -- a manifest goes
-  stale, and a byte-for-byte one fails on a changed line ending as loudly as on
-  a missing function. Both are answered rather than ignored: the hash is of
-  normalised text, and the manifest is generated with --write-manifest and
-  guarded by tests/test_manifest.py, so a stale one turns the suite red.
   """
-  if getattr(args, "write_manifest", False):
-    target = os.path.join(_repo_root(), MANIFEST_NAME)
-    write_file(target, manifest_text())
-    print("wrote %s (%d files)" % (target, len(manifest_files())))
-    return 0
 
   problems = []
 
@@ -25043,18 +24956,6 @@ def cmd_doctor(args):
     print("%s  %d browser modules, %d import mismatches"
           % ("ok   " if not mismatches else "FAIL ", modules, len(mismatches)))
 
-  # ---- the files themselves, against the manifest ----
-  listed, counted = _check_manifest()
-  if counted is None:
-    print("--    no %s here, so file contents were not checked"
-          % MANIFEST_NAME)
-  else:
-    for line in listed:
-      report("files", line)
-    print("%s  %d files against %s, %d differ"
-          % ("ok   " if not listed else "FAIL ", counted, MANIFEST_NAME,
-             len(listed)))
-
   print("")
   if not problems:
     print("this copy is consistent with itself")
@@ -25068,130 +24969,6 @@ def cmd_doctor(args):
   print("  git clone https://github.com/ssaurabh41/drawlogic")
   print("or download and unzip .../drawlogic/archive/refs/heads/main.zip")
   return 1
-
-
-# Files whose contents have to be right for drawlogic to work: the package
-# itself, the symbol library and everything the browser is served. Not the
-# examples or the tests -- a broken example announces itself the moment you
-# open it, and a broken test announces itself when you run the suite.
-MANIFEST_NAME = "manifest.txt"
-
-
-def _package_root():
-  return os.path.dirname(os.path.abspath(__file__))
-
-
-def _repo_root():
-  return os.path.dirname(_package_root())
-
-
-def content_hash(path):
-  """A file's SHA-256, taken after line endings and trailing blank lines are
-  made uniform.
-
-  Not the hash of the bytes on disk. Git rewrites line endings on checkout by
-  default on Windows, so a byte-for-byte manifest reports every single file as
-  wrong on a perfectly good clone -- which is exactly what happened when one
-  was handed over: all 28 files "mismatched", none of them actually different.
-  Copying a file by hand -- viewing it on GitHub, selecting the text, pasting
-  it into Notepad, because that's the only way it can be moved -- has the same
-  effect: it almost never changes a byte in the middle, but it routinely adds
-  or drops the newline at the very end.
-
-  A checker that cries wolf is worse than none, because the next real
-  mismatch gets ignored too. So CRLF and LF hash the same, one trailing
-  newline hashes the same as none or several, and what is left is a
-  difference in what the file actually says.
-  """
-  with open(path, "rb") as handle:
-    raw = handle.read()
-  text = raw.decode("utf-8-sig")
-  text = text.replace("\r\n", "\n").replace("\r", "\n")
-  text = text.rstrip("\n")
-  if text:
-    text += "\n"
-  return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-# Files outside drawlogic/ that the manifest covers anyway. sample.txt is the
-# fixture for trying verify.ps1 by hand: edit it and the check should say
-# MISMATCH. It is named here rather than being re-added to manifest.txt after
-# every regeneration, because a manifest that needs a manual step afterwards
-# goes stale the first time someone forgets -- which is the exact failure the
-# manifest exists to prevent.
-EXTRA_FILES = ("sample.txt",)
-
-
-def manifest_files(root=None):
-  """Every file the manifest covers, as repo-relative paths with / separators."""
-  root = root or _repo_root()
-  package = os.path.join(root, "drawlogic")
-  found = []
-  for folder, dirs, names in os.walk(package):
-    dirs[:] = sorted(d for d in dirs if d not in ("__pycache__", ".git"))
-    for name in sorted(names):
-      if name.endswith((".pyc", ".pyo")):
-        continue
-      full = os.path.join(folder, name)
-      found.append(os.path.relpath(full, root).replace(os.sep, "/"))
-  for name in EXTRA_FILES:
-    if os.path.isfile(os.path.join(root, name.replace("/", os.sep))):
-      found.append(name)
-  return sorted(found)
-
-
-def manifest_text(root=None):
-  """The manifest as it should be on disk."""
-  root = root or _repo_root()
-  lines = []
-  for relative in manifest_files(root):
-    full = os.path.join(root, relative.replace("/", os.sep))
-    lines.append("%s  %s" % (content_hash(full), relative))
-  return "\n".join(lines) + "\n"
-
-
-def _check_manifest(root=None):
-  """Compare the tree against the committed manifest.
-
-  Returns (problems, checked). `problems` is empty when every file is present
-  and says what the manifest says; `checked` is None when there is no manifest
-  to check against, which is not itself a fault.
-  """
-  root = root or _repo_root()
-  path = os.path.join(root, MANIFEST_NAME)
-  if not os.path.isfile(path):
-    return [], None
-
-  problems = []
-  listed = set()
-  count = 0
-  with open(path) as handle:
-    for line in handle:
-      line = line.strip()
-      if not line or line.startswith("#"):
-        continue
-      parts = line.split(None, 1)
-      if len(parts) != 2:
-        continue
-      expected, relative = parts[0], parts[1].strip()
-      listed.add(relative)
-      count += 1
-      full = os.path.join(root, relative.replace("/", os.sep))
-      if not os.path.isfile(full):
-        problems.append("%s is missing" % relative)
-        continue
-      try:
-        actual = content_hash(full)
-      except (OSError, UnicodeDecodeError) as exc:
-        problems.append("%s cannot be read: %s" % (relative, exc))
-        continue
-      if actual != expected:
-        problems.append("%s does not match the manifest" % relative)
-
-  for relative in manifest_files(root):
-    if relative not in listed:
-      problems.append("%s is not in the manifest" % relative)
-  return problems, count
 
 
 def _js_imports(folder):
@@ -25454,8 +25231,6 @@ def build_parser():
 
   doctor = subs.add_parser("doctor", parents=[common],
                            help="check this copy of drawlogic is consistent")
-  doctor.add_argument("--write-manifest", action="store_true",
-                      help="rewrite manifest.txt from the files as they are")
   doctor.set_defaults(func=cmd_doctor)
 
   validate = subs.add_parser("validate", parents=[common],
@@ -31511,7 +31286,7 @@ def _rows_of_ranks(part, registry, gap_x, gap_y, fixed=()):
       cell["x"] += px + dx - box[0]
       cell["y"] += py + dy + push - box[1]
 <<<<<<<<<< DLBUNDLE END path=drawlogic/layout.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/render_svg.py lines=1787 sha256=a01f4652567c9ee465a1110ec555e0027e5860ce7c4dc3069b1dc3a7277a9199 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/render_svg.py lines=1845 sha256=871698b878cb2549026261d4a2df318d9b1a6594d2d12cf615348cbd391c9876 >>>>>>>>>>
 """Document to SVG.
 
 This is the only place that turns a drawing into a file. The GUI's Export
@@ -32084,6 +31859,55 @@ def stub_pin(symbol, op):
   return None
 
 
+def stub_body_end(symbol, cell, pin_name, scale=1.0):
+  """Where a pin's stub meets the symbol's body, in sheet coordinates.
+
+  None when the pin has no stub -- a port or a block, whose pin is already on
+  its outline.
+  """
+  pin = symbol.pin(pin_name)
+  if pin is None:
+    return None
+  for op in symbol.draw:
+    if stub_pin(symbol, op) != pin_name:
+      continue
+    outer = (pin["x"], pin["y"])
+    inner = (op.get("x2"), op.get("y2"))
+    if (op.get("x2"), op.get("y2")) == outer:
+      inner = (op.get("x1"), op.get("y1"))
+    return symbol.matrix_for(cell, scale).apply(inner[0], inner[1])
+  return None
+
+
+def _point_key(point):
+  # Floor rather than round(), which rounds halves to even where the
+  # browser's copy of this rounds them up.
+  return (math.floor(point[0] * 10 + 0.5), math.floor(point[1] * 10 + 0.5))
+
+
+def stub_ends(doc, net, registry=None):
+  """Each pin of a wire that has a stub: {pin point key: where it meets the body}.
+
+  An arrowhead is drawn with its tip there rather than at the pin. A reader
+  takes a gate's pin to be where its stub meets the body, so a head at the
+  stub's outer end looked as if it stopped short of the gate.
+  """
+  registry = registry or default_registry()
+  found = {}
+  for end in [net.get("from")] + routing.loads_of(net):
+    if not isinstance(end, dict) or not end.get("cell"):
+      continue
+    cell = doc.cell(end["cell"])
+    symbol = registry.for_cell(cell) if cell is not None else None
+    if symbol is None:
+      continue
+    at = symbol.pin_position(cell, end.get("pin"), doc.symbol_scale)
+    body = stub_body_end(symbol, cell, end.get("pin"), doc.symbol_scale)
+    if at is not None and body is not None:
+      found[_point_key(at)] = body
+  return found
+
+
 def _render_cell(symbol, cell, font_scale, out, symbol_scale=1.0, wired=None):
   """Draw one placed cell: its shapes transformed, its text kept upright.
 
@@ -32267,7 +32091,8 @@ def _free_pin_label(symbol, cell, pin_name, symbol_scale):
 def _arrow_spots(points):
   """The arrowhead at the end of a wire: [(tip, direction)], or none.
 
-  The tip is the wire's last point -- where it meets the pin it feeds -- and
+  The tip is the wire's last point -- where it meets the pin it feeds; see
+  stub_ends for how it then reaches a gate's body -- and
   the head lies along the last run into it. One head, at the end and nowhere
   else: heads spaced along a long wire, or slid off the end to dodge a dot or
   a name, made a busy drawing busier while saying nothing the one at the pin
@@ -32282,13 +32107,16 @@ def _arrow_spots(points):
   return []
 
 
-def arrow_spots_for(branches, mode):
+def arrow_spots_for(branches, mode, bodies=None):
   """Every arrowhead on one wire, for an arrow mode from routing.ARROW_MODES.
 
   "forward" puts a head on each load, where its branch arrives; "backward"
   one on the driver, pointing back into it; "both" the two together. Every
   branch starts at the driver, so heads at that end land on one spot more
   than once, and a spot is only drawn the first time.
+
+  `bodies` is stub_ends for the wire: a head ending on a pin with a stub is
+  carried along the stub to touch the body.
   """
   if mode == "none":
     return []
@@ -32304,11 +32132,15 @@ def arrow_spots_for(branches, mode):
   seen = set()
   for points in walks:
     for tip, direction in _arrow_spots(points):
-      # Floor rather than round(), which rounds halves to even where the
-      # browser's copy of this rounds them up.
-      key = (math.floor(tip[0] * 10 + 0.5), math.floor(tip[1] * 10 + 0.5),
-             math.floor(direction[0] * 1000 + 0.5),
-             math.floor(direction[1] * 1000 + 0.5))
+      body = (bodies or {}).get(_point_key(tip))
+      if body is not None:
+        dx, dy = body[0] - tip[0], body[1] - tip[1]
+        length = math.hypot(dx, dy)
+        if length > 1e-6:
+          direction = (dx / length, dy / length)
+        tip = (body[0], body[1])
+      key = _point_key(tip) + (math.floor(direction[0] * 1000 + 0.5),
+                               math.floor(direction[1] * 1000 + 0.5))
       if key in seen:
         continue
       seen.add(key)
@@ -32734,7 +32566,8 @@ def _render_nets(doc, registry, font_scale, out, arrows=True, hops=True):
     for net, branches in routes:
       style = net.get("style") or {}
       mode = routing.arrow_mode(doc, net, registry)
-      for tip, direction in arrow_spots_for(branches, mode):
+      bodies = stub_ends(doc, net, registry)
+      for tip, direction in arrow_spots_for(branches, mode, bodies):
         _render_arrow(tip, direction, theme.ARROW_SIZE,
                       style.get("stroke", theme.COLORS["net"]), out)
 
@@ -50581,7 +50414,7 @@ export function watch(store, onFull) {
   });
 }
 <<<<<<<<<< DLBUNDLE END path=drawlogic/web/js/recovery.js >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/render.js lines=1221 sha256=d6c420473dc2fc57540f04382856f87c54d43e5f20fe1dbbc54b87c333c1bc18 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=drawlogic/web/js/render.js lines=1266 sha256=46d12d84f783d2750e803c312be195fc5783991272aeb39b677540216870b12b >>>>>>>>>>
 // Draws a document into live SVG DOM.
 //
 // The on-screen canvas only has to look right while you work; every file that
@@ -50790,6 +50623,42 @@ export function stubPin(symbol, op) {
     }
   }
   return null;
+}
+
+// Where a pin's stub meets the symbol's body, in sheet coordinates; null when
+// the pin has no stub. Mirrors render_svg.stub_body_end.
+export function stubBodyEnd(symbol, cell, pinName, scale = 1) {
+  const pin = geometry.findPin(symbol, pinName);
+  if (!pin) return null;
+  for (const op of symbol.draw) {
+    if (stubPin(symbol, op) !== pinName) continue;
+    let inner = [op.x2, op.y2];
+    if (op.x2 === pin.x && op.y2 === pin.y) inner = [op.x1, op.y1];
+    return geometry.matrixFor(symbol, cell, scale).apply(inner[0], inner[1]);
+  }
+  return null;
+}
+
+function pointKey(point) {
+  return `${Math.floor(point[0] * 10 + 0.5)},${Math.floor(point[1] * 10 + 0.5)}`;
+}
+
+// Each pin of a wire that has a stub: Map(pin point key -> where it meets the
+// body). Mirrors render_svg.stub_ends: a head is drawn touching the body, not
+// at the stub's outer end, where it looked as if it stopped short of the gate.
+export function stubEnds(doc, net) {
+  const scale = routing.symbolScale(doc);
+  const found = new Map();
+  for (const end of [net.from, ...routing.loadsOf(net)]) {
+    if (!end || typeof end !== "object" || !end.cell) continue;
+    const cell = (doc.cells || []).find((c) => c.id === end.cell);
+    const symbol = cell ? geometry.forCell(cell) : null;
+    if (!symbol) continue;
+    const at = geometry.pinPosition(symbol, cell, end.pin, scale);
+    const body = stubBodyEnd(symbol, cell, end.pin, scale);
+    if (at && body) found.set(pointKey(at), body);
+  }
+  return found;
 }
 
 // `wired` is the set of this cell's pins a wire reaches, or null to draw every
@@ -51041,8 +50910,9 @@ export function nameAt(doc, point) {
 
 // Every arrowhead on one wire for an arrow mode. Mirrors
 // render_svg.arrow_spots_for: a head on each load going forward, one on the
-// driver going backward, and a spot reached twice drawn once.
-export function arrowSpotsFor(branches, mode) {
+// driver going backward, and a spot reached twice drawn once. `bodies` is
+// stubEnds for the wire: a head ending on a stubbed pin is carried to the body.
+export function arrowSpotsFor(branches, mode, bodies = null) {
   if (mode === "none") return [];
   const walks = [];
   for (const points of branches) {
@@ -51053,9 +50923,16 @@ export function arrowSpotsFor(branches, mode) {
   const found = [];
   const seen = new Set();
   for (const points of walks) {
-    for (const [tip, direction] of arrowSpots(points)) {
-      const key = [Math.floor(tip[0] * 10 + 0.5), Math.floor(tip[1] * 10 + 0.5),
-                   Math.floor(direction[0] * 1000 + 0.5),
+    for (let [tip, direction] of arrowSpots(points)) {
+      const body = bodies ? bodies.get(pointKey(tip)) : undefined;
+      if (body) {
+        const dx = body[0] - tip[0];
+        const dy = body[1] - tip[1];
+        const length = Math.hypot(dx, dy);
+        if (length > 1e-6) direction = [dx / length, dy / length];
+        tip = [body[0], body[1]];
+      }
+      const key = [pointKey(tip), Math.floor(direction[0] * 1000 + 0.5),
                    Math.floor(direction[1] * 1000 + 0.5)].join(",");
       if (seen.has(key)) continue;
       seen.add(key);
@@ -51346,7 +51223,8 @@ function renderNets(doc, fontScale, into) {
   if ((doc.canvas || {}).arrows !== false) {
     for (const { net, branches } of routes) {
       const mode = routing.arrowMode(doc, net);
-      for (const [tip, direction] of arrowSpotsFor(branches, mode)) {
+      const bodies = stubEnds(doc, net);
+      for (const [tip, direction] of arrowSpotsFor(branches, mode, bodies)) {
         into.appendChild(arrowElement(tip, direction, theme.arrowSize || 7,
                                       (net.style || {}).stroke || theme.colors.net));
       }
@@ -65342,50 +65220,6 @@ Scripts, command logs, screenshots, a sample SVG and editable fixtures were reta
 
 This is a targeted audit, not proof that the rest of the application is bug-free. No application code fixes were made during this review.
 <<<<<<<<<< DLBUNDLE END path=findings3.md >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=manifest.txt lines=39 sha256=71af891e2d0f101e54b51b4d5c71d956209bb23c123c23061f3e9ee25239a28a >>>>>>>>>>
-86844009d34ccd786913c5d047f5e75cf14c1873432da49e3c93cd7bef19d099  drawlogic/__init__.py
-dd0c5bff5a05b805b0c08c7db6118605c86deb1d2746ad6d9c9124c4d667b0ee  drawlogic/__main__.py
-b08ad28249d2aa22a3d442a57bcb0718dc87b8715c2056928fdf828c9218af19  drawlogic/authoring.py
-68de8cc30ed580e5ace9fd9ac02f024ff287f80369ac8e723d4944921ebbd9bb  drawlogic/cli.py
-eff04d7e619d1d2aa77697c9f70241c6f4be50d456428ff0ce91c05ed030353b  drawlogic/components.py
-9e8dc9983790d9ae649457aebed1cc02dd33a885e2e6035b8e80e58866b375fe  drawlogic/containers.py
-7e025f5ef9456e395179b32e1e5eef573ffb6716ab8407a2396c8343355cf8bf  drawlogic/doc.py
-c27058785f3f98c839f605b0f314b1660e5027bc72f137a04ed83ab24df2e3c0  drawlogic/drc.py
-dde231e36f130f2efffc7570b31e3745523c948c9439a1361053b70c3bab3990  drawlogic/geometry.py
-dc226a23d4bca7d73e349aa340e94e7319f6811d27d32ec6a1db78d5e80b7e1c  drawlogic/hdl.py
-65db563f209f789a369457998afd7c16198dd455e4c475055aab31ee3d21beac  drawlogic/layout.py
-a01f4652567c9ee465a1110ec555e0027e5860ce7c4dc3069b1dc3a7277a9199  drawlogic/render_svg.py
-ca619625f71c0a1e5ccef8f3c91daa7182ed3987428c656e4543d089c28a623a  drawlogic/routing.py
-552b3dfca066ab7e512edd6cf95aac1443aa8f277ba72b7fc6ca8d9fd1a9aa02  drawlogic/rtl.py
-c3ca8b09eea34c8ce90ee6892ef61c7b16d497dceb7aa04f108bac5591b2b6d6  drawlogic/server.py
-5bf0924adf0055eb77baec53e973def22d385f07f8ca47502b5ced0c636ff5b5  drawlogic/sheets.py
-b96fd4db05911a5bf353b1853d09c5401e4a924ee9588214ee3ccb3ae73248da  drawlogic/styles.py
-5c9ba8ecec65914c4efb2053520788de86388f7f62281fb60724857406299010  drawlogic/symbols.json
-6ab26b78c34a19ab36c8a191b033b0648cc52993f1ff812451f4700131ef3208  drawlogic/symbols.py
-07b1ded95f11b4285154fab27d487e4a1063f6bc0485a56cfe420cb3e1df6b38  drawlogic/theme.py
-d9dca8156f4ddd2abbcf4f44a57c20ce30675f74e31b6bc8489cb471aa8e2baf  drawlogic/web/css/app.css
-5316755e2041ce4c6dccf076aed9917fa4084b0ec322e19008eb837bfb5034fa  drawlogic/web/index.html
-90dff3b818c8a57cbc426aa6cb88bb2cb5e6c419bae4dca4951f6c174635298f  drawlogic/web/js/geometry.js
-c0fc21fb73261b87f7c837e4d30bffbbf461b96efbb5bc2a07ae6fb74c8e3f12  drawlogic/web/js/guides.js
-919a5e98989a42f399b80fc7daa94b5149fe2c747731560a5749796182a30527  drawlogic/web/js/main.js
-652de8cb6fabdb45bccc9081c8f120aad7add974ea08e2f0ed78a4bbfa2e0c3a  drawlogic/web/js/menus.js
-ee3b08576c7d69d32cdce22c1b2c18d8943682e6ed38a1ea53f776f1c99ca501  drawlogic/web/js/model.js
-da70c9150473ccd3eea0283979dd7f36b8ccc2d834fbdf8fc8dd77e37b0db250  drawlogic/web/js/panels.js
-fc89b8ff8678e27cc3c7a1396a420c27458a1e86e275dc1446c5d1f499459643  drawlogic/web/js/picture.js
-5cb2c07d2409346288029e9509671ed16a50b4316e605f8575adf5e6a23146f7  drawlogic/web/js/prefs.js
-09f268a86b57db231f600bd19a57b8005feb784842d48f70c0325d041af59a8a  drawlogic/web/js/recovery.js
-d6c420473dc2fc57540f04382856f87c54d43e5f20fe1dbbc54b87c333c1bc18  drawlogic/web/js/render.js
-cc36c6df2fc1f342a84490a3af61046e7d141127905f62c33fc8b210d70ba493  drawlogic/web/js/routing.js
-6308e2ed6b84140c92cc93bd3ce94f04cdc282fee2e4e916ef54ba42fb4a7d33  drawlogic/web/js/selection.js
-7098b8fcd142e3c4affc337aec6d3023ee95ca41518acf1ea19e63b53d484eb3  drawlogic/web/js/shortcuts.js
-69135d526a59d38af9955f5f886f75b26a5a933babbf9f991bd35664d8a73847  drawlogic/web/js/tools.js
-da5aa707b992db1eec14ec3601e82a998c235294b6148344482a55df70fbf2fe  drawlogic/web/js/viewport.js
-373bd625182f9c2f05da216745801a29418cf2061aebfe90d3f22d93341732ee  drawlogic/yosys.py
-2b3dd4cf72e777d6bc99897ca5afac87036c7c2720d4dc733ef202b00b814672  sample.txt
-<<<<<<<<<< DLBUNDLE END path=manifest.txt >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=sample.txt lines=1 sha256=2b3dd4cf72e777d6bc99897ca5afac87036c7c2720d4dc733ef202b00b814672 >>>>>>>>>>
-hello from drawlogic verify.ps1 selftest
-<<<<<<<<<< DLBUNDLE END path=sample.txt >>>>>>>>>>
 <<<<<<<<<< DLBUNDLE BEGIN path=tests/__init__.py lines=29 sha256=3ff91c1163e3089ac74e7d161320e912441c76302c676e9007a6b09854142671 >>>>>>>>>>
 """Test package.
 
@@ -65888,7 +65722,7 @@ def open_example(path):
   "groups": []
 }
 <<<<<<<<<< DLBUNDLE END path=tests/fixtures/crowded_port.dlg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/alu_slice.svg lines=143 sha256=ac04c23fab99d89b014ce0b59cbf93b8879de221194ebda3530e512dddf62258 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/alu_slice.svg lines=143 sha256=224cffd5fd06748a8e17defb577e094713fd893bd84feb00ab59a37340936e4d >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>alu_slice</title>
@@ -65915,24 +65749,24 @@ def open_example(path):
 <text x="502.5" y="306" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a&amp;b</text>
 <text x="502.5" y="446" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">a|b</text>
 <text x="772.5" y="696" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">sel[1:0]</text>
-<polygon points="310,150 303,153.15 303,146.85" fill="#16202b" />
-<polygon points="310,300 303,303.15 303,296.85" fill="#16202b" />
-<polygon points="310,440 303,443.15 303,436.85" fill="#16202b" />
-<polygon points="310,170 303,173.15 303,166.85" fill="#16202b" />
-<polygon points="310,320 303,323.15 303,316.85" fill="#16202b" />
-<polygon points="310,460 303,463.15 303,456.85" fill="#16202b" />
-<polygon points="540,180 533,183.15 533,176.85" fill="#16202b" />
-<polygon points="540,560 533,563.15 533,556.85" fill="#16202b" />
-<polygon points="900,180 893,183.15 893,176.85" fill="#16202b" />
-<polygon points="540,200 533,203.15 533,196.85" fill="#16202b" />
-<polygon points="540,580 533,583.15 533,576.85" fill="#16202b" />
-<polygon points="900,230 893,233.15 893,226.85" fill="#16202b" />
-<polygon points="900,280 893,283.15 893,276.85" fill="#16202b" />
-<polygon points="740,590 733,593.15 733,586.85" fill="#16202b" />
-<polygon points="900,330 893,333.15 893,326.85" fill="#16202b" />
-<polygon points="945,355 948.15,362 941.85,362" fill="#16202b" />
+<polygon points="327,150 320,153.15 320,146.85" fill="#16202b" />
+<polygon points="320,300 313,303.15 313,296.85" fill="#16202b" />
+<polygon points="326,440 319,443.15 319,436.85" fill="#16202b" />
+<polygon points="327,170 320,173.15 320,166.85" fill="#16202b" />
+<polygon points="320,320 313,323.15 313,316.85" fill="#16202b" />
+<polygon points="326,460 319,463.15 319,456.85" fill="#16202b" />
+<polygon points="557,180 550,183.15 550,176.85" fill="#16202b" />
+<polygon points="550,560 543,563.15 543,556.85" fill="#16202b" />
+<polygon points="915,180 908,183.15 908,176.85" fill="#16202b" />
+<polygon points="557,200 550,203.15 550,196.85" fill="#16202b" />
+<polygon points="550,580 543,583.15 543,576.85" fill="#16202b" />
+<polygon points="915,230 908,233.15 908,226.85" fill="#16202b" />
+<polygon points="915,280 908,283.15 908,276.85" fill="#16202b" />
+<polygon points="756,590 749,593.15 749,586.85" fill="#16202b" />
+<polygon points="915,330 908,333.15 908,326.85" fill="#16202b" />
+<polygon points="945,325 948.15,332 941.85,332" fill="#16202b" />
 <polygon points="1100,280 1093,283.15 1093,276.85" fill="#16202b" />
-<polygon points="740,610 733,613.15 733,606.85" fill="#16202b" />
+<polygon points="756,610 749,613.15 749,606.85" fill="#16202b" />
 <polygon points="1100,600 1093,603.15 1093,596.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
@@ -66033,7 +65867,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">alu_slice</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/alu_slice.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/arch_mini.svg lines=122 sha256=003e658866fdfe8effde1eea5d30a1528d60acf63c961e83958f7359b100d25d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/arch_mini.svg lines=122 sha256=be15756a0671ffbcdc71f9894c61633a0ca93adceb9492164169cd53abb51e5e >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1659" height="434" viewBox="0 0 1659 434" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>Two clusters of linked cores</title>
@@ -66084,10 +65918,10 @@ def open_example(path):
 <path class="dl-net" data-id="n_ab" d="M732.555 249 L922.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_b" d="M1122.555 249 L1192.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_out" d="M1392.555 249 L1542.555 249" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="262.555,249 255.555,252.15 255.555,245.85" fill="#16202b" />
-<polygon points="532.555,249 525.555,252.15 525.555,245.85" fill="#16202b" />
-<polygon points="922.555,249 915.555,252.15 915.555,245.85" fill="#16202b" />
-<polygon points="1192.555,249 1185.555,252.15 1185.555,245.85" fill="#16202b" />
+<polygon points="275.888,249 268.888,252.15 268.888,245.85" fill="#16202b" />
+<polygon points="545.888,249 538.888,252.15 538.888,245.85" fill="#16202b" />
+<polygon points="935.888,249 928.888,252.15 928.888,245.85" fill="#16202b" />
+<polygon points="1205.888,249 1198.888,252.15 1198.888,245.85" fill="#16202b" />
 <polygon points="1542.555,249 1535.555,252.15 1535.555,245.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
@@ -66157,7 +65991,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">Two clusters of linked cores</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/arch_mini.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cdc_fifo.svg lines=222 sha256=370edc3de608ab44afb50363c521885260c4fc8997b636a2c571d5753d37b222 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/cdc_fifo.svg lines=222 sha256=3358b728a40f2d34505f3fb95984b8330b4e951391dfccba218726c0d8fb605e >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>cdc_fifo</title>
@@ -66217,25 +66051,25 @@ def open_example(path):
 <polygon points="330,420 323,423.15 323,416.85" fill="#16202b" />
 <polygon points="330,465 323,468.15 323,461.85" fill="#16202b" />
 <polygon points="330,510 323,513.15 323,506.85" fill="#16202b" />
-<polygon points="830,795 837,791.85 837,798.15" fill="#16202b" />
-<polygon points="710,795 717,791.85 717,798.15" fill="#16202b" />
+<polygon points="820,795 827,791.85 827,798.15" fill="#16202b" />
+<polygon points="700,795 707,791.85 707,798.15" fill="#16202b" />
 <polygon points="790,220 783,223.15 783,216.85" fill="#16202b" />
 <polygon points="790,260 783,263.15 783,256.85" fill="#16202b" />
 <polygon points="1660,180 1653,183.15 1653,176.85" fill="#16202b" />
 <polygon points="1470,420 1477,416.85 1477,423.15" fill="#16202b" />
 <polygon points="1470,465 1477,461.85 1477,468.15" fill="#16202b" />
 <polygon points="1470,510 1477,506.85 1477,513.15" fill="#16202b" />
-<polygon points="970,795 963,798.15 963,791.85" fill="#16202b" />
-<polygon points="1090,795 1083,798.15 1083,791.85" fill="#16202b" />
+<polygon points="980,795 973,798.15 973,791.85" fill="#16202b" />
+<polygon points="1100,795 1093,798.15 1093,791.85" fill="#16202b" />
 <polygon points="1010,220 1017,216.85 1017,223.15" fill="#16202b" />
 <polygon points="1010,260 1017,256.85 1017,263.15" fill="#16202b" />
 <polygon points="510,725 517,721.85 517,728.15" fill="#16202b" />
-<polygon points="970,765 963,768.15 963,761.85" fill="#16202b" />
+<polygon points="980,765 973,768.15 973,761.85" fill="#16202b" />
 <polygon points="1290,725 1283,728.15 1283,721.85" fill="#16202b" />
-<polygon points="830,765 837,761.85 837,768.15" fill="#16202b" />
-<polygon points="1090,765 1083,768.15 1083,761.85" fill="#16202b" />
+<polygon points="820,765 827,761.85 827,768.15" fill="#16202b" />
+<polygon points="1100,765 1093,768.15 1093,761.85" fill="#16202b" />
 <polygon points="1290,765 1283,768.15 1283,761.85" fill="#16202b" />
-<polygon points="710,765 717,761.85 717,768.15" fill="#16202b" />
+<polygon points="700,765 707,761.85 707,768.15" fill="#16202b" />
 <polygon points="510,765 517,761.85 517,768.15" fill="#16202b" />
 <polygon points="140,725 147,721.85 147,728.15" fill="#16202b" />
 <polygon points="1660,725 1653,728.15 1653,721.85" fill="#16202b" />
@@ -66720,7 +66554,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">CPU architecture -- a quad-core SoC built from linked cores</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/cpu_arch.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/dff_slice.svg lines=90 sha256=c3678100cd208c427402d0f2c9dc4531f5fffe3ddfc831371f8d07d5264830b2 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/dff_slice.svg lines=90 sha256=39b6c84246acb7fe5695147c329734cf80f53681f5a012e5974cf74fa3c0813d >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>dff_slice</title>
@@ -66742,12 +66576,12 @@ def open_example(path):
 <text x="575" y="121" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">q_int</text>
 <text x="655" y="276" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">qb</text>
 <text x="138.5" y="436" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">d[7:0]</text>
-<polygon points="220,130 213,133.15 213,126.85" fill="#16202b" />
-<polygon points="220,150 213,153.15 213,146.85" fill="#16202b" />
-<polygon points="380,125 373,128.15 373,121.85" fill="#16202b" />
-<polygon points="380,155 373,158.15 373,151.85" fill="#16202b" />
+<polygon points="230,130 223,133.15 223,126.85" fill="#16202b" />
+<polygon points="230,150 223,153.15 223,146.85" fill="#16202b" />
+<polygon points="390,125 383,128.15 383,121.85" fill="#16202b" />
+<polygon points="390,155 383,158.15 383,151.85" fill="#16202b" />
 <polygon points="700,125 693,128.15 693,121.85" fill="#16202b" />
-<polygon points="560,280 553,283.15 553,276.85" fill="#16202b" />
+<polygon points="570,280 563,283.15 563,276.85" fill="#16202b" />
 <polygon points="700,280 693,283.15 693,276.85" fill="#16202b" />
 <polygon points="300,425 293,428.15 293,421.85" fill="#16202b" />
 </g>
@@ -66812,7 +66646,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">dff_slice</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/dff_slice.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/fifo_top.svg lines=110 sha256=55b9e5cf48a5dd258d95da2e27ecb59781ad7f0bd19be56a0e85efa2e3d9cee8 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/fifo_top.svg lines=110 sha256=060e47a9823ba75313dfb9e32a6c2f5a9f70af9a7108f3d4207d93716dc73388 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>fifo_top</title>
@@ -66841,13 +66675,13 @@ def open_example(path):
 <text x="779" y="138" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rdata[7:0]</text>
 <text x="779" y="170" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">wfull</text>
 <text x="779" y="202" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
-<polygon points="420,142 413,145.15 413,138.85" fill="#16202b" />
-<polygon points="420,174 413,177.15 413,170.85" fill="#16202b" />
-<polygon points="420,206 413,209.15 413,202.85" fill="#16202b" />
-<polygon points="420,238 413,241.15 413,234.85" fill="#16202b" />
-<polygon points="420,270 413,273.15 413,266.85" fill="#16202b" />
-<polygon points="420,302 413,305.15 413,298.85" fill="#16202b" />
-<polygon points="420,334 413,337.15 413,330.85" fill="#16202b" />
+<polygon points="430,142 423,145.15 423,138.85" fill="#16202b" />
+<polygon points="430,174 423,177.15 423,170.85" fill="#16202b" />
+<polygon points="430,206 423,209.15 423,202.85" fill="#16202b" />
+<polygon points="430,238 423,241.15 423,234.85" fill="#16202b" />
+<polygon points="430,270 423,273.15 423,266.85" fill="#16202b" />
+<polygon points="430,302 423,305.15 423,298.85" fill="#16202b" />
+<polygon points="430,334 423,337.15 423,330.85" fill="#16202b" />
 <polygon points="940,142 933,145.15 933,138.85" fill="#16202b" />
 <polygon points="940,174 933,177.15 933,170.85" fill="#16202b" />
 <polygon points="940,206 933,209.15 933,202.85" fill="#16202b" />
@@ -66924,7 +66758,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">fifo_top</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/fifo_top.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_arch.svg lines=268 sha256=9dd3203142fd4729f361c1bceca02396afbd83c5934270a6ff733758945b6e7d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_arch.svg lines=268 sha256=0146caeae428e01c0e35a2a61f711d88375d7aad06b8b40465c0f800ac63f8c2 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1993" height="1182" viewBox="0 0 1993 1182" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>GPU architecture -- containers, styles and linked SMs</title>
@@ -66999,10 +66833,10 @@ def open_example(path):
 <path class="dl-net" data-id="n_h0" d="M1726.74 358 L1876.74 358" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n_h1" d="M1726.74 500 L1876.74 500" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <polygon points="246.74,358 239.74,361.15 239.74,354.85" fill="#16202b" />
-<polygon points="576.74,358 569.74,361.15 569.74,354.85" fill="#16202b" />
-<polygon points="576.74,802 569.74,805.15 569.74,798.85" fill="#16202b" />
-<polygon points="876.74,358 869.74,361.15 869.74,354.85" fill="#16202b" />
-<polygon points="876.74,802 869.74,805.15 869.74,798.85" fill="#16202b" />
+<polygon points="592.073,358 585.073,361.15 585.073,354.85" fill="#16202b" />
+<polygon points="592.073,802 585.073,805.15 585.073,798.85" fill="#16202b" />
+<polygon points="892.073,358 885.073,361.15 885.073,354.85" fill="#16202b" />
+<polygon points="892.073,802 885.073,805.15 885.073,798.85" fill="#16202b" />
 <polygon points="1296.74,358 1289.74,361.15 1289.74,354.85" fill="#16202b" />
 <polygon points="1296.74,466 1289.74,469.15 1289.74,462.85" fill="#16202b" />
 <polygon points="1586.74,358 1579.74,361.15 1579.74,354.85" fill="#16202b" />
@@ -67194,7 +67028,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">GPU architecture -- containers, styles and linked SMs</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/gpu_arch.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_linked.svg lines=518 sha256=6adaa6131e56116b57ac66f3d569c9ea918ad80c6ef5e4bdccd8c8eb4c42e41c >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/gpu_linked.svg lines=518 sha256=6582405d61e7e0a8f6975233a68dc83cd23e115a09a01617e5350833b521ef3d >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="2220" height="1574" viewBox="0 0 2220 1574" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>GPU built from linked GPCs -- each GPC is a drawing of linked SMs</title>
@@ -67250,38 +67084,38 @@ def open_example(path):
 <polygon points="564.48,349 557.48,352.15 557.48,345.85" fill="#16202b" />
 <polygon points="564.48,167 557.48,170.15 557.48,163.85" fill="#16202b" />
 <polygon points="814.48,309 807.48,312.15 807.48,305.85" fill="#16202b" />
-<polygon points="1108.48,309 1101.48,312.15 1101.48,305.85" fill="#16202b" />
-<polygon points="1108.48,459 1101.48,462.15 1101.48,455.85" fill="#16202b" />
-<polygon points="1108.48,609 1101.48,612.15 1101.48,605.85" fill="#16202b" />
-<polygon points="1108.48,759 1101.48,762.15 1101.48,755.85" fill="#16202b" />
-<polygon points="1108.48,909 1101.48,912.15 1101.48,905.85" fill="#16202b" />
-<polygon points="1108.48,1059 1101.48,1062.15 1101.48,1055.85" fill="#16202b" />
-<polygon points="1108.48,1209 1101.48,1212.15 1101.48,1205.85" fill="#16202b" />
-<polygon points="1108.48,1359 1101.48,1362.15 1101.48,1355.85" fill="#16202b" />
-<polygon points="1108.48,359.526 1101.48,362.676 1101.48,356.376" fill="#16202b" />
-<polygon points="1108.48,509.526 1101.48,512.676 1101.48,506.376" fill="#16202b" />
-<polygon points="1108.48,659.526 1101.48,662.676 1101.48,656.376" fill="#16202b" />
-<polygon points="1108.48,809.526 1101.48,812.676 1101.48,806.376" fill="#16202b" />
-<polygon points="1108.48,959.526 1101.48,962.676 1101.48,956.376" fill="#16202b" />
-<polygon points="1108.48,1109.526 1101.48,1112.676 1101.48,1106.376" fill="#16202b" />
-<polygon points="1108.48,1259.526 1101.48,1262.676 1101.48,1256.376" fill="#16202b" />
-<polygon points="1108.48,1409.526 1101.48,1412.676 1101.48,1406.376" fill="#16202b" />
-<polygon points="1478.48,590.263 1471.48,593.413 1471.48,587.113" fill="#16202b" />
-<polygon points="1478.48,622.263 1471.48,625.413 1471.48,619.113" fill="#16202b" />
+<polygon points="1124.48,309 1117.48,312.15 1117.48,305.85" fill="#16202b" />
+<polygon points="1124.48,459 1117.48,462.15 1117.48,455.85" fill="#16202b" />
+<polygon points="1124.48,609 1117.48,612.15 1117.48,605.85" fill="#16202b" />
+<polygon points="1124.48,759 1117.48,762.15 1117.48,755.85" fill="#16202b" />
+<polygon points="1124.48,909 1117.48,912.15 1117.48,905.85" fill="#16202b" />
+<polygon points="1124.48,1059 1117.48,1062.15 1117.48,1055.85" fill="#16202b" />
+<polygon points="1124.48,1209 1117.48,1212.15 1117.48,1205.85" fill="#16202b" />
+<polygon points="1124.48,1359 1117.48,1362.15 1117.48,1355.85" fill="#16202b" />
+<polygon points="1124.48,359.526 1117.48,362.676 1117.48,356.376" fill="#16202b" />
+<polygon points="1124.48,509.526 1117.48,512.676 1117.48,506.376" fill="#16202b" />
+<polygon points="1124.48,659.526 1117.48,662.676 1117.48,656.376" fill="#16202b" />
+<polygon points="1124.48,809.526 1117.48,812.676 1117.48,806.376" fill="#16202b" />
+<polygon points="1124.48,959.526 1117.48,962.676 1117.48,956.376" fill="#16202b" />
+<polygon points="1124.48,1109.526 1117.48,1112.676 1117.48,1106.376" fill="#16202b" />
+<polygon points="1124.48,1259.526 1117.48,1262.676 1117.48,1256.376" fill="#16202b" />
+<polygon points="1124.48,1409.526 1117.48,1412.676 1117.48,1406.376" fill="#16202b" />
+<polygon points="1488.48,590.263 1481.48,593.413 1481.48,587.113" fill="#16202b" />
+<polygon points="1488.48,622.263 1481.48,625.413 1481.48,619.113" fill="#16202b" />
 <polygon points="1780.08,334.263 1773.08,337.413 1773.08,331.113" fill="#16202b" />
 <polygon points="1788.58,476.263 1781.58,479.413 1781.58,473.113" fill="#16202b" />
 <polygon points="1792.08,658.263 1785.08,661.413 1785.08,655.113" fill="#16202b" />
 <polygon points="2074.08,658.263 2067.08,661.413 2067.08,655.113" fill="#16202b" />
 <polygon points="2074.08,476.263 2067.08,479.413 2067.08,473.113" fill="#16202b" />
 <polygon points="2074.08,334.263 2067.08,337.413 2067.08,331.113" fill="#16202b" />
-<polygon points="1478.48,334.263 1471.48,337.413 1471.48,331.113" fill="#16202b" />
-<polygon points="1478.48,366.263 1471.48,369.413 1471.48,363.113" fill="#16202b" />
-<polygon points="1478.48,398.263 1471.48,401.413 1471.48,395.113" fill="#16202b" />
-<polygon points="1478.48,430.263 1471.48,433.413 1471.48,427.113" fill="#16202b" />
-<polygon points="1478.48,462.263 1471.48,465.413 1471.48,459.113" fill="#16202b" />
-<polygon points="1478.48,494.263 1471.48,497.413 1471.48,491.113" fill="#16202b" />
-<polygon points="1478.48,526.263 1471.48,529.413 1471.48,523.113" fill="#16202b" />
-<polygon points="1478.48,558.263 1471.48,561.413 1471.48,555.113" fill="#16202b" />
+<polygon points="1488.48,334.263 1481.48,337.413 1481.48,331.113" fill="#16202b" />
+<polygon points="1488.48,366.263 1481.48,369.413 1481.48,363.113" fill="#16202b" />
+<polygon points="1488.48,398.263 1481.48,401.413 1481.48,395.113" fill="#16202b" />
+<polygon points="1488.48,430.263 1481.48,433.413 1481.48,427.113" fill="#16202b" />
+<polygon points="1488.48,462.263 1481.48,465.413 1481.48,459.113" fill="#16202b" />
+<polygon points="1488.48,494.263 1481.48,497.413 1481.48,491.113" fill="#16202b" />
+<polygon points="1488.48,526.263 1481.48,529.413 1481.48,523.113" fill="#16202b" />
+<polygon points="1488.48,558.263 1481.48,561.413 1481.48,555.113" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="gpc0" data-type="sheet" transform="matrix(1.6,0,0,1.5789,1108.48,274.2632)">
@@ -68006,7 +67840,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">gpu_top</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/gpu_top.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/shift_reg4.svg lines=106 sha256=884607d84b81a39ba36687fc5e2ef830d58ea05a49d519a660377dfa588a2e51 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/shift_reg4.svg lines=106 sha256=c20e2ebca1c08e7e80340fc312bd7bb4a426ab73e651ad82e7ef92476493baf9 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="860" height="290" viewBox="0 0 860 290" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>shift_reg4</title>
@@ -68020,17 +67854,17 @@ def open_example(path):
 <path class="dl-net" data-id="n4" d="M380 155 L405 155 L405 75 M380 155 L480 155" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n5" d="M550 155 L575 155 L575 75 M550 155 L650 155" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
 <path class="dl-net" data-id="n6" d="M720 155 L745 155 L745 75" fill="none" stroke="#16202b" stroke-width="1.6" stroke-linejoin="miter" stroke-linecap="square" />
-<polygon points="140,155 133,158.15 133,151.85" fill="#16202b" />
-<polygon points="140,185 133,188.15 133,181.85" fill="#16202b" />
-<polygon points="310,185 303,188.15 303,181.85" fill="#16202b" />
-<polygon points="480,185 473,188.15 473,181.85" fill="#16202b" />
-<polygon points="650,185 643,188.15 643,181.85" fill="#16202b" />
+<polygon points="150,155 143,158.15 143,151.85" fill="#16202b" />
+<polygon points="150,185 143,188.15 143,181.85" fill="#16202b" />
+<polygon points="320,185 313,188.15 313,181.85" fill="#16202b" />
+<polygon points="490,185 483,188.15 483,181.85" fill="#16202b" />
+<polygon points="660,185 653,188.15 653,181.85" fill="#16202b" />
 <polygon points="235,75 238.15,82 231.85,82" fill="#16202b" />
-<polygon points="310,155 303,158.15 303,151.85" fill="#16202b" />
+<polygon points="320,155 313,158.15 313,151.85" fill="#16202b" />
 <polygon points="405,75 408.15,82 401.85,82" fill="#16202b" />
-<polygon points="480,155 473,158.15 473,151.85" fill="#16202b" />
+<polygon points="490,155 483,158.15 483,151.85" fill="#16202b" />
 <polygon points="575,75 578.15,82 571.85,82" fill="#16202b" />
-<polygon points="650,155 643,158.15 643,151.85" fill="#16202b" />
+<polygon points="660,155 653,158.15 653,151.85" fill="#16202b" />
 <polygon points="745,75 748.15,82 741.85,82" fill="#16202b" />
 </g>
 <g class="dl-cells">
@@ -68114,7 +67948,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">shift_reg4</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/shift_reg4.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/soc_top.svg lines=209 sha256=ec83902c3afb5f3d631097345dee74f7a7c2fa4b4ae7e7388158bac512254baa >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/soc_top.svg lines=209 sha256=a80f5941b6a550ff8dbee6debcc47baf549d3c50b093c22c37dcbf3cb062e7bf >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1780" height="820" viewBox="0 0 1780 820" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>soc_top</title>
@@ -68155,18 +67989,18 @@ def open_example(path):
 <text x="1475" y="406" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">rempty</text>
 <text x="500" y="696" text-anchor="middle" font-family="'IBM Plex Mono','DejaVu Sans Mono','Courier New',monospace" font-size="11.5" fill="#0d7490">clk</text>
 <polygon points="340,298 333,301.15 333,294.85" fill="#16202b" />
-<polygon points="980,254 973,257.15 973,250.85" fill="#16202b" />
-<polygon points="980,286 973,289.15 973,282.85" fill="#16202b" />
-<polygon points="980,318 973,321.15 973,314.85" fill="#16202b" />
-<polygon points="980,350 973,353.15 973,346.85" fill="#16202b" />
-<polygon points="1380,158 1373,161.15 1373,154.85" fill="#16202b" />
-<polygon points="1380,190 1373,193.15 1373,186.85" fill="#16202b" />
-<polygon points="1380,286 1373,289.15 1373,282.85" fill="#16202b" />
+<polygon points="990,254 983,257.15 983,250.85" fill="#16202b" />
+<polygon points="990,286 983,289.15 983,282.85" fill="#16202b" />
+<polygon points="990,318 983,321.15 983,314.85" fill="#16202b" />
+<polygon points="990,350 983,353.15 983,346.85" fill="#16202b" />
+<polygon points="1390,158 1383,161.15 1383,154.85" fill="#16202b" />
+<polygon points="1390,190 1383,193.15 1383,186.85" fill="#16202b" />
+<polygon points="1390,286 1383,289.15 1383,282.85" fill="#16202b" />
 <polygon points="340,222 333,225.15 333,218.85" fill="#16202b" />
 <polygon points="340,254 333,257.15 333,250.85" fill="#16202b" />
 <polygon points="660,222 653,225.15 653,218.85" fill="#16202b" />
-<polygon points="980,222 973,225.15 973,218.85" fill="#16202b" />
-<polygon points="1380,222 1373,225.15 1373,218.85" fill="#16202b" />
+<polygon points="990,222 983,225.15 983,218.85" fill="#16202b" />
+<polygon points="1390,222 1383,225.15 1383,218.85" fill="#16202b" />
 <polygon points="1660,222 1653,225.15 1653,218.85" fill="#16202b" />
 <polygon points="1660,254 1653,257.15 1653,250.85" fill="#16202b" />
 <polygon points="1660,158 1653,161.15 1653,154.85" fill="#16202b" />
@@ -68175,9 +68009,9 @@ def open_example(path):
 <polygon points="1660,440 1653,443.15 1653,436.85" fill="#16202b" />
 <polygon points="1660,410 1653,413.15 1653,406.85" fill="#16202b" />
 <polygon points="340,330 333,333.15 333,326.85" fill="#16202b" />
-<polygon points="980,382 973,385.15 973,378.85" fill="#16202b" />
-<polygon points="980,414 973,417.15 973,410.85" fill="#16202b" />
-<polygon points="1380,254 1373,257.15 1373,250.85" fill="#16202b" />
+<polygon points="990,382 983,385.15 983,378.85" fill="#16202b" />
+<polygon points="990,414 983,417.15 983,410.85" fill="#16202b" />
+<polygon points="1390,254 1383,257.15 1383,250.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="u_mac" data-type="block8" transform="matrix(1,0,0,1,340,196)">
@@ -68325,7 +68159,7 @@ def open_example(path):
 <text x="14" y="30" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif" font-size="16" font-weight="600" fill="#16202b">soc_top</text>
 </svg>
 <<<<<<<<<< DLBUNDLE END path=tests/golden/soc_top.svg >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/spi_master.svg lines=162 sha256=b54dc4e20810eda7f10dea4d0afdddc4e01589c758f846b41dd35866d0221267 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/golden/spi_master.svg lines=162 sha256=99abc2b6339f524c8a734af835cc768e9ff38cccd7722bded87afbe863e9c2b5 >>>>>>>>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1220" height="880" viewBox="0 0 1220 880" font-family="'IBM Plex Sans','IBM Plex Sans Text',Arial,Helvetica,sans-serif">
 <title>spi_master</title>
@@ -68369,7 +68203,7 @@ def open_example(path):
 <polygon points="220,760 213,763.15 213,756.85" fill="#16202b" />
 <polygon points="220,800 213,803.15 213,796.85" fill="#16202b" />
 <polygon points="1100,760 1093,763.15 1093,756.85" fill="#16202b" />
-<polygon points="500,620 493,623.15 493,616.85" fill="#16202b" />
+<polygon points="520,620 513,623.15 513,616.85" fill="#16202b" />
 <polygon points="420,202 413,205.15 413,198.85" fill="#16202b" />
 <polygon points="760,420 753,423.15 753,416.85" fill="#16202b" />
 <polygon points="420,170 413,173.15 413,166.85" fill="#16202b" />
@@ -68379,12 +68213,12 @@ def open_example(path):
 <polygon points="1100,278 1093,281.15 1093,274.85" fill="#16202b" />
 <polygon points="760,380 753,383.15 753,376.85" fill="#16202b" />
 <polygon points="420,246 413,249.15 413,242.85" fill="#16202b" />
-<polygon points="335,642.5 338.15,649.5 331.85,649.5" fill="#16202b" />
-<polygon points="300,560 293,563.15 293,556.85" fill="#16202b" />
-<polygon points="500,560 493,563.15 493,556.85" fill="#16202b" />
+<polygon points="335,619.583 338.15,626.583 331.85,626.583" fill="#16202b" />
+<polygon points="314,560 307,563.15 307,556.85" fill="#16202b" />
+<polygon points="520,560 513,563.15 513,556.85" fill="#16202b" />
 <polygon points="720,560 713,563.15 713,556.85" fill="#16202b" />
 <polygon points="1100,560 1093,563.15 1093,556.85" fill="#16202b" />
-<polygon points="300,615 293,618.15 293,611.85" fill="#16202b" />
+<polygon points="314,615 307,618.15 307,611.85" fill="#16202b" />
 </g>
 <g class="dl-cells">
 <g class="dl-cell" data-id="p_clk" data-type="port_in" transform="matrix(1,0,0,1,70,755)">
@@ -70571,13 +70405,13 @@ class TestEveryShapeTheEditorCanDraw(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_authoring.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_bundle.py lines=99 sha256=655a4c43473fe43bbef4608666b201d91835448c645e0c625c337430ac47867d >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_bundle.py lines=99 sha256=e8055e67ea35663bae3ed02d9561c019685fc47c150fe88904a5c5b0af3369e3 >>>>>>>>>>
 """tools/pack_repo.py and tools/unpack_repo.py: the repository as one text file.
 
 For a workstation that cannot clone the repository but can take a pasted file.
-What matters is that the tree comes back byte for byte -- doctor checks every
-file against manifest.txt -- and that a paste that damaged something says
-which file, rather than leaving a quietly broken copy.
+What matters is that the tree comes back byte for byte, and that a paste
+that damaged something says which file, rather than leaving a quietly broken
+copy.
 """
 
 import os
@@ -70625,7 +70459,7 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(result.returncode, 0, result.stdout)
     checked = 0
     for rel in ("drawlogic/render_svg.py", "drawlogic/symbols.json",
-                "manifest.txt", "tools/unpack_repo.py", "examples/soc_top.dlg"):
+                "DOCUMENTATION.md", "tools/unpack_repo.py", "examples/soc_top.dlg"):
       with open(os.path.join(ROOT, rel), "rb") as a, \
            open(os.path.join(dest, rel), "rb") as b:
         self.assertEqual(a.read(), b.read(), rel)
@@ -72392,7 +72226,7 @@ class TestTheEditorDrawsTheSame(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_containers.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_draw.py lines=1538 sha256=afd4ee83f116681606071025a844c1f158ad2190e5fb90cd7e5777eec86e48b1 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_draw.py lines=1573 sha256=0ef1f83dd6933c4eb8bd1737a0e4b42b171ad3bfe31c6a0a9360d93e673645d2 >>>>>>>>>>
 """Wire routing and SVG rendering."""
 
 import os
@@ -72780,9 +72614,14 @@ class TestRender(unittest.TestCase):
 
 
 class TestDirectionArrows(unittest.TestCase):
-  """One arrowhead at the end of each wire, its tip where the wire meets the
-  pin it feeds -- and none along the way. Heads spaced along long wires, and
-  slid about to dodge dots and names, were reported as too many arrows."""
+  """One arrowhead at the end of each wire, its tip touching the body of the
+  symbol it feeds -- and none along the way. Heads spaced along long wires,
+  and slid about to dodge dots and names, were reported as too many arrows.
+
+  The tip is at the body, not at the pin's outer end. A gate's pin is drawn
+  as a short stub, and a reader takes the pin to be where that stub meets the
+  body; a head at the stub's far end looked like it stopped short of the
+  gate. A symbol with no stub (a port, a block) is entered at its pin."""
 
   def setUp(self):
     self.doc = Document.load(EXAMPLE)
@@ -72817,12 +72656,45 @@ class TestDirectionArrows(unittest.TestCase):
   def test_a_long_wire_still_gets_exactly_one(self):
     self.assertEqual(self._arrows(render_svg.render(self.pair(2000, 1600))), 1)
 
-  def test_the_tip_is_where_the_wire_meets_the_load(self):
+  def test_the_tip_touches_the_body_of_the_load(self):
     doc = self.pair()
     (tip,) = self._tips(render_svg.render(doc))
-    x, y = self.pin_at(doc, "u2", "a")
+    # inv at x=300: its input pin is at 300, its stub runs in to the body at 310.
+    self.assertEqual(self.pin_at(doc, "u2", "a"), (300.0, 20.0))
+    self.assertAlmostEqual(tip[0], 310.0, places=1)
+    self.assertAlmostEqual(tip[1], 20.0, places=1)
+
+  def test_a_turned_symbol_is_entered_at_its_body_too(self):
+    doc = self.pair()
+    doc.cell("u2")["rotate"] = 90
+    (tip,) = self._tips(render_svg.render(doc))
+    pin = self.pin_at(doc, "u2", "a")
+    cell = doc.cell("u2")
+    body = default_registry().for_cell(cell).matrix_for(cell).apply(10, 20)
+    self.assertNotEqual((round(pin[0], 1), round(pin[1], 1)),
+                        (round(body[0], 1), round(body[1], 1)))
+    self.assertAlmostEqual(tip[0], body[0], places=1)
+    self.assertAlmostEqual(tip[1], body[1], places=1)
+
+  def test_a_symbol_with_no_stub_is_entered_at_its_pin(self):
+    doc = new_document()
+    doc.cells.extend([{"id": "u1", "type": "inv", "x": 0, "y": 0},
+                      {"id": "q", "type": "port_out", "x": 200, "y": 15}])
+    doc.nets.append({"id": "n1", "from": {"cell": "u1", "pin": "y"},
+                     "to": {"cell": "q", "pin": "p"}})
+    doc.normalize()
+    (tip,) = self._tips(render_svg.render(doc))
+    x, y = self.pin_at(doc, "q", "p")
     self.assertAlmostEqual(tip[0], x, places=1)
     self.assertAlmostEqual(tip[1], y, places=1)
+
+  def test_a_free_end_gets_its_head_at_the_end(self):
+    doc = new_document()
+    doc.nets.append({"id": "n1", "from": {"x": 50, "y": 50},
+                     "to": [{"x": 250, "y": 50}]})
+    doc.normalize()
+    (tip,) = self._tips(render_svg.render(doc))
+    self.assertEqual(tip, (250.0, 50.0))
 
   def test_each_load_of_a_fanout_gets_its_own(self):
     doc = new_document()
@@ -72833,11 +72705,8 @@ class TestDirectionArrows(unittest.TestCase):
                      "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
     doc.normalize()
     tips = sorted(self._tips(render_svg.render(doc)))
-    self.assertEqual(len(tips), 2)
-    for tip, load in zip(tips, ("u2", "u3")):
-      x, y = self.pin_at(doc, load, "a")
-      self.assertAlmostEqual(tip[0], x, places=1)
-      self.assertAlmostEqual(tip[1], y, places=1)
+    # Each inv's input stub meets its body 10 to the right of the pin.
+    self.assertEqual(tips, [(310.0, 40.0), (310.0, 220.0)])
 
   def test_backward_puts_one_head_on_the_driver(self):
     doc = new_document()
@@ -72849,9 +72718,9 @@ class TestDirectionArrows(unittest.TestCase):
                      "to": [{"cell": "u2", "pin": "a"}, {"cell": "u3", "pin": "a"}]})
     doc.normalize()
     (tip,) = self._tips(render_svg.render(doc))
-    x, y = self.pin_at(doc, "u1", "y")
-    self.assertAlmostEqual(tip[0], x, places=1)
-    self.assertAlmostEqual(tip[1], y, places=1)
+    # and2's output pin is at x=60; its stub meets the body at x=50.
+    self.assertEqual(self.pin_at(doc, "u1", "y"), (60.0, 120.0))
+    self.assertEqual(tip, (50.0, 120.0))
 
   def test_arrows_can_be_switched_off_per_render(self):
     self.assertEqual(self._arrows(render_svg.render(self.doc, arrows=False)), 0)
@@ -77932,257 +77801,6 @@ class TestTheLayoutSettlesOnTheGrid(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_layout.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tests/test_manifest.py lines=249 sha256=dcd3203810175404094d0d9cdb1f9f7626794fa8d3faea662e64f54c1051e3c4 >>>>>>>>>>
-"""The integrity manifest, and the guarantee that it is not stale.
-
-A manifest is only worth having if it describes the files that are actually
-here. One that has drifted is worse than none: it reports a healthy copy as
-broken, and once it has done that a few times nobody reads its output, which
-is the moment the next real mismatch goes past unnoticed.
-
-So the manifest is generated rather than maintained -- `drawlogic doctor
---write-manifest` writes it -- and this file fails the moment the committed
-one stops matching the tree. It cannot be forgotten, because forgetting it
-goes red.
-
-Usage:
-
-    python3 -m unittest tests.test_manifest
-"""
-
-import hashlib
-import os
-import shutil
-import tempfile
-import unittest
-
-from drawlogic import cli
-
-from tests import ROOT
-
-
-MANIFEST = os.path.join(ROOT, cli.MANIFEST_NAME)
-
-
-class TestTheManifestIsCurrent(unittest.TestCase):
-
-  def test_the_committed_manifest_matches_the_tree(self):
-    with open(MANIFEST) as handle:
-      committed = handle.read()
-    self.assertEqual(
-      committed, cli.manifest_text(ROOT),
-      "manifest.txt no longer describes the files here. Regenerate it with "
-      "`python3 -m drawlogic doctor --write-manifest` and commit the result.")
-
-  def test_it_covers_every_file_that_has_to_be_right(self):
-    listed = set()
-    with open(MANIFEST) as handle:
-      for line in handle:
-        parts = line.split(None, 1)
-        if len(parts) == 2:
-          listed.add(parts[1].strip())
-    self.assertEqual(listed, set(cli.manifest_files(ROOT)))
-
-  def test_the_files_outside_the_package_are_covered_too(self):
-    """sample.txt is the fixture for trying verify.ps1 by hand: edit it and
-    the check should say MISMATCH.
-
-    It sits outside the package tree the walk covers, so it was re-added to
-    manifest.txt by hand after each regeneration. That is a step someone
-    forgets, and the forgotten version of it is a manifest that disagrees
-    with the tree -- so generation names these files instead.
-    """
-    self.assertIn("sample.txt", cli.EXTRA_FILES)
-    for name in cli.EXTRA_FILES:
-      self.assertIn(name, cli.manifest_files(ROOT),
-                    "%s is declared but not generated into the manifest" % name)
-
-  def test_doctor_is_happy_with_this_copy(self):
-    problems, counted = cli._check_manifest(ROOT)
-    self.assertEqual(problems, [])
-    self.assertGreater(counted, 20)
-
-
-class TestHashingIgnoresLineEndings(unittest.TestCase):
-  """The whole reason the hash is not of the bytes on disk.
-
-  Git rewrites line endings on checkout by default on Windows. A byte-for-byte
-  manifest therefore reports every file in a perfectly good clone as wrong --
-  which is exactly what happened when one was handed over: all 28 files
-  "mismatched", not one of them actually different.
-  """
-
-  def write(self, folder, name, data):
-    path = os.path.join(folder, name)
-    with open(path, "wb") as handle:
-      handle.write(data)
-    return path
-
-  def test_crlf_and_lf_hash_the_same(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      unix = self.write(tmp, "unix.py", b"one\ntwo\nthree\n")
-      dos = self.write(tmp, "dos.py", b"one\r\ntwo\r\nthree\r\n")
-      self.assertEqual(cli.content_hash(unix), cli.content_hash(dos))
-
-  def test_an_old_mac_line_ending_hashes_the_same_too(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      unix = self.write(tmp, "unix.py", b"one\ntwo\n")
-      mac = self.write(tmp, "mac.py", b"one\rtwo\r")
-      self.assertEqual(cli.content_hash(unix), cli.content_hash(mac))
-
-  def test_a_byte_order_mark_hashes_the_same(self):
-    """Notepad has put one on the front of files for years."""
-    with tempfile.TemporaryDirectory() as tmp:
-      plain = self.write(tmp, "plain.py", b"x = 1\n")
-      marked = self.write(tmp, "marked.py", b"\xef\xbb\xbfx = 1\n")
-      self.assertEqual(cli.content_hash(plain), cli.content_hash(marked))
-
-  def test_a_real_difference_still_changes_the_hash(self):
-    """Otherwise the forgiving part has quietly made it forgive everything."""
-    with tempfile.TemporaryDirectory() as tmp:
-      one = self.write(tmp, "one.py", b"x = 1\n")
-      two = self.write(tmp, "two.py", b"x = 2\n")
-      self.assertNotEqual(cli.content_hash(one), cli.content_hash(two))
-
-  def test_whitespace_inside_a_line_still_counts(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      tight = self.write(tmp, "tight.py", b"x = 1\n")
-      loose = self.write(tmp, "loose.py", b"x  =  1\n")
-      self.assertNotEqual(cli.content_hash(tight), cli.content_hash(loose))
-
-  def test_a_missing_trailing_newline_hashes_the_same(self):
-    """Pasting a file by hand -- viewing it on GitHub, selecting the text,
-    dropping it into Notepad -- routinely loses the newline at the end
-    without anything else having changed."""
-    with tempfile.TemporaryDirectory() as tmp:
-      with_nl = self.write(tmp, "with_nl.py", b"one\ntwo\n")
-      without_nl = self.write(tmp, "without_nl.py", b"one\ntwo")
-      self.assertEqual(cli.content_hash(with_nl), cli.content_hash(without_nl))
-
-  def test_extra_trailing_blank_lines_hash_the_same(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      one = self.write(tmp, "one.py", b"one\ntwo\n")
-      several = self.write(tmp, "several.py", b"one\ntwo\n\n\n")
-      self.assertEqual(cli.content_hash(one), cli.content_hash(several))
-
-  def test_a_blank_line_in_the_middle_still_counts(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      tight = self.write(tmp, "tight.py", b"one\ntwo\n")
-      spaced = self.write(tmp, "spaced.py", b"one\n\ntwo\n")
-      self.assertNotEqual(cli.content_hash(tight), cli.content_hash(spaced))
-
-
-class TestCheckingFindsWhatItShould(unittest.TestCase):
-
-  def copy(self, tmp):
-    """A working copy of the package, with its manifest beside it."""
-    shutil.copytree(os.path.join(ROOT, "drawlogic"),
-                    os.path.join(tmp, "drawlogic"),
-                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    shutil.copy(MANIFEST, os.path.join(tmp, cli.MANIFEST_NAME))
-    for relative in cli.EXTRA_FILES:
-      shutil.copy(os.path.join(ROOT, relative), os.path.join(tmp, relative))
-    return tmp
-
-  def test_a_clean_copy_has_nothing_to_report(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      problems, counted = cli._check_manifest(self.copy(tmp))
-      self.assertEqual(problems, [])
-      self.assertGreater(counted, 20)
-
-  def test_a_changed_file_is_reported(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      self.copy(tmp)
-      with open(os.path.join(tmp, "drawlogic", "theme.py"), "a") as handle:
-        handle.write("\n# an edit from somewhere else\n")
-      problems, _ = cli._check_manifest(tmp)
-      self.assertTrue(any("theme.py" in p for p in problems), problems)
-
-  def test_a_missing_file_is_reported(self):
-    with tempfile.TemporaryDirectory() as tmp:
-      self.copy(tmp)
-      os.remove(os.path.join(tmp, "drawlogic", "web", "js", "selection.js"))
-      problems, _ = cli._check_manifest(tmp)
-      self.assertTrue(any("selection.js" in p and "missing" in p
-                          for p in problems), problems)
-
-  def test_a_file_nobody_asked_for_is_reported(self):
-    """Usually a leftover from an older copy, which Python will happily
-    import instead of the one meant to be there."""
-    with tempfile.TemporaryDirectory() as tmp:
-      self.copy(tmp)
-      with open(os.path.join(tmp, "drawlogic", "web", "js", "old.js"),
-                "w") as handle:
-        handle.write("// left behind\n")
-      problems, _ = cli._check_manifest(tmp)
-      self.assertTrue(any("old.js" in p for p in problems), problems)
-
-  def test_no_manifest_is_not_a_fault(self):
-    """A copy without one is unchecked, not broken."""
-    with tempfile.TemporaryDirectory() as tmp:
-      problems, counted = cli._check_manifest(tmp)
-      self.assertEqual(problems, [])
-      self.assertIsNone(counted)
-
-
-class TestTheWindowsScriptAgrees(unittest.TestCase):
-  """verify.ps1 has to compute the same hash as content_hash does.
-
-  It cannot be run here, so what is checked is that it is present, that it
-  hashes the same way in words, and that the manifest it reads is in the
-  shape it parses. The script itself was exercised against PowerShell 7.4 on
-  a CRLF copy, a copy with a byte order mark, a changed file, a missing file
-  and a leftover file -- see DOCUMENTATION.md, Checking the files themselves.
-  """
-
-  def script(self):
-    with open(os.path.join(ROOT, "verify.ps1")) as handle:
-      return handle.read()
-
-  def test_the_script_is_here(self):
-    self.assertTrue(os.path.isfile(os.path.join(ROOT, "verify.ps1")))
-
-  def test_it_normalises_line_endings_before_hashing(self):
-    text = self.script()
-    self.assertIn('-replace "`r`n", "`n"', text)
-    self.assertIn('-replace "`r", "`n"', text)
-
-  def test_it_normalises_trailing_newlines_before_hashing(self):
-    text = self.script()
-    self.assertIn('TrimEnd("`n")', text)
-
-  def test_it_hashes_with_sha256(self):
-    self.assertIn("SHA256", self.script())
-
-  def test_every_manifest_line_matches_what_the_script_parses(self):
-    """The script reads lines with ^([0-9a-fA-F]{64})\\s+(.+)$ -- so every
-    line the manifest writes has to be one of those."""
-    import re
-    pattern = re.compile(r"^([0-9a-fA-F]{64})\s+(.+)$")
-    with open(MANIFEST) as handle:
-      lines = [line.rstrip("\n") for line in handle if line.strip()]
-    self.assertTrue(lines)
-    for line in lines:
-      self.assertRegex(line, pattern)
-
-  def test_no_path_in_the_manifest_needs_escaping(self):
-    """Backslashes, spaces and quotes in a path would each be a way for the
-    PowerShell side to read a line differently from the Python side."""
-    with open(MANIFEST) as handle:
-      for line in handle:
-        parts = line.split(None, 1)
-        if len(parts) != 2:
-          continue
-        path = parts[1].strip()
-        self.assertNotIn("\\", path)
-        self.assertNotIn('"', path)
-        self.assertNotIn("'", path)
-        self.assertNotIn(" ", path)
-
-
-if __name__ == "__main__":
-  unittest.main()
-<<<<<<<<<< DLBUNDLE END path=tests/test_manifest.py >>>>>>>>>>
 <<<<<<<<<< DLBUNDLE BEGIN path=tests/test_model.py lines=439 sha256=1d8666e95ea814de0569bbd6783bd246f459cb057f515bc96f89607ae8c5f388 >>>>>>>>>>
 """Document format, symbol library and bus naming."""
 
@@ -80512,7 +80130,7 @@ class TestTheEditorSetsTextTheSame(unittest.TestCase):
 if __name__ == "__main__":
   unittest.main()
 <<<<<<<<<< DLBUNDLE END path=tests/test_styles.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=tools/pack_repo.py lines=144 sha256=184124447784334ffb0b3dc9c5af00150e4b4768311e5580f28580ff732c65d2 >>>>>>>>>>
+<<<<<<<<<< DLBUNDLE BEGIN path=tools/pack_repo.py lines=143 sha256=30065c300fed7f6e30bf1c51069290d7c24d6f4079abbe5550bd04e289f4ec5f >>>>>>>>>>
 #!/usr/bin/env python3
 """Concatenate this repository's files into one text bundle.
 
@@ -80526,8 +80144,7 @@ directory tree.
   python3 tools/pack_repo.py --exclude 'benchmarks/*' --exclude 'tests/golden/*'
 
 Which files: everything git tracks (`git ls-files`), so the copy is the same
-project the repository is -- manifest.txt lists the files `drawlogic doctor`
-checks, and a bundle missing some would fail it. Without git, every file under
+project the repository is. Without git, every file under
 the root except the usual junk (.git, __pycache__, ...). Binary files are
 skipped with a warning; this project has none.
 
@@ -80815,143 +80432,3 @@ def main():
 if __name__ == "__main__":
   main()
 <<<<<<<<<< DLBUNDLE END path=tools/unpack_repo.py >>>>>>>>>>
-<<<<<<<<<< DLBUNDLE BEGIN path=verify.ps1 lines=138 sha256=d7c9a9a09b184d96c0d104a901fa4614b1fdc3cc4fdb79cc9dc4cc6997a1fbf1 >>>>>>>>>>
-# Check that this copy of drawlogic has the files it should, on Windows.
-#
-#   powershell -ExecutionPolicy Bypass -File verify.ps1
-#
-# Run it from the folder that contains manifest.txt -- the top of the repo --
-# or point it anywhere with -Root. It reads manifest.txt, hashes each file it
-# names, and reports MATCH (with the file's size), MISMATCH, MISSING or EXTRA.
-#
-# Line endings and trailing blank lines are made uniform before hashing,
-# exactly as drawlogic/cli.py does it, so a file is only "wrong" when what it
-# says is different. Git rewrites line endings on checkout by default on
-# Windows, and a byte-for-byte check reports every file in a perfectly good
-# clone as broken -- which is what happened the first time one of these was
-# handed over: all 28 files "mismatched" and not one of them actually
-# different. Copying a file by hand from a browser has the same effect on the
-# newline at the end of the file. A checker that cries wolf is worse than
-# none, because the next real mismatch gets ignored too.
-#
-# Works on Windows PowerShell 5.1 and on PowerShell 7+.
-
-[CmdletBinding()]
-param(
-    [string]$Root = $PSScriptRoot,
-    [string]$Manifest
-)
-
-$ErrorActionPreference = 'Stop'
-
-if (-not $Root) { $Root = (Get-Location).Path }
-# Resolved once, so the relative paths worked out below cannot be thrown off
-# by a trailing separator or by how the folder was spelled on the way in.
-$Root = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
-if (-not $Manifest) { $Manifest = Join-Path $Root 'manifest.txt' }
-
-if (-not (Test-Path -LiteralPath $Manifest)) {
-    Write-Host "No manifest.txt at $Manifest" -ForegroundColor Red
-    Write-Host "Run this from the top of the drawlogic folder, or pass -Root."
-    exit 2
-}
-
-# UTF-8 without a byte order mark, which is what File.ReadAllText writes back
-# out and what the Python side hashes.
-$utf8 = New-Object System.Text.UTF8Encoding($false)
-$sha = [System.Security.Cryptography.SHA256]::Create()
-
-function Get-ContentHash([string]$Path) {
-    # ReadAllText with a UTF-8 encoding strips a byte order mark if there is
-    # one, so a file saved by Notepad hashes the same as one saved by anything
-    # else.
-    $text = [System.IO.File]::ReadAllText($Path, $utf8)
-    $text = $text -replace "`r`n", "`n"
-    $text = $text -replace "`r", "`n"
-    # A file pasted by hand from a browser routinely gains or loses the
-    # newline at the very end without anything else having changed, so one
-    # trailing newline hashes the same as none or several -- exactly as
-    # drawlogic/cli.py does it.
-    $text = $text.TrimEnd("`n")
-    if ($text.Length -gt 0) { $text = $text + "`n" }
-    $bytes = $utf8.GetBytes($text)
-    return ([System.BitConverter]::ToString($sha.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
-}
-
-$ok = 0
-$bad = New-Object System.Collections.ArrayList
-$listed = New-Object System.Collections.Generic.HashSet[string]
-
-foreach ($line in Get-Content -LiteralPath $Manifest) {
-    $line = $line.Trim()
-    if (-not $line -or $line.StartsWith('#')) { continue }
-    if ($line -notmatch '^([0-9a-fA-F]{64})\s+(.+)$') { continue }
-
-    $expected = $Matches[1].ToLowerInvariant()
-    $relative = $Matches[2].Trim()
-    [void]$listed.Add($relative)
-
-    # Forward slashes as the manifest writes them: .NET accepts them on
-    # Windows too, so there is nothing to translate and nothing to get wrong.
-    $full = Join-Path $Root $relative
-    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) {
-        Write-Host "MISSING   $relative" -ForegroundColor Red
-        [void]$bad.Add($relative)
-        continue
-    }
-
-    try {
-        $actual = Get-ContentHash $full
-    } catch {
-        Write-Host "UNREADABLE $relative -- $($_.Exception.Message)" -ForegroundColor Red
-        [void]$bad.Add($relative)
-        continue
-    }
-
-    if ($actual -eq $expected) {
-        $ok++
-        # The size is of the file as it sits on disk, not of the normalised
-        # text that was hashed -- it is here so a MATCH still says something
-        # concrete about the file, the same way MISMATCH names the file that
-        # differs rather than just counting it.
-        $size = (Get-Item -LiteralPath $full).Length
-        Write-Host ("MATCH     {0}  ({1:N0} bytes)" -f $relative, $size) -ForegroundColor Green
-    } else {
-        Write-Host "MISMATCH  $relative" -ForegroundColor Yellow
-        [void]$bad.Add($relative)
-    }
-}
-
-# A file the manifest has never heard of is worth saying so: it is usually a
-# leftover from an older version that Python will happily import instead of
-# the one meant to be there.
-$package = Join-Path $Root 'drawlogic'
-if (Test-Path -LiteralPath $package) {
-    $prefix = $Root + [System.IO.Path]::DirectorySeparatorChar
-    foreach ($file in Get-ChildItem -LiteralPath $package -Recurse -File) {
-        if ($file.Extension -eq '.pyc' -or $file.Extension -eq '.pyo') { continue }
-        if ($file.FullName -like '*__pycache__*') { continue }
-        if (-not $file.FullName.StartsWith($prefix)) { continue }
-        $relative = $file.FullName.Substring($prefix.Length) -replace '\\', '/'
-        if (-not $listed.Contains($relative)) {
-            Write-Host "EXTRA     $relative" -ForegroundColor Yellow
-            [void]$bad.Add($relative)
-        }
-    }
-}
-
-Write-Host ""
-if ($bad.Count -eq 0) {
-    Write-Host "$ok files, all as they should be" -ForegroundColor Cyan
-    exit 0
-}
-
-Write-Host "$ok files as they should be, $($bad.Count) not" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Files from different versions of drawlogic cannot work together."
-Write-Host "Take the whole repository at once rather than file by file:"
-Write-Host "  git clone https://github.com/ssaurabh41/drawlogic"
-Write-Host "or download and unzip"
-Write-Host "  https://github.com/ssaurabh41/drawlogic/archive/refs/heads/main.zip"
-exit 1
-<<<<<<<<<< DLBUNDLE END path=verify.ps1 >>>>>>>>>>
